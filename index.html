@@ -34,6 +34,61 @@ textarea{resize:vertical;min-height:80px}
 .tab.on{color:var(--accent);font-weight:700}
 .tab .badge{top:3px;right:calc(50% - 22px)}
 main{padding:0 12px}
+main.flush{padding:0}
+.bb{display:flex;flex-direction:column;height:calc(100dvh - 116px - env(safe-area-inset-bottom));background:var(--card)}
+.bb-head{display:flex;align-items:center;justify-content:center;position:relative;padding:8px 12px}
+.bb-title{font-weight:800;font-size:17px}
+.bb-more{position:absolute;right:6px;border:0;background:none;font-size:22px;padding:2px 12px}
+.bb-top{background:var(--card);padding:6px 14px 12px;border-radius:0 0 18px 18px;box-shadow:0 6px 14px rgba(0,0,0,.08);position:relative;z-index:2}
+.bb-fan{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:0 6px;font-weight:700}
+.bb-msg .bb-fan{background:rgba(255,255,255,.22);color:#fff}
+.bb-chat{flex:1;overflow-y:auto;padding:26px 12px 14px;margin-top:-14px}
+.bb-row{display:flex;gap:8px;margin:10px 0;align-items:flex-end}
+.bb-row.me{justify-content:flex-end}
+.bb-t{font-size:10.5px;color:rgba(255,255,255,.9);text-shadow:0 1px 3px rgba(0,0,0,.45);white-space:nowrap}
+.bb-msg{max-width:76%;background:rgba(58,58,62,.9);color:#fff;border-radius:18px;padding:9px 13px;word-break:break-word;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.bb-txt{white-space:pre-wrap}
+.bb-msg.bare{padding:4px}
+.bb-media{display:block;max-width:220px;max-height:300px;border-radius:14px}
+.bb-voice{border:0;background:transparent;color:#fff;font-weight:600;padding:2px 4px}
+.bb-voice .wave{letter-spacing:1px;opacity:.8}
+.bb-quote{background:#fff;color:#222;border-radius:12px;padding:8px 10px;margin:-2px -5px 8px;border-bottom:1.5px dashed #f2a6bd;font-size:14px}
+.bb-quote .q-to{font-size:12px;color:#888}
+.bb-quote .q-zh{color:#e8467c;font-size:13.5px}
+.bb-st{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px;flex:none;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.bb-from{font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);margin:0 0 3px 4px;letter-spacing:.5px}
+.bb-fb{background:#fff;border-radius:18px;padding:10px 14px;font-size:24px;line-height:1.2;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.15);letter-spacing:2px;white-space:nowrap}
+.bb-fb.open{width:calc(5 * 1.45em + 28px);text-align:center;overflow:hidden}
+.bb-arrow{width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.6);color:#555;font-size:14px;flex:none}
+.bb-welcome{background:rgba(255,255,255,.88);border-radius:14px;padding:8px 12px;margin:0 auto 12px;max-width:90%;font-size:14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.1);white-space:pre-wrap}
+.bb-wait{text-align:center;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);font-size:13px;margin:16px 0 4px}
+.bb-comp{display:flex;align-items:flex-end;gap:8px;padding:8px 10px;border-top:1px solid var(--line);background:var(--card)}
+.bb-comp textarea{min-height:40px;max-height:110px;border-radius:20px;padding:9px 14px;resize:none;background:var(--bg);border:0}
+.bb-plus{border:0;background:none;font-size:26px;width:36px;height:40px;flex:none}
+.bb-send{border:0;width:40px;height:40px;border-radius:50%;background:#111;color:#fff;font-size:20px;flex:none}
+.bb-rbar{display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--bg);border-top:1px solid var(--line);font-size:13px}
+.bb-recbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);font-size:14px}
+.rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2d55;animation:pulse 1s infinite}
+#bb-side{position:fixed;inset:0;z-index:85}
+.bb-side-mask{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .25s}
+#bb-side.on .bb-side-mask{background:rgba(0,0,0,.45)}
+.bb-side-panel{position:absolute;top:0;right:0;bottom:0;width:min(78vw,360px);background:var(--card);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s;padding-top:env(safe-area-inset-top)}
+#bb-side.on .bb-side-panel{transform:none}
+.bb-side-top{display:flex;padding:12px 16px;border-bottom:1px solid var(--line)}
+.bb-bell{border:0;background:none;font-size:24px}
+.bb-bell.muted{filter:grayscale(1);opacity:.55}
+.bb-side-me{display:flex;gap:14px;align-items:center;padding:22px 18px}
+.bb-ring{padding:3px;border-radius:50%;border:2.5px solid #ff7a2f}
+.bb-side-bot{display:flex;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.bb-side-bot button{flex:1;border:0;background:none;font-size:26px;padding:14px 0}
+.bb-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.bb-gal img,.bb-gal video{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:8px;background:#000}
+.bb-walls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.bb-wall{border:2px solid transparent;background:none;border-radius:12px;padding:4px;font-size:12px;display:flex;flex-direction:column;gap:3px;align-items:center;cursor:pointer;color:var(--text)}
+.bb-wall span{width:100%;aspect-ratio:3/4;border-radius:8px;border:1px solid var(--line)}
+.bb-wall.on{border-color:var(--accent)}
+.bb-menu button{display:flex;width:100%;gap:10px;align-items:center;border:0;background:var(--card);padding:14px;border-radius:12px;margin-bottom:8px;font-size:15px}
+.badge.dot{display:block!important;min-width:9px;width:9px;height:9px;padding:0;top:5px;right:calc(50% - 16px)}
 .card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin:0 0 12px}
 .btn{white-space:nowrap;border:0;border-radius:999px;padding:8px 16px;background:var(--accent-soft);color:var(--accent);font-weight:600}
 .btn.primary{background:var(--accent);color:#fff}
@@ -213,6 +268,7 @@ video.bv-glow{pointer-events:none}
   <nav class="tabbar"><div class="inner">
     <button class="tab" data-act="tab" data-tab="feed"><span class="ic">🏠</span>社区</button>
     <button class="tab" data-act="tab" data-tab="live"><span class="ic">📹</span>直播</button>
+    <button class="tab" data-act="tab" data-tab="bubble"><span class="ic">🫧</span>Bubble<span class="badge" id="bb-badge"></span></button>
     <button class="tab" data-act="tab" data-tab="sched"><span class="ic">🗓</span>行程</button>
     <button class="tab" data-act="tab" data-tab="notif"><span class="ic">🔔</span>通知<span class="badge" id="tab-badge"></span></button>
     <button class="tab" data-act="tab" data-tab="me"><span class="ic">🐱</span>我的</button>
@@ -273,6 +329,7 @@ function defaultState() {
     sim: { lastTick: Date.now() },
     posts: [], notifs: [], lives: [],
     schedule: seedSchedule(),
+    bubble: bbDefault(),
     seeded: false
   };
 }
@@ -711,7 +768,7 @@ function logAct(type) {
 // 最近 7 天的营业热度：0.6（低迷）~ 1.5（火热）
 function heat() {
   const F = fanState(), cut = Date.now() - 7 * 86400e3; let s = 0;
-  for (const a of F.act) if (a.t > cut) s += a.type === 'post' ? 1 : a.type === 'live' ? 1.5 : a.type === 'reply' ? .15 : 0;
+  for (const a of F.act) if (a.t > cut) s += a.type === 'post' ? 1 : a.type === 'live' ? 1.5 : a.type === 'reply' ? .15 : a.type === 'bubble' ? .3 : 0;
   const idle = (Date.now() - lastActive()) / 86400e3;
   return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04, .6, 1.5);
 }
@@ -793,7 +850,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans();
+  dailyFans(); schedFans(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -836,7 +893,9 @@ function sysNotify(n) {
 /* 离线补算：关掉页面再打开，帖子也在继续涨 */
 function catchUp() {
   const dt = Date.now() - (S.sim.lastTick || Date.now());
-  if (dt < 10000 || !S.posts.length) return;
+  if (dt < 10000) return;
+  if (S.bubble) bubbleTick(dt, true);
+  if (!S.posts.length) return;
   let L = 0, C = 0;
   for (const p of S.posts) { const r = simPost(p, dt, true); L += r.nl; C += r.nc; p.comments.sort((a, b) => b.at - a.at); }
   for (const k of Object.keys(agg)) delete agg[k];
@@ -921,6 +980,292 @@ async function aiReactions(post, parent, target, text) {
 }
 
 /* =========================================================
+   🫧 Bubble：偶像私信（每个粉丝都以为是单独发给自己的）
+   ========================================================= */
+const BB_TOK = '{粉丝名}';
+const BB_STICKERS = ['🐶', '🐱', '🐻', '🐰', '🦊', '🐼', '🐨', '🐯', '🐹', '🐸', '🐵', '🐧', '🐤', '🐮', '🐷', '🦄'];
+const BB_EMOJI = ['🥳', '😍', '🥰', '❤️', '😭', '😘', '🤩', '💕', '😆', '🫶', '💙', '🥺', '👍', '🔥', '✨', '😳'];
+const BB_WALL = {
+  skyg: ['天空', 'linear-gradient(180deg,#9fd3ff,#e8f6ff 60%,#ffffff)'], sunset: ['晚霞', 'linear-gradient(180deg,#ffb38a,#ffd6e0 55%,#e9e4ff)'],
+  stripe: ['粉色条纹', 'repeating-linear-gradient(90deg,#ffd6e3 0 18px,#ffffff 18px 36px)'], dots: ['波点', 'radial-gradient(#ffc2d6 2.5px,transparent 3px) 0 0/22px 22px,#fff6f9'],
+  grid: ['格子', 'linear-gradient(#dfe9fb 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,#dfe9fb 1px,transparent 1px) 0 0/24px 24px,#fbfdff'],
+  gray: ['浅灰', '#e9ecef'], mint: ['薄荷', '#d8f3ee'], sky: ['天蓝', '#dbeafe'], cream: ['奶油', '#fff4dc'], pink: ['樱花粉', '#ffe4ec'], night: ['夜空', '#1f2937']
+};
+function bbDefault() { return { welcome: '', openedAt: null, name: '', avatar: null, fanName: '', wall: 'skyg', wallImg: null, muted: false, unread: 0, msgs: [], groups: [{ id: uid(), after: null, fans: [], count: 0, closed: false, st: '🐶' }], rates: {}, pending: [], aiPool: [] }; }
+function bbRate() {
+  const B = S.bubble, k = dkey(Date.now());
+  if (!B.rates[k]) {
+    const ks = Object.keys(B.rates).sort(), prev = ks.length ? B.rates[ks[ks.length - 1]] : rand(.06, .085);
+    B.rates[k] = clamp(prev + rand(-.004, .004), .05, .10); // 订阅率 5%~10%，每天小幅浮动
+    ks.push(k); while (ks.length > 40) delete B.rates[ks.shift()];
+  }
+  return B.rates[k];
+}
+// 新开通：第一天约 15% 的潜在订阅者马上订阅，之后几天慢慢涨到粉丝的 5%~10%
+const bbDays = () => S.bubble.openedAt ? (Date.now() - S.bubble.openedAt) / 864e5 : 0;
+const bbSubs = () => S.bubble.openedAt ? Math.round(S.profile.followers * bbRate() * (1 - .85 * Math.exp(-bbDays() / 2.5))) : 0;
+const bbName = () => S.bubble.name || S.profile.name;
+const bbFan = () => S.bubble.fanName || S.profile.fandom;
+const bbOpen = () => S.bubble.groups[S.bubble.groups.length - 1];
+function bbTime(ts) { const d = new Date(ts), h = d.getHours(); return `${h < 12 ? '上午' : '下午'} ${pad(h % 12 || 12)}:${pad(d.getMinutes())}`; }
+const fmtDur = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60))}`;
+
+const BB_LINES = {
+  react: ['哈哈哈哈哈', '嗯嗯！', '真的吗！', '好可爱', '爱你', '呜呜呜', '{n}！！', '啊啊啊啊', '好幸福', '今天也好喜欢你', '被可爱到了', '原来如此', '心动了', '我也是！', '知道啦～', '收到！', '笑死我了', '你怎么这么可爱'],
+  emoji: ['🥳🥳🥳', '❤️❤️❤️❤️❤️', '😭😭😭', '🥰🥰🥰', '💙💙💙', '😍😍😍😍😍', '🫶🫶🫶', '😘😘😘'],
+  image: ['照片！！！', '{n}好好看', '这是今天拍的吗', '已保存', '这张要设成壁纸', '好好看呜呜', '发型好可爱', '谢谢{n}发照片'],
+  video: ['视频！！', '循环了好多遍', '好可爱的视频', '再发一个吧', '已经录屏了'],
+  voice: ['声音！！！', '耳朵怀孕了', '语音再来一条好不好', '听了十遍了', '声音好温柔', '戴耳机听的', '睡前就听这个了'],
+  follow: ['然后呢然后呢？', '在哪里呀？', '和谁一起呀？', '现在在干嘛？', '吃的什么呀？', '今天累不累？', '什么时候再来呀？', '可以多说一点吗？', '真的吗？为什么呀？', '明天有什么行程吗？', '今天开心吗？', '睡前还会来吗？', '{n}今天几点下班？', '最近在听什么歌？', '今天穿的什么呀？', '现在在宿舍吗？', '下次可以发照片吗？', '这是什么时候的事呀？'],
+  idle: ['{n}在干嘛呀', '想你了', '今天也辛苦了', '我今天考试了…', '刚下班，好累', '今天吃了好吃的！', '今天看到一只猫，好像你', '在听{n}的歌', '{n}吃饭了吗', '今天天气好好', '有点想哭，但看到{n}就好了', '刚起床', '今天也来打卡了', '好想见你', '明天有考试，给我加油！', '在地铁上', '今天被老板骂了😭', '今天和朋友聊到你了', '{n}要好好休息', '今天也是喜欢{n}的一天', '刚刷到你的直拍', '我今天做了蛋糕！'],
+  morning: ['早安{n}！', '早上好～', '刚起床就来了', '今天也要加油哦'],
+  night: ['晚安{n}', '这么晚了还不睡吗', '我要睡了，晚安', '熬夜中…', '睡前来看看你'],
+  replied: ['啊啊啊啊{n}回复我了！！！', '我被回复了吗？？？', '手在抖', '这是真的吗', '截图了截图了', '今天是我的节日'],
+  newsub: ['刚订阅！！', '收到欢迎语了呜呜呜', '第一天订阅，请多指教', '终于开通 Bubble 了！！', '{n}的欢迎语好可爱', '订阅成功！以后每天都来', '欢迎语截图了', '开通了怎么不早说！冲了', '我是第一批订阅的吗！', '以后就是我们的秘密基地了', '刷到通知立刻订阅', '{n}好呀！我来啦', '订阅了！要常来哦', '这个欢迎语我能看一百遍', '呜呜呜终于可以和{n}聊天了'],
+  envy: ['羡慕被回复的姐妹', '也回复我一下嘛', '我也想被回复', '好羡慕呜呜']
+};
+const BB_FOREIGN = {
+  ko: [['ㅋㅋㅋㅋㅋㅋ', '哈哈哈哈哈哈'], ['사랑해요', '爱你'], ['보고싶어요', '想你'], ['밥 먹었어요?', '吃饭了吗？'], ['오늘도 수고했어요', '今天也辛苦了'], ['헐 대박', '天哪 绝了'], ['귀여워요 ㅠㅠ', '好可爱呜呜']],
+  ja: [['かわいい！', '好可爱！'], ['大好き！', '最喜欢了！'], ['おやすみ〜', '晚安～']],
+  en: [['love you!!', '爱你！！'], ['omg 😭', '天哪 😭'], ['miss you', '想你'], ['so cute', '好可爱']]
+};
+function bbLine(msg, chatting) {
+  const lang = pickLang();
+  if (lang !== 'zh') { const it = pick(BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
+  const t = (msg && msg.text) || '', r = Math.random();
+  if (chatting && msg) {
+    // 泡泡里粉丝主要是：回答你的问题 / 回应你发的内容 / 追问你
+    const clean = t.split(BB_TOK).join(bbFan());
+    const ans = clean && answerFor(clean);
+    if (ans && r < .45) return { lang, text: fill(pick(ans)) };
+    if (msg.type !== 'text' && r < .55) return { lang, text: fill(pick(BB_LINES[msg.type])) };
+    const cats = detectCats(clean).filter(c => TPL[c] && TPL[c].zh && c !== 'question');
+    if (cats.length && r < .65) { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
+    if (r < .84) return { lang, text: fill(pick(Math.random() < .7 ? BB_LINES.follow : TPL.ask.zh)) };
+    if (r < .9) return { lang, text: pick(BB_LINES.emoji) };
+    return { lang, text: fill(pick(BB_LINES.react)) };
+  }
+  const h = new Date().getHours();
+  if (Math.random() < .55 * Math.exp(-bbDays() / 2)) return { lang, text: fill(pick(BB_LINES.newsub)) };
+  if (r < .12) { const ev = eventLine(); if (ev) return { lang, text: ev }; }
+  if (r < .25) return { lang, text: fill(pick(TPL.ask.zh)) };
+  if (r < .4) return { lang, text: fill(pick(h >= 5 && h < 10 ? BB_LINES.morning : (h >= 23 || h < 4) ? BB_LINES.night : BB_LINES.idle)) };
+  return { lang, text: fill(pick(BB_LINES.idle)) };
+}
+function bbUniq(make) {
+  // 同一句话换个昵称也算重复
+  const nicks = [...S.profile.nicks, S.profile.name].filter(Boolean).sort((a, b) => b.length - a.length);
+  const norm = t => nicks.reduce((a, n) => a.split(n).join('#'), t);
+  const g = bbOpen(), recent = g.fans.slice(-40).map(f => norm(f.text));
+  let l = make(); for (let i = 0; i < 8 && recent.includes(norm(l.text)); i++) l = make();
+  return l;
+}
+function bbAddFan(line, user) {
+  const B = S.bubble, g = bbOpen();
+  const m = { id: uid(), user: user || line.user || makeFan(line.lang).user, st: pick(BB_STICKERS), lang: line.lang || 'zh', text: line.text, zh: line.zh || null, at: Date.now() };
+  g.fans.push(m); g.count = (g.count || 0) + 1;
+  if (g.fans.length > 400) g.fans.splice(0, g.fans.length - 400);
+  if (UI.tab !== 'bubble') B.unread = (B.unread || 0) + 1;
+  return m;
+}
+// 粉丝消息：你刚发消息时一波（大概订阅者的 5%~12%，大部分订阅者不说话），平时零星主动发（深夜少、晚上多）
+function bubbleTick(dt, silent) {
+  const B = S.bubble; if (!B || !B.openedAt) return;
+  const now = Date.now(), subs = bbSubs(), last = B.msgs[B.msgs.length - 1], g = bbOpen(), before = g.fans.length;
+  B.pending = B.pending.filter(p => {
+    if (p.at > now) return true;
+    const dup = !p.user && bbOpen().fans.slice(-30).some(f => f.text === p.line.text);
+    bbAddFan(dup ? bbUniq(() => bbLine(null, false)) : p.line, p.user); return false;
+  });
+  let lam = 0;
+  if (last && last.burst) { const tau = 60e3, a1 = now - last.at, a0 = Math.max(0, a1 - dt); lam += last.burst * (Math.exp(-a0 / tau) - Math.exp(-a1 / tau)); }
+  const h = new Date().getHours(), tod = h >= 1 && h < 7 ? .3 : (h >= 20 || h < 1) ? 1.5 : 1;
+  lam += subs * .006 * (dt * (S.prefs.speed || 1) / 3600e3) * tod * heat();
+  let n = poisson(lam); if (silent) n = Math.min(n, 120);
+  const chatting = last && now - last.at < 15 * 60e3;
+  for (let i = 0; i < n; i++) {
+    const line = chatting && B.aiPool.length && Math.random() < .3 ? B.aiPool.shift() : bbUniq(() => bbLine(last, chatting && (now - last.at < 10 * 60e3 || Math.random() < .5)));
+    bbAddFan(line);
+  }
+  if (!silent && (n || before !== bbOpen().fans.length)) { if (UI.tab === 'bubble' && before === 0) renderBubbleChat(); updBadges(); }
+}
+async function bbSend(type, payload = {}) {
+  const B = S.bubble, g = bbOpen();
+  if (g.fans.length) { g.closed = true; g.emoji = g._emo || pick(BB_EMOJI); } else B.groups.pop();
+  const h = new Date().getHours();
+  const m = { id: uid(), type, text: payload.text || '', at: Date.now(), burst: Math.round(bbSubs() * rand(.05, .12) * heat() * (h >= 22 || h < 2 ? 1.3 : 1)) };
+  if (payload.blob) { const id = uid(); try { await idbPut(id, payload.blob); } catch (e) { } urlCache[id] = URL.createObjectURL(payload.blob); m.media = id; if (payload.dur) m.dur = payload.dur; }
+  if (B.replyTo) {
+    const rt = B.replyTo; m.replyTo = rt; B.replyTo = null; const now = Date.now();
+    // 泡泡里被回复的反应不多：被回复的粉丝偶尔接一句，很少有人说羡慕
+    const follow = replyFollow({ text: rt.text }, m.text);
+    if (follow && Math.random() < .5) B.pending.push({ at: now + rand(8000, 30000), user: rt.user, line: { lang: 'zh', text: fill(follow) } });
+    if (Math.random() < .2) B.pending.push({ at: now + rand(10000, 40000), line: { lang: 'zh', text: pick(BB_LINES.envy) } });
+  }
+  B.msgs.push(m); B.groups.push({ id: uid(), after: m.id, fans: [], count: 0, closed: false, st: pick(BB_STICKERS) });
+  logAct('bubble'); save();
+  if (UI.tab === 'bubble') { renderBubbleChat(); bbReplyBar(); }
+  if (aiOn()) bbAI(m);
+}
+async function bbAI(m) {
+  // 连着发好几条时，1 分钟内只请一次 AI，省钱
+  if (Date.now() - (S.bubble._lastAi || 0) < 60000) return;
+  S.bubble._lastAi = Date.now();
+  try {
+    const content = [];
+    if (m.type === 'image' && m.media) { const b = await idbGet(m.media).catch(() => null); if (b) { const d = await imageB64(b); if (d) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } }); } }
+    const recent = S.bubble.msgs.slice(-4, -1).map(x => x.type === 'text' ? x.text : `[${x.type}]`).join(' / ');
+    const kind = { text: '文字', image: '照片', video: '视频', voice: '语音' }[m.type];
+    content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里给订阅粉丝发了一条${kind}消息${m.text ? `：「${m.text.split(BB_TOK).join('【粉丝自己的昵称】')}」` : ''}。${m.replyTo ? `这是在回复粉丝「${m.replyTo.user}」的消息「${m.replyTo.text}」。` : ''}${recent ? `她前面几条消息：${recent}。` : ''}
+每个粉丝都以为这是偶像单独发给自己的私聊。请生成 12 条粉丝发给她的私信回复：大部分是回应她发的内容、回答她的问题、或者追问她（在哪/和谁/然后呢/今天怎么样），少量撒娇或分享自己的日常。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
+    const list = await aiComments(content, 1200);
+    S.bubble.aiPool.push(...list);
+  } catch (e) { aiFail(e); }
+}
+
+/* ---------- Bubble 界面 ---------- */
+function bbAvatarHTML(size = 38) {
+  const B = S.bubble;
+  return `<div class="av" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .4)}px;background:linear-gradient(135deg,var(--accent),var(--accent2))">${B.avatar ? `<img data-mid="${B.avatar}" alt="">` : esc(bbName()[0] || 'C')}</div>`;
+}
+function viewBubbleSetup() {
+  const B = S.bubble;
+  return `<div style="padding:12px">
+    <div class="card" style="text-align:center;padding:22px 16px"><div style="font-size:44px">🫧</div><h2 style="margin:6px 0">开通 Bubble</h2>
+      <div class="muted">Bubble 是你和订阅粉丝的私信空间。每个粉丝看到的都像是你单独发给 TA 的消息。<br>开通前先设置一句<b>欢迎语</b>：以后每个新订阅的粉丝都会自动收到它。</div></div>
+    <div class="card">
+      <div class="field"><label>Bubble 名字</label><input id="bb-s-name" value="${esc(B.name || '')}" placeholder="${esc(S.profile.name)}"></div>
+      <div class="field"><label>粉丝名（聊天室名字）</label><input id="bb-s-fan" value="${esc(B.fanName || '')}" placeholder="${esc(S.profile.fandom)}"></div>
+      <div class="field"><label>欢迎语（必填）</label><textarea id="bb-s-welcome" style="min-height:90px" placeholder="比如：${esc(BB_TOK)}，欢迎来到我的 Bubble！以后有什么想说的都可以在这里告诉我 🐱">${esc(B.welcome || '')}</textarea></div>
+      <div class="row"><button class="btn ghost sm" data-act="bbinsw">插入粉丝称呼</button><span class="muted" style="font-size:12px">粉丝会看到自己的名字</span><span class="sp"></span><button class="btn primary" data-act="bblaunch">开通 🫧</button></div>
+    </div></div>`;
+}
+function viewBubble() {
+  if (!S.bubble.welcome) return viewBubbleSetup();
+  return `<div class="bb">
+    <div class="bb-head"><span class="bb-title">${esc(bbName())}</span><button class="bb-more" data-act="bbmenu" title="更多">⋮</button></div>
+    <div class="bb-top">
+      <div class="row"><span class="muted" style="font-size:12px">🔒 只有你能看到</span><span class="sp"></span><span class="muted" style="font-size:12px">订阅中 ${fmtNum(bbSubs())} 人</span></div>
+      <div class="row" style="margin-top:4px"><span style="font-size:14px">粉丝称呼：<b class="bb-fan">${esc(bbFan())}</b></span><span class="sp"></span><button class="btn sm" data-act="bbins">插入称呼</button></div>
+      <div class="muted" style="font-size:11.5px;margin-top:2px">插入后，每个粉丝看到的都是自己的名字</div>
+    </div>
+    <div class="bb-chat" id="bbchat"></div>
+    <div id="bb-replybar"></div>
+    <div id="bb-rec"></div>
+    <div class="bb-comp">
+      <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
+      <textarea id="bb-in" rows="1" placeholder="给粉丝发消息…">${esc(UI.bbDraft || '')}</textarea>
+      <button class="bb-send" data-act="bbsend" title="发送">↑</button>
+    </div>
+    <input type="file" id="bb-file" accept="image/*,video/*" hidden>
+  </div>`;
+}
+function bbMsgHTML(m) {
+  const txt = esc(m.text).split(esc(BB_TOK)).join(`<span class="bb-fan">${esc(bbFan())}</span>`);
+  let body = '';
+  if (m.type === 'image') body = `<img class="bb-media" data-mid="${m.media}" data-act="zoom" data-mid2="${m.media}" alt="">`;
+  else if (m.type === 'video') body = `<video class="bb-media" data-mid="${m.media}" controls playsinline preload="metadata"></video>`;
+  else if (m.type === 'voice') body = `<button class="bb-voice" data-act="bbplay" data-mid="${m.media}">▶︎ <span>${fmtDur(m.dur || 0)}</span> <span class="wave">▁▃▅▂▆▃▁▅▂</span></button>`;
+  const quote = m.replyTo ? `<div class="bb-quote"><div class="q-to">回复给 ${esc(m.replyTo.user)}</div><div>${esc(m.replyTo.text)}</div>${m.replyTo.zh ? `<div class="q-zh">${esc(m.replyTo.zh)}</div>` : ''}</div>` : '';
+  return `<div class="bb-row me"><span class="bb-t">${bbTime(m.at)}</span><div class="bb-msg${m.type !== 'text' && !m.text && !quote ? ' bare' : ''}">${quote}${body}${m.text ? `<div class="bb-txt">${txt}</div>` : ''}</div></div>`;
+}
+function bbGroupHTML(g) {
+  if (!g || !g.fans.length) return '';
+  if (!g.closed && !g._emo) { g._emo = pick(BB_EMOJI); g._n = pick([3, 5]); }
+  const emo = g.closed ? g.emoji : g._emo, n = g.closed ? 3 : g._n;
+  return `<div class="bb-row fan"><div class="bb-st">${g.st || '🐶'}</div><div><div class="bb-from">FROM FAN</div><div class="row" style="gap:6px"><div class="bb-fb ${g.closed ? 'closed' : 'open'}" data-g="${g.id}" data-act="bbopen">${emo.repeat(n)}</div><button class="bb-arrow" data-act="bbopen" data-g="${g.id}" title="查看粉丝消息">➜</button></div></div></div>`;
+}
+function renderBubbleChat() {
+  const box = $('#bbchat'); if (!box) return;
+  const B = S.bubble, byAfter = {};
+  B.groups.forEach(g => byAfter[g.after || '_'] = g);
+  let h = `<div class="bb-welcome"><div class="muted" style="font-size:11.5px">📌 欢迎语 · 新订阅的粉丝会自动收到</div><div>${esc(B.welcome).split(esc(BB_TOK)).join(`<span class="bb-fan">${esc(bbFan())}</span>`)}</div></div>` + bbGroupHTML(byAfter._);
+  for (const m of B.msgs) h += bbMsgHTML(m) + bbGroupHTML(byAfter[m.id]);
+  const last = B.msgs[B.msgs.length - 1];
+  if (!last || Date.now() - last.at > 3 * 3600e3) h += `<div class="bb-wait">粉丝们正在等你的消息 🫧</div>`;
+  if (!B.msgs.length && !bbOpen().fans.length) h += `<div class="bb-wait" style="margin-top:30%">发第一条消息，和订阅的粉丝们打个招呼吧 🫧</div>`;
+  box.innerHTML = h; hydrate(box); bbWallpaper();
+  box.scrollTop = box.scrollHeight;
+  $$('img,video', box).forEach(x => x.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true }));
+}
+async function bbWallpaper() {
+  const box = $('#bbchat'); if (!box) return;
+  const B = S.bubble;
+  if (B.wall === 'custom' && B.wallImg) { const u = await mediaURL(B.wallImg); if (u) { box.style.background = `center/cover no-repeat url("${u}")`; return; } }
+  box.style.background = (BB_WALL[B.wall] || BB_WALL.skyg)[1];
+}
+function bbReplyBar() {
+  const bar = $('#bb-replybar'); if (!bar) return; const rt = S.bubble.replyTo;
+  bar.innerHTML = rt ? `<div class="bb-rbar"><div style="flex:1;min-width:0"><b>回复给 ${esc(rt.user)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(rt.text)}</div></div><button class="link" data-act="bbrcancel">✕</button></div>` : '';
+}
+function bbListHTML(g) {
+  const list = g.fans.slice().reverse();
+  return `<div class="row"><h3 style="flex:1">粉丝消息 · ${fmtNum(g.count || g.fans.length)} 条</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    ${(g.count || 0) > g.fans.length ? `<div class="muted" style="margin-bottom:6px">只保留了最近 ${g.fans.length} 条</div>` : ''}
+    <div class="card" style="padding:4px 12px">${list.map(f => `<div class="cmt"><div class="av" style="background:#fff;font-size:22px;border:1px solid var(--line)">${f.st}</div><div class="cb">
+      <div class="cn">${esc(f.user)}${LANG_TAG[f.lang] ? `<span class="lang">${LANG_TAG[f.lang]}</span>` : ''}</div><div class="ct">${esc(f.text)}</div>
+      ${f.zh ? `<div class="tr" ${S.prefs.autoTr ? '' : 'hidden'}>译：${esc(f.zh)}</div><button class="link" data-act="tr">${S.prefs.autoTr ? '隐藏翻译' : '查看翻译'}</button>` : ''}
+      <div class="cm"><span class="muted">${bbTime(f.at)}</span><button class="link" data-act="bbreply" data-g="${g.id}" data-f="${f.id}">回复</button></div></div></div>`).join('') || '<div class="empty">还没有消息</div>'}</div>`;
+}
+function bbSideOpen() {
+  bbSideClose();
+  const B = S.bubble, d = document.createElement('div'); d.id = 'bb-side';
+  d.innerHTML = `<div class="bb-side-mask" data-act="bbsideclose"></div><div class="bb-side-panel">
+    <div class="bb-side-top"><span class="sp"></span><button class="bb-bell ${B.muted ? 'muted' : ''}" data-act="bbmute" title="${B.muted ? '已静音' : '通知已开启'}">${B.muted ? '🔕' : '🔔'}</button></div>
+    <div class="bb-side-me"><div class="bb-ring">${bbAvatarHTML(64)}</div><div><span class="artist" style="background:#ff7a2f">ARTIST</span><div style="font-weight:700;font-size:18px;margin-top:2px">${esc(bbName())}</div><div class="muted">订阅中 ${fmtNum(bbSubs())} 人</div></div></div>
+    <div class="sp"></div>
+    <div class="bb-side-bot"><button data-act="bbgallery" title="照片和视频">▦</button><button data-act="bbsettings" title="聊天室设置">⚙︎</button></div>
+  </div>`;
+  document.body.appendChild(d); hydrate(d); requestAnimationFrame(() => d.classList.add('on'));
+}
+function bbSideClose() { $('#bb-side')?.remove(); }
+function bbGalleryHTML() {
+  const ms = S.bubble.msgs.filter(m => m.media && (m.type === 'image' || m.type === 'video')).reverse();
+  return `<div class="row"><h3 style="flex:1">全部照片和视频</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    ${ms.length ? `<div class="bb-gal">${ms.map(m => m.type === 'image' ? `<img data-mid="${m.media}" data-act="zoom" data-mid2="${m.media}" alt="">` : `<video data-mid="${m.media}" muted playsinline preload="metadata" controls></video>`).join('')}</div>` : '<div class="empty">还没有发过照片或视频</div>'}`;
+}
+function bbSettingsHTML() {
+  const B = S.bubble;
+  return `<div class="row"><h3 style="flex:1">聊天室设置</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card">
+      <div class="row" style="gap:14px"><label style="cursor:pointer" title="更换头像">${bbAvatarHTML(64)}<input type="file" id="bb-av-file" accept="image/*" hidden></label><div class="muted">点头像更换<br>Bubble 的头像和名字与社区分开</div></div>
+      <div class="field" style="margin-top:12px"><label>Bubble 名字</label><input id="bb-name" value="${esc(B.name || '')}" placeholder="${esc(S.profile.name)}"></div>
+      <div class="field"><label>粉丝名（聊天室名字）</label><input id="bb-fanname" value="${esc(B.fanName || '')}" placeholder="${esc(S.profile.fandom)}"></div>
+      <div class="field"><label>欢迎语（新订阅的粉丝会自动收到，可用 ${esc(BB_TOK)}）</label><textarea id="bb-welcome" style="min-height:70px">${esc(B.welcome || '')}</textarea></div>
+    </div>
+    <div class="card"><b>壁纸</b>
+      <div class="bb-walls">${Object.entries(BB_WALL).map(([k, [n, css]]) => `<button class="bb-wall ${B.wall === k ? 'on' : ''}" data-act="bbwall" data-k="${k}"><span style="background:${css}"></span>${n}</button>`).join('')}
+        <label class="bb-wall ${B.wall === 'custom' ? 'on' : ''}"><span style="display:grid;place-items:center;background:var(--bg);font-size:20px">＋</span>自定义<input type="file" id="bb-wall-file" accept="image/*" hidden></label></div>
+    </div>
+    <div class="row"><span class="sp"></span><button class="btn primary" data-act="bbsave">保存</button></div>`;
+}
+let BBREC = null, bbAudio = null;
+async function bbRecStart() {
+  if (BBREC) return;
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mr = new MediaRecorder(st), chunks = [];
+    mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    BBREC = { st, mr, chunks, start: Date.now(), timer: setInterval(() => { const el = $('#bb-rec-t'); if (el && BBREC) el.textContent = fmtDur((Date.now() - BBREC.start) / 1000); }, 300) };
+    mr.start();
+    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">发送</button></div>`;
+  } catch (e) { toast('无法使用麦克风', camErr(e)); }
+}
+function bbRecStop(send) {
+  const R = BBREC; if (!R) return; BBREC = null; clearInterval(R.timer);
+  R.mr.onstop = () => { R.st.getTracks().forEach(t => t.stop()); if (send && R.chunks.length) bbSend('voice', { blob: new Blob(R.chunks, { type: R.mr.mimeType || 'audio/mp4' }), dur: (Date.now() - R.start) / 1000 }); };
+  try { R.mr.stop(); } catch (e) { }
+  const bar = $('#bb-rec'); if (bar) bar.innerHTML = '';
+}
+// 正在滚动的折叠气泡：固定频率随机换表情（3 个或 5 个）
+setInterval(() => {
+  if (UI.tab !== 'bubble' || !S.bubble) return;
+  const g = bbOpen(); if (!g || !g.fans.length) return;
+  g._emo = pick(BB_EMOJI); g._n = pick([3, 5]);
+  const el = $(`.bb-fb.open[data-g="${g.id}"]`); if (el) el.textContent = g._emo.repeat(g._n);
+}, 1200);
+
+/* =========================================================
    UI 状态 & 渲染
    ========================================================= */
 const UI = { tab: 'feed', postId: null, sort: 'new', schedDate: dkey(Date.now()), replyTo: null, newHot: 0 };
@@ -939,10 +1284,13 @@ function render() {
   if (UI.tab === 'feed') h = UI.postId ? viewPost() : viewFeed();
   else if (UI.tab === 'live') h = viewLive();
   else if (UI.tab === 'sched') h = viewSched();
+  else if (UI.tab === 'bubble') h = viewBubble();
   else if (UI.tab === 'notif') h = viewNotif();
   else h = viewMe();
   view.innerHTML = h;
+  view.classList.toggle('flush', UI.tab === 'bubble' && !!S.bubble.welcome);
   hydrate(view);
+  if (UI.tab === 'bubble' && S.bubble.welcome) { S.bubble.unread = 0; renderBubbleChat(); bbReplyBar(); }
   if (UI.tab === 'feed' && !UI.postId) { const t = $('#cmp-text'); if (t) t.value = draft; renderPending(); }
   if (UI.tab === 'notif') { S.notifs.forEach(n => n.read = true); updBadges(); save(); }
   updBadges();
@@ -1151,6 +1499,8 @@ function openNotif(n) {
 function updBadges() {
   const n = S.notifs.filter(x => !x.read).length; const t = n ? (n > 99 ? '99+' : String(n)) : '';
   $('#bell-badge').textContent = t; $('#tab-badge').textContent = t;
+  const bb = $('#bb-badge'), u = (S.bubble && S.bubble.unread) || 0;
+  if (bb) { bb.classList.toggle('dot', !!(u && S.bubble.muted)); bb.textContent = u && !S.bubble.muted ? (u > 99 ? '99+' : String(u)) : ''; }
 }
 function toast(text, sub = '', onClick) {
   const el = document.createElement('div'); el.className = 'toast';
@@ -1497,6 +1847,8 @@ const ANS = {
   laugh: ['哈哈哈哈哈', '笑死', '笑出声了', '哈哈哈太好笑了', '我也笑了'],
   dunno: ['没关系！', '哈哈哈可爱', '不知道也没事', '那就慢慢想'],
   agree: ['对！', '是的是的', '没错', '确实', '对对对'],
+  ate: ['我吃了拉面！', '炸鸡！！', '妈妈做的饭', '食堂的饭😭', '还没吃…', '麻辣烫', '外卖披萨', '和{n}一样吃了火锅！', '减肥中，只吃了沙拉', '饺子！', '便利店饭团', '部队锅！'],
+  did: ['上课上了一天', '上班好累', '在家躺了一天', '写作业中…', '和朋友去逛街了', '一直在等{n}的消息', '考试😭', '看了{n}的直拍', '睡了一整天哈哈'],
   start: ['啊啊啊开始了', '准备好了！', '录屏开始', '耳朵准备好了']
 };
 function songAns() {
@@ -1510,6 +1862,7 @@ function answerFor(text) {
   if (ch) { const [A, B] = ch; return [`${A}！`, `${B}！！`, `当然是${A}`, `我投${B}`, `${A}${A}`, `选${B}！`, '都要！']; }
   const rules = [
     [/(想听|听)什么|唱什么|哪首|点歌|什么歌/, songAns],
+    [/(你们|大家|你).{0,6}(吃了什么|吃了啥|吃的什么|吃饭了吗)/, () => ANS.ate], [/(你们|大家).{0,6}(做了什么|干了什么|干嘛了|怎么过的)/, () => ANS.did],
     [/吃什么|吃啥|吃点什么/, () => ANS.food], [/喝什么|喝啥/, () => ANS.drink],
     [/去哪|哪里玩|去什么地方|想去哪/, () => ANS.place], [/穿什么|穿哪|哪件/, () => ANS.wear], [/什么颜色|哪个颜色/, () => ANS.color],
     [/做什么|干什么|玩什么|干嘛/, () => ANS.doWhat], [/几点|什么时候|哪天/, () => ANS.when], [/叫什么|起什么名|取名/, () => ANS.name],
@@ -1892,6 +2245,43 @@ document.addEventListener('click', async e => {
     case 'opennotif': { const n = S.notifs.find(x => x.id === t.dataset.nid); if (n) openNotif(n); break; }
     case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
     case 'pvcam': previewCam(); break;
+    case 'bbmenu': bbSideOpen(); break;
+    case 'bbinsw': { const inp = $('#bb-s-welcome'); const a = inp.selectionStart ?? inp.value.length; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(inp.selectionEnd ?? a); inp.focus(); break; }
+    case 'bblaunch': {
+      const w = $('#bb-s-welcome').value.trim(); if (!w) { toast('请先写一句欢迎语'); break; }
+      const B = S.bubble; B.welcome = w; B.name = $('#bb-s-name').value.trim(); B.fanName = $('#bb-s-fan').value.trim();
+      B.openedAt = B.openedAt || Date.now();
+      // 开通瞬间：一批粉丝马上订阅，收到欢迎语后来打招呼
+      const n = Math.round(bbSubs() * rand(.15, .3)), now = Date.now();
+      for (let i = 0; i < n; i++) B.pending.push({ at: now + 2000 + Math.pow(Math.random(), 2) * 300000, line: Math.random() < .85 ? { lang: 'zh', text: fill(pick(BB_LINES.newsub)) } : (() => { const l = pickLang() === 'zh' ? 'ko' : pickLang(); const it = pick(BB_FOREIGN[l] || BB_FOREIGN.ko); return { lang: l, text: it[0], zh: it[1] }; })() });
+      logAct('bubble'); save(); render();
+      pushNotif({ type: 'system', text: 'Bubble 开通啦 🫧', sub: `已有 ${fmtNum(bbSubs())} 位粉丝订阅，他们都收到了你的欢迎语` }, true);
+      break;
+    }
+    case 'bbsideclose': bbSideClose(); break;
+    case 'bbmute': S.bubble.muted = !S.bubble.muted; t.classList.toggle('muted', S.bubble.muted); t.textContent = S.bubble.muted ? '🔕' : '🔔'; save(); updBadges(); toast(S.bubble.muted ? 'Bubble 已静音' : 'Bubble 通知已开启'); break;
+    case 'bbgallery': bbSideClose(); openModal(bbGalleryHTML()); break;
+    case 'bbsettings': bbSideClose(); openModal(bbSettingsHTML()); break;
+    case 'bbwall': S.bubble.wall = t.dataset.k; $$('.bb-wall').forEach(x => x.classList.toggle('on', x === t)); bbWallpaper(); save(); break;
+    case 'bbsave': S.bubble.name = $('#bb-name').value.trim(); S.bubble.fanName = $('#bb-fanname').value.trim(); S.bubble.welcome = $('#bb-welcome').value.trim() || S.bubble.welcome; save(); closeModal(); render(); toast('聊天室设置已保存'); break;
+    case 'bbins': { const inp = $('#bb-in'); const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(b); UI.bbDraft = inp.value; inp.focus(); inp.selectionStart = inp.selectionEnd = a + BB_TOK.length; break; }
+    case 'bbsend': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbSend('text', { text }); break; }
+    case 'bbplus': openModal(`<div class="bb-menu"><button data-act="bbpickfile">🖼 照片 / 视频</button><button data-act="bbvoice">🎙 录语音</button><button data-act="close" style="justify-content:center;color:var(--muted)">取消</button></div>`); break;
+    case 'bbpickfile': closeModal(); $('#bb-file').click(); break;
+    case 'bbvoice': closeModal(); bbRecStart(); break;
+    case 'bbreccancel': bbRecStop(false); break;
+    case 'bbrecsend': bbRecStop(true); break;
+    case 'bbopen': { const g = S.bubble.groups.find(x => x.id === t.dataset.g); if (g) openModal(bbListHTML(g)); break; }
+    case 'bbreply': {
+      const g = S.bubble.groups.find(x => x.id === t.dataset.g), f = g && g.fans.find(x => x.id === t.dataset.f); if (!f) break;
+      S.bubble.replyTo = { user: f.user, text: f.text, zh: f.zh, lang: f.lang }; closeModal(); bbReplyBar(); $('#bb-in')?.focus(); break;
+    }
+    case 'bbrcancel': S.bubble.replyTo = null; bbReplyBar(); break;
+    case 'bbplay': {
+      if (bbAudio) { bbAudio.pause(); const same = bbAudio._mid === t.dataset.mid; bbAudio = null; if (same) break; }
+      const u = urlCache[t.dataset.mid] || await mediaURL(t.dataset.mid); if (!u) break;
+      bbAudio = new Audio(u); bbAudio._mid = t.dataset.mid; bbAudio.onended = () => { bbAudio = null; }; bbAudio.play().catch(e => toast('播放失败', e.message)); break;
+    }
     case 'crate': S.prefs.chatRate = +t.dataset.v; save(); render(); break;
     case 'ldel': if (confirm('删除这条直播记录？')) { S.lives = S.lives.filter(l => String(l.start) !== t.dataset.s); save(); render(); } break;
     case 'lmode': stopPreview(); S.prefs.liveMode = t.dataset.m; save(); render(); break;
@@ -1971,6 +2361,13 @@ document.addEventListener('change', async e => {
   } else if (t.id === 'imp-file' && t.files[0]) {
     try { const j = JSON.parse(await t.files[0].text()); if (!j.profile || !j.posts) throw new Error('格式不对'); j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; save(); location.reload(); }
     catch (err) { toast('导入失败', err.message); }
+  } else if (t.id === 'bb-file' && t.files[0]) {
+    const f = t.files[0]; t.value = ''; bbSend(f.type.startsWith('video') ? 'video' : 'image', { blob: f });
+  } else if ((t.id === 'bb-av-file' || t.id === 'bb-wall-file') && t.files[0]) {
+    const id = uid(), f = t.files[0]; try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f);
+    if (t.id === 'bb-av-file') { if (S.bubble.avatar) idbDel(S.bubble.avatar); S.bubble.avatar = id; }
+    else { if (S.bubble.wallImg) idbDel(S.bubble.wallImg); S.bubble.wallImg = id; S.bubble.wall = 'custom'; bbWallpaper(); }
+    save(); openModal(bbSettingsHTML());
   } else if (t.id === 'r-rep') syncRepFields();
   else if (t.id === 'pf-tr') { S.prefs.autoTr = t.checked; save(); }
   else if (t.id === 'pf-speed') { S.prefs.speed = +t.value; save(); toast(`时间流速 ${t.value}×`); }
@@ -1983,6 +2380,7 @@ document.addEventListener('input', e => {
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
   if (e.target.id === 'cmp-text') draft = e.target.value;
   if (e.target.id === 'cmp-desc') draftDesc = e.target.value;
+  if (e.target.id === 'bb-in') { UI.bbDraft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }
   if (e.target.id === 'preset-q') { UI.presetQ = e.target.value; $$('.pcat').forEach(x => x.classList.toggle('on', !UI.presetQ && x.dataset.c === UI.presetCat)); $('#plist').innerHTML = presetListHTML(); }
 });
 document.addEventListener('keydown', e => {
