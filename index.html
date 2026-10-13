@@ -1058,6 +1058,11 @@ const BB_LINES = {
   newsub: ['刚订阅！！', '收到欢迎语了呜呜呜', '第一天订阅，请多指教', '终于开通 Bubble 了！！', '{n}的欢迎语好可爱', '订阅成功！以后每天都来', '欢迎语截图了', '开通了怎么不早说！冲了', '我是第一批订阅的吗！', '以后就是我们的秘密基地了', '刷到通知立刻订阅', '{n}好呀！我来啦', '订阅了！要常来哦', '这个欢迎语我能看一百遍', '呜呜呜终于可以和{n}聊天了'],
   envy: ['羡慕被回复的姐妹', '也回复我一下嘛', '我也想被回复', '好羡慕呜呜']
 };
+const BB_BYE_F = {
+  ko: [['ㅃㅃ', '拜拜'], ['잘 가요!!', '慢走！！'], ['또 와요~', '要再来哦～'], ['잘 자요 🌙', '晚安 🌙'], ['수고했어요!', '辛苦了！']],
+  ja: [['またね！', '下次见！'], ['おやすみ〜', '晚安～'], ['お疲れさま！', '辛苦了！']],
+  en: [['byeee 💙', '拜拜 💙'], ['see you soon!!', '下次见！！'], ['good night!', '晚安！']]
+};
 const BB_FOREIGN = {
   ko: [['ㅋㅋㅋㅋㅋㅋ', '哈哈哈哈哈哈'], ['사랑해요', '爱你'], ['보고싶어요', '想你'], ['밥 먹었어요?', '吃饭了吗？'], ['오늘도 수고했어요', '今天也辛苦了'], ['헐 대박', '天哪 绝了'], ['귀여워요 ㅠㅠ', '好可爱呜呜']],
   ja: [['かわいい！', '好可爱！'], ['大好き！', '最喜欢了！'], ['おやすみ〜', '晚安～']],
@@ -1065,16 +1070,18 @@ const BB_FOREIGN = {
 };
 function bbLine(msg, chatting) {
   const lang = pickLang();
-  if (lang !== 'zh') { const it = pick(BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
+  const leaving = chatting && msg && msg.text && LEAVE_RE.test(msg.text);
+  if (lang !== 'zh') { const it = pick(leaving && Math.random() < .7 ? BB_BYE_F[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
   const t = (msg && msg.text) || '', r = Math.random();
   if (chatting && msg) {
     // 泡泡里粉丝主要是：回答你的问题 / 回应你发的内容 / 追问你
     const clean = t.split(BB_TOK).join(bbFan());
     const ans = clean && answerFor(clean);
-    if (ans && r < .45) return { lang, text: fill(pick(ans)) };
+    if (ans && r < (leaving ? .8 : .45)) return { lang, text: fill(pick(ans)) };
     if (msg.type !== 'text' && r < .55) return { lang, text: fill(pick(BB_LINES[msg.type])) };
     const cats = detectCats(clean).filter(c => TPL[c] && TPL[c].zh && c !== 'question');
     if (cats.length && r < .65) { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
+    if (leaving) return { lang, text: Math.random() < .5 ? pick(BB_LINES.emoji) : fill(pick(['呜呜呜', '爱你', '舍不得', '今天也好开心'])) };
     if (r < .84) return { lang, text: fill(pick(Math.random() < .7 ? BB_LINES.follow : TPL.ask.zh)) };
     if (r < .9) return { lang, text: pick(BB_LINES.emoji) };
     return { lang, text: fill(pick(BB_LINES.react)) };
@@ -1675,7 +1682,7 @@ const LIVE_TPL = {
 };
 const LIVE_KW = [
   ['greetR', /大家好|你们好|哈喽|hello|嗨|晚上好|早上好|안녕/i], ['food', /吃|饭|饿|零食|喝/], ['sing', /唱|歌/], ['dance', /跳|舞/],
-  ['cat', /猫|喵/], ['bye', /晚安|下播|拜拜|再见|走了|要睡/], ['q', /吗|呢|什么|怎么|要不要|想不想|有没有|[?？]/],
+  ['cat', /猫|喵/], ['bye', /晚安|下播|拜拜|再见|走了|要睡|该走|先走|ㅃㅃ|ㅂㅂ|bye|撤了|溜了/i], ['q', /吗|呢|什么|怎么|要不要|想不想|有没有|[?？]/],
   ['thanks', /谢谢|感谢/], ['tired', /累|困|辛苦|好忙/], ['comeback', /新歌|回归|专辑|打歌|演唱会|签售|综艺/],
   ['love', /爱你|喜欢你|想你/], ['look', /看这个|你们看|给你们看|看看这|看到了吗/], ['study', /学习|考试|作业|学校|复习/], ['game', /游戏|王者|原神|手游/],
   ['drama', /电视剧|追剧|追.{0,3}剧|电影|看剧|这部剧|综艺节目/], ['outfit', /衣服|穿搭|ootd|裙子|外套|今天穿/i], ['makeup', /化妆|妆|口红|色号/], ['travel', /旅行|旅游|出国|飞机/],
@@ -1973,12 +1980,17 @@ const ANS = {
   agree: ['对！', '是的是的', '没错', '确实', '对对对'],
   ate: ['我吃了拉面！', '炸鸡！！', '妈妈做的饭', '食堂的饭😭', '还没吃…', '麻辣烫', '外卖披萨', '和{n}一样吃了火锅！', '减肥中，只吃了沙拉', '饺子！', '便利店饭团', '部队锅！'],
   did: ['上课上了一天', '上班好累', '在家躺了一天', '写作业中…', '和朋友去逛街了', '一直在等{n}的消息', '考试😭', '看了{n}的直拍', '睡了一整天哈哈'],
-  start: ['啊啊啊开始了', '准备好了！', '录屏开始', '耳朵准备好了']
+  start: ['啊啊啊开始了', '准备好了！', '录屏开始', '耳朵准备好了'],
+  bye: ['拜拜！！', 'ㅃㅃ', '好的～路上小心', '下次早点来哦', '舍不得😭', '明天见！', '去吧去吧～', '要常来哦', '今天也谢谢{n}', '辛苦了！好好休息', '这么快就走了吗😭', '拜拜{n}！爱你', '下次见💙', '等你下次来'],
+  byeNight: ['晚安{n}！！', '好梦～', '晚安晚安🌙', '早点睡哦', '梦里见', '睡个好觉', 'ㅃㅃ 晚安', '今天也辛苦了，晚安'],
+  byeBusy: ['去吧去吧～', '加油！', '忙完再来哦', '等你回来', '注意别太累', '练习加油！']
 };
 function songAns() {
   const songs = (S.profile.songs || []).filter(Boolean);
   return songs.length ? songs.map(x => `《${x}》！`).concat(songs.map(x => `想听《${x}》`), ANS.songs.slice(0, 3)) : ANS.songs;
 }
+// 偶像表示要离开：我该走了 / 先走啦 / ㅃㅃ / 拜拜 / 晚安 / 去练习了…
+const LEAVE_RE = /该走了|先走|要走了|走啦|我走了|撤了|溜了|下线|拜拜|再见|ㅃㅃ|ㅂㅂ|ㅂㅇ|bye|晚安|去睡|睡了|睡觉了|下播|先去|去忙|去练习|去洗澡|去吃饭|下次见|明天见|good ?night/i;
 // 返回一组合适的回答（没听懂就返回 null）
 function answerFor(text) {
   if (!text) return null;
@@ -1994,6 +2006,7 @@ function answerFor(text) {
   ];
   for (const [re, f] of rules) if (re.test(text)) return f();
   const yn = parseYesNo(text); if (yn) return yn;
+  if (LEAVE_RE.test(text)) return /晚安|睡|good ?night/i.test(text) ? ANS.byeNight : /练习|上课|工作|忙|行程|洗澡|吃饭/.test(text) ? ANS.byeBusy : ANS.bye;
   if (/等一下|等我|去拿|马上回来|稍等/.test(text)) return ANS.wait;
   if (/我回来了|回来啦/.test(text)) return ANS.back;
   if (/(我们|一起).{0,10}吧|要不要|不如/.test(text)) return ANS.ok;
