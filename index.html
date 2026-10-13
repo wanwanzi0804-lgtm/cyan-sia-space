@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>SIA SPACE · Cyan</title>
 <style>
 :root{
@@ -35,11 +35,11 @@ textarea{resize:vertical;min-height:80px}
 .tab .badge{top:3px;right:calc(50% - 22px)}
 main{padding:0 12px}
 main.flush{padding:0}
-.bb{display:flex;flex-direction:column;background:var(--card);position:fixed;left:0;right:0;margin:0 auto;max-width:560px;top:var(--topH,52px);height:calc(var(--vvh,100dvh) - var(--topH,52px) - var(--tabH,60px))}
+.bb{display:flex;flex-direction:column;background:var(--card);position:fixed;left:0;right:0;margin:0 auto;max-width:560px;top:var(--topH,52px);bottom:var(--tabH,60px)}
 body.bbmode{overflow:hidden;overscroll-behavior:none}
 body.bbmode #app{padding-bottom:0}
-body.kb .tabbar{display:none}
-body.kb .bb{top:var(--vvTop,0px);height:var(--vvh,100dvh);z-index:40}
+body.typing .tabbar{display:none}
+body.typing .bb{bottom:0}
 .bb-head{display:flex;align-items:center;justify-content:center;position:relative;padding:10px 12px 4px;background:var(--card)}
 .bb-title{font-weight:800;font-size:17px}
 .bb-more{position:absolute;right:6px;border:0;background:none;font-size:22px;padding:2px 12px}
@@ -1309,23 +1309,16 @@ function avatarHTML(cls = '') {
 }
 function fanAv(c, cls = '') { return c.me ? avatarHTML(cls) : `<div class="av ${cls}" style="background:${c.color || '#aaa'}">${esc((c.user || '?')[0])}</div>`; }
 
-// 根据真实屏幕和键盘调整布局：Bubble 固定在顶栏和底栏之间；键盘弹出时隐藏底栏
+// Bubble 固定在顶栏和底栏之间（只量一下两者的高度）；打字时隐藏底栏，其余交给浏览器自己处理键盘
 function layoutVars() {
-  const vv = window.visualViewport, root = document.documentElement.style;
-  const h = vv ? vv.height : innerHeight;
-  root.setProperty('--vvh', h + 'px');
-  root.setProperty('--vvTop', (vv ? vv.offsetTop : 0) + 'px');
-  const kb = !!vv && innerHeight - vv.height > 140 && /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '');
-  document.body.classList.toggle('kb', kb);
-  const top = $('.topbar'), tab = $('.tabbar');
+  const root = document.documentElement.style, top = $('.topbar'), tab = $('.tabbar');
   if (top) root.setProperty('--topH', top.offsetHeight + 'px');
-  if (tab && !kb) root.setProperty('--tabH', tab.offsetHeight + 'px');
-  if (kb && UI.tab === 'bubble') { const c = $('#bbchat'); if (c) c.scrollTop = c.scrollHeight; }
+  if (tab && !document.body.classList.contains('typing')) root.setProperty('--tabH', tab.offsetHeight + 'px');
 }
-if (window.visualViewport) { visualViewport.addEventListener('resize', layoutVars); visualViewport.addEventListener('scroll', layoutVars); }
 addEventListener('resize', layoutVars);
-document.addEventListener('focusin', () => setTimeout(layoutVars, 300));
-document.addEventListener('focusout', () => setTimeout(layoutVars, 100));
+const isTextField = el => el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|range|file|button|submit|color)$/.test(el.type)));
+document.addEventListener('focusin', e => { if (isTextField(e.target)) document.body.classList.add('typing'); });
+document.addEventListener('focusout', () => setTimeout(() => { if (!isTextField(document.activeElement)) { document.body.classList.remove('typing'); if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0); layoutVars(); } }, 50));
 function render() {
   $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === UI.tab));
   let h = '';
