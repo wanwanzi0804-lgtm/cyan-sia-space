@@ -181,6 +181,7 @@ video.bv-glow{pointer-events:none}
 .lc b{font-weight:600;margin-right:6px;opacity:.85}
 .lc .ltr{display:block;font-size:12px;opacity:.75}
 .lc.host{background:linear-gradient(90deg,rgba(22,194,200,.75),rgba(123,108,255,.75))}
+.lc.q{background:rgba(255,184,46,.32);border:1px solid rgba(255,214,102,.75)}
 .lc.sys{background:rgba(255,255,255,.18);font-size:12.5px}
 #lv-sub{position:absolute;left:14px;right:14px;bottom:76px;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);min-height:22px}
 #lv-sub .interim{opacity:.6}
@@ -263,7 +264,7 @@ function seedSchedule() { return { rules: [], done: {}, reminded: {} }; }
 function defaultState() {
   return {
     v: 2,
-    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
+    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, folBase: 15320, bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
     ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '' },
     prefs: { autoTr: false, speed: 1, sysNotif: false, liveMode: 'video', beauty: { preset: 'natural', level: 60 } },
     sim: { lastTick: Date.now() },
@@ -408,6 +409,17 @@ const TPL = {
     en: [['congrats!! you deserve all the love 💙', '恭喜！！你值得所有的爱 💙'], ['as long as you are happy 🥹', '只要你开心就好 🥹']]
   },
   romanceSad: { zh: ['说实话有点难过…但还是会支持的', '需要一点时间消化一下', '我可能要冷静几天', '心情有点复杂', '呜呜呜我的心碎了一点点', '虽然难过但还是祝福吧'] },
+  ask: { zh: ['今天的TMI是什么呀？', '最近在听什么歌？', '{n}今天吃了什么呀？', '下次直播什么时候呀？', '可以多发点自拍吗🥺', '最近有什么开心的事吗？', '可以分享一下今天的OOTD吗！', '最近在看什么剧呀？', '{n}最喜欢自己哪首歌？', '最近睡得好吗？', '想去哪里旅行呀？', 'MBTI 是什么呀？', '猫派还是狗派？', '最近的小确幸是什么？'],
+    ko: [['오늘 TMI 뭐예요?', '今天的TMI是什么？'], ['요즘 무슨 노래 들어요?', '最近在听什么歌？']], en: [["what's your TMI today?", '今天的TMI是什么？'], ['can you share your ootd? 🥺', '可以分享OOTD吗？🥺']], ja: [['最近ハマってることある？', '最近有沉迷什么吗？']] },
+  neg: { zh: ['怎么了…是不是心情不好', '抱抱，不开心可以说出来', '这样说有点伤心…', '是不是被什么事气到了', '先冷静一下吧', '有点失望…', '希望只是一时的情绪', '不管怎样都会在的，但还是有点难过'] },
+  study: { zh: ['学习辛苦了！', '一起学习！我也在写作业', '学霸{n}', '考试加油！！', '{n}在学什么呀？'] },
+  game: { zh: ['玩的什么游戏呀？', '带我一起玩！', '段位多少哈哈哈', '游戏菜也可爱'] },
+  drama: { zh: ['什么剧什么剧！', '求推荐！', '我也在看这部！', '好看吗好看吗'] },
+  outfit: { zh: ['这身好好看！', '求链接！！', '今天的OOTD满分', '这件好适合你', '穿搭博主{n}'] },
+  makeup: { zh: ['妆好好看！', '什么色号呀？', '求同款口红', '今天的眼妆绝了'] },
+  travel: { zh: ['去哪里玩呀？', '带上我！', '注意安全！', '多拍点照片给我们看'] },
+  exercise: { zh: ['好自律！', '运动完记得拉伸', '我也去运动了（躺下）', '健身房见！'] },
+  shopping: { zh: ['买了什么买了什么', '开箱开箱！', '给我们看看！', '剁手快乐'] },
   question: { zh: ['想！！', '要要要！', '当然啦', '我我我我', '{n}问什么我都答应', '第一个！选第一个！', '都想要可以吗', '这还用问吗！'] },
   quote: { zh: ['「{q}」这句我记住了', '看到「{q}」直接破防', '「{q}」呜呜呜', '重点：{q}', '「{q}」好可爱哈哈哈'] }
 };
@@ -423,6 +435,14 @@ const CAT_KW = {
   love: /爱你|想你|谢谢|感谢|喜欢你|宝贝/,
   weather: /天气|下雨|雨天|好冷|好热|下雪|太阳|降温|刮风/,
   birthday: /生日|纪念日|周年|D\+/,
+  study: /学习|考试|作业|学校|上课了|期末|复习/,
+  game: /游戏|打游戏|王者|原神|switch|手游/i,
+  drama: /电视剧|追剧|电影|这部剧|看剧/,
+  outfit: /衣服|穿搭|ootd|裙子|外套|穿了/i,
+  makeup: /化妆|妆容|口红|眼妆|色号/,
+  travel: /旅行|旅游|出国|飞机|出发去/,
+  exercise: /运动|健身|跑步|瑜伽|普拉提/,
+  shopping: /买了|购物|逛街|开箱/,
   romance: /恋爱|男朋友|女朋友|男友|女友|对象|约会|在一起|喜欢的人|公开恋情|结婚|热恋/,
   question: /[?？]|吗|什么|要不要|想不想|有没有|哪个|猜猜/
 };
@@ -439,8 +459,11 @@ function snippet(text) {
 }
 function tplComment(ctx) {
   const lang = pickLang();
-  if (lang === 'zh' && ctx.text && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
-  const pool = ['generic', 'generic'];
+  if (ctx.tone === 'neg' && lang === 'zh' && Math.random() < .55) return { lang, text: fill(pick(TPL.neg.zh)), zh: null };
+  if (lang === 'zh' && ctx.text && ctx.tone !== 'neg' && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
+  if (lang === 'zh' && Math.random() < .07) { const ev = eventLine(); if (ev) return { lang, text: ev, zh: null }; }
+  const pool = ['generic', 'generic', 'ask'];
+  if (ctx.tone === 'neg') pool.push('neg', 'neg', 'neg', 'neg', 'neg', 'neg');
   detectCats(ctx.text).forEach(c => pool.push(c, c, c));
   if (ctx.hasImg) pool.push('photo', 'photo', 'photo');
   if (ctx.hasVid) pool.push('video', 'video', 'video');
@@ -575,7 +598,7 @@ function makeComment(base, fan) {
 }
 function nextComment(post) {
   if (post.aiPool && post.aiPool.length) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
-  const ctx = { text: post.text, hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
+  const ctx = { text: post.text, tone: post.tone, hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
   const base = t => t.replace(/(hhh|[！!～~\s]|\p{Extended_Pictographic}|\uFE0F)+$/u, '');
   const recent = post._recent || (post._recent = post.comments.slice(0, 30).map(c => base(c.text)));
   let b = tplComment(ctx);
@@ -614,10 +637,98 @@ function simPost(post, dtSim, silent) {
     const k = Math.min(5, post.comments.length);
     for (let i = 0; i < k; i++) { const c = post.comments[Math.floor(Math.random() * Math.min(40, post.comments.length))]; const add = poisson(heat / k); if (add) { c.likes += add; updCommentLikes(c); } }
   }
-  S.profile.followers += poisson(nl * .004);
+  if (post.folD) addFans(post.folD * f, post.folR || '帖子互动'); else addFans(nl * .004, '帖子互动');
   // AI 评论池补货
   if (!silent && aiOn() && !post._busy && (post.aiPool || []).length < 5 && a1 < 6 * 3600e3 && (post.aiBatches || 0) < 8 && Date.now() - (post.lastAi || 0) > 45000) aiForPost(post);
   return { nl, nc };
+}
+
+/* =========================================================
+   粉丝动态：人气随时间、行程、营业频率和言行起伏
+   ========================================================= */
+const EVENT_GAIN = { '打歌': [40, 150], '综艺': [60, 250], '电台': [20, 60], '物料': [20, 80], '签售': [30, 90], '公演': [40, 160], '校庆': [80, 300], '活动': [20, 100], '演唱会': [150, 500] };
+function fanState() { return S.fan || (S.fan = { acc: 0, credited: {}, lastDaily: dkey(Date.now()), act: [], days: {} }); }
+function logAct(type) {
+  const F = fanState(); F.act.push({ t: Date.now(), type });
+  const cut = Date.now() - 14 * 86400e3; F.act = F.act.filter(a => a.t > cut);
+}
+// 最近 7 天的营业热度：0.6（低迷）~ 1.5（火热）
+function heat() {
+  const F = fanState(), cut = Date.now() - 7 * 86400e3; let s = 0;
+  for (const a of F.act) if (a.t > cut) s += a.type === 'post' ? 1 : a.type === 'live' ? 1.5 : a.type === 'reply' ? .15 : 0;
+  const idle = (Date.now() - lastActive()) / 86400e3;
+  return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04, .6, 1.5);
+}
+function heatLabel(h = heat()) { return h < .75 ? '🥶 低迷' : h < .95 ? '🙂 平稳' : h < 1.2 ? '📈 上升中' : '🔥 火热'; }
+function lastActive() { const F = fanState(); return F.act.length ? Math.max(...F.act.map(a => a.t)) : (S.posts[0]?.createdAt || F.since || (F.since = Date.now())); }
+function folRatio() { const p = S.profile; return clamp(p.followers / (p.folBase || p.followers || 1), .3, 5); }
+function addFans(delta, reason) {
+  const F = fanState(); F.acc += delta;
+  const n = F.acc > 0 ? Math.floor(F.acc) : Math.ceil(F.acc); if (!n) return; F.acc -= n;
+  S.profile.followers = Math.max(0, S.profile.followers + n);
+  const k = dkey(Date.now()); const d = F.days[k] || (F.days[k] = { net: 0, src: {} });
+  d.net += n; d.src[reason] = (d.src[reason] || 0) + n;
+  const keys = Object.keys(F.days).sort(); while (keys.length > 30) delete F.days[keys.shift()];
+}
+// 言行判断：负面 / 恋爱 / 温暖 / 普通
+const NEG_RE = /烦死|讨厌你们|闭嘴|滚|无语|不想营业|别烦|黑粉|恶心|关你们什么事|爱看不看|不想理|别管我|烦人/;
+const POS_RE = /谢谢|爱你|想你|加油|开心|努力|辛苦了|晚安|早安|陪/;
+function tone(text) { if (NEG_RE.test(text || '')) return 'neg'; if (CAT_KW.romance.test(text || '')) return 'romance'; if (POS_RE.test(text || '')) return 'pos'; return 'neutral'; }
+// 每天结算一次：自然增长 / 长时间没营业掉粉
+function dailyFans() {
+  const F = fanState(), today = dkey(Date.now());
+  let d = F.lastDaily || today, guard = 0, idleDays = 0;
+  while (d < today && guard++ < 60) {
+    d = addDays(d, 1);
+    const idle = (parseD(d).getTime() - lastActive()) / 86400e3;
+    const h = heat(), f = S.profile.followers;
+    addFans(f * .0008 * h, '自然增长');
+    if (idle > 3) { addFans(-f * .002 * Math.min(idle - 3, 10), '太久没营业'); idleDays = Math.floor(idle); }
+  }
+  F.lastDaily = today;
+  if (idleDays) pushNotif({ type: 'system', text: `已经 ${idleDays} 天没营业了，粉丝在流失…`, sub: '发条帖子或者开个直播吧，粉丝们很想你' }, false);
+}
+// 公开行程结束后涨粉
+function schedFans() {
+  const F = fanState(), now = new Date(), today = dkey(now), nowMin = now.getHours() * 60 + now.getMinutes();
+  for (const k of [addDays(today, -1), today]) for (const r of rulesFor(k)) {
+    const g = EVENT_GAIN[r.cat]; if (!g) continue;
+    const key = k + '|' + r.id; if (F.credited[key]) continue;
+    if (k === today && toMin(r.end) > nowMin) continue;
+    F.credited[key] = 1;
+    const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
+    if (r.createdAt && endAt < r.createdAt) continue; // 事后补录的行程不算
+    const n = Math.round(rand(g[0], g[1]) * folRatio() * heat());
+    addFans(n, '行程：' + r.title);
+    F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
+    pushNotif({ type: 'sched', text: `「${r.title}」结束，涨粉 +${n}`, sub: pick(['路人被圈粉了！', '直拍在网上小火了一把', '新粉丝涌进社区打招呼', '有人剪了你的高光片段']) }, false);
+  }
+  for (const key of Object.keys(F.credited)) if (key.slice(0, 10) < addDays(today, -3)) delete F.credited[key];
+}
+// 粉丝知道的公开行程（不含上课练习）
+function eventsNear() {
+  const today = dkey(Date.now()), nowMin = new Date().getHours() * 60 + new Date().getMinutes(), out = [];
+  for (let i = -2; i <= 3; i++) {
+    const k = addDays(today, i);
+    for (const r of rulesFor(k)) {
+      if (!EVENT_GAIN[r.cat] || r.repeat === 'daily') continue;
+      const past = i < 0 || (i === 0 && toMin(r.end) <= nowMin);
+      const when = i === -2 ? '前天' : i === -1 ? '昨天' : i === 0 ? '今天' : i === 1 ? '明天' : i === 2 ? '后天' : '周' + WD[parseD(k).getDay()];
+      out.push({ title: r.title.replace(/^[^《]*《([^》]+)》.*$/, '《$1》'), cat: r.cat, when, past });
+    }
+  }
+  return out;
+}
+const EV_TPL = {
+  future: ['{w}的{e}要加油！', '{e}紧张吗？', '{e}会穿什么呀？', '期待{w}的{e}！！', '{w}{e}我会准时守着的', '{e}要唱哪首歌呀？'],
+  futureBig: ['{e}我抢到票了！！', '{e}见！！', '{e}应援物准备好了', '已经开始期待{e}了'],
+  past: ['{w}的{e}怎么样呀？', '{e}辛苦了！', '{e}的直拍我看了好多遍', '{e}那天开心吗？', '{w}{e}太好看了！！', '{e}的造型好绝']
+};
+function eventLine() {
+  const evs = eventsNear(); if (!evs.length) return null;
+  const e = pick(evs);
+  const pool = e.past ? EV_TPL.past : (['演唱会', '签售', '公演', '校庆'].includes(e.cat) ? EV_TPL.future.concat(EV_TPL.futureBig) : EV_TPL.future);
+  return fill(pick(pool)).replace(/\{w\}/g, e.when).replace(/\{e\}/g, e.title);
 }
 
 let lastReal = Date.now();
@@ -626,6 +737,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
+  dailyFans(); schedFans();
   updCounters();
   schedReminders();
   save();
@@ -684,7 +796,7 @@ function addReply(post, parent, r) {
 }
 function artistReply(post, parent, target, text) {
   addReply(post, parent, { user: S.profile.name, me: true, text, to: target ? target.user : null });
-  save();
+  logAct('reply'); save();
   const fanTarget = target && !target.me ? target : null;
   if (aiOn()) aiReactions(post, parent, fanTarget, text);
   else tplReactions(post, parent, fanTarget);
@@ -770,7 +882,7 @@ function viewFeed() {
     <div style="flex:1;min-width:0">
       <h2>${esc(p.name)} <span class="artist">ARTIST</span></h2>
       ${p.bio ? `<div class="muted">${esc(p.bio)}</div>` : ''}
-      <div class="stats"><span><b data-fol>${fmtNum(p.followers)}</b> <span class="muted">粉丝</span></span><span><b>D+${dday()}</b> <span class="muted">出道</span></span></div>
+      <div class="stats"><span><b data-fol>${fmtNum(p.followers)}</b> <span class="muted">粉丝</span></span><span>${(() => { const n = (fanState().days[dkey(Date.now())] || { net: 0 }).net; return `<b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${n}</b> <span class="muted">今日</span>`; })()}</span><span><b>D+${dday()}</b> <span class="muted">出道</span></span></div>
     </div>
   </div>
   <div class="card composer">
@@ -814,9 +926,13 @@ async function publish() {
     try { await idbPut(id, f); urlCache[id] = f._url; } catch (e) { urlCache[id] = f._url; toast('媒体保存失败，刷新后可能看不到', String(e.message || e)); }
     media.push({ id, type: f.type.startsWith('video') ? 'video' : 'image' });
   }
-  const p = S.profile, boost = media.length ? 1.25 : 1;
-  const L = Math.round(rand(p.activeMin, p.activeMax) * rand(1.1, 1.8) * boost);
-  const post = { id: uid(), text, media, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
+  const p = S.profile, boost = media.length ? 1.25 : 1, h = heat(), tn = tone(text);
+  const L = Math.round(rand(p.activeMin, p.activeMax) * rand(1.1, 1.8) * boost * h * folRatio() * (tn === 'neg' ? .75 : tn === 'romance' ? 1.3 : tn === 'pos' ? 1.05 : 1));
+  let folD = L * .012 * h, folR = '帖子互动';
+  if (tn === 'neg') { folD = -p.followers * rand(.006, .015); folR = '负面言论'; }
+  if (tn === 'romance') { folD = folD * 1.2 - p.followers * rand(.004, .012); folR = '恋爱话题'; }
+  const post = { id: uid(), text, media, tone: tn, folD, folR, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24) * (tn === 'neg' || tn === 'romance' ? 1.3 : 1)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
+  logAct('post');
   S.posts.unshift(post);
   draft = ''; pending = [];
   save(); render();
@@ -926,7 +1042,7 @@ function myComment() {
   if (!post || !inp) return; const text = inp.value.trim(); if (!text) return;
   inp.value = '';
   const c = { id: uid(), user: S.profile.name, me: true, lang: 'zh', text, zh: null, at: Date.now(), likes: 0, replies: [] };
-  post.comments.unshift(c); post.commentCount++;
+  post.comments.unshift(c); post.commentCount++; logAct('reply');
   if (UI.sort === 'new') onNewComment(post, c); else render();
   updCounters(); save();
   // 本人评论自己的帖子 → 粉丝在楼中楼里起哄
@@ -983,14 +1099,31 @@ const LIVE_TPL = {
   fandom: ['在！', '{f}在这里！', '到！', '叫我了叫我了', '我在我在'],
   love: ['我也爱你！！', '啊啊啊啊啊', '我也爱你老婆', '原地去世', '心动了'],
   romance: ['什么什么！！', '祝福！！', '嗑到了', '是谁是谁', '要幸福呀', '只要你开心就好', '对方好幸福', '有点小难过但祝福', '展开说说！！'],
-  generic: ['哈哈哈哈', '嗯嗯！', '是的是的', '好可爱', '懂了', '确实', '哈哈哈太好笑了', '真的吗', '然后呢然后呢'],
+  generic: ['哈哈哈哈', '嗯嗯！', '是的是的', '好可爱', '懂了', '确实', '哈哈哈太好笑了', '真的吗', '然后呢然后呢', '展开说说', '原来如此', '哈哈哈好真实', '我也是！', '好有道理', '笑出声了', '认真听讲中', '点头点头', '好的老师（不是）'],
+  ask: ['今天的TMI是什么呀？', '可以看看今天的OOTD吗！', '今天几点起床的呀？', '最近在听什么歌？', '晚饭吃了什么？', '可以唱一小段吗🥺', '下一次回归是什么时候呀？', '最近有在追什么剧吗？', '今天化的什么妆呀，好好看', '用的什么香水呀？', '最喜欢的季节是什么？', '猫派还是狗派？', 'MBTI 是什么呀？', '最近有什么烦恼吗？', '练习累不累呀？', '可以比个心吗', '推荐一首歌吧！', '今天开心吗？', '最近最喜欢的食物是什么？', '有没有想去的地方？', '在宿舍会做什么呀？', '最近的口头禅是什么哈哈'],
+  askF: { ko: [['오늘 TMI 뭐예요?', '今天的TMI是什么？'], ['오늘 OOTD 보여줄 수 있어요?', '可以看看今天的OOTD吗？']], en: [["what's your TMI today??", '今天的TMI是什么？？'], ['can we see your ootd?', '可以看看你的OOTD吗？']], ja: [['今日のTMIは何？', '今天的TMI是什么？']] },
+  answered: ['回答我了！！啊啊啊', 'TMI get✓', '原来如此！', '记下了📝', '好可爱的回答', '哈哈哈哈好真实', '被翻牌了呜呜呜', '懂了懂了'],
+  look: ['什么什么？', '镜头近一点！', '看到了看到了', '好可爱！', '是什么呀？', '看不清哈哈哈', '哇——'],
+  study: ['学习辛苦了！', '考试加油！', '我也在写作业陪你', '学霸！', '一起学习！'],
+  game: ['玩什么游戏呀？', '带我一起玩！', '段位多少哈哈', '下次游戏直播！'],
+  drama: ['什么剧什么剧！', '求推荐！', '我也在看！', '剧透警告哈哈'],
+  outfit: ['衣服好好看！', '求链接！', '转一圈看看！', '今天的OOTD满分', '这件好适合你'],
+  makeup: ['妆好好看！', '什么色号呀？', '求同款口红', '今天的眼妆绝了'],
+  travel: ['去哪里玩呀？', '带上我！', '注意安全！', '多拍照片给我们看'],
+  exercise: ['好自律！', '运动完要拉伸', '我也去运动了（躺下）', '健身房见！'],
+  shopping: ['买了什么买了什么', '开箱开箱！', '给我们看看！'],
+  listen: ['什么歌！求歌名', '歌单分享一下！', '品味好好', '我也去听！'],
+  weather: ['我们这边也下雨了', '注意保暖！', '今天好热啊', '出门记得带伞'],
+  neg: ['怎么了…', '是不是心情不好', '抱抱', '有点伤心…', '冷静冷静', '别这样说嘛', '我们做错什么了吗…'],
   echo: ['{n}说「{q}」哈哈哈', '「{q}」好可爱', '「{q}」记下了', '刚刚说「{q}」吗']
 };
 const LIVE_KW = [
   ['greetR', /大家好|你们好|哈喽|hello|嗨|晚上好|早上好|안녕/i], ['food', /吃|饭|饿|零食|喝/], ['sing', /唱|歌/], ['dance', /跳|舞/],
   ['cat', /猫|喵/], ['bye', /晚安|下播|拜拜|再见|走了|要睡/], ['q', /吗|呢|什么|怎么|要不要|想不想|有没有|[?？]/],
   ['thanks', /谢谢|感谢/], ['tired', /累|困|辛苦|好忙/], ['comeback', /新歌|回归|专辑|打歌|演唱会|签售|综艺/],
-  ['love', /爱你|喜欢你|想你/], ['romance', /恋爱|男朋友|女朋友|男友|女友|对象|约会/]
+  ['love', /爱你|喜欢你|想你/], ['look', /看这个|你们看|给你们看|看看这|看到了吗/], ['study', /学习|考试|作业|学校|复习/], ['game', /游戏|王者|原神|手游/],
+  ['drama', /电视剧|追剧|追.{0,3}剧|电影|看剧|这部剧|综艺节目/], ['outfit', /衣服|穿搭|ootd|裙子|外套|今天穿/i], ['makeup', /化妆|妆|口红|色号/], ['travel', /旅行|旅游|出国|飞机/],
+  ['exercise', /运动|健身|跑步|瑜伽/], ['shopping', /买了|购物|逛街|开箱/], ['listen', /听歌|在听|歌单|循环/], ['weather', /天气|下雨|好冷|好热|下雪/], ['romance', /恋爱|男朋友|女朋友|男友|女友|对象|约会/]
 ];
 let LIVE = null;
 /* ---------- 美颜 ---------- */
@@ -1026,13 +1159,14 @@ function viewLive() {
     ${mode === 'video' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>
     <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
     : `<div class="preview voice-pv">${bigAvatar(110)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">语音直播不开摄像头，粉丝只听得到你的声音</span></div>`}
+    <div class="field"><label>弹幕量</label><div class="seg" style="margin:0">${[[.5, '少'], [1, '适中'], [1.6, '多']].map(([v, t]) => `<button class="${(S.prefs.chatRate || 1) == v ? 'on' : ''}" data-act="crate" data-v="${v}">${t}</button>`).join('')}</div></div>
     <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
     <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'video' ? '视频' : '语音'}直播</button></div>
     ${IN_FRAME ? '<p class="muted" style="margin:10px 0 0;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头和麦克风，只能用「纯聊天直播」。</p>' : ''}
     <p class="muted" style="margin:10px 0 0">直播中可以直接说话（浏览器语音识别），粉丝会根据你说的内容刷弹幕；也可以打字。iPhone 需要在 设置 → 通用 → 键盘 里打开「启用听写」。${aiOn() ? '<br>✨ AI 粉丝已开启：会结合画面和你说的话来回应。' : ''}</p>
   </div>
   <div class="sec-title">直播记录</div>
-  <div class="card">${hist.length ? hist.map(l => `<div class="rule"><div style="flex:1"><b>${l.mode === 'voice' ? '🎙 ' : l.mode === 'chat' ? '💬 ' : '📹 '}${esc(l.title)}</b><div class="muted">${new Date(l.start).toLocaleString('zh-CN')} · 时长 ${hms(l.end - l.start)}</div></div><div class="muted" style="text-align:right">👁 峰值 ${fmtNum(l.peak)}<br>♥ ${fmtNum(l.hearts)} · 💬 ${fmtNum(l.comments)}</div></div>`).join('') : '<div class="empty">还没有直播过</div>'}</div>`;
+  <div class="card">${hist.length ? hist.map(l => `<div class="rule"><div style="flex:1"><b>${l.mode === 'voice' ? '🎙 ' : l.mode === 'chat' ? '💬 ' : '📹 '}${esc(l.title)}</b><div class="muted">${new Date(l.start).toLocaleString('zh-CN')} · 时长 ${hms(l.end - l.start)}</div></div><div class="muted" style="text-align:right">👁 峰值 ${fmtNum(l.peak)}<br>♥ ${fmtNum(l.hearts)} · 💬 ${fmtNum(l.comments)}</div><button class="link" style="margin-left:8px" data-act="ldel" data-s="${l.start}">删除</button></div>`).join('') : '<div class="empty">还没有直播过</div>'}</div>`;
 }
 function bigAvatar(px) {
   return `<div class="av voice-av" style="width:${px}px;height:${px}px;font-size:${Math.round(px * .4)}px;background:linear-gradient(135deg,var(--accent),var(--accent2))">${S.profile.avatar ? `<img data-mid="${S.profile.avatar}" alt="">` : esc(S.profile.name[0] || 'C')}</div>`;
@@ -1078,7 +1212,7 @@ async function startLive() {
     <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
   if (mode === 'video') attachPair(layer, stream);
-  LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.3, .55) * (mode === 'video' ? 1 : .75)), hearts: 0, comments: 0, lastTpl: [], acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
+  LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
   // 语音直播：头像跟着说话音量跳动
   if (mode === 'voice' && stream) {
     try {
@@ -1113,38 +1247,93 @@ function liveTick() {
   L.peak = Math.max(L.peak, L.viewers);
   $('#lv-view').textContent = fmtNum(L.viewers);
   // 弹幕
-  const rate = clamp(L.viewers / 140, .3, 5) + (L.queue.length ? 1.2 : 0);
+  const rate = clamp(L.viewers / 350, .12, 1.4) * (S.prefs.chatRate || 1) + (L.queue.length ? .7 : 0);
   L.acc += rate * .25;
   while (L.acc >= 1) { L.acc -= 1; emitLiveComment(el); }
   // 爱心
-  L.hacc += L.viewers / 90 * .25;
+  L.hacc += L.viewers / 160 * .25;
   while (L.hacc >= 1) { L.hacc -= 1; L.hearts += ri(1, 6); if (Math.random() < .35) spawnHeart(); }
   $('#lv-heart').textContent = fmtNum(L.hearts);
   // AI 弹幕
   if (aiOn() && !L.aiBusy && (Date.now() - L.lastAi > 10000) && (L.newSpeech || Date.now() - L.lastAi > 30000)) liveAI();
 }
+const LIVE_AMB = {
+  common: ['哈哈哈哈', '笑死', '啊啊啊啊', '爱你', '{n}吃饭了吗', '今天练习累不累', '什么时候回归呀', '唱首歌吧', '猫猫在吗', '下次多播一会', '我在这里！', '{n}看评论！', '第一次看直播好紧张', '可以叫我名字吗', '{n}在宿舍吗', '有点卡吗还是我网不好', '老婆贴贴', '想{n}了', '今天也来打卡了', '一边写作业一边看', '在食堂偷偷看', '好治愈', '{n}说话好好听', '{n}的笑声好可爱', '刷到直播立刻点进来', '好久没看到{n}直播了', '在地铁上看', '我妈问我在笑什么', '已经录屏了', '今天也被可爱到了', '这个时间开播太好了', '{n}看看我', '抽空来看一眼', '给{n}点了好多爱心', '{n}今天好有精神', '安可～', '今天心情好好呀'],
+  video: ['{n}今天穿的是什么呀', '看镜头看镜头', '镜头好近哈哈', '截屏了', '比个心❤️', '今天的发型好可爱', '截到一张丑萌的哈哈', '今天的妆好淡好好看', '背景是宿舍吗', '灯光好好', '眼睛好亮', '耳环好好看', '这个角度绝了', '笑起来眼睛弯弯的', '{n}今天素颜吗'],
+  voice: ['声音好温柔', '听着好治愈', '戴耳机听的举手', '好想看脸哈哈', '语音也好幸福', '声音好近，像在打电话', '可以当助眠电台', '一边听一边做别的事', '{n}的声音是我的白噪音', '下次开视频好不好'],
+  chat: ['打字速度好快哈哈', '好像在和{n}发消息', '打字的{n}也好可爱', '在线聊天好像网友见面'],
+  late: ['刚来，错过了什么？', '我来晚了！', '刚下课冲进来', '刚到刚到', '现在进来还来得及吗'],
+  long: ['播了好久了，要不要喝口水', '累了就休息哦', '今天播好久好幸福', '{n}嗓子还好吗', '不知不觉看了好久'],
+  night: ['这么晚还在播！', '熬夜冠军{n}', '{n}早点睡呀', '深夜电台时间', '我明天早八还在看'],
+  morning: ['早上好！！', '一大早就有直播', '刚起床就看到了', '吃早饭了吗'],
+  noon: ['午饭吃了吗', '午休时间来看直播', '中午好！'],
+  evening: ['晚上好！', '下班路上看直播', '晚饭吃了吗', '今晚的快乐有了']
+};
+const NAME_CALLED = ['被点名了啊啊啊！', '{n}叫我名字了！！', '呜呜呜我要截图', '今天是我的节日', '我宣布我是全场最幸福的人'];
+const baseText = t => String(t).replace(/(hhh|[！!～~\s。？?]|\p{Extended_Pictographic}|️)+$/u, '');
+// 从模板里挑没刷过的（最近 60 条弹幕不重复）
+function fresh(list, n = 1) {
+  const L = LIVE, out = [];
+  for (const t of pickN(list, list.length)) {
+    if (L.seenT.includes(t)) continue; // 同一句模板换个昵称也算重复
+    const f = fill(t), b = baseText(f);
+    if (!L.seen.includes(b) && !out.some(x => baseText(x) === b)) { out.push(f); L.seenT.push(t); if (L.seenT.length > 70) L.seenT.shift(); }
+    if (out.length >= n) break;
+  }
+  return out;
+}
+function markSeen(text) { const L = LIVE; L.seen.push(baseText(text)); if (L.seen.length > 60) L.seen.shift(); }
+function ambientLine(elapsed) {
+  const L = LIVE, h = new Date().getHours(), r = Math.random();
+  const timely = h < 5 || h >= 23 ? LIVE_AMB.night : h < 10 ? LIVE_AMB.morning : h < 14 ? LIVE_AMB.noon : h >= 17 ? LIVE_AMB.evening : null;
+  let pools;
+  if (elapsed < 60000) pools = [[LIVE_TPL.greet, 6], [timely || LIVE_AMB.common, 2], [LIVE_AMB.common, 2]];
+  else {
+    pools = [[LIVE_AMB.common, 5], [LIVE_AMB[L.mode === 'video' ? 'video' : L.mode === 'voice' ? 'voice' : 'chat'], 3], [LIVE_AMB.late, .6]];
+    if (timely) pools.push([timely, .6]);
+    if (elapsed > 25 * 60000) pools.push([LIVE_AMB.long, 1]);
+    if (L.topic && Date.now() < L.topic.until && LIVE_TPL[L.topic.cat]) pools.push([LIVE_TPL[L.topic.cat], 4]); // 接着刚才的话题聊
+  }
+  const tot = pools.reduce((a, p) => a + p[1], 0); let x = r * tot;
+  for (const [list, w] of pools) { x -= w; if (x <= 0) { const f = fresh(list)[0]; if (f) return f; break; } }
+  return fresh(LIVE_AMB.common)[0] || null;
+}
 function emitLiveComment(elapsed) {
   const L = LIVE;
-  let c = L.queue.shift();
-  if (!c) {
-    const r = Math.random();
-    if (r < .1) { const lang = pick(['ko', 'ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); c = { lang, text: fill(it[0]), zh: fill(it[1]) }; }
-    else {
-      const pool = elapsed < 60000 && Math.random() < .6 ? LIVE_TPL.greet : LIVE_TPL.chat;
-      let t = pick(pool); for (let i = 0; i < 4 && L.lastTpl.includes(t); i++) t = pick(pool);
-      L.lastTpl.push(t); if (L.lastTpl.length > 8) L.lastTpl.shift();
-      c = { lang: 'zh', text: fill(t) };
+  // 先发排队的反应弹幕（跳过刚刷过的）
+  while (L.queue.length) {
+    const c = L.queue.shift();
+    if (L.seen.includes(baseText(c.text))) continue;
+    const fan = makeFan(c.lang || 'zh');
+    markSeen(c.text); pushChat({ user: c.user || fan.user, color: fan.color, text: c.text, zh: c.zh, lang: c.lang });
+    return;
+  }
+  if (elapsed > 40000 && Math.random() < .13) {
+    // 粉丝主动提问（日常问题 / 行程相关）
+    let q;
+    if (Math.random() < .12) { const lang = pick(['ko', 'en', 'ja']); const it = pick(LIVE_TPL.askF[lang]); q = { lang, text: fill(it[0]), zh: fill(it[1]) }; }
+    else { const ev = Math.random() < .35 ? eventLine() : null; const t = (ev && !L.seen.includes(baseText(ev))) ? ev : fresh(LIVE_TPL.ask)[0]; if (t) q = { lang: 'zh', text: t }; }
+    if (q && !L.seen.includes(baseText(q.text))) {
+      markSeen(q.text);
+      const fan = makeFan(q.lang);
+      L.lastQ = { user: fan.user, text: q.text, at: Date.now() };
+      pushChat({ user: fan.user, color: fan.color, text: q.text, zh: q.zh, lang: q.lang }, 'q');
+      return;
     }
   }
-  const fan = makeFan(c.lang || 'zh');
-  pushChat({ user: c.user || fan.user, color: fan.color, text: c.text, zh: c.zh, lang: c.lang });
+  let c;
+  if (Math.random() < .08) { const lang = pick(['ko', 'ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); if (!L.seen.includes(baseText(it[0]))) c = { lang, text: fill(it[0]), zh: fill(it[1]) }; }
+  if (!c) { const t = ambientLine(elapsed); if (!t) return; c = { lang: 'zh', text: t }; }
+  const fan = makeFan(c.lang);
+  markSeen(c.text); pushChat({ user: fan.user, color: fan.color, text: c.text, zh: c.zh, lang: c.lang });
 }
 function pushChat(c, cls = '') {
   if (!LIVE) return;
   LIVE.comments++;
   LIVE.recent.push(`${c.user}：${c.text}`); if (LIVE.recent.length > 15) LIVE.recent.shift();
+  if (!cls || cls === 'q') { LIVE.users.push(c.user); if (LIVE.users.length > 40) LIVE.users.shift(); }
   const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc ' + cls;
-  d.innerHTML = `<b style="color:${cls ? '#fff' : c.color || '#9ff'}">${esc(c.user)}</b>${esc(c.text)}${c.zh ? `<span class="ltr">译：${esc(c.zh)}</span>` : ''}`;
+  d.innerHTML = `${cls === 'q' ? '❓ ' : ''}<b style="color:${cls && cls !== 'q' ? '#fff' : c.color || '#9ff'}">${esc(c.user)}</b>${esc(c.text)}${c.zh ? `<span class="ltr">译：${esc(c.zh)}</span>` : ''}`;
   box.appendChild(d); while (box.children.length > 40) box.firstElementChild.remove();
 }
 function sysChat(text) { if (!LIVE) return; const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc sys'; d.textContent = text; box.appendChild(d); }
@@ -1157,17 +1346,67 @@ function liveReact(text) {
   const L = LIVE; if (!L) return;
   L.speech = (L.speech + ' ' + text).slice(-300); L.newSpeech = true;
   let hit = false;
-  for (const [cat, re] of LIVE_KW) {
-    if (!re.test(text)) continue; hit = true;
-    pickN(LIVE_TPL[cat], ri(2, 5)).forEach(t => L.queue.push({ lang: 'zh', text: fill(t) }));
+  const push = t => L.queue.push({ lang: 'zh', text: t });
+  // 刚有人提问，主播开口 → 当作在回答
+  if (L.lastQ && Date.now() - L.lastQ.at < 30000) {
+    L.queue.unshift({ user: L.lastQ.user, lang: 'zh', text: pick(['回答我了！！啊啊啊', '呜呜呜被翻牌了', '谢谢{n}回答我！！', '原来是这样！']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name])) });
+    fresh(LIVE_TPL.answered, ri(1, 2)).forEach(push);
+    const mb = text.match(/[IEie][NSns][TFtf][JPjp]/); const sn = snippet(text);
+    if (mb) { const m = mb[0].toUpperCase(); fresh([`${m}！我也是！`, `${m[0]}人实锤`, `难怪！好${m}`, `${m}好适合你`], 2).forEach(push); }
+    else if (sn) push(pick([`原来是「${sn}」`, `「${sn}」记下了📝`, `「${sn}」好真实哈哈`]));
+    L.lastQ = null; hit = true;
   }
-  if (S.profile.fandom && text.toLowerCase().includes(S.profile.fandom.toLowerCase())) { hit = true; pickN(LIVE_TPL.fandom, ri(3, 5)).forEach(t => L.queue.push({ lang: 'zh', text: fill(t) })); }
-  if (!hit) pickN(LIVE_TPL.generic, ri(1, 3)).forEach(t => L.queue.push({ lang: 'zh', text: fill(t) }));
-  const q = snippet(text); if (q && Math.random() < .5) L.queue.push({ lang: 'zh', text: fill(pick(LIVE_TPL.echo), q) });
+  // 二选一：「A 还是 B」→ 粉丝投票
+  const ch = parseChoice(text);
+  if (ch) {
+    hit = true; const [A, B] = ch;
+    pickN([`${A}！`, `${B}！！`, `当然是${A}`, `${B}${B}${B}`, `我投${A}`, `${B}+1`, `${A}${A}`, '都要！', `选${B}！`, `${A}！！！`], ri(4, 6)).forEach(push);
+  }
+  // 是非问题：「你们吃饭了吗」→ 吃了 / 还没
+  const yn = !ch && parseYesNo(text);
+  if (yn) { hit = true; pickN(yn, ri(2, 3)).forEach(push); }
+  // 叫到了某个粉丝的名字
+  const us = [...new Set(L.users)].reverse();
+  const called = us.find(u => u && text.includes(u)) || us.find(u => u && u.length >= 4 && text.includes(u.slice(-3)));
+  if (called) { hit = true; L.queue.unshift({ user: called, lang: 'zh', text: fill(pick(NAME_CALLED)) }); fresh(['羡慕死了', '我也想被叫名字', '也叫叫我！', '好幸福的姐妹'], ri(1, 2)).forEach(push); }
+  // 言行：负面 / 恋爱话题会影响人气
+  const tn = tone(text);
+  if (tn === 'neg') { fresh(LIVE_TPL.neg, ri(2, 3)).forEach(push); L.target *= .9; L.fanD -= S.profile.followers * .003; hit = true; }
+  if (tn === 'romance' && !L.toneHit.romance) { L.toneHit.romance = 1; L.fanD -= S.profile.followers * rand(.002, .006); }
+  for (const [cat, re] of LIVE_KW) {
+    if (!re.test(text) || (cat === 'q' && (ch || yn))) continue; hit = true;
+    fresh(LIVE_TPL[cat], ri(1, 3)).forEach(push);
+    if (!['q', 'greetR', 'bye', 'thanks'].includes(cat)) L.topic = { cat, until: Date.now() + 60000 };
+  }
+  if (S.profile.fandom && text.toLowerCase().includes(S.profile.fandom.toLowerCase())) { hit = true; fresh(LIVE_TPL.fandom, ri(2, 3)).forEach(t => L.queue.push({ lang: 'zh', text: t })); }
+  if (!hit) fresh(LIVE_TPL.generic, ri(1, 2)).forEach(t => L.queue.push({ lang: 'zh', text: t }));
+  const q = snippet(text); if (q && tn !== 'neg' && Math.random() < .25) L.queue.push({ lang: 'zh', text: fill(pick(LIVE_TPL.echo), q) });
   // 打乱一下，混一点外语
-  if (Math.random() < .3) { const lang = pick(['ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); L.queue.push({ lang, text: fill(it[0]), zh: fill(it[1]) }); }
+  if (Math.random() < .15) { const lang = pick(['ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); L.queue.push({ lang, text: fill(it[0]), zh: fill(it[1]) }); }
   L.queue.sort(() => Math.random() - .5);
-  L.target += ri(5, 30);
+  L.target += ri(1, 6);
+}
+function parseChoice(text) {
+  const m = text.match(/([^，。！？,.!?\s]{1,14}?)还是([^，。！？,.!?\s]{1,14})/); if (!m) return null;
+  let a = m[1].replace(/^.*?(你们|大家)?(觉得|喜欢|想要|想听|想看|更喜欢|想|要|选|更|是|穿|吃|喝|听|看|唱|跳|去|买)/, '').slice(-8);
+  let b = m[2].replace(/(呢|吗|呀|啊|嘛|比较好|更好|好)+$/, '').slice(0, 8);
+  return a && b && a !== b ? [a, b] : null;
+}
+function parseYesNo(text) {
+  const clause = (text.split(/[，。！,.!]/).filter(x => /(吗|没|呢)[？?]?\s*$/.test(x)).pop() || '').trim(); if (!clause) return null;
+  const m = clause.match(/^(?:.*?(?:你们|大家|今天|有没有))?(.{1,8}?)(了吗|了没|过吗|吗)[？?]?$/); if (!m) return null;
+  const v = m[1].replace(/^(都|也|还|有)/, '');
+  if (/了吗|了没/.test(m[2])) return [`${v}了！`, `还没${v}😭`, `${v}了${v}了`, '没有呢', `早就${v}了`];
+  if (m[2] === '过吗') return [`${v}过！`, `没${v}过`, `${v}过${v}过`, '有！'];
+  if (/过/.test(v)) { const vb = v.split('过')[0].slice(-2) || v; return [`${vb}过！`, `没${vb}过`, `${vb}过${vb}过`, '有！', '还没有😭']; }
+  if (/介意/.test(v)) return ['不介意！', '完全不介意', '有一点点…但支持你', '你开心就好'];
+  if (/喜欢/.test(v)) return ['喜欢！！', '超喜欢', '喜欢喜欢喜欢', '最喜欢了'];
+  if (/想/.test(v)) return ['想！', '超想', '想想想', '当然想'];
+  if (/要/.test(v)) return ['要！', '要要要', '必须要'];
+  if (/会|能|可以/.test(v)) return ['可以！', '当然可以', '会的！', '可以可以'];
+  if (/是/.test(v)) return ['是的！', '是！', '不是吧哈哈', '对对对'];
+  if (/有/.test(m[0])) return ['有！', '没有😭', '有有有'];
+  return ['嗯嗯！', '是的！', '当然！', '对！', '哈哈哈是的'];
 }
 function liveSend() {
   const inp = $('#lv-input'); const t = inp.value.trim(); if (!t) return; inp.value = '';
@@ -1214,13 +1453,14 @@ function endLive() {
   if (L.stream) L.stream.getTracks().forEach(t => t.stop()); if (L.audio) try { L.audio.ac.close(); } catch (e) { } L.layer.remove();
   const rec = { title: L.title, mode: L.mode, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments };
   S.lives.unshift(rec);
-  const newF = Math.round(L.peak * rand(.02, .06) + (rec.end - rec.start) / 60000 * rand(1, 3));
-  S.profile.followers += newF;
-  pushNotif({ type: 'live', text: `直播结束：峰值 ${fmtNum(L.peak)} 人观看，收到 ${fmtNum(L.hearts)} 颗爱心`, sub: `时长 ${hms(rec.end - rec.start)} · ${fmtNum(L.comments)} 条弹幕 · 新增粉丝 ${newF}` }, false);
+  const newF = Math.round((L.peak * rand(.02, .06) + (rec.end - rec.start) / 60000 * rand(1, 3)) * heat() + L.fanD);
+  addFans(newF - L.fanD, '直播'); if (L.fanD) addFans(L.fanD, '直播言论');
+  logAct('live');
+  pushNotif({ type: 'live', text: `直播结束：峰值 ${fmtNum(L.peak)} 人观看，收到 ${fmtNum(L.hearts)} 颗爱心`, sub: `时长 ${hms(rec.end - rec.start)} · ${fmtNum(L.comments)} 条弹幕 · 粉丝 ${newF >= 0 ? '+' : ''}${newF}` }, false);
   save();
   openModal(`<h3>直播结束 🎉</h3>
     <div class="kpi"><div><b>${hms(rec.end - rec.start)}</b><span>时长</span></div><div><b>${fmtNum(rec.peak)}</b><span>峰值在线</span></div><div><b>${fmtNum(rec.hearts)}</b><span>爱心</span></div><div><b>${fmtNum(rec.comments)}</b><span>弹幕</span></div></div>
-    <p class="muted">新增粉丝 +${newF}</p>
+    <p class="muted">粉丝变化 ${newF >= 0 ? '+' : ''}${newF}${L.fanD < -1 ? '（直播里的部分言论让一些粉丝不太开心）' : ''}</p>
     <div class="row"><button class="btn ghost" data-act="close">关闭</button><span class="sp"></span><button class="btn primary" data-act="livepost">发一条帖子</button></div>`);
   render();
 }
@@ -1378,6 +1618,7 @@ function saveRule() {
   if (r.repeat === 'weekly' && !r.days.length) return toast('请至少选择一个星期');
   if (r.repeat === 'once' && !r.date) return toast('请选择日期');
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
+  r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now();
   if (i >= 0) S.schedule.rules[i] = r; else S.schedule.rules.push(r);
   save(); UI.presetQ = ''; openModal(adminHTML()); syncRepFields(); render(); toast(i >= 0 ? '已保存' : '已添加行程', `${r.title} · ${r.start}-${r.end}`);
 }
@@ -1395,6 +1636,19 @@ function schedReminders() {
 /* =========================================================
    我的 / 设置
    ========================================================= */
+function fanPanelHTML() {
+  const F = fanState(), today = dkey(Date.now());
+  const days = Array.from({ length: 7 }, (_, i) => addDays(today, -i));
+  const net = k => (F.days[k] || { net: 0 }).net;
+  const sign = n => `<b style="color:${n > 0 ? 'var(--accent)' : n < 0 ? 'var(--danger)' : 'var(--muted)'}">${n > 0 ? '+' : ''}${fmtNum(n)}</b>`;
+  const week = days.reduce((a, k) => a + net(k), 0);
+  const src = Object.entries((F.days[today] || { src: {} }).src).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const idle = Math.floor((Date.now() - lastActive()) / 86400e3);
+  return `<div class="kpi" style="margin-top:0"><div><b>${heatLabel()}</b><span>人气</span></div><div>${sign(net(today))}<span>今日</span></div><div>${sign(week)}<span>近 7 天</span></div><div><b>${idle ? idle + ' 天' : '今天'}</b><span>上次营业</span></div></div>
+    <div style="margin-top:12px"><b style="font-size:14px">今日变化来源</b>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${sign(n)}</div>`).join('') : '<div class="muted" style="padding:6px 0">今天还没有变化</div>'}</div>
+    <div style="margin-top:8px"><b style="font-size:14px">最近 7 天</b>${days.map(k => `<div class="rule"><span style="flex:1">${k === today ? '今天' : k.slice(5).replace('-', '月') + '日'}</span>${sign(net(k))}</div>`).join('')}</div>
+    <p class="muted" style="margin:10px 0 0">影响人气的因素：常发帖、回复粉丝、开直播会升温；超过 3 天不营业会掉粉；公开行程（打歌、综艺、演出等）结束后会涨粉；负面言论会掉粉，恋爱话题会让少部分粉丝离开。</p>`;
+}
 function viewMe() {
   const p = S.profile; const totalL = S.posts.reduce((s, x) => s + x.likes, 0), totalC = S.posts.reduce((s, x) => s + x.commentCount, 0);
   return `
@@ -1405,6 +1659,8 @@ function viewMe() {
     </div>
     <div class="kpi"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
   </div>
+  <div class="sec-title">📈 粉丝动态</div>
+  <div class="card">${fanPanelHTML()}</div>
   <div class="sec-title">🐱 人设</div>
   <div class="card">
     <div class="grid2">
@@ -1486,6 +1742,8 @@ document.addEventListener('click', async e => {
     case 'opennotif': { const n = S.notifs.find(x => x.id === t.dataset.nid); if (n) openNotif(n); break; }
     case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
     case 'pvcam': previewCam(); break;
+    case 'crate': S.prefs.chatRate = +t.dataset.v; save(); render(); break;
+    case 'ldel': if (confirm('删除这条直播记录？')) { S.lives = S.lives.filter(l => String(l.start) !== t.dataset.s); save(); render(); } break;
     case 'lmode': stopPreview(); S.prefs.liveMode = t.dataset.m; save(); render(); break;
     case 'bpreset': {
       S.prefs.beauty = Object.assign(beautyCfg(), { preset: t.dataset.k }); save(); applyBeauty();
@@ -1510,7 +1768,7 @@ document.addEventListener('click', async e => {
       const p = S.profile;
       p.name = $('#p-name').value.trim() || p.name; p.fandom = $('#p-fandom').value.trim() || p.fandom;
       p.debut = $('#p-debut').value || p.debut; p.animal = $('#p-animal').value.trim() || p.animal;
-      p.followers = Math.max(0, +$('#p-fol').value || p.followers);
+      p.followers = Math.max(0, +$('#p-fol').value || p.followers); p.folBase = p.followers;
       const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
       p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
       p.bio = $('#p-bio').value.trim(); p.fanRules = $('#p-fanrules').value.trim();
