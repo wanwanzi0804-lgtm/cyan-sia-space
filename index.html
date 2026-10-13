@@ -36,13 +36,14 @@ textarea{resize:vertical;min-height:80px}
 main{padding:0 12px}
 main.flush{padding:0}
 .bb{display:flex;flex-direction:column;height:calc(100dvh - 116px - env(safe-area-inset-bottom));background:var(--card)}
-.bb-head{display:flex;align-items:center;justify-content:center;position:relative;padding:8px 12px}
+.bb-head{display:flex;align-items:center;justify-content:center;position:relative;padding:10px 12px 4px;background:var(--card)}
 .bb-title{font-weight:800;font-size:17px}
 .bb-more{position:absolute;right:6px;border:0;background:none;font-size:22px;padding:2px 12px}
-.bb-top{background:var(--card);padding:6px 14px 12px;border-radius:0 0 18px 18px;box-shadow:0 6px 14px rgba(0,0,0,.08);position:relative;z-index:2}
+.bb-top{background:var(--card);padding:14px 22px 10px;border-radius:0 0 22px 22px;box-shadow:0 6px 14px rgba(0,0,0,.06);position:relative;z-index:2}
 .bb-top{cursor:pointer}
-.bb-tick{height:24px;overflow:hidden;font-size:14px}
-.bb-tick .ti{display:flex;gap:6px;align-items:center;white-space:nowrap;height:24px}
+.bb-tick{height:26px;overflow:hidden;font-size:16px;color:var(--text)}
+.bb-tick .ti{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:26px;line-height:26px}
+.bb-handle{width:38px;height:4px;border-radius:2px;background:var(--line);margin:10px auto 0}
 .bb-tick .ti.in{animation:tickin .35s ease-out}
 @keyframes tickin{from{transform:translateY(100%);opacity:0}}
 .bb-tick .st{font-size:17px}
@@ -1160,7 +1161,7 @@ function viewBubble() {
     <div class="bb-head"><span class="bb-title">${esc(bbName())}</span><button class="bb-more" data-act="bbmenu" title="更多">⋮</button></div>
     <div class="bb-top" data-act="bbtickopen">
       <div class="bb-tick" id="bb-tick">${bbTickItem(bbLastFan())}</div>
-      <div class="bb-sub">订阅中 ${fmtNum(bbSubs())} 人 · 粉丝实时消息</div>
+      <div class="bb-handle"></div>
     </div>
     <div class="bb-chat" id="bbchat"></div>
     <div id="bb-replybar"></div>
@@ -1274,7 +1275,7 @@ function bbRecStop(send) {
 // 顶部实时消息条：有新粉丝消息就滚动出来，没有就停在最后一条
 function bbLastFan() { const gs = S.bubble.groups; for (let i = gs.length - 1; i >= 0; i--) if (gs[i].fans.length) return gs[i].fans[gs[i].fans.length - 1]; return null; }
 function bbTickItem(f) {
-  return f ? `<div class="ti"><span class="st">${f.st}</span><b>${esc(f.user)}</b><span class="tt">${esc(f.text)}${f.zh ? ` <span class="tz">(${esc(f.zh)})</span>` : ''}</span></div>` : '<div class="ti muted">还没有粉丝消息</div>';
+  return f ? `<div class="ti">${esc(f.text)}</div>` : '<div class="ti" style="color:var(--muted)">还没有粉丝消息</div>';
 }
 let bbTickQ = [];
 // 折叠气泡和顶部消息条：只有新消息进来时才动，没有新消息就停住
