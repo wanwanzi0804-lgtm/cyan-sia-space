@@ -268,7 +268,7 @@ function defaultState() {
   return {
     v: 3,
     profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, folBase: 15320, songs: [], bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
-    ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '' },
+    ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '', capCny: 10 },
     prefs: { autoTr: false, speed: 1, sysNotif: false, liveMode: 'video', beauty: { preset: 'natural', level: 60 } },
     sim: { lastTick: Date.now() },
     posts: [], notifs: [], lives: [],
@@ -540,7 +540,12 @@ const AI_SCHEMA = {
   properties: { comments: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['user', 'lang', 'text', 'zh'], properties: { user: { type: 'string' }, lang: { type: 'string', enum: ['zh', 'ko', 'ja', 'en'] }, text: { type: 'string' }, zh: { type: 'string' } } } } }
 };
 let sdkP = null;
-const aiOn = () => S.ai.enabled && !!S.ai.key && Date.now() > (S.ai._backoff || 0);
+// 每百万 token 的美元价格（输入, 输出），用来粗略估算花了多少钱
+const AI_PRICE = { 'claude-opus-5-5': [4, 20], 'claude-sonnet-5-5': [2, 10], 'claude-haiku-5-5': [.1, .5] };
+const USD_CNY = 7.1;
+function aiUsage() { const m = dkey(Date.now()).slice(0, 7); const u = S.ai.usage; return u && u.month === m ? u : (S.ai.usage = { month: m, calls: 0, usd: 0 }); }
+function aiOverCap() { return (S.ai.capCny || 0) > 0 && aiUsage().usd * USD_CNY >= S.ai.capCny; }
+const aiOn = () => S.ai.enabled && !!S.ai.key && Date.now() > (S.ai._backoff || 0) && !aiOverCap();
 async function aiClient() {
   sdkP = sdkP || import(SDK_URL);
   const m = await sdkP; const Anthropic = m.default || m.Anthropic;
@@ -568,6 +573,10 @@ async function aiComments(content, maxTokens = 4000) {
   };
   if (FALLBACK_MODELS.includes(S.ai.model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
   const r = await client.beta.messages.create(req);
+  const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage();
+  u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
+  if (aiOverCap()) pushNotif({ type: 'system', text: '本月 AI 花费已到你设的上限，AI 粉丝已自动暂停', sub: '下个月会自动恢复，也可以在「我的 → AI 粉丝」里调高上限' }, true);
+  save();
   if (r.stop_reason === 'refusal') throw new Error('模型拒绝了这次请求');
   const txt = r.content.filter(b => b.type === 'text').map(b => b.text).join('');
   const j = JSON.parse(txt);
@@ -603,7 +612,7 @@ async function videoB64(blob, max = 640) {
   try { await once(v, 'loadeddata'); v.currentTime = Math.min(1, (v.duration || 2) / 2); await once(v, 'seeked'); return drawB64(v, v.videoWidth, v.videoHeight, max); }
   catch (e) { return ''; } finally { URL.revokeObjectURL(url); }
 }
-async function aiForPost(post, n = 25) {
+async function aiForPost(post, n = 15) {
   if (post._busy) return;
   post._busy = true; post.lastAi = Date.now();
   try {
@@ -638,7 +647,8 @@ function makeComment(base, fan) {
   return { id: uid(), user: base.user || fan.user, color: fan.color, lang: base.lang, text: base.text, zh: base.zh || null, at: Date.now(), likes: 0, replies: [] };
 }
 function nextComment(post) {
-  if (post.aiPool && post.aiPool.length) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
+  // AI 评论和免费模板评论混着出现
+  if (post.aiPool && post.aiPool.length && Math.random() < .25) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
   if (post._ans === undefined) post._ans = answerFor(post.text) || null;
   const ctx = { text: post.text, tone: post.tone, tags: post.tags, desc: post.desc, ans: post._ans, hour: new Date(post.createdAt).getHours(), hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
   const base = t => t.replace(/(hhh|[！!～~\s]|\p{Extended_Pictographic}|\uFE0F)+$/u, '');
@@ -681,7 +691,7 @@ function simPost(post, dtSim, silent) {
   }
   if (post.folD) addFans(post.folD * f, post.folR || '帖子互动'); else addFans(nl * .004, '帖子互动');
   // AI 评论池补货
-  if (!silent && aiOn() && !post._busy && (post.aiPool || []).length < 5 && a1 < 6 * 3600e3 && (post.aiBatches || 0) < 8 && Date.now() - (post.lastAi || 0) > 45000) aiForPost(post);
+  if (!silent && aiOn() && !post._busy && (post.aiPool || []).length < 5 && a1 < 6 * 3600e3 && (post.aiBatches || 0) < 1 && Date.now() - (post.lastAi || 0) > 45000) aiForPost(post);
   return { nl, nc };
 }
 
@@ -890,7 +900,7 @@ function tplReactions(post, parent, target, text = '') {
 }
 async function aiReactions(post, parent, target, text) {
   try {
-    const n = target ? ri(3, 5) : ri(4, 7);
+    const n = target ? ri(2, 3) : ri(3, 4);
     const prompt = target
       ? `${S.profile.name}（偶像本人）在自己的帖子「${post.text || '（图片/视频帖）'}」下面，回复了粉丝「${target.user}」的评论。\n粉丝原评论（${LANG_NAME[target.lang || 'zh']}）：「${target.text}」\n${S.profile.name} 的回复：「${text}」\n请生成 ${n} 条楼中楼回复：第 1 条必须是粉丝「${target.user}」本人被偶像回复后的反应（用${LANG_NAME[target.lang || 'zh']}写，要接住偶像的回复内容），其余是围观粉丝的反应（羡慕、起哄、接话等）。`
       : `${S.profile.name}（偶像本人）在自己的帖子「${post.text || '（图片/视频帖）'}」下面发了一条评论：「${text}」\n请生成 ${n} 条粉丝在这条评论下的楼中楼回复，要针对她说的内容来回应。`;
@@ -1323,7 +1333,8 @@ function liveTick() {
   while (L.hacc >= 1) { L.hacc -= 1; L.hearts += ri(1, 6); if (Math.random() < .35) spawnHeart(); }
   $('#lv-heart').textContent = fmtNum(L.hearts);
   // AI 弹幕
-  if (aiOn() && !L.aiBusy && (Date.now() - L.lastAi > 10000) && (L.newSpeech || Date.now() - L.lastAi > 30000)) liveAI();
+  // 说话后最多 30 秒请一次 AI；不说话时每 3 分钟少量请一次；其余时间都是免费模板弹幕
+  if (aiOn() && !L.aiBusy && ((L.newSpeech && Date.now() - L.lastAi > 30000) || Date.now() - Math.max(L.lastAi, L.start) > 180000)) liveAI();
 }
 const LIVE_AMB = {
   common: ['哈哈哈哈', '笑死', '啊啊啊啊', '爱你', '{n}吃饭了吗', '今天练习累不累', '什么时候回归呀', '唱首歌吧', '猫猫在吗', '下次多播一会', '我在这里！', '{n}看评论！', '第一次看直播好紧张', '可以叫我名字吗', '{n}在宿舍吗', '有点卡吗还是我网不好', '老婆贴贴', '想{n}了', '今天也来打卡了', '一边写作业一边看', '在食堂偷偷看', '好治愈', '{n}说话好好听', '{n}的笑声好可爱', '刷到直播立刻点进来', '好久没看到{n}直播了', '在地铁上看', '我妈问我在笑什么', '已经录屏了', '今天也被可爱到了', '这个时间开播太好了', '{n}看看我', '抽空来看一眼', '给{n}点了好多爱心', '{n}今天好有精神', '安可～', '今天心情好好呀'],
@@ -1554,18 +1565,18 @@ function startRec() {
 }
 function stopRec() { if (!LIVE) return; LIVE.micOn = false; try { LIVE.rec && LIVE.rec.stop(); } catch (e) { } $('#lv-mic')?.classList.remove('on'); }
 async function liveAI() {
-  const L = LIVE; L.aiBusy = true; L.lastAi = Date.now(); const speech = L.speech; L.newSpeech = false; L.speech = '';
+  const L = LIVE; L.aiBusy = true; L.lastAi = Date.now(); const speech = L.speech, idle = !L.newSpeech; L.newSpeech = false; L.speech = '';
   try {
     const content = [];
     const v = L.layer.querySelector('video.bv-main'); const data = v ? drawB64(v, v.videoWidth, v.videoHeight, 512, beautyFilter()) : '';
     if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
     content.push({ type: 'text', text:
 `${S.profile.name} 正在${L.mode === 'video' ? '视频' : L.mode === 'voice' ? '语音（没有画面，只有声音）' : '纯文字聊天'}直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
-${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话。'}
+${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话：粉丝可以聊画面里的细节、互相聊天，或者向她提问（TMI、OOTD、最近的行程等）。'}
 最近的弹幕：
 ${L.recent.slice(-10).join('\n')}
-请生成 10 条新弹幕：大部分要回应她刚说的话或画面里的细节（如果她提问就回答），短一点（多数 2~15 字），像直播间弹幕。` });
-    const list = await aiComments(content, 1500);
+请生成 ${idle ? 4 : 6} 条新弹幕：大部分要回应她刚说的话或画面里的细节（如果她提问就回答），短一点（多数 2~15 字），像直播间弹幕。` });
+    const list = await aiComments(content, idle ? 600 : 900);
     if (LIVE === L) L.queue.unshift(...list.map(b => ({ user: b.user, lang: b.lang, text: b.text, zh: b.zh })));
   } catch (e) { aiFail(e); }
   finally { L.aiBusy = false; }
@@ -1815,7 +1826,9 @@ function viewMe() {
     <div class="field"><label>API Key</label><input type="password" id="ai-key" value="${esc(S.ai.key)}" placeholder="sk-ant-..." autocomplete="off"></div>
     <div class="field"><label>模型</label><select id="ai-model">
       ${[['claude-opus-5-5', 'Claude Opus 5.5（默认，最聪明）'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5（更快、更便宜）'], ['claude-haiku-5-5', 'Claude Haiku 5.5（最便宜）']].map(([v, t]) => `<option value="${v}" ${S.ai.model === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-    <p class="muted" style="margin:0 0 8px">大概费用（粗略估算，以实际账单为准）：<br>· Opus 5.5：每条帖子约 ¥0.4～3；直播每小时约 ¥30～50<br>· Sonnet 5.5：大约是 Opus 的一半<br>· Haiku 5.5：大约是 Opus 的 1/40（直播每小时约 ¥1）</p>
+    <p class="muted" style="margin:0 0 8px">省钱模式：每条帖子只请一次 AI（约 15 条评论，和免费评论混着出现）；直播在你说话后请 AI（最多 30 秒一次），不说话时每 3 分钟少量请一次。<br>大概费用（Haiku 5.5）：每条帖子约 ¥0.01，直播每小时约 ¥0.1～0.5。Sonnet 约贵 20 倍，Opus 约贵 40 倍。</p>
+    <div class="row" style="margin-bottom:8px"><span style="font-size:14px;flex:1">本月 AI 花费（估算）：<b>¥${(aiUsage().usd * USD_CNY).toFixed(2)}</b> · ${aiUsage().calls} 次${aiOverCap() ? ' · <b style="color:var(--danger)">已到上限，已暂停</b>' : ''}</span></div>
+    <div class="field"><label>每月上限（人民币，到了自动暂停 AI；0 = 不限制）</label><input type="number" id="ai-cap" min="0" step="1" value="${S.ai.capCny ?? 10}"></div>
     ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误：${esc(S.ai.lastError)}</p>` : ''}
     <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
   </div>
@@ -1916,7 +1929,7 @@ document.addEventListener('click', async e => {
       p.bio = $('#p-bio').value.trim(); p.fanRules = $('#p-fanrules').value.trim();
       save(); render(); toast('人设已保存'); break;
     }
-    case 'aisave': S.ai.enabled = $('#ai-on').checked; S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value; S.ai._backoff = 0; save(); render(); toast(S.ai.enabled && S.ai.key ? 'AI 粉丝已开启 ✨' : 'AI 设置已保存'); break;
+    case 'aisave': S.ai.capCny = Math.max(0, +$('#ai-cap').value || 0); S.ai.enabled = $('#ai-on').checked; S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value; S.ai._backoff = 0; save(); render(); toast(S.ai.enabled && S.ai.key ? 'AI 粉丝已开启 ✨' : 'AI 设置已保存'); break;
     case 'aitest': {
       S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value;
       if (!S.ai.key) { toast('请先填写 API Key'); break; }
