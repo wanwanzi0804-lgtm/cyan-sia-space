@@ -40,6 +40,17 @@ main.flush{padding:0}
 .bb-title{font-weight:800;font-size:17px}
 .bb-more{position:absolute;right:6px;border:0;background:none;font-size:22px;padding:2px 12px}
 .bb-top{background:var(--card);padding:6px 14px 12px;border-radius:0 0 18px 18px;box-shadow:0 6px 14px rgba(0,0,0,.08);position:relative;z-index:2}
+.bb-top{cursor:pointer}
+.bb-tick{height:24px;overflow:hidden;font-size:14px}
+.bb-tick .ti{display:flex;gap:6px;align-items:center;white-space:nowrap;height:24px}
+.bb-tick .ti.in{animation:tickin .35s ease-out}
+@keyframes tickin{from{transform:translateY(100%);opacity:0}}
+.bb-tick .st{font-size:17px}
+.bb-tick b{font-weight:600;font-size:13px;flex:none}
+.bb-tick .tt{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bb-tick .tz{color:var(--muted);font-size:12px}
+.bb-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.bb-at{border:0;background:var(--bg);color:var(--accent);font-weight:800;font-size:17px;width:36px;height:36px;border-radius:50%;flex:none;margin-bottom:2px}
 .bb-fan{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:0 6px;font-weight:700}
 .bb-msg .bb-fan{background:rgba(255,255,255,.22);color:#fff}
 .bb-chat{flex:1;overflow-y:auto;padding:26px 12px 14px;margin-top:-14px}
@@ -1065,7 +1076,7 @@ function bbAddFan(line, user) {
   const m = { id: uid(), user: user || line.user || makeFan(line.lang).user, st: pick(BB_STICKERS), lang: line.lang || 'zh', text: line.text, zh: line.zh || null, at: Date.now() };
   g.fans.push(m); g.count = (g.count || 0) + 1;
   if (g.fans.length > 400) g.fans.splice(0, g.fans.length - 400);
-  if (UI.tab !== 'bubble') B.unread = (B.unread || 0) + 1;
+  if (UI.tab !== 'bubble') B.unread = (B.unread || 0) + 1; else bbTickQ.push(m);
   return m;
 }
 // 粉丝消息：你刚发消息时一波（大概订阅者的 5%~12%，大部分订阅者不说话），平时零星主动发（深夜少、晚上多）
@@ -1144,16 +1155,16 @@ function viewBubble() {
   if (!S.bubble.welcome) return viewBubbleSetup();
   return `<div class="bb">
     <div class="bb-head"><span class="bb-title">${esc(bbName())}</span><button class="bb-more" data-act="bbmenu" title="更多">⋮</button></div>
-    <div class="bb-top">
-      <div class="row"><span class="muted" style="font-size:12px">🔒 只有你能看到</span><span class="sp"></span><span class="muted" style="font-size:12px">订阅中 ${fmtNum(bbSubs())} 人</span></div>
-      <div class="row" style="margin-top:4px"><span style="font-size:14px">粉丝称呼：<b class="bb-fan">${esc(bbFan())}</b></span><span class="sp"></span><button class="btn sm" data-act="bbins">插入称呼</button></div>
-      <div class="muted" style="font-size:11.5px;margin-top:2px">插入后，每个粉丝看到的都是自己的名字</div>
+    <div class="bb-top" data-act="bbtickopen">
+      <div class="bb-tick" id="bb-tick">${bbTickItem(bbLastFan())}</div>
+      <div class="bb-sub">订阅中 ${fmtNum(bbSubs())} 人 · 粉丝实时消息</div>
     </div>
     <div class="bb-chat" id="bbchat"></div>
     <div id="bb-replybar"></div>
     <div id="bb-rec"></div>
     <div class="bb-comp">
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
+      <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
       <textarea id="bb-in" rows="1" placeholder="给粉丝发消息…">${esc(UI.bbDraft || '')}</textarea>
       <button class="bb-send" data-act="bbsend" title="发送">↑</button>
     </div>
@@ -1171,7 +1182,7 @@ function bbMsgHTML(m) {
 }
 function bbGroupHTML(g) {
   if (!g || !g.fans.length) return '';
-  if (!g.closed && !g._emo) { g._emo = pick(BB_EMOJI); g._n = pick([3, 5]); }
+  if (!g.closed && !g._emo) { g._emo = pick(BB_EMOJI); g._n = pick([3, 5]); g._seen = g.fans.length; }
   const emo = g.closed ? g.emoji : g._emo, n = g.closed ? 3 : g._n;
   return `<div class="bb-row fan"><div class="bb-st">${g.st || '🐶'}</div><div><div class="bb-from">FROM FAN</div><div class="row" style="gap:6px"><div class="bb-fb ${g.closed ? 'closed' : 'open'}" data-g="${g.id}" data-act="bbopen">${emo.repeat(n)}</div><button class="bb-arrow" data-act="bbopen" data-g="${g.id}" title="查看粉丝消息">➜</button></div></div></div>`;
 }
@@ -1257,12 +1268,26 @@ function bbRecStop(send) {
   try { R.mr.stop(); } catch (e) { }
   const bar = $('#bb-rec'); if (bar) bar.innerHTML = '';
 }
-// 正在滚动的折叠气泡：固定频率随机换表情（3 个或 5 个）
+// 顶部实时消息条：有新粉丝消息就滚动出来，没有就停在最后一条
+function bbLastFan() { const gs = S.bubble.groups; for (let i = gs.length - 1; i >= 0; i--) if (gs[i].fans.length) return gs[i].fans[gs[i].fans.length - 1]; return null; }
+function bbTickItem(f) {
+  return f ? `<div class="ti"><span class="st">${f.st}</span><b>${esc(f.user)}</b><span class="tt">${esc(f.text)}${f.zh ? ` <span class="tz">(${esc(f.zh)})</span>` : ''}</span></div>` : '<div class="ti muted">还没有粉丝消息</div>';
+}
+let bbTickQ = [];
+// 折叠气泡和顶部消息条：只有新消息进来时才动，没有新消息就停住
 setInterval(() => {
-  if (UI.tab !== 'bubble' || !S.bubble) return;
-  const g = bbOpen(); if (!g || !g.fans.length) return;
-  g._emo = pick(BB_EMOJI); g._n = pick([3, 5]);
-  const el = $(`.bb-fb.open[data-g="${g.id}"]`); if (el) el.textContent = g._emo.repeat(g._n);
+  if (UI.tab !== 'bubble' || !S.bubble || !S.bubble.welcome) { bbTickQ = []; return; }
+  const g = bbOpen(); if (!g) return;
+  if (g.fans.length && g.fans.length !== g._seen) {
+    g._seen = g.fans.length;
+    g._emo = pick(BB_EMOJI); g._n = pick([3, 5]);
+    const el = $(`.bb-fb.open[data-g="${g.id}"]`); if (el) el.textContent = g._emo.repeat(g._n);
+  }
+  if (bbTickQ.length) {
+    if (bbTickQ.length > 4) bbTickQ = bbTickQ.slice(-4); // 刷得太快就跳到最新的
+    const f = bbTickQ.shift(), box = $('#bb-tick');
+    if (box) { box.innerHTML = bbTickItem(f); const it = box.firstElementChild; it.classList.add('in'); }
+  }
 }, 1200);
 
 /* =========================================================
@@ -2246,6 +2271,7 @@ document.addEventListener('click', async e => {
     case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
     case 'pvcam': previewCam(); break;
     case 'bbmenu': bbSideOpen(); break;
+    case 'bbtickopen': { const g = [...S.bubble.groups].reverse().find(x => x.fans.length); if (g) openModal(bbListHTML(g)); break; }
     case 'bbinsw': { const inp = $('#bb-s-welcome'); const a = inp.selectionStart ?? inp.value.length; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(inp.selectionEnd ?? a); inp.focus(); break; }
     case 'bblaunch': {
       const w = $('#bb-s-welcome').value.trim(); if (!w) { toast('请先写一句欢迎语'); break; }
