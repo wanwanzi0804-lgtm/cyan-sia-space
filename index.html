@@ -83,6 +83,18 @@ body.typing .bb{bottom:0}
 .bb-plus{border:0;background:none;font-size:26px;width:36px;height:40px;flex:none}
 .bb-send{border:0;width:40px;height:40px;border-radius:50%;background:#111;color:#fff;font-size:20px;flex:none}
 .bb-save{border:0;height:40px;border-radius:20px;background:#111;color:#fff;font-size:14px;font-weight:700;padding:0 14px;flex:none;white-space:nowrap}
+.bb-pbar{margin:14px -12px 8px;padding:8px 0;text-align:center;font-size:13px;color:#fff;background:rgba(120,120,128,.35);text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.bb-row.pending .bb-msg{opacity:.55;cursor:pointer}
+.bb-psend{border:0;background:#ff8a3d;color:#fff;font-weight:700;font-size:15px;border-radius:16px;padding:10px 16px;box-shadow:0 2px 8px rgba(255,138,61,.35);text-decoration:underline;text-underline-offset:3px}
+.bb-psend span{text-decoration:none;display:inline-block;margin-left:6px}
+.bb-pcount{text-align:right;font-size:11.5px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45);margin:2px 4px 0}
+#bb-alert{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.35);display:grid;place-items:center;padding:24px}
+.bb-alert-box{background:var(--card);border-radius:16px;width:min(320px,100%);text-align:center;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.bb-alert-t{font-weight:700;font-size:17px;padding:22px 18px 6px}
+.bb-alert-x{color:var(--muted);font-size:14px;padding:0 18px 20px}
+.bb-alert-b{display:flex;border-top:1px solid var(--line)}
+.bb-alert-b button{flex:1;border:0;background:none;padding:14px 0;font-size:16px}
+.bb-alert-b button+button{border-left:1px solid var(--line);font-weight:700;color:var(--accent)}
 .bb-dbox{background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
 .bb-dhead{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:6px}
 .bb-dlist{max-height:132px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
@@ -1173,14 +1185,13 @@ function viewBubble() {
       <div class="bb-handle"></div>
     </div>
     <div class="bb-chat" id="bbchat"></div>
-    <div id="bb-drafts"></div>
     <div id="bb-replybar"></div>
     <div id="bb-rec"></div>
     <div class="bb-comp">
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
       <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
-      <textarea id="bb-in" rows="1" placeholder="给粉丝发消息…">${esc(UI.bbDraft || '')}</textarea>
-      <button class="bb-save" data-act="bbdraft" title="存入草稿箱">存草稿</button>
+      <textarea id="bb-in" rows="1" placeholder="点 @ 可以叫粉丝的昵称 :)">${esc(UI.bbDraft || '')}</textarea>
+      <button class="bb-send" data-act="bbdraft" title="放进待发送">↑</button>
     </div>
     <input type="file" id="bb-file" accept="image/*,video/*" hidden>
   </div>`;
@@ -1209,6 +1220,7 @@ function renderBubbleChat() {
   const last = B.msgs[B.msgs.length - 1];
   if (last && Date.now() - last.at > 3 * 3600e3) h += `<div class="bb-wait">粉丝们正在等你的消息 🫧</div>`;
   if (!B.msgs.length && !bbOpen().fans.length) h += `<div class="bb-wait" style="margin-top:30%">发第一条消息，和订阅的粉丝们打个招呼吧 🫧</div>`;
+  h += bbPendingHTML();
   box.innerHTML = h; hydrate(box); bbWallpaper();
   box.scrollTop = box.scrollHeight;
   $$('img,video', box).forEach(x => x.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true }));
@@ -1230,13 +1242,27 @@ async function bbDraftAdd(type, payload = {}) {
   if (type === 'text' && at != null && at <= bbDrafts().length) bbDrafts().splice(at, 0, d); else bbDrafts().push(d);
   save(); bbDraftsRender();
 }
-function bbDraftsRender() {
-  const box = $('#bb-drafts'); if (!box) return; const ds = bbDrafts();
-  if (!ds.length) { box.innerHTML = ''; return; }
-  const prev = d => d.type === 'image' ? '🖼 照片' : d.type === 'video' ? '🎬 视频' : d.type === 'voice' ? `🎙 语音 ${fmtDur(d.dur || 0)}` : esc(d.text).split(esc(BB_TOK)).join(`<span class="bb-fan">${esc(bbFan())}</span>`);
-  box.innerHTML = `<div class="bb-dbox"><div class="bb-dhead"><b>草稿箱 · ${ds.length} 条</b><span class="sp"></span><button class="link" data-act="bbdclear">清空</button><button class="btn primary sm" data-act="bbdsend">全部发送 ↑</button></div>
-    <div class="bb-dlist">${ds.map(d => `<div class="bb-ditem"><div class="bb-dtxt" ${d.type === 'text' ? `data-act="bbdedit" data-id="${d.id}" title="点一下拿回输入框修改"` : ''}>${d.replyTo ? `<span class="muted">↩ ${esc(d.replyTo.user)}：</span>` : ''}${prev(d)}</div><button class="link" data-act="bbddel" data-id="${d.id}" title="删除">✕</button></div>`).join('')}</div></div>`;
-  const list = box.querySelector('.bb-dlist'); if (list) list.scrollTop = list.scrollHeight;
+function bbDraftsRender() { renderBubbleChat(); }
+function bbPendingHTML() {
+  const ds = bbDrafts(); if (!ds.length) return '';
+  const body = d => {
+    let h = '';
+    if (d.type === 'image') h = `<img class="bb-media" data-mid="${d.media}" alt="">`;
+    else if (d.type === 'video') h = `<video class="bb-media" data-mid="${d.media}" muted playsinline preload="metadata"></video>`;
+    else if (d.type === 'voice') h = `<span class="bb-voice">▶︎ ${fmtDur(d.dur || 0)} <span class="wave">▁▃▅▂▆▃▁▅▂</span></span>`;
+    const q = d.replyTo ? `<div class="bb-quote"><div class="q-to">回复给 ${esc(d.replyTo.user)}</div><div>${esc(d.replyTo.text)}</div></div>` : '';
+    const t = d.text ? `<div class="bb-txt">${esc(d.text).split(esc(BB_TOK)).join(`<span class="bb-fan">${esc(bbFan())}</span>`)}</div>` : '';
+    return q + h + t;
+  };
+  return `<div class="bb-pbar">待发送的消息</div>${ds.map(d => `<div class="bb-row me pending"><div class="bb-msg${d.type !== 'text' && !d.text && !d.replyTo ? ' bare' : ''}" data-act="bbdmenu" data-id="${d.id}">${body(d)}</div></div>`).join('')}
+    <div class="bb-row me"><button class="bb-psend" data-act="bbdsendask">发送待发消息 <span>✈︎</span></button></div><div class="bb-pcount">${ds.length} 条</div>`;
+}
+function bbConfirm(title, text, onOk) {
+  $('#bb-alert')?.remove();
+  const d = document.createElement('div'); d.id = 'bb-alert';
+  d.innerHTML = `<div class="bb-alert-box"><div class="bb-alert-t">${esc(title)}</div><div class="bb-alert-x">${esc(text)}</div><div class="bb-alert-b"><button data-a="no">取消</button><button data-a="ok">确认</button></div></div>`;
+  d.addEventListener('click', e => { const a = e.target.closest('[data-a]')?.dataset.a; if (!a && e.target !== d) return; d.remove(); if (a === 'ok') onOk(); });
+  document.body.appendChild(d);
 }
 let bbSending = false;
 async function bbDraftSendAll() {
@@ -1303,7 +1329,7 @@ async function bbRecStart() {
     mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     BBREC = { st, mr, chunks, start: Date.now(), timer: setInterval(() => { const el = $('#bb-rec-t'); if (el && BBREC) el.textContent = fmtDur((Date.now() - BBREC.start) / 1000); }, 300) };
     mr.start();
-    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">存入草稿</button></div>`;
+    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">放进待发送</button></div>`;
   } catch (e) { toast('无法使用麦克风', camErr(e)); }
 }
 function bbRecStop(send) {
@@ -2365,15 +2391,19 @@ document.addEventListener('click', async e => {
     case 'bbsave': S.bubble.name = $('#bb-name').value.trim(); S.bubble.fanName = $('#bb-fanname').value.trim(); S.bubble.welcome = $('#bb-welcome').value.trim() || S.bubble.welcome; save(); closeModal(); render(); toast('聊天室设置已保存'); break;
     case 'bbins': { const inp = $('#bb-in'); const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(b); UI.bbDraft = inp.value; inp.focus(); inp.selectionStart = inp.selectionEnd = a + BB_TOK.length; break; }
     case 'bbdraft': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbDraftAdd('text', { text }); inp.focus(); break; }
-    case 'bbdsend': bbDraftSendAll(); break;
-    case 'bbddel': { const ds = bbDrafts(), i = ds.findIndex(x => x.id === t.dataset.id); if (i >= 0) { const [d] = ds.splice(i, 1); if (d.media) idbDel(d.media); save(); bbDraftsRender(); } break; }
+    case 'bbdsendask': bbConfirm('要发送 Bubble 吗？', '确认后，消息将一起发送。', bbDraftSendAll); break;
+    case 'bbdmenu': {
+      const d = bbDrafts().find(x => x.id === t.dataset.id); if (!d) break;
+      openModal(`<div class="bb-menu">${d.type === 'text' ? `<button data-act="bbdedit" data-id="${d.id}">✏️ 修改这条</button>` : ''}<button data-act="bbddel" data-id="${d.id}">🗑 删除这条</button><button data-act="bbdclear">清空全部待发消息</button><button data-act="close" style="justify-content:center;color:var(--muted)">取消</button></div>`); break;
+    }
+    case 'bbddel': { closeModal(); const ds = bbDrafts(), i = ds.findIndex(x => x.id === t.dataset.id); if (i >= 0) { const [d] = ds.splice(i, 1); if (d.media) idbDel(d.media); save(); bbDraftsRender(); } break; }
     case 'bbdedit': {
-      const ds = bbDrafts(), i = ds.findIndex(x => x.id === t.dataset.id); if (i < 0) break;
+      closeModal(); const ds = bbDrafts(), i = ds.findIndex(x => x.id === t.dataset.id); if (i < 0) break;
       const [d] = ds.splice(i, 1), inp = $('#bb-in'); inp.value = d.text; UI.bbDraft = d.text; UI.bbEditAt = i;
       if (d.replyTo) { S.bubble.replyTo = d.replyTo; bbReplyBar(); }
       save(); bbDraftsRender(); inp.focus(); break;
     }
-    case 'bbdclear': if (confirm('清空草稿箱？')) { bbDrafts().splice(0).forEach(d => d.media && idbDel(d.media)); save(); bbDraftsRender(); } break;
+    case 'bbdclear': closeModal(); bbConfirm('清空待发消息？', '还没发送的消息都会被删除。', () => { bbDrafts().splice(0).forEach(d => d.media && idbDel(d.media)); save(); bbDraftsRender(); }); break;
     case 'bbplus': openModal(`<div class="bb-menu"><button data-act="bbpickfile">🖼 照片 / 视频</button><button data-act="bbvoice">🎙 录语音</button><button data-act="close" style="justify-content:center;color:var(--muted)">取消</button></div>`); break;
     case 'bbpickfile': closeModal(); $('#bb-file').click(); break;
     case 'bbvoice': closeModal(); bbRecStart(); break;
