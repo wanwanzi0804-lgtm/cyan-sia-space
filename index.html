@@ -140,12 +140,15 @@ main{padding:0 12px}
 .status{font-size:12px;font-weight:600}
 .status.now{color:var(--danger)}
 .chk{width:22px;height:22px;flex:none;accent-color:var(--accent);margin-top:2px}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px}
 .pcats{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
 .pcat{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-size:13px}
 .pcat.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .plist{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .preset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 10px;font-size:14px}
 .preset .muted{width:100%;font-size:12px}
+.preset.dice{justify-content:center;border-style:dashed;font-weight:600;color:var(--accent)}
+.preset.dice .muted{text-align:center}
 .preset.on{border-color:var(--accent);background:var(--accent-soft)}
 .rule{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 .rule:first-child{border-top:0}
@@ -263,8 +266,8 @@ function hms(ms) { const s = Math.floor(ms / 1000); return `${pad(Math.floor(s /
 function seedSchedule() { return { rules: [], done: {}, reminded: {} }; }
 function defaultState() {
   return {
-    v: 2,
-    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, folBase: 15320, bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
+    v: 3,
+    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, folBase: 15320, songs: [], bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
     ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '' },
     prefs: { autoTr: false, speed: 1, sysNotif: false, liveMode: 'video', beauty: { preset: 'natural', level: 60 } },
     sim: { lastTick: Date.now() },
@@ -412,6 +415,17 @@ const TPL = {
   ask: { zh: ['今天的TMI是什么呀？', '最近在听什么歌？', '{n}今天吃了什么呀？', '下次直播什么时候呀？', '可以多发点自拍吗🥺', '最近有什么开心的事吗？', '可以分享一下今天的OOTD吗！', '最近在看什么剧呀？', '{n}最喜欢自己哪首歌？', '最近睡得好吗？', '想去哪里旅行呀？', 'MBTI 是什么呀？', '猫派还是狗派？', '最近的小确幸是什么？'],
     ko: [['오늘 TMI 뭐예요?', '今天的TMI是什么？'], ['요즘 무슨 노래 들어요?', '最近在听什么歌？']], en: [["what's your TMI today?", '今天的TMI是什么？'], ['can you share your ootd? 🥺', '可以分享OOTD吗？🥺']], ja: [['最近ハマってることある？', '最近有沉迷什么吗？']] },
   neg: { zh: ['怎么了…是不是心情不好', '抱抱，不开心可以说出来', '这样说有点伤心…', '是不是被什么事气到了', '先冷静一下吧', '有点失望…', '希望只是一时的情绪', '不管怎样都会在的，但还是有点难过'] },
+  selfie: {
+    zh: ['今天的自拍好好看！', '这个角度绝了', '自拍天花板', '眼睛好亮', '{n}的皮肤好好', '这张必须设成头像', '怼脸也这么好看', '笑得好甜', '又在偷偷变好看', '这是什么神颜自拍'],
+    ko: [['셀카 너무 예뻐요!!', '自拍好好看！！']], ja: [['自撮りかわいすぎる！', '自拍太可爱了！']], en: [['selfie queen 😭', '自拍女王 😭']]
+  },
+  scenery: { zh: ['风景好美！', '这是哪里呀？', '{n}拍照技术好好', '好有氛围感', '想和{n}一起去', '天空好蓝', '这张可以当壁纸'], en: [['the view is so pretty', '风景好美']] },
+  group: { zh: ['合照！！', '旁边是谁呀？', '好有爱的合照', '友情好好', '是同期吗！', '两个人都好可爱'] },
+  backstage: { zh: ['后台照！！', '后台也这么好看', '辛苦了！上台前紧张吗', '造型好绝', '求更多后台照', '这是今天的舞台造型吗'] },
+  cafe: { zh: ['是哪家咖啡厅呀？', '求店名！', '好有氛围', '喝的什么呀', '同款咖啡厅打卡！', '这家看起来好好拍'] },
+  nightview: { zh: ['夜景好美', '好有氛围感', '晚上出门注意安全', '城市的光和{n}都好亮', '这张好电影感'] },
+  gift: { zh: ['是粉丝送的吗！', '礼物好可爱', '谁送的谁送的', '好会挑礼物', '开箱视频安排！'] },
+  pet: { zh: ['小动物好可爱！！', '它叫什么名字呀？', '和{n}一样可爱', '好想摸摸', '两只可爱'] },
   study: { zh: ['学习辛苦了！', '一起学习！我也在写作业', '学霸{n}', '考试加油！！', '{n}在学什么呀？'] },
   game: { zh: ['玩的什么游戏呀？', '带我一起玩！', '段位多少哈哈哈', '游戏菜也可爱'] },
   drama: { zh: ['什么剧什么剧！', '求推荐！', '我也在看这部！', '好看吗好看吗'] },
@@ -452,6 +466,25 @@ function fill(t, q = '') {
   const p = S.profile, nicks = p.nicks.length ? p.nicks : [p.name];
   return t.replace(/\{n\}/g, () => pick([...nicks, p.name])).replace(/\{f\}/g, p.fandom).replace(/\{name\}/g, p.name).replace(/\{d\}/g, dday()).replace(/\{q\}/g, q);
 }
+const IMG_TAGS = [['selfie', '🤳 自拍'], ['outfit', '👗 穿搭'], ['makeup', '💄 妆容'], ['food', '🍜 美食'], ['cafe', '☕ 咖啡厅'], ['cat', '🐱 猫咪'], ['pet', '🐶 小动物'], ['stage', '🎤 舞台'], ['backstage', '📸 后台'], ['practice', '💃 练习室'], ['scenery', '🌇 风景'], ['nightview', '🌙 夜景'], ['travel', '✈️ 旅行'], ['group', '👯 合照'], ['gift', '🎁 礼物'], ['exercise', '🏃 运动']];
+// 从图片描述里提取能被"看到"的东西，比如「白色毛衣」「草莓蛋糕」
+function descPhrases(desc) {
+  return [...new Set((desc || '').split(/[，。、,.!！?？\s~～]+|和|跟|与|在|的|穿着|穿了|拿着|戴着|抱着|吃着|喝着|里面|里|上面|桌上|手里|旁边|一起|还有|背景是|是|有/)
+    .map(x => x.trim().replace(/^(我|今天|这|那|一[个张杯只件条块碗盘份束]|很多|好多|超|好|很)+/, '').replace(/(了|呀|啊|哦)+$/, ''))
+    .filter(x => x.length >= 2 && x.length <= 8 && !/^(照片|图片|自拍|自己|大家|你们|我们)$/.test(x)))];
+}
+const DESC_TPL = {
+  wear: ['{x}好适合你', '{x}在哪里买的呀？', '求{x}链接！', '{x}好好看', '今天的{x}绝了'],
+  place: ['{x}好有氛围', '这是哪家{x}呀？', '想去同一家{x}打卡', '{x}好好拍', '在{x}的{n}好惬意'],
+  food: ['{x}看起来好好吃', '{x}！我也想吃', '求{x}的店名', '看到{x}饿了'],
+  any: ['{x}好可爱！', '注意到{x}了', '第一眼就看到{x}', '被{x}吸引了', '{x}！！看到了', '好喜欢{x}', '{x}也太有感觉了', '{x}是同款吗？', '{x}好有氛围']
+};
+function descComment(desc) {
+  const ph = descPhrases(desc); if (!ph.length) return null;
+  const x = pick(ph);
+  const kind = /厅|店|馆|屋|室|公园|街|海边|山|楼/.test(x) ? 'place' : /衣|裙|裤|帽|外套|毛衣|卫衣|衬衫|耳环|项链|发型|发夹|鞋|包|眼镜|美甲|口红|妆/.test(x) ? 'wear' : /蛋糕|饭|面|咖啡|奶茶|甜品|火锅|炸鸡|水果|草莓|冰淇淋|面包|拉面|寿司|饮料|零食/.test(x) ? 'food' : 'any';
+  return fill(pick(DESC_TPL[kind].concat(kind === 'any' ? [] : DESC_TPL.any.slice(0, 3)))).replace(/\{x\}/g, x);
+}
 function detectCats(text) { return Object.keys(CAT_KW).filter(k => CAT_KW[k].test(text || '')); }
 function snippet(text) {
   const parts = (text || '').split(/[，。！？!?,.\n~～…\s]+/).map(s => s.trim()).filter(s => s.length >= 2 && s.length <= 14);
@@ -460,12 +493,20 @@ function snippet(text) {
 function tplComment(ctx) {
   const lang = pickLang();
   if (ctx.tone === 'neg' && lang === 'zh' && Math.random() < .55) return { lang, text: fill(pick(TPL.neg.zh)), zh: null };
-  if (lang === 'zh' && ctx.text && ctx.tone !== 'neg' && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
+  if (lang === 'zh' && ctx.text && ctx.tone !== 'neg' && !ctx.ans && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
   if (lang === 'zh' && Math.random() < .07) { const ev = eventLine(); if (ev) return { lang, text: ev, zh: null }; }
+  if (lang === 'zh' && ctx.ans && Math.random() < .5) return { lang, text: fill(pick(ctx.ans)), zh: null };
+  if (lang === 'zh' && ctx.hour !== undefined && Math.random() < .06) {
+    const h = ctx.hour, list = h < 5 || h >= 23 ? ['这么晚还不睡！', '熬夜被我抓到了', '{n}快去睡觉', '深夜营业好幸福'] : h < 9 ? ['早起的{n}！', '一大早就营业', '早安早安'] : null;
+    if (list) return { lang, text: fill(pick(list)), zh: null };
+  }
   const pool = ['generic', 'generic', 'ask'];
   if (ctx.tone === 'neg') pool.push('neg', 'neg', 'neg', 'neg', 'neg', 'neg');
-  detectCats(ctx.text).forEach(c => pool.push(c, c, c));
-  if (ctx.hasImg) pool.push('photo', 'photo', 'photo');
+  detectCats(ctx.text).forEach(c => { if (!(c === 'question' && ctx.ans)) pool.push(c, c, c); });
+  (ctx.tags || []).forEach(c => { if (TPL[c]) pool.push(c, c, c, c); });
+  if (ctx.desc) detectCats(ctx.desc).forEach(c => pool.push(c, c));
+  if (ctx.desc && lang === 'zh' && Math.random() < .3) { const d = descComment(ctx.desc); if (d) return { lang, text: d, zh: null }; }
+  if (ctx.hasImg) pool.push('photo', 'photo', (ctx.tags || []).length ? 'generic' : 'photo');
   if (ctx.hasVid) pool.push('video', 'video', 'video');
   let cat = pick(pool);
   if (cat === 'romance' && lang === 'zh' && Math.random() < .15) cat = 'romanceSad';
@@ -576,7 +617,7 @@ async function aiForPost(post, n = 25) {
     const recent = post.comments.slice(0, 12).map(c => `${c.user}：${c.text}`).join('\n');
     content.push({ type: 'text', text:
 `${S.profile.name} 在粉丝社区发了一条帖子${post.media.length ? `（附 ${imgs ? imgs + ' 张图片' : ''}${imgs && vids ? '、' : ''}${vids ? vids + ' 个视频（上面给的是视频截帧）' : ''}）` : ''}，发布于${ago(post.createdAt)}。
-帖子正文：「${post.text || '（没有文字）'}」
+帖子正文：「${post.text || '（没有文字）'}」${(post.tags || []).length ? `\n图片标签：${post.tags.map(k => (IMG_TAGS.find(x => x[0] === k) || [, k])[1]).join('、')}` : ''}${post.desc ? `\n${S.profile.name}对图片的描述（粉丝看不到这段文字，但能从图里看到这些内容）：${post.desc}` : ''}
 ${recent ? '已经有的部分评论（不要重复）：\n' + recent + '\n' : ''}请生成 ${n} 条新的粉丝评论。` });
     const list = await aiComments(content);
     post.aiPool = (post.aiPool || []).concat(list);
@@ -598,7 +639,8 @@ function makeComment(base, fan) {
 }
 function nextComment(post) {
   if (post.aiPool && post.aiPool.length) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
-  const ctx = { text: post.text, tone: post.tone, hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
+  if (post._ans === undefined) post._ans = answerFor(post.text) || null;
+  const ctx = { text: post.text, tone: post.tone, tags: post.tags, desc: post.desc, ans: post._ans, hour: new Date(post.createdAt).getHours(), hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
   const base = t => t.replace(/(hhh|[！!～~\s]|\p{Extended_Pictographic}|\uFE0F)+$/u, '');
   const recent = post._recent || (post._recent = post.comments.slice(0, 30).map(c => base(c.text)));
   let b = tplComment(ctx);
@@ -799,27 +841,46 @@ function artistReply(post, parent, target, text) {
   logAct('reply'); save();
   const fanTarget = target && !target.me ? target : null;
   if (aiOn()) aiReactions(post, parent, fanTarget, text);
-  else tplReactions(post, parent, fanTarget);
+  else tplReactions(post, parent, fanTarget, text);
 }
-function tplReactions(post, parent, target) {
+// 粉丝对「你回复的内容」的具体回应：回答问题 / 接住回答 / 感谢 / 引用
+function replyFollow(target, text) {
+  const ans = answerFor(text);
+  if (ans) return fill(pick(ans));
+  const sn = snippet(text);
+  if (target && /[?？]|吗|呢|什么|TMI|OOTD|怎么样/i.test(target.text)) return pick(['原来如此！谢谢{n}回答我', '记下了📝 谢谢{n}', '啊啊啊{n}真的回答我了', sn ? `「${sn}」好可爱的回答` : '好可爱的回答']).replace(/\{n\}/g, pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
+  if (/谢谢|感谢/.test(text)) return pick(['不客气！应该的', '是我们要谢谢你', '呜呜呜不用谢']);
+  if (tone(text) === 'neg') return pick(['对不起…是我说错什么了吗', '呜呜好吧', '不要生气嘛']);
+  if (/爱你|喜欢你|想你/.test(text)) return pick(['我也爱你！！！', '我更爱你', '心脏骤停']);
+  if (/晚安|早点睡|去睡/.test(text)) return pick(['晚安！！好梦', '好的我这就去睡', '{n}也早点睡']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
+  if (/吃饭|多吃|好好吃/.test(text)) return pick(['好！我会好好吃饭的', '遵命！', '{n}也要好好吃饭']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
+  if (/加油|努力/.test(text)) return pick(['我会加油的！！', '一起加油！', '有{n}这句话什么都能做到']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
+  return sn && Math.random() < .5 ? `「${sn}」我要记一辈子` : null;
+}
+function tplReactions(post, parent, target, text = '') {
   if (target) {
     later(rand(3000, 12000), () => {
-      const b = reactLine(target.lang || 'zh');
+      const follow = replyFollow(target, text);
+      const b = (target.lang || 'zh') === 'zh' && follow && Math.random() < .5 ? { lang: 'zh', text: fill(follow), zh: null } : reactLine(target.lang || 'zh');
       addReply(post, parent, { user: target.user, color: target.color, lang: b.lang, text: b.text, zh: b.zh, to: S.profile.name });
       pushNotif({ type: 'reply', postId: post.id, cid: parent.id, text: `${target.user} 回复了你`, sub: b.text }, true);
+      // 激动完再补一句具体回应
+      if (follow && b.text !== fill(follow) && (target.lang || 'zh') === 'zh') later(rand(4000, 10000), () => { addReply(post, parent, { user: target.user, color: target.color, lang: 'zh', text: fill(follow), to: S.profile.name }); save(); });
       save();
     });
     target.likes += ri(30, 120); updCommentLikes(target);
-    const others = ri(1, 4);
+    const others = ri(1, 4), otherLines = pickN(REACT_OTHER, others);
     for (let i = 0; i < others; i++) later(rand(6000, 40000), () => {
-      const f = makeFan('zh'); addReply(post, parent, { user: f.user, color: f.color, lang: 'zh', text: fill(pick(REACT_OTHER)), to: target.user });
+      const f = makeFan('zh'); addReply(post, parent, { user: f.user, color: f.color, lang: 'zh', text: fill(otherLines.shift() || pick(REACT_OTHER)), to: target.user });
       target.likes += ri(10, 60); updCommentLikes(target); save();
     });
   } else {
-    const k = ri(3, 7);
+    const k = ri(3, 7), ans = answerFor(text);
+    // 先挑好不重复的回复：有问题就多数在回答，其余是起哄
+    const zhLines = pickN(ans || [], ans ? Math.ceil(k * .65) : 0).concat(pickN(REACT_ARTIST_CMT, k));
     for (let i = 0; i < k; i++) later(rand(3000, 45000), () => {
       const f = makeFan(); const lang = f.lang;
-      const b = lang === 'zh' ? { lang, text: fill(pick(REACT_ARTIST_CMT)), zh: null } : reactLine(lang);
+      const b = lang === 'zh' ? { lang, text: fill(zhLines.shift() || pick(REACT_ARTIST_CMT)), zh: null } : reactLine(lang);
       addReply(post, parent, { user: f.user, color: f.color, lang: b.lang, text: b.text, zh: b.zh, to: S.profile.name });
       parent.likes += ri(20, 90); updCommentLikes(parent);
       if (i === 0) pushNotif({ type: 'reply', postId: post.id, cid: parent.id, text: `${f.user} 回复了你的评论`, sub: b.text }, true);
@@ -842,14 +903,14 @@ async function aiReactions(post, parent, target, text) {
       if (i === 0) pushNotif({ type: 'reply', postId: post.id, cid: parent.id, text: `${isTarget ? target.user : b.user} 回复了你`, sub: b.text }, true);
       save();
     }));
-  } catch (e) { aiFail(e); tplReactions(post, parent, target); }
+  } catch (e) { aiFail(e); tplReactions(post, parent, target, text); }
 }
 
 /* =========================================================
    UI 状态 & 渲染
    ========================================================= */
 const UI = { tab: 'feed', postId: null, sort: 'new', schedDate: dkey(Date.now()), replyTo: null, newHot: 0 };
-let draft = '', pending = [];
+let draft = '', pending = [], draftTags = [], draftDesc = '';
 const view = $('#view');
 
 function avatarHTML(cls = '') {
@@ -888,6 +949,7 @@ function viewFeed() {
   <div class="card composer">
     <textarea id="cmp-text" placeholder="和粉丝们分享点什么吧…"></textarea>
     <div id="cmp-prev" class="cmp-prev"></div>
+    <div id="cmp-meta"></div>
     <div class="row">
       <label class="btn ghost sm">🖼 图片/视频<input type="file" id="cmp-file" accept="image/*,video/*" multiple hidden></label>
       <span class="muted">${aiOn() ? '✨ AI 粉丝已开启' : '本地模板粉丝'}</span>
@@ -915,6 +977,10 @@ function postCard(p) {
 function renderPending() {
   const box = $('#cmp-prev'); if (!box) return;
   box.innerHTML = pending.map((f, i) => `<div class="pv">${f.type.startsWith('video') ? `<video src="${f._url}" muted></video>` : `<img src="${f._url}">`}<button data-act="unpend" data-i="${i}">✕</button></div>`).join('');
+  const meta = $('#cmp-meta'); if (!meta) return;
+  meta.innerHTML = pending.length ? `<div class="muted" style="margin:4px 0">图片里有什么？选标签或写描述，粉丝就能“看懂”（不会显示在帖子里）</div>
+    <div class="tagrow">${IMG_TAGS.map(([k, t]) => `<button class="pcat ${draftTags.includes(k) ? 'on' : ''}" data-act="imgtag" data-k="${k}">${t}</button>`).join('')}</div>
+    <input id="cmp-desc" placeholder="描述一下图片，比如：穿着白色毛衣在咖啡厅，桌上有草莓蛋糕" maxlength="120" value="${esc(draftDesc)}" style="margin:8px 0 10px">` : '';
 }
 async function publish() {
   const text = ($('#cmp-text')?.value || '').trim();
@@ -931,10 +997,11 @@ async function publish() {
   let folD = L * .012 * h, folR = '帖子互动';
   if (tn === 'neg') { folD = -p.followers * rand(.006, .015); folR = '负面言论'; }
   if (tn === 'romance') { folD = folD * 1.2 - p.followers * rand(.004, .012); folR = '恋爱话题'; }
-  const post = { id: uid(), text, media, tone: tn, folD, folR, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24) * (tn === 'neg' || tn === 'romance' ? 1.3 : 1)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
+  const tags = media.length ? [...draftTags] : [], desc = media.length ? ($('#cmp-desc')?.value || draftDesc).trim() : '';
+  const post = { id: uid(), text, media, tags, desc, tone: tn, folD, folR, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24) * (tn === 'neg' || tn === 'romance' ? 1.3 : 1)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
   logAct('post');
   S.posts.unshift(post);
-  draft = ''; pending = [];
+  draft = ''; pending = []; draftTags = []; draftDesc = '';
   save(); render();
   toast('发布成功！', '粉丝们正在赶来…');
   if (aiOn()) aiForPost(post);
@@ -950,6 +1017,7 @@ function viewPost() {
     <div class="ph">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span class="artist">ARTIST</span><div class="muted">${new Date(p.createdAt).toLocaleString('zh-CN')}</div></div></div>
     ${p.text ? `<div class="ptext">${esc(p.text)}</div>` : ''}
     ${mediaHTML(p, true)}
+    ${(p.tags || []).length || p.desc ? `<div class="muted" style="margin-top:8px;font-size:12.5px">🔒 仅自己可见：${(p.tags || []).map(k => (IMG_TAGS.find(x => x[0] === k) || [, k])[1]).join(' ')}${p.desc ? ` · ${esc(p.desc)}` : ''}</div>` : ''}
     <div class="pact"><span>♡ <b data-lc="${p.id}">${fmtNum(p.likes)}</b></span><span>💬 <b data-cc="${p.id}">${fmtNum(p.commentCount)}</b></span></div>
   </article>
   <div class="card">
@@ -1046,7 +1114,7 @@ function myComment() {
   if (UI.sort === 'new') onNewComment(post, c); else render();
   updCounters(); save();
   // 本人评论自己的帖子 → 粉丝在楼中楼里起哄
-  if (aiOn()) aiReactions(post, c, null, text); else tplReactions(post, c, null);
+  if (aiOn()) aiReactions(post, c, null, text); else tplReactions(post, c, null, text);
 }
 
 /* ---------- 通知 ---------- */
@@ -1088,7 +1156,7 @@ const LIVE_TPL = {
   chatF: { ko: [['안녕하세요!! 한국에서 왔어요', '大家好！！从韩国来的'], ['너무 귀여워요 ㅠㅠ', '太可爱了呜呜'], ['사랑해요 💙', '爱你 💙']], ja: [['こんばんは〜！', '晚上好～！'], ['かわいい！', '好可爱！']], en: [['hiii {name}!!', '嗨{name}！！'], ['love from the US 💙', '来自美国的爱 💙'], ['so cute omg', '天哪好可爱']] },
   greetR: ['晚上好！！', '{n}好～', '在在在！', 'hello！！', '来啦来啦', '{n}也好呀'],
   food: ['吃什么了吃什么了', '我也饿了', '吃播吃播！', '多吃点！', '好香的样子', '分我一口'],
-  sing: ['唱！！！', '现场版来了', '录屏了录屏了', '好好听呜呜', '安可！', '耳朵怀孕了', 'live 天后'],
+  sing: ['唱！！！', '现场版来了', '录屏了录屏了', '好好听呜呜', '安可！', '耳朵怀孕了', 'live 天后', '想听出道曲！', '唱最近那首！'],
   dance: ['跳一个！', '要看要看', '镜头拉远一点哈哈', '练习室直拍复刻！'],
   cat: ['喵～', '喵喵喵', '猫猫{n}', '学猫叫！', '是小猫本猫'],
   bye: ['不要走😭', '再播五分钟！', '晚安{n}', '下次什么时候播', '好梦～', '舍不得', '明天还来吗'],
@@ -1345,7 +1413,7 @@ function spawnHeart() {
 function liveReact(text) {
   const L = LIVE; if (!L) return;
   L.speech = (L.speech + ' ' + text).slice(-300); L.newSpeech = true;
-  let hit = false;
+  let hit = false; const qBefore = L.queue.length;
   const push = t => L.queue.push({ lang: 'zh', text: t });
   // 刚有人提问，主播开口 → 当作在回答
   if (L.lastQ && Date.now() - L.lastQ.at < 30000) {
@@ -1364,6 +1432,8 @@ function liveReact(text) {
   }
   // 是非问题：「你们吃饭了吗」→ 吃了 / 还没
   const yn = !ch && parseYesNo(text);
+  const ans = !ch && !yn && answerFor(text);
+  if (ans) { hit = true; fresh(ans, ri(2, 4)).forEach(push); }
   if (yn) { hit = true; pickN(yn, ri(2, 3)).forEach(push); }
   // 叫到了某个粉丝的名字
   const us = [...new Set(L.users)].reverse();
@@ -1374,17 +1444,72 @@ function liveReact(text) {
   if (tn === 'neg') { fresh(LIVE_TPL.neg, ri(2, 3)).forEach(push); L.target *= .9; L.fanD -= S.profile.followers * .003; hit = true; }
   if (tn === 'romance' && !L.toneHit.romance) { L.toneHit.romance = 1; L.fanD -= S.profile.followers * rand(.002, .006); }
   for (const [cat, re] of LIVE_KW) {
-    if (!re.test(text) || (cat === 'q' && (ch || yn))) continue; hit = true;
+    if (!re.test(text) || (cat === 'q' && (ch || yn || ans))) continue; hit = true;
     fresh(LIVE_TPL[cat], ri(1, 3)).forEach(push);
+    if (cat === 'sing' && (S.profile.songs || []).length) fresh(songAns(), 1).forEach(push);
     if (!['q', 'greetR', 'bye', 'thanks'].includes(cat)) L.topic = { cat, until: Date.now() + 60000 };
   }
   if (S.profile.fandom && text.toLowerCase().includes(S.profile.fandom.toLowerCase())) { hit = true; fresh(LIVE_TPL.fandom, ri(2, 3)).forEach(t => L.queue.push({ lang: 'zh', text: t })); }
   if (!hit) fresh(LIVE_TPL.generic, ri(1, 2)).forEach(t => L.queue.push({ lang: 'zh', text: t }));
-  const q = snippet(text); if (q && tn !== 'neg' && Math.random() < .25) L.queue.push({ lang: 'zh', text: fill(pick(LIVE_TPL.echo), q) });
+  const q = snippet(text); if (q && tn !== 'neg' && !ch && !yn && !ans && Math.random() < .25) L.queue.push({ lang: 'zh', text: fill(pick(LIVE_TPL.echo), q) });
   // 打乱一下，混一点外语
   if (Math.random() < .15) { const lang = pick(['ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); L.queue.push({ lang, text: fill(it[0]), zh: fill(it[1]) }); }
+  // 一句话最多引出 6 条反应，太多会刷屏
+  if (L.queue.length > qBefore + 6) { const added = L.queue.splice(qBefore); L.queue.push(...pickN(added.slice(0, 2), 2), ...pickN(added.slice(2), 4)); }
   L.queue.sort(() => Math.random() - .5);
   L.target += ri(1, 6);
+}
+/* =========================================================
+   回答引擎：粉丝听懂你在问什么 / 说什么，给出对应的回答
+   ========================================================= */
+const ANS = {
+  food: ['火锅！', '炸鸡！！', '拉面', '寿司', '麻辣烫', '烤肉！', '披萨', '辣炒年糕', '部队锅', '冰淇淋', '草莓蛋糕', '小鱼干（不是）', '牛排', '饺子', '奶茶！'],
+  drink: ['冰美式', '草莓拿铁', '奶茶！', '可乐', '热可可', '柚子茶', '多喝水哈哈'],
+  place: ['海边！', '济州岛', '游乐园！', '东京', '咖啡厅', '水族馆', '去看日落', '汉江公园野餐', '我家（不是）', '巴黎', '温泉'],
+  wear: ['白裙子！', '卫衣', '西装！帅气路线', '粉色', '黑色', '蓝色！', '格子衬衫', '毛衣', '运动服', '公主裙', '皮衣'],
+  color: ['蓝色！', '粉色', '白色', '黑色', '紫色', '薄荷绿', '天蓝色'],
+  doWhat: ['直播！', '一起打游戏', '看电影', '去旅行', '睡觉哈哈', '唱歌！', '跳舞！', '聊天', '吃好吃的', '拍 vlog'],
+  when: ['现在！', '今晚！', '明天！', '周末！', '越快越好', '随时都可以'],
+  name: ['小鱼干', '团子', '喵喵', '奶糖', '布丁', '豆豆', '年糕', '饭团'],
+  guess: ['是新歌吗！', '要回归了？', '是礼物？', '是猫猫？', '要开演唱会了？？', '是新发型！', '猜不到 快说快说'],
+  why: ['因为可爱！', '因为是{n}啊', '不知道哈哈哈', '因为喜欢', '这还用问'],
+  how: ['超好！', '好看！', '绝了', '满分！', '很好很好', '完美'],
+  who: ['我！', '是我是我', '我我我', '{f}！', '当然是{n}'],
+  songs: ['出道曲！', '新歌！', '最近那首！', '唱首抒情歌', '翻唱一首吧', '上次直播唱的那首', '想听 live 版'],
+  ok: ['好！', '好呀好呀', '冲！', '没问题', '听{n}的', '可以可以'],
+  wait: ['好的等你', '去吧去吧', '乖乖等着', '快回来呀', '我们在这里等'],
+  back: ['欢迎回来！', '回来啦！', '等你好久了', '终于回来了'],
+  laugh: ['哈哈哈哈哈', '笑死', '笑出声了', '哈哈哈太好笑了', '我也笑了'],
+  dunno: ['没关系！', '哈哈哈可爱', '不知道也没事', '那就慢慢想'],
+  agree: ['对！', '是的是的', '没错', '确实', '对对对'],
+  start: ['啊啊啊开始了', '准备好了！', '录屏开始', '耳朵准备好了']
+};
+function songAns() {
+  const songs = (S.profile.songs || []).filter(Boolean);
+  return songs.length ? songs.map(x => `《${x}》！`).concat(songs.map(x => `想听《${x}》`), ANS.songs.slice(0, 3)) : ANS.songs;
+}
+// 返回一组合适的回答（没听懂就返回 null）
+function answerFor(text) {
+  if (!text) return null;
+  const ch = parseChoice(text);
+  if (ch) { const [A, B] = ch; return [`${A}！`, `${B}！！`, `当然是${A}`, `我投${B}`, `${A}${A}`, `选${B}！`, '都要！']; }
+  const rules = [
+    [/(想听|听)什么|唱什么|哪首|点歌|什么歌/, songAns],
+    [/吃什么|吃啥|吃点什么/, () => ANS.food], [/喝什么|喝啥/, () => ANS.drink],
+    [/去哪|哪里玩|去什么地方|想去哪/, () => ANS.place], [/穿什么|穿哪|哪件/, () => ANS.wear], [/什么颜色|哪个颜色/, () => ANS.color],
+    [/做什么|干什么|玩什么|干嘛/, () => ANS.doWhat], [/几点|什么时候|哪天/, () => ANS.when], [/叫什么|起什么名|取名/, () => ANS.name],
+    [/猜猜|猜一下|你们猜/, () => ANS.guess], [/为什么|为啥/, () => ANS.why], [/怎么样|好不好看|好看吗|如何/, () => ANS.how], [/谁/, () => ANS.who]
+  ];
+  for (const [re, f] of rules) if (re.test(text)) return f();
+  const yn = parseYesNo(text); if (yn) return yn;
+  if (/等一下|等我|去拿|马上回来|稍等/.test(text)) return ANS.wait;
+  if (/我回来了|回来啦/.test(text)) return ANS.back;
+  if (/(我们|一起).{0,10}吧|要不要|不如/.test(text)) return ANS.ok;
+  if (/开始(唱|跳)|我要唱了|唱了哦|准备好了吗/.test(text)) return ANS.start;
+  if (/不知道|不记得|忘了/.test(text)) return ANS.dunno;
+  if (/对吧|是不是|对不对/.test(text)) return ANS.agree;
+  if (/哈哈|笑死/.test(text)) return ANS.laugh;
+  return null;
 }
 function parseChoice(text) {
   const m = text.match(/([^，。！？,.!?\s]{1,14}?)还是([^，。！？,.!?\s]{1,14})/); if (!m) return null;
@@ -1468,7 +1593,7 @@ function endLive() {
 /* =========================================================
    行程
    ========================================================= */
-const CATS = { '打歌': '#ff5c8a', '上课/练习': '#5b8def', '综艺': '#f5a623', '电台': '#14b8a6', '物料': '#9b6bff', '签售': '#2bb673', '公演': '#e8590c', '校庆': '#f06595', '活动': '#0ea5e9', '演唱会': '#ff3b30', '其他': '#8e8e93' };
+const CATS = { '打歌': '#ff5c8a', '上课': '#5b8def', '练习': '#6366f1', '综艺': '#f5a623', '电台': '#14b8a6', '物料': '#9b6bff', '签售': '#2bb673', '公演': '#e8590c', '校庆': '#f06595', '活动': '#0ea5e9', '演唱会': '#ff3b30', '其他': '#8e8e93' };
 // 预设只带「类别 + 标题 + 地点」，时间在后台添加时再填
 const PRESETS = {
   '打歌': [
@@ -1477,10 +1602,16 @@ const PRESETS = {
     ['《Music Bank》事前录制', 'KBS 汝矣岛新馆公开厅'], ['《人气歌谣》事前录制', 'SBS 上岩 Prism Tower'], ['《M Countdown》事前录制', 'CJ ENM 上岩中心'],
     ['打歌彩排', ''], ['回归 Showcase', 'YES24 Live Hall'], ['一位安可直拍', '']
   ],
-  '上课/练习': [
-    ['声乐课', '公司 声乐室'], ['舞蹈课', '公司 练习室'], ['个人舞蹈练习', '公司 练习室'], ['新歌编舞学习', '公司 练习室'], ['舞台走位排练', '公司 大练习室'],
-    ['体能训练', '公司 健身房'], ['普拉提', '普拉提工作室'], ['表演课', '公司 表演教室'], ['作曲课', '公司 作曲室'], ['Rap 课', '公司 练习室'],
-    ['韩语课', '公司 会议室'], ['日语课', '公司 会议室'], ['英语课', '公司 会议室'], ['录音', '公司 录音室'], ['月末评估', '公司 大练习室']
+  '上课': [
+    ['声乐课', '公司 声乐室'], ['舞蹈课', '公司 练习室'], ['表演课', '公司 表演教室'], ['作曲课', '公司 作曲室'], ['作词课', '公司 作曲室'], ['Rap 课', '公司 练习室'],
+    ['发音 / 咬字课', '公司 声乐室'], ['媒体训练课（采访礼仪）', '公司 会议室'], ['韩语课', '公司 会议室'], ['日语课', '公司 会议室'], ['英语课', '公司 会议室'], ['中文课', '公司 会议室'],
+    ['吉他课', '乐器工作室'], ['钢琴课', '乐器工作室'], ['普拉提课', '普拉提工作室'], ['健身私教课', '公司 健身房'], ['芭蕾基础课', '舞蹈工作室'], ['Jazz 舞课', '舞蹈工作室']
+  ],
+  '练习': [
+    ['Vocal 练习', '公司 声乐室'], ['个人 Vocal 练习', '公司 声乐室'], ['高音 / 气息练习', '公司 声乐室'], ['和声练习', '公司 声乐室'], ['Live 唱跳练习', '公司 练习室'], ['录音前练唱', '公司 录音室'],
+    ['舞蹈练习', '公司 练习室'], ['个人舞蹈练习', '公司 练习室'], ['新歌编舞学习', '公司 练习室'], ['编舞细节抠动作', '公司 练习室'], ['舞台走位排练', '公司 大练习室'], ['打歌舞台练习', '公司 练习室'],
+    ['直拍 / 镜头练习', '公司 练习室'], ['表情管理练习', '公司 练习室'], ['Rap 练习', '公司 练习室'], ['乐器练习', '公司 作曲室'], ['演唱会合练', '公司 大练习室'], ['粉丝见面会排练', '公司 大练习室'],
+    ['体能训练', '公司 健身房'], ['拉伸 / 柔韧训练', '公司 练习室'], ['录音', '公司 录音室'], ['月末评估', '公司 大练习室']
   ],
   '综艺': [
     ['网综 嘉宾录制', '录制场地'], ['YouTube 频道合作', '录制场地'], ['偶像 YouTube 访谈', '录制场地'], ['Arirang TV《After School Club》', 'Arirang TV 演播室'],
@@ -1563,14 +1694,18 @@ function viewSched() {
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
   }).join('') : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
 }
-function presetListHTML() {
+function presetMatches() {
   const q = (UI.presetQ || '').trim().toLowerCase();
-  const list = q ? Object.entries(PRESETS).flatMap(([c, xs]) => xs.map(x => [c, ...x])).filter(([c, t, l]) => (c + t + l).toLowerCase().includes(q))
+  return q ? Object.entries(PRESETS).flatMap(([c, xs]) => xs.map(x => [c, ...x])).filter(([c, t, l]) => (c + t + l).toLowerCase().includes(q))
     : (PRESETS[UI.presetCat] || []).map(x => [UI.presetCat, ...x]);
-  return list.length ? list.map(([c, t, l]) => `<button class="preset" data-act="preset" data-c="${esc(c)}" data-t="${esc(t)}" data-l="${esc(l)}"><span class="chip" style="background:${CATS[c] || '#999'}">${esc(c)}</span><b>${esc(t)}</b>${l ? `<span class="muted">📍 ${esc(l)}</span>` : ''}</button>`).join('') : '<div class="muted" style="padding:8px">没有匹配的预设，可以直接在下面手动填写</div>';
+}
+function presetListHTML() {
+  const list = presetMatches();
+  const dice = list.length > 1 ? `<button class="preset dice" data-act="prand">🎲 随机一个${UI.presetQ ? '搜索结果' : `「${esc(UI.presetCat)}」行程`}<span class="muted">点一次换一个，时间在下面填</span></button>` : '';
+  return list.length ? dice + list.map(([c, t, l]) => `<button class="preset" data-act="preset" data-c="${esc(c)}" data-t="${esc(t)}" data-l="${esc(l)}"><span class="chip" style="background:${CATS[c] || '#999'}">${esc(c)}</span><b>${esc(t)}</b>${l ? `<span class="muted">📍 ${esc(l)}</span>` : ''}</button>`).join('') : '<div class="muted" style="padding:8px">没有匹配的预设，可以直接在下面手动填写</div>';
 }
 function adminHTML(edit) {
-  const r = edit || { title: '', cat: '上课/练习', start: '', end: '', loc: '', repeat: 'once', days: [], date: UI.schedDate, note: '' };
+  const r = edit || { title: '', cat: '练习', start: '', end: '', loc: '', repeat: 'once', days: [], date: UI.schedDate, note: '' };
   UI.presetCat = UI.presetCat || '打歌';
   const list = [...S.schedule.rules].sort((a, b) => (a.repeat + a.date + a.start).localeCompare(b.repeat + b.date + b.start));
   const rep = x => x.repeat === 'daily' ? '每天' : x.repeat === 'weekly' ? '每周' + (x.days || []).sort().map(d => WD[d]).join('') : x.date;
@@ -1672,6 +1807,7 @@ function viewMe() {
       <div class="field"><label>活跃粉丝（最少 ~ 最多）</label><div class="row"><input type="number" id="p-amin" value="${p.activeMin}"><input type="number" id="p-amax" value="${p.activeMax}"></div></div>
     </div>
     <div class="field"><label>粉丝对你的称呼（用逗号分隔）</label><input id="p-nicks" value="${esc(p.nicks.join('，'))}"></div>
+    <div class="field"><label>你的歌（用逗号分隔，粉丝点歌时会说）</label><input id="p-songs" value="${esc((p.songs || []).join('，'))}" placeholder="比如：猫步，9.1Hz，晚安电台"></div>
     <div class="field"><label>简介</label><input id="p-bio" value="${esc(p.bio)}" placeholder="可以不填"></div>
     <div class="field"><label>粉丝群体设定（AI 粉丝会照这个来反应）</label><textarea id="p-fanrules" style="min-height:70px">${esc(p.fanRules || '')}</textarea></div>
     <div class="row"><span class="sp"></span><button class="btn primary" data-act="psave">保存人设</button></div>
@@ -1719,6 +1855,7 @@ document.addEventListener('click', async e => {
     case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); break;
     case 'publish': publish(); break;
+    case 'imgtag': { const k = t.dataset.k; draftTags = draftTags.includes(k) ? draftTags.filter(x => x !== k) : [...draftTags, k]; t.classList.toggle('on', draftTags.includes(k)); break; }
     case 'unpend': { const f = pending.splice(+t.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f._url); renderPending(); break; }
     case 'delpost': {
       if (!confirm('删除这条帖子？')) break;
@@ -1755,6 +1892,14 @@ document.addEventListener('click', async e => {
     case 'sdate': UI.schedDate = t.dataset.k; render(); break;
     case 'sdone': { const k = t.dataset.dk; if (t.checked) S.schedule.done[k] = 1; else delete S.schedule.done[k]; save(); render(); break; }
     case 'pcat': UI.presetCat = t.dataset.c; UI.presetQ = ''; $('#preset-q').value = ''; $$('.pcat').forEach(x => x.classList.toggle('on', x === t)); $('#plist').innerHTML = presetListHTML(); break;
+    case 'prand': {
+      const list = presetMatches(); if (!list.length) break;
+      let it = pick(list); for (let i = 0; i < 5 && it[1] === $('#r-title').value; i++) it = pick(list);
+      $('#r-title').value = it[1]; $('#r-cat').value = it[0]; $('#r-loc').value = it[2] || '';
+      $$('.preset').forEach(x => x.classList.toggle('on', x.dataset.t === it[1] && x.dataset.l === (it[2] || '')));
+      toast('🎲 随机到：' + it[1], it[2] ? '📍 ' + it[2] : '记得填时间');
+      $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
+    }
     case 'preset': {
       $('#r-title').value = t.dataset.t; $('#r-cat').value = t.dataset.c; $('#r-loc').value = t.dataset.l;
       $$('.preset').forEach(x => x.classList.toggle('on', x === t));
@@ -1771,6 +1916,7 @@ document.addEventListener('click', async e => {
       p.followers = Math.max(0, +$('#p-fol').value || p.followers); p.folBase = p.followers;
       const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
       p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
+      p.songs = $('#p-songs').value.split(/[,，、]+/).map(x => x.trim().replace(/^《|》$/g, '')).filter(Boolean);
       p.bio = $('#p-bio').value.trim(); p.fanRules = $('#p-fanrules').value.trim();
       save(); render(); toast('人设已保存'); break;
     }
@@ -1823,6 +1969,7 @@ document.addEventListener('change', async e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
   if (e.target.id === 'cmp-text') draft = e.target.value;
+  if (e.target.id === 'cmp-desc') draftDesc = e.target.value;
   if (e.target.id === 'preset-q') { UI.presetQ = e.target.value; $$('.pcat').forEach(x => x.classList.toggle('on', !UI.presetQ && x.dataset.c === UI.presetCat)); $('#plist').innerHTML = presetListHTML(); }
 });
 document.addEventListener('keydown', e => {
@@ -1841,7 +1988,11 @@ function seedPosts() {
 }
 // 旧版本数据迁移：去掉示例帖子、示例行程和旧简介
 function migrate() {
-  if ((S.v || 1) >= 2) return;
+  if ((S.v || 1) < 3) {
+    // 「上课/练习」拆成「上课」和「练习」
+    S.schedule.rules.forEach(r => { if (r.cat === '上课/练习') r.cat = /课/.test(r.title) ? '上课' : '练习'; });
+  }
+  if ((S.v || 1) >= 2) { S.v = Math.max(S.v || 1, 3); return; }
   const oldPosts = /^(今天的舞蹈练习终于结束啦！腿已经不是自己的了|下周就是签售会了！好想快点见到)/;
   S.posts = S.posts.filter(p => !oldPosts.test(p.text));
   S.notifs = S.notifs.filter(n => !/平行世界/.test(n.text) && (!n.postId || S.posts.some(p => p.id === n.postId)));
@@ -1849,7 +2000,7 @@ function migrate() {
   const oldRules = ['早间体能训练', '声乐课', '舞蹈练习', '《星光音乐局》事前录制', '《周四舞台》直播打歌', '《人气旋律》打歌', 'Weverse 日常 vlog 拍摄', '杂志《MEOW》画报拍摄', '综艺《猫咪也疯狂》录制', '二辑线下签售会', '首场 Solo 演唱会《CYAN: 9.1Hz》'];
   S.schedule.rules = S.schedule.rules.filter(r => !oldRules.includes(r.title));
   delete S.schedule.flex;
-  S.v = 2;
+  S.v = 3;
 }
 migrate();
 seedPosts();
