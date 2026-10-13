@@ -82,6 +82,12 @@ body.typing .bb{bottom:0}
 .bb-comp textarea{min-height:40px;max-height:110px;border-radius:20px;padding:9px 14px;resize:none;background:var(--bg);border:0}
 .bb-plus{border:0;background:none;font-size:26px;width:36px;height:40px;flex:none}
 .bb-send{border:0;width:40px;height:40px;border-radius:50%;background:#111;color:#fff;font-size:20px;flex:none}
+.bb-save{border:0;height:40px;border-radius:20px;background:#111;color:#fff;font-size:14px;font-weight:700;padding:0 14px;flex:none;white-space:nowrap}
+.bb-dbox{background:var(--bg);border-top:1px solid var(--line);padding:8px 12px}
+.bb-dhead{display:flex;align-items:center;gap:10px;font-size:13px;margin-bottom:6px}
+.bb-dlist{max-height:132px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
+.bb-ditem{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:12px;padding:6px 10px;font-size:14px}
+.bb-dtxt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
 .bb-rbar{display:flex;gap:10px;align-items:center;padding:8px 14px;background:var(--bg);border-top:1px solid var(--line);font-size:13px}
 .bb-recbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);font-size:14px}
 .rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2d55;animation:pulse 1s infinite}
@@ -1111,6 +1117,7 @@ async function bbSend(type, payload = {}) {
   const h = new Date().getHours();
   const m = { id: uid(), type, text: payload.text || '', at: Date.now(), burst: Math.round(bbSubs() * rand(.05, .12) * heat() * (h >= 22 || h < 2 ? 1.3 : 1)) };
   if (payload.blob) { const id = uid(); try { await idbPut(id, payload.blob); } catch (e) { } urlCache[id] = URL.createObjectURL(payload.blob); m.media = id; if (payload.dur) m.dur = payload.dur; }
+  else if (payload.media) { m.media = payload.media; if (payload.dur) m.dur = payload.dur; }
   if (B.replyTo) {
     const rt = B.replyTo; m.replyTo = rt; B.replyTo = null; const now = Date.now();
     // 泡泡里被回复的反应不多：被回复的粉丝偶尔接一句，很少有人说羡慕
@@ -1166,13 +1173,14 @@ function viewBubble() {
       <div class="bb-handle"></div>
     </div>
     <div class="bb-chat" id="bbchat"></div>
+    <div id="bb-drafts"></div>
     <div id="bb-replybar"></div>
     <div id="bb-rec"></div>
     <div class="bb-comp">
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
       <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
       <textarea id="bb-in" rows="1" placeholder="给粉丝发消息…">${esc(UI.bbDraft || '')}</textarea>
-      <button class="bb-send" data-act="bbsend" title="发送">↑</button>
+      <button class="bb-save" data-act="bbdraft" title="存入草稿箱">存草稿</button>
     </div>
     <input type="file" id="bb-file" accept="image/*,video/*" hidden>
   </div>`;
@@ -1210,6 +1218,36 @@ async function bbWallpaper() {
   const B = S.bubble;
   if (B.wall === 'custom' && B.wallImg) { const u = await mediaURL(B.wallImg); if (u) { box.style.background = `center/cover no-repeat url("${u}")`; return; } }
   box.style.background = (BB_WALL[B.wall] || BB_WALL.skyg)[1];
+}
+/* ---------- 草稿箱：先存进来，再一键全部发送 ---------- */
+const bbDrafts = () => S.bubble.drafts || (S.bubble.drafts = []);
+async function bbDraftAdd(type, payload = {}) {
+  const d = { id: uid(), type, text: payload.text || '' };
+  if (payload.blob) { const id = uid(); try { await idbPut(id, payload.blob); } catch (e) { } urlCache[id] = URL.createObjectURL(payload.blob); d.media = id; if (payload.dur) d.dur = payload.dur; }
+  if (S.bubble.replyTo) { d.replyTo = S.bubble.replyTo; S.bubble.replyTo = null; bbReplyBar(); }
+  // 修改过的草稿放回原来的位置
+  const at = UI.bbEditAt; UI.bbEditAt = null;
+  if (type === 'text' && at != null && at <= bbDrafts().length) bbDrafts().splice(at, 0, d); else bbDrafts().push(d);
+  save(); bbDraftsRender();
+}
+function bbDraftsRender() {
+  const box = $('#bb-drafts'); if (!box) return; const ds = bbDrafts();
+  if (!ds.length) { box.innerHTML = ''; return; }
+  const prev = d => d.type === 'image' ? '🖼 照片' : d.type === 'video' ? '🎬 视频' : d.type === 'voice' ? `🎙 语音 ${fmtDur(d.dur || 0)}` : esc(d.text).split(esc(BB_TOK)).join(`<span class="bb-fan">${esc(bbFan())}</span>`);
+  box.innerHTML = `<div class="bb-dbox"><div class="bb-dhead"><b>草稿箱 · ${ds.length} 条</b><span class="sp"></span><button class="link" data-act="bbdclear">清空</button><button class="btn primary sm" data-act="bbdsend">全部发送 ↑</button></div>
+    <div class="bb-dlist">${ds.map(d => `<div class="bb-ditem"><div class="bb-dtxt" ${d.type === 'text' ? `data-act="bbdedit" data-id="${d.id}" title="点一下拿回输入框修改"` : ''}>${d.replyTo ? `<span class="muted">↩ ${esc(d.replyTo.user)}：</span>` : ''}${prev(d)}</div><button class="link" data-act="bbddel" data-id="${d.id}" title="删除">✕</button></div>`).join('')}</div></div>`;
+  const list = box.querySelector('.bb-dlist'); if (list) list.scrollTop = list.scrollHeight;
+}
+let bbSending = false;
+async function bbDraftSendAll() {
+  if (bbSending) return; const ds = bbDrafts().splice(0); if (!ds.length) return;
+  bbSending = true; save(); bbDraftsRender();
+  for (const d of ds) {
+    if (d.replyTo) S.bubble.replyTo = d.replyTo;
+    await bbSend(d.type, { text: d.text, media: d.media, dur: d.dur });
+    await new Promise(r => setTimeout(r, 450)); // 一条一条发出去
+  }
+  bbSending = false;
 }
 function bbReplyBar() {
   const bar = $('#bb-replybar'); if (!bar) return; const rt = S.bubble.replyTo;
@@ -1265,12 +1303,12 @@ async function bbRecStart() {
     mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     BBREC = { st, mr, chunks, start: Date.now(), timer: setInterval(() => { const el = $('#bb-rec-t'); if (el && BBREC) el.textContent = fmtDur((Date.now() - BBREC.start) / 1000); }, 300) };
     mr.start();
-    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">发送</button></div>`;
+    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">存入草稿</button></div>`;
   } catch (e) { toast('无法使用麦克风', camErr(e)); }
 }
 function bbRecStop(send) {
   const R = BBREC; if (!R) return; BBREC = null; clearInterval(R.timer);
-  R.mr.onstop = () => { R.st.getTracks().forEach(t => t.stop()); if (send && R.chunks.length) bbSend('voice', { blob: new Blob(R.chunks, { type: R.mr.mimeType || 'audio/mp4' }), dur: (Date.now() - R.start) / 1000 }); };
+  R.mr.onstop = () => { R.st.getTracks().forEach(t => t.stop()); if (send && R.chunks.length) bbDraftAdd('voice', { blob: new Blob(R.chunks, { type: R.mr.mimeType || 'audio/mp4' }), dur: (Date.now() - R.start) / 1000 }); };
   try { R.mr.stop(); } catch (e) { }
   const bar = $('#bb-rec'); if (bar) bar.innerHTML = '';
 }
@@ -1334,7 +1372,7 @@ function render() {
   if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0);
   layoutVars();
   hydrate(view);
-  if (UI.tab === 'bubble' && S.bubble.welcome) { S.bubble.unread = 0; renderBubbleChat(); bbReplyBar(); }
+  if (UI.tab === 'bubble' && S.bubble.welcome) { S.bubble.unread = 0; renderBubbleChat(); bbReplyBar(); bbDraftsRender(); }
   if (UI.tab === 'feed' && !UI.postId) { const t = $('#cmp-text'); if (t) t.value = draft; renderPending(); }
   if (UI.tab === 'notif') { S.notifs.forEach(n => n.read = true); updBadges(); save(); }
   updBadges();
@@ -2326,7 +2364,16 @@ document.addEventListener('click', async e => {
     case 'bbwall': S.bubble.wall = t.dataset.k; $$('.bb-wall').forEach(x => x.classList.toggle('on', x === t)); bbWallpaper(); save(); break;
     case 'bbsave': S.bubble.name = $('#bb-name').value.trim(); S.bubble.fanName = $('#bb-fanname').value.trim(); S.bubble.welcome = $('#bb-welcome').value.trim() || S.bubble.welcome; save(); closeModal(); render(); toast('聊天室设置已保存'); break;
     case 'bbins': { const inp = $('#bb-in'); const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(b); UI.bbDraft = inp.value; inp.focus(); inp.selectionStart = inp.selectionEnd = a + BB_TOK.length; break; }
-    case 'bbsend': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbSend('text', { text }); break; }
+    case 'bbdraft': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbDraftAdd('text', { text }); inp.focus(); break; }
+    case 'bbdsend': bbDraftSendAll(); break;
+    case 'bbddel': { const ds = bbDrafts(), i = ds.findIndex(x => x.id === t.dataset.id); if (i >= 0) { const [d] = ds.splice(i, 1); if (d.media) idbDel(d.media); save(); bbDraftsRender(); } break; }
+    case 'bbdedit': {
+      const ds = bbDrafts(), i = ds.findIndex(x => x.id === t.dataset.id); if (i < 0) break;
+      const [d] = ds.splice(i, 1), inp = $('#bb-in'); inp.value = d.text; UI.bbDraft = d.text; UI.bbEditAt = i;
+      if (d.replyTo) { S.bubble.replyTo = d.replyTo; bbReplyBar(); }
+      save(); bbDraftsRender(); inp.focus(); break;
+    }
+    case 'bbdclear': if (confirm('清空草稿箱？')) { bbDrafts().splice(0).forEach(d => d.media && idbDel(d.media)); save(); bbDraftsRender(); } break;
     case 'bbplus': openModal(`<div class="bb-menu"><button data-act="bbpickfile">🖼 照片 / 视频</button><button data-act="bbvoice">🎙 录语音</button><button data-act="close" style="justify-content:center;color:var(--muted)">取消</button></div>`); break;
     case 'bbpickfile': closeModal(); $('#bb-file').click(); break;
     case 'bbvoice': closeModal(); bbRecStart(); break;
@@ -2423,7 +2470,7 @@ document.addEventListener('change', async e => {
     try { const j = JSON.parse(await t.files[0].text()); if (!j.profile || !j.posts) throw new Error('格式不对'); j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; save(); location.reload(); }
     catch (err) { toast('导入失败', err.message); }
   } else if (t.id === 'bb-file' && t.files[0]) {
-    const f = t.files[0]; t.value = ''; bbSend(f.type.startsWith('video') ? 'video' : 'image', { blob: f });
+    const f = t.files[0]; t.value = ''; bbDraftAdd(f.type.startsWith('video') ? 'video' : 'image', { blob: f });
   } else if ((t.id === 'bb-av-file' || t.id === 'bb-wall-file') && t.files[0]) {
     const id = uid(), f = t.files[0]; try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f);
     if (t.id === 'bb-av-file') { if (S.bubble.avatar) idbDel(S.bubble.avatar); S.bubble.avatar = id; }
