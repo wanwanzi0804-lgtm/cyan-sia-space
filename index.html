@@ -648,7 +648,7 @@ function makeComment(base, fan) {
 }
 function nextComment(post) {
   // AI 评论和免费模板评论混着出现
-  if (post.aiPool && post.aiPool.length && Math.random() < .25) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
+  if (post.aiPool && post.aiPool.length && Math.random() < .25) { const b = post.aiPool.shift(); const c = makeComment(b, makeFan(b.lang)); c.ai = true; c.likes = ri(80, 250); return c; }
   if (post._ans === undefined) post._ans = answerFor(post.text) || null;
   const ctx = { text: post.text, tone: post.tone, tags: post.tags, desc: post.desc, ans: post._ans, hour: new Date(post.createdAt).getHours(), hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
   const base = t => t.replace(/(hhh|[！!～~\s]|\p{Extended_Pictographic}|\uFE0F)+$/u, '');
@@ -686,8 +686,12 @@ function simPost(post, dtSim, silent) {
   // 评论本身也会被点赞
   const heat = nl * .35;
   if (heat > 0 && post.comments.length) {
+    // AI 写的评论更贴切，会被粉丝大量点赞顶上去（分走 75% 的评论点赞），按「最热」排序就能看到
+    const aiCs = post.comments.filter(c => c.ai);
+    const rest = aiCs.length ? heat * .25 : heat;
+    for (const c of aiCs) { const add = poisson(heat * 1.6 / aiCs.length); if (add) { c.likes += add; updCommentLikes(c); } }
     const k = Math.min(5, post.comments.length);
-    for (let i = 0; i < k; i++) { const c = post.comments[Math.floor(Math.random() * Math.min(40, post.comments.length))]; const add = poisson(heat / k); if (add) { c.likes += add; updCommentLikes(c); } }
+    for (let i = 0; i < k; i++) { const c = post.comments[Math.floor(Math.random() * Math.min(40, post.comments.length))]; const add = poisson(rest / k); if (add) { c.likes += add; updCommentLikes(c); } }
   }
   if (post.folD) addFans(post.folD * f, post.folR || '帖子互动'); else addFans(nl * .004, '帖子互动');
   // AI 评论池补货
