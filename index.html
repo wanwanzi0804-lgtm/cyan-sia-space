@@ -1191,7 +1191,7 @@ function viewBubble() {
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
       <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
       <textarea id="bb-in" rows="1" placeholder="点 @ 可以叫粉丝的昵称 :)">${esc(UI.bbDraft || '')}</textarea>
-      <button class="bb-send" data-act="bbdraft" title="放进待发送">↑</button>
+      <button class="bb-send" data-act="bbdraft" title="发送">↑</button>
     </div>
     <input type="file" id="bb-file" accept="image/*,video/*" hidden>
   </div>`;
@@ -1329,7 +1329,7 @@ async function bbRecStart() {
     mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     BBREC = { st, mr, chunks, start: Date.now(), timer: setInterval(() => { const el = $('#bb-rec-t'); if (el && BBREC) el.textContent = fmtDur((Date.now() - BBREC.start) / 1000); }, 300) };
     mr.start();
-    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">放进待发送</button></div>`;
+    $('#bb-rec').innerHTML = `<div class="bb-recbar"><span class="rec-dot"></span>录音中 <b id="bb-rec-t">0:00</b><span class="sp"></span><button class="btn ghost sm" data-act="bbreccancel">取消</button><button class="btn primary sm" data-act="bbrecsend">发送</button></div>`;
   } catch (e) { toast('无法使用麦克风', camErr(e)); }
 }
 function bbRecStop(send) {
