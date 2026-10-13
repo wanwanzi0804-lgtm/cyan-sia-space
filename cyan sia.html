@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIA SPACE · Cyan</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#ffffff; --text:#1d2329; --muted:#8a939c; --line:#e7ebef;
+  --accent:#16c2c8; --accent2:#7b6cff; --accent-soft:#e3f8f9; --danger:#ff4d6d;
+  --shadow:0 1px 3px rgba(20,30,40,.06),0 4px 14px rgba(20,30,40,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#0f1316; --card:#181e23; --text:#e8edf1; --muted:#87929c; --line:#262e35; --accent-soft:#11373a; --shadow:none; }
+}
+:root[data-theme="dark"]{ --bg:#0f1316; --card:#181e23; --text:#e8edf1; --muted:#87929c; --line:#262e35; --accent-soft:#11373a; --shadow:none; }
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans SC","Apple SD Gothic Neo",sans-serif;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px}
+#app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:76px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 16px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px)}
+.logo{font-weight:800;letter-spacing:.5px;font-size:19px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sp{flex:1}
+.iconbtn{position:relative;border:0;background:transparent;font-size:20px;padding:4px 6px}
+.badge{position:absolute;top:-2px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--danger);color:#fff;font-size:11px;line-height:17px;text-align:center;font-weight:700}
+.badge:empty{display:none}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar .inner{display:flex;width:100%;max-width:560px}
+.tab{flex:1;border:0;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;color:var(--muted);position:relative}
+.tab .ic{font-size:20px;line-height:1.2}
+.tab.on{color:var(--accent);font-weight:700}
+.tab .badge{top:3px;right:calc(50% - 22px)}
+main{padding:0 12px}
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin:0 0 12px}
+.btn{white-space:nowrap;border:0;border-radius:999px;padding:8px 16px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);font-weight:500}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.sm{padding:4px 11px;font-size:13px}
+.btn:disabled{opacity:.5}
+.link{border:0;background:none;padding:0;color:var(--muted);font-size:12.5px}
+.link:hover{color:var(--accent)}
+.muted{color:var(--muted);font-size:13px}
+.center{text-align:center}
+.row{display:flex;align-items:center;gap:8px}
+.wrap{flex-wrap:wrap}
+.av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;overflow:hidden;background:#ccc}
+.av img{width:100%;height:100%;object-fit:cover}
+.av.sm{width:30px;height:30px;font-size:12px}
+.av.lg{width:74px;height:74px;font-size:28px}
+.artist{display:inline-block;margin-left:5px;padding:0 6px;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;font-size:10.5px;font-weight:700;vertical-align:1px}
+.lang{display:inline-block;margin-left:5px;padding:0 5px;border-radius:5px;border:1px solid var(--line);font-size:10px;color:var(--muted);vertical-align:1px}
+.hero{display:flex;gap:14px;align-items:center}
+.hero h2{margin:0;font-size:20px}
+.stats{display:flex;gap:18px;margin-top:4px}
+.stats b{font-size:16px}
+.composer textarea{border:0;padding:4px 2px;min-height:70px;background:transparent}
+.cmp-prev{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.cmp-prev .pv{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:#000}
+.cmp-prev .pv img,.cmp-prev .pv video{width:100%;height:100%;object-fit:cover}
+.cmp-prev .pv button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:20px;padding:0}
+.post .ph{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.ptext{white-space:pre-wrap;word-break:break-word}
+.post.clip .ptext{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.media{display:grid;gap:4px;margin-top:10px;border-radius:12px;overflow:hidden}
+.media.n1{grid-template-columns:1fr}
+.media.n2,.media.n4{grid-template-columns:1fr 1fr}
+.media.n3,.media.n5,.media.n6,.media.n7,.media.n8,.media.n9{grid-template-columns:1fr 1fr 1fr}
+.media .m{position:relative;background:#111;aspect-ratio:1/1}
+.media.n1 .m{aspect-ratio:auto;max-height:520px}
+.media img,.media video{width:100%;height:100%;object-fit:cover;display:block}
+.media.n1 img,.media.n1 video{object-fit:contain;max-height:520px}
+.media .play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:34px;text-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none}
+.pact{display:flex;gap:20px;margin-top:10px;color:var(--muted);font-size:14px}
+.pact b{color:var(--text);font-weight:600}
+.bump{animation:bump .4s}
+@keyframes bump{40%{transform:scale(1.25);color:var(--danger)}}
+.detail-top{display:flex;align-items:center;gap:8px;margin:2px 0 10px}
+.cmt{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.cmt:first-child{border-top:0}
+.cmt.new{animation:fadein .5s}
+@keyframes fadein{from{opacity:0;transform:translateY(-6px)}}
+.cb{flex:1;min-width:0}
+.cn{font-weight:600;font-size:13.5px}
+.ct{white-space:pre-wrap;word-break:break-word;margin:1px 0}
+.tr{font-size:13px;color:var(--muted);border-left:3px solid var(--accent);padding-left:7px;margin:3px 0}
+.cm{display:flex;gap:14px;align-items:center;margin-top:2px}
+.liked{color:var(--danger)!important}
+.replies{margin-top:6px}
+.rep{display:flex;gap:8px;padding:7px 0 0}
+.rep .ct{font-size:14px}
+.at{color:var(--accent);font-weight:600}
+.rbox .row{margin-top:8px}
+.cmt.me>.cb>.ct,.rep.me .ct{color:var(--accent2)}
+.flash{animation:flash 2s}
+@keyframes flash{0%,40%{background:var(--accent-soft)}}
+.cbar{position:sticky;bottom:66px;display:flex;gap:8px;background:var(--card);padding:10px;border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px}
+.newpill[hidden]{display:none}
+.newpill{display:block;margin:0 auto 8px;border:0;border-radius:999px;background:var(--accent);color:#fff;padding:5px 14px;font-size:13px}
+.notif{display:flex;gap:10px;padding:12px 4px;border-top:1px solid var(--line);cursor:pointer}
+.notif:first-child{border-top:0}
+.notif.unread{background:linear-gradient(90deg,var(--accent-soft),transparent 70%);border-radius:10px}
+.notif .nic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;flex:none;background:var(--accent-soft)}
+.notif .nt{font-size:14px}
+.notif .ns{font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#toasts{position:fixed;top:10px;left:0;right:0;z-index:100;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 12px}
+.toast{pointer-events:auto;max-width:520px;width:100%;background:var(--card);color:var(--text);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:10px 14px;display:flex;gap:10px;align-items:center;animation:tin .3s;cursor:pointer;font-size:14px}
+.toast .ns{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes tin{from{opacity:0;transform:translateY(-14px)}}
+#modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
+#modal.on{display:flex}
+#modal .sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
+@media (min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
+.sheet h3{margin:4px 0 12px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.days{display:flex;gap:4px;flex-wrap:wrap}
+.days label{display:flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:13px;color:var(--text)}
+.days input{width:auto}
+.sec-title{font-weight:700;margin:16px 4px 8px;display:flex;align-items:center;gap:8px}
+.week{display:flex;gap:4px;align-items:center}
+.day{flex:1;border:0;background:transparent;border-radius:12px;padding:6px 0;display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted)}
+.day b{font-size:16px;color:var(--text)}
+.day.on{background:var(--accent);color:#fff}
+.day.on b{color:#fff}
+.day.today b{text-decoration:underline;text-underline-offset:3px}
+.dots{display:flex;gap:2px;height:5px;margin-top:2px}
+.dots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.7}
+.sched{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--line);align-items:flex-start}
+.sched:first-child{border-top:0}
+.sched .time{width:52px;flex:none;font-weight:700;font-size:14px}
+.sched .time span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.sched .bar{width:4px;align-self:stretch;border-radius:2px;flex:none}
+.sched.done .stitle{text-decoration:line-through;color:var(--muted)}
+.chip{display:inline-block;padding:0 7px;border-radius:6px;font-size:11px;font-weight:700;color:#fff;margin-right:5px;vertical-align:1px}
+.status{font-size:12px;font-weight:600}
+.status.now{color:var(--danger)}
+.chk{width:22px;height:22px;flex:none;accent-color:var(--accent);margin-top:2px}
+.pcats{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.pcat{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-size:13px}
+.pcat.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.plist{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.preset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 10px;font-size:14px}
+.preset .muted{width:100%;font-size:12px}
+.preset.on{border-color:var(--accent);background:var(--accent-soft)}
+.rule{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.rule:first-child{border-top:0}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+.switch input{width:auto;transform:scale(1.25)}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.kpi div{background:var(--bg);border-radius:12px;padding:8px;text-align:center}
+.kpi b{display:block;font-size:16px}
+.kpi span{font-size:11.5px;color:var(--muted)}
+/* live */
+#live-layer{position:fixed;inset:0;z-index:80;background:#000;color:#fff;overflow:hidden}
+#live-layer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.lv-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 22%,transparent 55%,rgba(0,0,0,.6));pointer-events:none}
+.lv-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 12px) 14px 8px;font-size:14px;font-weight:600}
+.lv-badge{background:#ff2d55;border-radius:6px;padding:1px 8px;font-weight:800;letter-spacing:.5px;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.65}}
+.lv-pill{background:rgba(0,0,0,.35);border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums}
+.lv-end{border:0;background:rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:5px 14px;font-weight:700}
+.lv-title{position:absolute;top:calc(env(safe-area-inset-top) + 50px);left:14px;font-size:13px;opacity:.9;text-shadow:0 1px 4px rgba(0,0,0,.5)}
+#lv-chat{position:absolute;left:10px;right:80px;bottom:120px;max-height:42vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;-webkit-mask-image:linear-gradient(transparent,#000 22%)}
+.lc{background:rgba(0,0,0,.32);border-radius:12px;padding:4px 10px;font-size:14px;align-self:flex-start;max-width:100%;animation:fadein .3s;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.lc b{font-weight:600;margin-right:6px;opacity:.85}
+.lc .ltr{display:block;font-size:12px;opacity:.75}
+.lc.host{background:linear-gradient(90deg,rgba(22,194,200,.75),rgba(123,108,255,.75))}
+.lc.sys{background:rgba(255,255,255,.18);font-size:12.5px}
+#lv-sub{position:absolute;left:14px;right:14px;bottom:76px;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);min-height:22px}
+#lv-sub .interim{opacity:.6}
+.lv-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px)}
+.lv-bottom input{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px}
+.lv-bottom input::placeholder{color:rgba(255,255,255,.7)}
+.lv-bottom button{border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap}
+.lv-bottom button.on{background:#ff2d55}
+#lv-hearts{position:absolute;right:16px;bottom:80px;width:60px;height:60vh;pointer-events:none}
+.ht{position:absolute;bottom:0;right:10px;font-size:22px;animation:float 3s ease-out forwards}
+@keyframes float{0%{transform:translate(0,0) scale(.6);opacity:0}10%{opacity:1}100%{transform:translate(var(--dx),-55vh) scale(1.1);opacity:0}}
+.preview{position:relative;border-radius:16px;overflow:hidden;background:#111;aspect-ratio:3/4;max-height:420px;margin:0 auto 12px;display:grid;place-items:center;color:#aaa}
+.preview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.empty{padding:40px 10px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <span class="logo">SIA SPACE</span>
+    <span class="sp"></span>
+    <button class="iconbtn" data-act="tab" data-tab="notif" title="通知">🔔<span class="badge" id="bell-badge"></span></button>
+  </header>
+  <main id="view"></main>
+  <nav class="tabbar"><div class="inner">
+    <button class="tab" data-act="tab" data-tab="feed"><span class="ic">🏠</span>社区</button>
+    <button class="tab" data-act="tab" data-tab="live"><span class="ic">📹</span>直播</button>
+    <button class="tab" data-act="tab" data-tab="sched"><span class="ic">🗓</span>行程</button>
+    <button class="tab" data-act="tab" data-tab="notif"><span class="ic">🔔</span>通知<span class="badge" id="tab-badge"></span></button>
+    <button class="tab" data-act="tab" data-tab="me"><span class="ic">🐱</span>我的</button>
+  </div></nav>
+</div>
+<div id="toasts"></div>
+<div id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script>
+'use strict';
+/* =========================================================
+   基础工具
+   ========================================================= */
+const SDK_URL = 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.130.0/+esm';
+const STORE_KEY = 'cyan-idol-sim-v1';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const rand = (a, b) => a + Math.random() * (b - a);
+const ri = (a, b) => Math.floor(rand(a, b + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const pickN = (a, n) => [...a].sort(() => Math.random() - .5).slice(0, n);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = n => String(n).padStart(2, '0');
+const dkey = d => { const x = new Date(d); return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`; };
+const parseD = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (k, n) => { const d = parseD(k); d.setDate(d.getDate() + n); return dkey(d); };
+const WD = ['日', '一', '二', '三', '四', '五', '六'];
+
+function poisson(l) {
+  if (!(l > 0)) return 0;
+  if (l < 30) { const L = Math.exp(-l); let k = 0, p = 1; do { k++; p *= Math.random(); } while (p > L); return k - 1; }
+  const z = Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+  return Math.max(0, Math.round(l + z * Math.sqrt(l)));
+}
+function fmtNum(n) { n = Math.round(n || 0); return n >= 10000 ? (n / 10000).toFixed(n >= 100000 ? 0 : 1) + '万' : n.toLocaleString(); }
+function ago(ts) {
+  const s = (Date.now() - ts) / 1000;
+  if (s < 60) return '刚刚';
+  if (s < 3600) return Math.floor(s / 60) + '分钟前';
+  if (s < 86400) return Math.floor(s / 3600) + '小时前';
+  if (s < 86400 * 7) return Math.floor(s / 86400) + '天前';
+  const d = new Date(ts); return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+function hms(ms) { const s = Math.floor(ms / 1000); return `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; }
+
+/* =========================================================
+   数据 & 存储
+   ========================================================= */
+function seedSchedule() { return { rules: [], done: {}, reminded: {} }; }
+function defaultState() {
+  return {
+    v: 2,
+    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, bio: '', avatar: null },
+    ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '' },
+    prefs: { autoTr: false, speed: 1, sysNotif: false },
+    sim: { lastTick: Date.now() },
+    posts: [], notifs: [], lives: [],
+    schedule: seedSchedule(),
+    seeded: false
+  };
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch (e) { S = null; }
+if (!S) S = defaultState();
+{ const d = defaultState(); for (const k of Object.keys(d)) if (S[k] === undefined) S[k] = d[k];
+  for (const k of ['profile', 'ai', 'prefs', 'schedule']) S[k] = Object.assign({}, d[k], S[k]); }
+
+let saveT = null;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); }
+    catch (e) { console.warn('save failed', e); trimForQuota(); }
+  }, 600);
+}
+function trimForQuota() {
+  S.posts.forEach(p => { p.comments = p.comments.slice(0, 150); });
+  S.notifs = S.notifs.slice(0, 120);
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { }
+}
+
+/* ---------- IndexedDB：存图片/视频 ---------- */
+let dbp;
+function db() {
+  return dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('cyan-idol-media', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('m');
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+}
+async function idbPut(id, blob) { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('m', 'readwrite'); t.objectStore('m').put(blob, id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+async function idbGet(id) { const d = await db(); return new Promise((res, rej) => { const q = d.transaction('m').objectStore('m').get(id); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbDel(id) { const d = await db(); return new Promise(res => { const t = d.transaction('m', 'readwrite'); t.objectStore('m').delete(id); t.oncomplete = res; t.onerror = res; }); }
+const urlCache = {};
+async function mediaURL(id) {
+  if (urlCache[id]) return urlCache[id];
+  try { const b = await idbGet(id); if (!b) return ''; return (urlCache[id] = URL.createObjectURL(b)); } catch (e) { return ''; }
+}
+function hydrate(root = document) {
+  $$('[data-mid]', root).forEach(async el => { if (el.src) return; const u = await mediaURL(el.dataset.mid); if (u) el.src = u; });
+}
+
+/* =========================================================
+   粉丝 & 评论模板（本地模式）
+   ========================================================= */
+const COLORS = ['#ff8fab', '#7bdff2', '#b2a4ff', '#ffb86b', '#5dd39e', '#f78fb3', '#63a4ff', '#ffd166', '#ef767a', '#49dcb1', '#a0c4ff', '#cdb4db'];
+const FAN = {
+  zh: { a: ['安安的', '小安家的', 'cc的', '今天也爱', 'Cyan家', '猫猫', '蓝色', '月亮', '小鱼干', '奶盖', '晴天', '一只', '熬夜', 'cyan_', '喵星'], b: ['小猫粮', '守护者', '0901', '打工人', '大女儿', '老粉', '柠檬', '汤圆', '一号机', '星星', '小饼干', '不睡觉', '冲浪选手', '铲屎官', '小太阳', '芝士', '电台', '应援棒'] },
+  ko: { a: ['시아_', '냥냥', '안안이', '블루', '달빛', '고양이', 'cyan', '하늘'], b: ['러버', '0901', '최고', '짱', '팬', '바라기', '💙', '_love'] },
+  ja: { a: ['シア_', 'ねこ', 'しあん', 'あおい', 'みかん', 'つき'], b: ['推し', '0901', 'ちゃん', '担', '大好き', '🐱'] },
+  en: { a: ['cyanie_', 'sia', 'meow', 'blue', 'kitty', 'cyan.', 'moon'], b: ['_0901', 'lover', 'stan', 'xo', '4ever', '_cat', 'bby'] }
+};
+function pickLang() { const r = Math.random(); return r < .82 ? 'zh' : r < .9 ? 'ko' : r < .96 ? 'en' : 'ja'; }
+function makeFan(lang = pickLang()) {
+  const f = FAN[lang] || FAN.zh;
+  let name = pick(f.a) + pick(f.b);
+  if (Math.random() < .25) name += ri(1, 99);
+  return { user: name, color: pick(COLORS), lang };
+}
+const LANG_NAME = { zh: '中文', ko: '韩语', ja: '日语', en: '英语' };
+const LANG_TAG = { ko: 'KR', ja: 'JP', en: 'EN' };
+
+// {n}=随机昵称  {f}=粉丝名  {name}=艺名  {d}=出道天数  {q}=帖子/直播里的一句话
+const TPL = {
+  generic: {
+    zh: ['{n}今天也好可爱啊啊啊', '来晚了！{n}好！', '前排报到🐱', '永远爱你💙', '看到更新立刻冲进来了', '每天都在等{n}营业', '{n}最近还好吗，要好好吃饭哦', '好喜欢{n}这种碎碎念', '截图了！！', '今天也是被{n}治愈的一天', '呜呜呜终于等到了', '{n}有空多来社区玩呀', '这是什么神仙营业', '{n}记得多喝水', '爱你爱你爱你', '{n}的文字好有温度', '刚下课就看到更新，值了', '喵喵喵（翻译：我爱你）', '今天也是想{n}的一天', '从出道就在了，看着{n}一点点变好，好骄傲', 'D+{d}也会一直陪着你', '可恶 又被可爱到了', '{n}！！看我看我！', '我宣布这条是今日份快乐源泉', '{n}营业我上班，{n}不营业我上坟（不是）', '谁懂啊，打开手机就看到{n}', '老婆我来了（被打）', '置顶这条，每天看一遍'],
+    ko: [['{name} 오늘도 너무 귀여워요 💙', '{name}今天也太可爱了 💙'], ['한국 팬도 있어요!! 사랑해요', '韩国粉丝也在！！爱你'], ['항상 응원할게요 🐱', '会一直支持你的 🐱'], ['밥 꼭 챙겨 먹어요!', '一定要好好吃饭！'], ['오늘도 고마워요 언니', '今天也谢谢姐姐']],
+    ja: [['{name}ちゃん今日もかわいい！', '{name}今天也很可爱！'], ['日本からも応援してます💙', '日本这边也在支持你💙'], ['いつもありがとう！大好き！', '一直以来谢谢你！最喜欢了！'], ['ちゃんと休んでね🐱', '要好好休息哦🐱']],
+    en: [['{name} I LOVE YOU SO MUCH 💙', '{name}我超爱你 💙'], ['hello from your international fans!!', '海外粉丝来报到！！'], ["you're literally my comfort artist", '你真的是我的治愈系歌手'], ['pls take care of yourself queen 🐱', '女王请照顾好自己 🐱'], ['omg she posted!!!', '天哪她发帖了！！！']]
+  },
+  photo: {
+    zh: ['这张照片我要设成壁纸', '{n}的颜值是真实存在的吗', '这个氛围感绝了', '这个角度好绝', '眼睛里有星星✨', '猫系女孩本猫了', '这身好适合你！', '这是什么杂志封面', '保存了保存了', '妆容好好看，求同款', '今天的发型好可爱', '光线好温柔', '怎么会有人随手一拍都这么好看', '相册里全是{n}', '这张可以直接当专辑封面', '原图！求原图！'],
+    ko: [['사진 미쳤다… 배경화면 할게요', '照片绝了…要设成壁纸'], ['비주얼 무슨 일이야 😭', '这颜值是怎么回事 😭']],
+    ja: [['写真かわいすぎて保存しました！', '照片太可爱了已保存！'], ['顔がいい…', '脸好绝…']],
+    en: [['this pic is so pretty omg', '这张照片也太好看了吧'], ['wallpaper material fr', '真的是壁纸级别'], ['the visuals?? unreal', '这颜值？？离谱']]
+  },
+  video: {
+    zh: ['循环了一百遍', '声音好好听啊啊啊', '视频里的{n}好灵动', '求更多这种视频！', '看完心情变好了', '已经录屏了', '小动作好可爱，像小猫', '最后那一下是什么啊我没了', '这个视频就是我的精神食粮', '开声音看的举手', '0.5倍速逐帧看了'],
+    ko: [['영상 무한 반복 중이에요', '视频无限循环中'], ['목소리 너무 좋아요 ㅠㅠ', '声音太好听了呜呜']],
+    ja: [['何回もリピートしてる！', '已经循环好多遍了！']],
+    en: [['been replaying this nonstop', '一直在循环播放'], ['her voice in this video 😭', '视频里她的声音 😭']]
+  },
+  practice: {
+    zh: ['练习辛苦了！', '{n}练习这么努力，舞台一定会很棒', '注意别受伤呀', '练习室的{n}也闪闪发光', '期待新舞台！', '汗水都是闪光的', '练完记得拉伸！', '好想看练习室版本直拍', '努力的{n}最好看了', '又是在练习室待到很晚吗😭'],
+    ko: [['연습 너무 수고했어요!!', '练习辛苦了！！'], ['다치지 말고 조심해요', '小心别受伤']],
+    ja: [['練習お疲れさま！', '练习辛苦了！']],
+    en: [['practice hard but rest well 💙', '努力练习也要好好休息 💙']]
+  },
+  food: {
+    zh: ['吃的什么呀，也想吃', '好好吃饭的{n}最棒了', '半夜看饿了', '吃饱饱才有力气', '{n}是小猫要吃小鱼干吗🐟', '求店名！', '多吃点！太瘦了', '宝宝吃饭我就放心了', '吃播什么时候安排', '和{n}吃同款就是约会了（？）'],
+    ko: [['맛있게 먹어요!!', '吃得香香的！！'], ['뭐 먹었어요? 궁금해요', '吃了什么？好好奇']],
+    ja: [['いっぱい食べてね！', '要多吃点哦！']],
+    en: [['eat well baby!!', '宝贝好好吃饭！！']]
+  },
+  music: {
+    zh: ['新歌！！是新歌吗！！', '{n}写的歌一定很好听', '期待回归期待回归', '可以剧透一点点吗', '录音辛苦了，耳朵已经准备好了', '{n}的声音是天赐的', '已经开始单曲循环还没出的歌', '这次也会是自作曲吗', '坐等音源，打榜我来了', '什么时候发MV呀'],
+    ko: [['신곡 너무 기대돼요!!', '超期待新歌！！'], ['컴백 언제예요?? 기다릴게요', '什么时候回归？？会等你的']],
+    ja: [['新曲楽しみすぎる！', '太期待新歌了！']],
+    en: [["NEW MUSIC?? I'm ready", '新歌？？我准备好了'], ["can't wait for the comeback!!", '等不及回归了！！']]
+  },
+  night: {
+    zh: ['晚安{n}，做个好梦', '早点睡！不准熬夜', '{n}晚安～梦里见', '抱抱，晚安🌙', '我也去睡了，晚安', '明天也要开心', '熬夜的我被抓到了', '猫猫也要睡觉觉'],
+    ko: [['잘 자요 🌙', '晚安 🌙'], ['좋은 꿈 꿔요', '做个好梦']],
+    ja: [['おやすみなさい🌙', '晚安🌙']],
+    en: [['good night {name} 🌙', '晚安{name} 🌙']]
+  },
+  morning: {
+    zh: ['早安{n}！', '被{n}叫醒的早晨真好', '早上好呀，今天也加油', '起这么早，辛苦了', '早安早安，吃早饭了吗'],
+    ko: [['좋은 아침이에요!', '早上好！']], ja: [['おはよう！', '早上好！']], en: [['good morning sunshine ☀️', '早安小太阳 ☀️']]
+  },
+  comfort: {
+    zh: ['抱抱{n}，我们一直都在', '累了就休息，我们会等你', '不要一个人扛着呀', '{n}已经做得很好了', '心疼死了，要好好照顾自己', '给你递一杯热可可☕', '有什么不开心的都可以和我们说', '生病了要吃药！要早点睡！'],
+    ko: [['힘들면 쉬어도 돼요, 우리가 기다릴게요', '累了就休息，我们会等你']],
+    ja: [['無理しないでね…', '不要勉强自己哦…']],
+    en: [["we're always here for you 💙", '我们一直都在 💙']]
+  },
+  cat: {
+    zh: ['喵喵喵！', '{n}本来就是小猫吧', '猫猫{n}请让我摸摸头', '这是猫塑天花板', '好想rua', '喵～（已被驯化）', '小猫今天也在营业'],
+    ko: [['고양이 같아요 😭 너무 귀여워', '像小猫一样 😭 太可爱了']], ja: [['猫ちゃんみたい！', '像小猫一样！']], en: [["she's literally a cat 🐱", '她真的就是一只猫 🐱']]
+  },
+  stage: {
+    zh: ['舞台见！', '这次也要拿一位！', '会准时打call的', '已经买好灯牌了', '签售抽到我抽到我', '演唱会冲冲冲！！', '综艺什么时候播！', '画报快点放出来', '现场的{n}一定超级耀眼', '应援口号已背熟'],
+    ko: [['무대 기대할게요!!', '期待舞台！！'], ['1위 가자!!', '冲一位！！']], ja: [['ステージ楽しみ！', '期待舞台！']], en: [["can't wait to see the stage!!", '等不及看舞台了！！']]
+  },
+  love: {
+    zh: ['我也爱你！！！', '{n}说爱我了（自动代入）', '谢谢{n}一直这么温柔', '能喜欢{n}真的很幸运', '我们也想你了', '原地融化', '爱你一万年', '呜呜呜被宠到了'],
+    ko: [['저도 사랑해요!! 💙', '我也爱你！！💙']], ja: [['私も大好き！', '我也最喜欢你了！']], en: [['we love you more!!!', '我们更爱你！！！']]
+  },
+  weather: { zh: ['{n}那边也下雨了吗，记得带伞', '天冷多穿点！', '注意防晒呀', '今天的天气配{n}的歌刚好', '降温了！要穿秋裤！'] },
+  birthday: { zh: ['纪念日快乐！！', '生日快乐我的宝贝！！', '会陪你过每一个纪念日', 'D+{d}，往后也请多多指教'], en: [['happy happy day!!', '快乐快乐！！']] },
+  question: { zh: ['想！！', '要要要！', '当然啦', '我我我我', '{n}问什么我都答应', '第一个！选第一个！', '都想要可以吗', '这还用问吗！'] },
+  quote: { zh: ['「{q}」这句我记住了', '看到「{q}」直接破防', '「{q}」呜呜呜', '重点：{q}', '「{q}」好可爱哈哈哈'] }
+};
+const CAT_KW = {
+  practice: /练习|练舞|舞蹈|跳舞|声乐|排练|训练|上课|练到|dance|practice/i,
+  food: /吃|饭|好吃|饿|外卖|咖啡|奶茶|零食|火锅|炸鸡|蛋糕|甜品|早餐|午餐|晚餐|夜宵/,
+  music: /歌|新曲|录音|作曲|写歌|demo|专辑|回归|旋律|音源|歌词|MV|唱/i,
+  night: /晚安|睡觉|好梦|困了|熬夜|睡了/,
+  morning: /早安|早上好|起床|早起/,
+  comfort: /累|难过|不开心|想哭|哭了|压力|疼|生病|感冒|失眠|emo|焦虑|想家/i,
+  cat: /猫|喵|meow/i,
+  stage: /舞台|打歌|演唱会|签售|音乐节目|一位|综艺|录制|拍摄|画报|彩排/,
+  love: /爱你|想你|谢谢|感谢|喜欢你|宝贝/,
+  weather: /天气|下雨|雨天|好冷|好热|下雪|太阳|降温|刮风/,
+  birthday: /生日|纪念日|周年|D\+/,
+  question: /[?？]|吗|什么|要不要|想不想|有没有|哪个|猜猜/
+};
+const EMO = ['🐱', '💙', '！！', '～', '😭', '✨', '🥺', 'hhh', '！', '❤️', '🫶'];
+function dday() { return Math.max(1, Math.floor((Date.now() - parseD(S.profile.debut).getTime()) / 86400000) + 1); }
+function fill(t, q = '') {
+  const p = S.profile, nicks = p.nicks.length ? p.nicks : [p.name];
+  return t.replace(/\{n\}/g, () => pick([...nicks, p.name])).replace(/\{f\}/g, p.fandom).replace(/\{name\}/g, p.name).replace(/\{d\}/g, dday()).replace(/\{q\}/g, q);
+}
+function detectCats(text) { return Object.keys(CAT_KW).filter(k => CAT_KW[k].test(text || '')); }
+function snippet(text) {
+  const parts = (text || '').split(/[，。！？!?,.\n~～…\s]+/).map(s => s.trim()).filter(s => s.length >= 2 && s.length <= 14);
+  return parts.length ? pick(parts) : '';
+}
+function tplComment(ctx) {
+  const lang = pickLang();
+  if (lang === 'zh' && ctx.text && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
+  const pool = ['generic', 'generic'];
+  detectCats(ctx.text).forEach(c => pool.push(c, c, c));
+  if (ctx.hasImg) pool.push('photo', 'photo', 'photo');
+  if (ctx.hasVid) pool.push('video', 'video', 'video');
+  const cat = pick(pool);
+  let arr = TPL[cat][lang];
+  if (!arr || !arr.length) arr = lang === 'zh' ? TPL.generic.zh : TPL.generic[lang];
+  const it = pick(arr);
+  if (lang === 'zh') { let t = fill(it); if (Math.random() < .3) t += pick(EMO); return { lang, text: t, zh: null }; }
+  return { lang, text: fill(it[0]), zh: fill(it[1]) };
+}
+const REACT_FAN = {
+  zh: ['啊啊啊啊{n}回我了！！！', '被翻牌了我要截图裱起来', '我宣布今天是我的节日', '妈妈问我为什么跪着看手机', '呜呜呜谢谢{n}，我会好好的', '这是真的吗我不是在做梦吧', '手在抖…{n}我爱你', '这辈子值了'],
+  ko: [['헐 답글 받았다 ㅠㅠㅠ 고마워요!!', '天哪收到回复了呜呜呜 谢谢！！'], ['꿈인가요?? 사랑해요 💙', '是在做梦吗？？爱你 💙']],
+  ja: [['返信もらえた…！一生の宝物！', '收到回复了…！一辈子的宝物！']],
+  en: [['OMG SHE REPLIED TO ME 😭', '天哪她回复我了 😭'], ["i'm literally shaking thank you {name}!!", '我真的在发抖 谢谢{name}！！']]
+};
+const REACT_OTHER = ['羡慕死了', '我也想被翻牌', '姐妹你中奖了', '+1 求翻牌', '这条下面排队', '恭喜恭喜！', '截图留念了', '{n}看看我吧'];
+const REACT_ARTIST_CMT = ['{n}亲自评论了！！！', '本人来了本人来了', '抓到{n}在线', '{n}快去休息啦', '前排围观本人', '啊啊啊{n}好可爱', '收到！', '{n}说什么都对'];
+const FAN_TO_FAN = ['真的！', '+1', '姐妹说出了我的心声', '哈哈哈哈哈', '同意', '楼上快去睡觉', '握手', '一模一样的想法'];
+function reactLine(lang) {
+  const arr = REACT_FAN[lang] || REACT_FAN.zh;
+  const it = pick(arr);
+  return lang === 'zh' || typeof it === 'string' ? { lang: 'zh', text: fill(it), zh: null } : { lang, text: fill(it[0]), zh: fill(it[1]) };
+}
+
+/* =========================================================
+   Claude API（可选）
+   ========================================================= */
+const FALLBACK_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5'];
+const AI_SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['comments'],
+  properties: { comments: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['user', 'lang', 'text', 'zh'], properties: { user: { type: 'string' }, lang: { type: 'string', enum: ['zh', 'ko', 'ja', 'en'] }, text: { type: 'string' }, zh: { type: 'string' } } } } }
+};
+let sdkP = null;
+const aiOn = () => S.ai.enabled && !!S.ai.key && Date.now() > (S.ai._backoff || 0);
+async function aiClient() {
+  sdkP = sdkP || import(SDK_URL);
+  const m = await sdkP; const Anthropic = m.default || m.Anthropic;
+  return new Anthropic({ apiKey: S.ai.key, dangerouslyAllowBrowser: true, maxRetries: 1 });
+}
+function aiSystem() {
+  const p = S.profile;
+  return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
+偶像资料：艺名 ${p.name}，solo 女歌手，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
+写作要求：
+- 像 Weverse / 微博超话里的真实粉丝：口语化、短句为主（多数 4~30 字），偶尔长一点；可以用表情、网络用语、「啊啊啊」「呜呜呜」、玩梗。语气多样：激动、温柔、搞笑、关心、提问。
+- 必须紧扣偶像发的具体内容（文字里的细节、图片/画面里看得到的东西：衣服颜色、背景、表情、物品、动作等），不要泛泛而谈，不要彼此重复。
+- 大约 80% 用中文（lang=zh），其余用韩语(ko)/日语(ja)/英语(en)。外语评论在 zh 字段给出自然的中文翻译；中文评论的 zh 字段填空字符串。
+- user 是粉丝昵称，中文粉丝用中文/拼音风格昵称，外语粉丝用对应语言风格昵称，可以带数字或 emoji。
+- 内容友善健康，不涉及恶评、低俗或真实名人。`;
+}
+async function aiComments(content, maxTokens = 4000) {
+  const client = await aiClient();
+  const req = {
+    model: S.ai.model, max_tokens: maxTokens, system: aiSystem(),
+    messages: [{ role: 'user', content }],
+    output_config: { effort: 'low', format: { type: 'json_schema', schema: AI_SCHEMA } }
+  };
+  if (FALLBACK_MODELS.includes(S.ai.model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
+  const r = await client.beta.messages.create(req);
+  if (r.stop_reason === 'refusal') throw new Error('模型拒绝了这次请求');
+  const txt = r.content.filter(b => b.type === 'text').map(b => b.text).join('');
+  const j = JSON.parse(txt);
+  return (j.comments || []).filter(x => x && x.text).map(x => {
+    const lang = ['zh', 'ko', 'ja', 'en'].includes(x.lang) ? x.lang : 'zh';
+    return { user: String(x.user || '').slice(0, 24) || makeFan(lang).user, lang, text: String(x.text).slice(0, 300), zh: lang === 'zh' ? null : String(x.zh || '') || null };
+  });
+}
+function aiFail(e) {
+  const msg = (e && (e.message || e.toString())) || '未知错误';
+  S.ai.lastError = msg.slice(0, 200);
+  S.ai._backoff = Date.now() + 120000;
+  toast('⚠️ AI 评论失败，暂时改用模板评论', msg.slice(0, 80));
+  save();
+}
+function once(el, ev, ms = 6000) { return new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('timeout')), ms); el.addEventListener(ev, () => { clearTimeout(t); res(); }, { once: true }); }); }
+function drawB64(src, w, h, max) {
+  if (!w || !h) return '';
+  const s = Math.min(1, max / Math.max(w, h)); const c = document.createElement('canvas');
+  c.width = Math.round(w * s); c.height = Math.round(h * s);
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', .8).split(',')[1];
+}
+async function imageB64(blob, max = 768) {
+  const url = URL.createObjectURL(blob);
+  try { const img = new Image(); img.src = url; await img.decode(); return drawB64(img, img.naturalWidth, img.naturalHeight, max); }
+  catch (e) { return ''; } finally { URL.revokeObjectURL(url); }
+}
+async function videoB64(blob, max = 640) {
+  const url = URL.createObjectURL(blob); const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+  try { await once(v, 'loadeddata'); v.currentTime = Math.min(1, (v.duration || 2) / 2); await once(v, 'seeked'); return drawB64(v, v.videoWidth, v.videoHeight, max); }
+  catch (e) { return ''; } finally { URL.revokeObjectURL(url); }
+}
+async function aiForPost(post, n = 25) {
+  if (post._busy) return;
+  post._busy = true; post.lastAi = Date.now();
+  try {
+    const content = [];
+    for (const m of post.media.slice(0, 4)) {
+      const b = await idbGet(m.id).catch(() => null); if (!b) continue;
+      const data = m.type === 'image' ? await imageB64(b) : await videoB64(b);
+      if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
+    }
+    const imgs = post.media.filter(m => m.type === 'image').length, vids = post.media.length - imgs;
+    const recent = post.comments.slice(0, 12).map(c => `${c.user}：${c.text}`).join('\n');
+    content.push({ type: 'text', text:
+`${S.profile.name} 在粉丝社区发了一条帖子${post.media.length ? `（附 ${imgs ? imgs + ' 张图片' : ''}${imgs && vids ? '、' : ''}${vids ? vids + ' 个视频（上面给的是视频截帧）' : ''}）` : ''}，发布于${ago(post.createdAt)}。
+帖子正文：「${post.text || '（没有文字）'}」
+${recent ? '已经有的部分评论（不要重复）：\n' + recent + '\n' : ''}请生成 ${n} 条新的粉丝评论。` });
+    const list = await aiComments(content);
+    post.aiPool = (post.aiPool || []).concat(list);
+    post.aiBatches = (post.aiBatches || 0) + 1;
+    S.ai.lastError = ''; save();
+  } catch (e) { aiFail(e); }
+  finally { post._busy = false; }
+}
+
+/* =========================================================
+   模拟引擎：点赞 / 评论 / 通知
+   ========================================================= */
+// 热度曲线：刚发布爆发 → 几小时持续 → 几天长尾
+const PHASES = [[.45, 3 * 60e3], [.35, 90 * 60e3], [.2, 2 * 86400e3]];
+const cumFrac = age => PHASES.reduce((s, [w, tau]) => s + w * (1 - Math.exp(-age / tau)), 0);
+
+function makeComment(base, fan) {
+  return { id: uid(), user: base.user || fan.user, color: fan.color, lang: base.lang, text: base.text, zh: base.zh || null, at: Date.now(), likes: 0, replies: [] };
+}
+function nextComment(post) {
+  if (post.aiPool && post.aiPool.length) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
+  const ctx = { text: post.text, hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
+  const recent = post._recent || (post._recent = post.comments.slice(0, 25).map(c => c.text));
+  let b = tplComment(ctx);
+  for (let i = 0; i < 6 && recent.includes(b.text); i++) b = tplComment(ctx);
+  recent.unshift(b.text); if (recent.length > 25) recent.pop();
+  return makeComment(b, makeFan(b.lang));
+}
+const agg = {}; // postId -> {likes, likers:[], comments:[]}
+function aggFor(id) { return agg[id] || (agg[id] = { likes: 0, likers: [], comments: [], lastLike: Date.now() }); }
+
+function simPost(post, dtSim, silent) {
+  const a0 = post.simAge || 0, a1 = a0 + dtSim; post.simAge = a1;
+  const f = cumFrac(a1) - cumFrac(a0);
+  if (f <= 0) return { nl: 0, nc: 0 };
+  const nl = poisson(post.L * f), nc = poisson(post.C * f);
+  post.likes += nl;
+  if (nl) { const a = aggFor(post.id); a.likes += nl; if (a.likers.length < 3) a.likers.push(makeFan().user); }
+  const make = silent ? Math.min(nc, 30) : Math.min(nc, 8);
+  for (let i = 0; i < make; i++) {
+    const c = nextComment(post);
+    if (silent) c.at = post.createdAt + (a0 + Math.random() * dtSim) * ((Date.now() - post.createdAt) / Math.max(1, a1));
+    const parent = !silent && post.comments.length > 3 && Math.random() < .08 ? pick(post.comments.slice(0, 15)) : null;
+    if (parent && c.lang === 'zh') {
+      c.text = fill(pick(FAN_TO_FAN)); c.to = parent.user; parent.replies.push(c);
+      onNewReply(post, parent);
+    } else {
+      post.comments.unshift(c);
+      if (!silent) { aggFor(post.id).comments.push(c); onNewComment(post, c); }
+    }
+  }
+  post.commentCount += nc;
+  if (post.comments.length > 400) post.comments.length = 400;
+  // 评论本身也会被点赞
+  const heat = nl * .35;
+  if (heat > 0 && post.comments.length) {
+    const k = Math.min(5, post.comments.length);
+    for (let i = 0; i < k; i++) { const c = post.comments[Math.floor(Math.random() * Math.min(40, post.comments.length))]; const add = poisson(heat / k); if (add) { c.likes += add; updCommentLikes(c); } }
+  }
+  S.profile.followers += poisson(nl * .004);
+  // AI 评论池补货
+  if (!silent && aiOn() && !post._busy && (post.aiPool || []).length < 5 && a1 < 6 * 3600e3 && (post.aiBatches || 0) < 8 && Date.now() - (post.lastAi || 0) > 45000) aiForPost(post);
+  return { nl, nc };
+}
+
+let lastReal = Date.now();
+function tick() {
+  const now = Date.now(); const dt = now - lastReal; lastReal = now;
+  const sp = S.prefs.speed || 1;
+  for (const p of S.posts) simPost(p, dt * sp, false);
+  S.sim.lastTick = now;
+  updCounters();
+  schedReminders();
+  save();
+}
+let lastLikeFlush = Date.now(), lastToast = 0;
+function flushAgg() {
+  const now = Date.now(); const likeTime = now - lastLikeFlush > 30000;
+  for (const id of Object.keys(agg)) {
+    const a = agg[id], post = S.posts.find(p => p.id === id); if (!post) { delete agg[id]; continue; }
+    const snip = (post.text || '[图片/视频]').slice(0, 18);
+    if (a.comments.length) {
+      const cs = a.comments; a.comments = [];
+      if (cs.length <= 2) cs.forEach(c => pushNotif({ type: 'comment', postId: id, cid: c.id, text: `${c.user} 评论了你的帖子`, sub: c.text + (c.zh ? `（${c.zh}）` : '') }, true));
+      else pushNotif({ type: 'comment', postId: id, cid: cs[cs.length - 1].id, text: `${cs[0].user}、${cs[1].user} 等 ${cs.length} 人评论了你的帖子「${snip}」`, sub: cs[cs.length - 1].text }, true);
+    }
+    if (likeTime && a.likes) {
+      pushNotif({ type: 'like', postId: id, text: `${a.likers[0]}${a.likes > 1 ? ` 等 ${fmtNum(a.likes)} 人` : ''} 赞了你的帖子`, sub: snip }, false);
+      a.likes = 0; a.likers = [];
+    }
+  }
+  if (likeTime) lastLikeFlush = now;
+}
+function pushNotif(n, toastIt) {
+  n.id = uid(); n.at = Date.now(); n.read = false;
+  S.notifs.unshift(n); if (S.notifs.length > 300) S.notifs.length = 300;
+  updBadges();
+  if (UI.tab === 'notif') render();
+  const viewingPost = UI.tab === 'feed' && UI.postId && UI.postId === n.postId;
+  if (toastIt && !viewingPost && Date.now() - lastToast > 3500) { lastToast = Date.now(); toast(n.text, n.sub, () => openNotif(n)); }
+  sysNotify(n);
+}
+let lastSys = 0;
+function sysNotify(n) {
+  if (!S.prefs.sysNotif || !document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
+  if (Date.now() - lastSys < 15000 && n.type !== 'sched') return;
+  lastSys = Date.now();
+  try { new Notification('SIA SPACE · ' + n.text, { body: n.sub || '' }); } catch (e) { }
+}
+
+/* 离线补算：关掉页面再打开，帖子也在继续涨 */
+function catchUp() {
+  const dt = Date.now() - (S.sim.lastTick || Date.now());
+  if (dt < 10000 || !S.posts.length) return;
+  let L = 0, C = 0;
+  for (const p of S.posts) { const r = simPost(p, dt, true); L += r.nl; C += r.nc; p.comments.sort((a, b) => b.at - a.at); }
+  for (const k of Object.keys(agg)) delete agg[k];
+  if (L + C > 0) pushNotif({ type: 'system', text: `你不在的这段时间：+${fmtNum(L)} 赞，+${fmtNum(C)} 条评论`, sub: `离开了 ${dt > 3600e3 ? Math.round(dt / 3600e3) + ' 小时' : Math.round(dt / 60e3) + ' 分钟'}` }, false);
+}
+
+/* ---------- 回复粉丝 → 粉丝反应 ---------- */
+function later(ms, fn) { setTimeout(fn, ms / (S.prefs.speed || 1)); }
+function addReply(post, parent, r) {
+  r.id = r.id || uid(); r.at = Date.now(); r.likes = r.likes || 0;
+  parent.replies.push(r); post.commentCount++;
+  onNewReply(post, parent);
+}
+function artistReply(post, parent, target, text) {
+  addReply(post, parent, { user: S.profile.name, me: true, text, to: target ? target.user : null });
+  save();
+  const fanTarget = target && !target.me ? target : null;
+  if (aiOn()) aiReactions(post, parent, fanTarget, text);
+  else tplReactions(post, parent, fanTarget);
+}
+function tplReactions(post, parent, target) {
+  if (target) {
+    later(rand(3000, 12000), () => {
+      const b = reactLine(target.lang || 'zh');
+      addReply(post, parent, { user: target.user, color: target.color, lang: b.lang, text: b.text, zh: b.zh, to: S.profile.name });
+      pushNotif({ type: 'reply', postId: post.id, cid: parent.id, text: `${target.user} 回复了你`, sub: b.text }, true);
+      save();
+    });
+    target.likes += ri(30, 120); updCommentLikes(target);
+    const others = ri(1, 4);
+    for (let i = 0; i < others; i++) later(rand(6000, 40000), () => {
+      const f = makeFan('zh'); addReply(post, parent, { user: f.user, color: f.color, lang: 'zh', text: fill(pick(REACT_OTHER)), to: target.user });
+      target.likes += ri(10, 60); updCommentLikes(target); save();
+    });
+  } else {
+    const k = ri(3, 7);
+    for (let i = 0; i < k; i++) later(rand(3000, 45000), () => {
+      const f = makeFan(); const lang = f.lang;
+      const b = lang === 'zh' ? { lang, text: fill(pick(REACT_ARTIST_CMT)), zh: null } : reactLine(lang);
+      addReply(post, parent, { user: f.user, color: f.color, lang: b.lang, text: b.text, zh: b.zh, to: S.profile.name });
+      parent.likes += ri(20, 90); updCommentLikes(parent);
+      if (i === 0) pushNotif({ type: 'reply', postId: post.id, cid: parent.id, text: `${f.user} 回复了你的评论`, sub: b.text }, true);
+      save();
+    });
+  }
+}
+async function aiReactions(post, parent, target, text) {
+  try {
+    const n = target ? ri(3, 5) : ri(4, 7);
+    const prompt = target
+      ? `${S.profile.name}（偶像本人）在自己的帖子「${post.text || '（图片/视频帖）'}」下面，回复了粉丝「${target.user}」的评论。\n粉丝原评论（${LANG_NAME[target.lang || 'zh']}）：「${target.text}」\n${S.profile.name} 的回复：「${text}」\n请生成 ${n} 条楼中楼回复：第 1 条必须是粉丝「${target.user}」本人被偶像回复后的反应（用${LANG_NAME[target.lang || 'zh']}写，要接住偶像的回复内容），其余是围观粉丝的反应（羡慕、起哄、接话等）。`
+      : `${S.profile.name}（偶像本人）在自己的帖子「${post.text || '（图片/视频帖）'}」下面发了一条评论：「${text}」\n请生成 ${n} 条粉丝在这条评论下的楼中楼回复，要针对她说的内容来回应。`;
+    const list = await aiComments([{ type: 'text', text: prompt }], 2000);
+    list.forEach((b, i) => later(i === 0 ? rand(3000, 9000) : rand(6000, 40000), () => {
+      const isTarget = target && i === 0;
+      const f = isTarget ? target : makeFan(b.lang);
+      addReply(post, parent, { user: isTarget ? target.user : b.user, color: f.color, lang: b.lang, text: b.text, zh: b.zh, to: target ? target.user : S.profile.name });
+      (target || parent).likes += ri(15, 80); updCommentLikes(target || parent);
+      if (i === 0) pushNotif({ type: 'reply', postId: post.id, cid: parent.id, text: `${isTarget ? target.user : b.user} 回复了你`, sub: b.text }, true);
+      save();
+    }));
+  } catch (e) { aiFail(e); tplReactions(post, parent, target); }
+}
+
+/* =========================================================
+   UI 状态 & 渲染
+   ========================================================= */
+const UI = { tab: 'feed', postId: null, sort: 'new', schedDate: dkey(Date.now()), replyTo: null, newHot: 0 };
+let draft = '', pending = [];
+const view = $('#view');
+
+function avatarHTML(cls = '') {
+  return S.profile.avatar ? `<div class="av ${cls}"><img data-mid="${S.profile.avatar}" alt=""></div>`
+    : `<div class="av ${cls}" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">${esc(S.profile.name[0] || 'C')}</div>`;
+}
+function fanAv(c, cls = '') { return c.me ? avatarHTML(cls) : `<div class="av ${cls}" style="background:${c.color || '#aaa'}">${esc((c.user || '?')[0])}</div>`; }
+
+function render() {
+  $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === UI.tab));
+  let h = '';
+  if (UI.tab === 'feed') h = UI.postId ? viewPost() : viewFeed();
+  else if (UI.tab === 'live') h = viewLive();
+  else if (UI.tab === 'sched') h = viewSched();
+  else if (UI.tab === 'notif') h = viewNotif();
+  else h = viewMe();
+  view.innerHTML = h;
+  hydrate(view);
+  if (UI.tab === 'feed' && !UI.postId) { const t = $('#cmp-text'); if (t) t.value = draft; renderPending(); }
+  if (UI.tab === 'notif') { S.notifs.forEach(n => n.read = true); updBadges(); save(); }
+  updBadges();
+}
+
+/* ---------- 社区 ---------- */
+function viewFeed() {
+  const p = S.profile;
+  return `
+  <div class="card hero">
+    ${avatarHTML('lg')}
+    <div style="flex:1;min-width:0">
+      <h2>${esc(p.name)} <span class="artist">ARTIST</span></h2>
+      ${p.bio ? `<div class="muted">${esc(p.bio)}</div>` : ''}
+      <div class="stats"><span><b data-fol>${fmtNum(p.followers)}</b> <span class="muted">粉丝</span></span><span><b>D+${dday()}</b> <span class="muted">出道</span></span></div>
+    </div>
+  </div>
+  <div class="card composer">
+    <textarea id="cmp-text" placeholder="和粉丝们分享点什么吧…"></textarea>
+    <div id="cmp-prev" class="cmp-prev"></div>
+    <div class="row">
+      <label class="btn ghost sm">🖼 图片/视频<input type="file" id="cmp-file" accept="image/*,video/*" multiple hidden></label>
+      <span class="muted">${aiOn() ? '✨ AI 粉丝已开启' : '本地模板粉丝'}</span>
+      <span class="sp"></span>
+      <button class="btn primary" data-act="publish">发布</button>
+    </div>
+  </div>
+  ${S.posts.length ? S.posts.map(postCard).join('') : '<div class="empty">还没有帖子，发第一条吧 🐱</div>'}`;
+}
+function mediaHTML(post, full) {
+  if (!post.media.length) return '';
+  const ms = post.media.slice(0, 9);
+  return `<div class="media n${ms.length}">${ms.map(m => m.type === 'video'
+    ? `<div class="m"><video data-mid="${m.id}" ${full ? 'controls' : 'muted'} playsinline preload="metadata"></video>${full ? '' : '<div class="play">▶</div>'}</div>`
+    : `<div class="m"><img data-mid="${m.id}" alt="" ${full ? `data-act="zoom" data-mid2="${m.id}"` : ''}></div>`).join('')}</div>`;
+}
+function postCard(p) {
+  return `<article class="card post clip" data-act="open" data-id="${p.id}">
+    <div class="ph">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span class="artist">ARTIST</span><div class="muted">${ago(p.createdAt)}</div></div></div>
+    ${p.text ? `<div class="ptext">${esc(p.text)}</div>` : ''}
+    ${mediaHTML(p, false)}
+    <div class="pact"><span>♡ <b data-lc="${p.id}">${fmtNum(p.likes)}</b></span><span>💬 <b data-cc="${p.id}">${fmtNum(p.commentCount)}</b></span></div>
+  </article>`;
+}
+function renderPending() {
+  const box = $('#cmp-prev'); if (!box) return;
+  box.innerHTML = pending.map((f, i) => `<div class="pv">${f.type.startsWith('video') ? `<video src="${f._url}" muted></video>` : `<img src="${f._url}">`}<button data-act="unpend" data-i="${i}">✕</button></div>`).join('');
+}
+async function publish() {
+  const text = ($('#cmp-text')?.value || '').trim();
+  if (!text && !pending.length) return toast('写点什么或者选张图片吧');
+  const btn = $('[data-act="publish"]'); if (btn) { btn.disabled = true; btn.textContent = '发布中…'; }
+  const media = [];
+  for (const f of pending) {
+    const id = uid();
+    try { await idbPut(id, f); urlCache[id] = f._url; } catch (e) { urlCache[id] = f._url; toast('媒体保存失败，刷新后可能看不到', String(e.message || e)); }
+    media.push({ id, type: f.type.startsWith('video') ? 'video' : 'image' });
+  }
+  const p = S.profile, boost = media.length ? 1.25 : 1;
+  const L = Math.round(rand(p.activeMin, p.activeMax) * rand(1.1, 1.8) * boost);
+  const post = { id: uid(), text, media, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
+  S.posts.unshift(post);
+  draft = ''; pending = [];
+  save(); render();
+  toast('发布成功！', '粉丝们正在赶来…');
+  if (aiOn()) aiForPost(post);
+}
+
+function viewPost() {
+  const p = S.posts.find(x => x.id === UI.postId);
+  if (!p) { UI.postId = null; return viewFeed(); }
+  UI.newHot = 0;
+  return `
+  <div class="detail-top"><button class="btn ghost sm" data-act="back">‹ 返回</button><span class="sp"></span><button class="btn ghost sm" data-act="delpost" data-id="${p.id}">删除</button></div>
+  <article class="card post">
+    <div class="ph">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span class="artist">ARTIST</span><div class="muted">${new Date(p.createdAt).toLocaleString('zh-CN')}</div></div></div>
+    ${p.text ? `<div class="ptext">${esc(p.text)}</div>` : ''}
+    ${mediaHTML(p, true)}
+    <div class="pact"><span>♡ <b data-lc="${p.id}">${fmtNum(p.likes)}</b></span><span>💬 <b data-cc="${p.id}">${fmtNum(p.commentCount)}</b></span></div>
+  </article>
+  <div class="card">
+    <div class="row" style="margin-bottom:6px"><b>评论</b><span class="sp"></span>
+      <button class="link ${UI.sort === 'new' ? 'liked' : ''}" data-act="sort" data-s="new">最新</button>
+      <button class="link ${UI.sort === 'hot' ? 'liked' : ''}" data-act="sort" data-s="hot">最热</button>
+    </div>
+    <button class="newpill" id="newpill" data-act="refresh" hidden></button>
+    <div id="clist">${sortedComments(p).slice(0, 200).map(c => commentHTML(c, false)).join('') || '<div class="empty" id="noc">还没有评论，粉丝们在路上了…</div>'}</div>
+    ${p.commentCount > p.comments.length ? `<div class="muted center" style="margin-top:8px">共 ${fmtNum(p.commentCount)} 条，显示最新 ${Math.min(200, p.comments.length)} 条</div>` : ''}
+  </div>
+  <div class="cbar"><input id="my-cmt" placeholder="以 ${esc(S.profile.name)} 的身份评论…" maxlength="300"><button class="btn primary sm" data-act="mycmt">发送</button></div>`;
+}
+function sortedComments(p) { return UI.sort === 'hot' ? [...p.comments].sort((a, b) => b.likes - a.likes) : p.comments; }
+function trHTML(c) {
+  if (!c.zh) return '';
+  return `<div class="tr" ${S.prefs.autoTr ? '' : 'hidden'}>译：${esc(c.zh)}</div><button class="link" data-act="tr">${S.prefs.autoTr ? '隐藏翻译' : '查看翻译'}</button>`;
+}
+function commentHTML(c, isNew) {
+  return `<div class="cmt ${c.me ? 'me' : ''} ${isNew ? 'new' : ''}" data-cid="${c.id}">
+    ${fanAv(c)}
+    <div class="cb">
+      <div class="cn">${esc(c.user)}${c.me ? '<span class="artist">ARTIST</span>' : ''}${LANG_TAG[c.lang] ? `<span class="lang">${LANG_TAG[c.lang]}</span>` : ''}</div>
+      <div class="ct">${esc(c.text)}</div>${trHTML(c)}
+      <div class="cm"><span class="muted">${ago(c.at)}</span>
+        <button class="link ${c.liked ? 'liked' : ''}" data-act="clike" data-cid="${c.id}">♡ <span data-cl="${c.id}">${fmtNum(c.likes)}</span></button>
+        <button class="link" data-act="reply" data-cid="${c.id}">回复</button></div>
+      <div class="replies" data-reps="${c.id}">${c.replies.map(r => replyHTML(r, c)).join('')}</div>
+      <div class="rbox" data-rbox="${c.id}"></div>
+    </div></div>`;
+}
+function replyHTML(r, parent) {
+  return `<div class="rep ${r.me ? 'me' : ''}" data-rid="${r.id}">${fanAv(r, 'sm')}<div class="cb">
+    <div class="cn">${esc(r.user)}${r.me ? '<span class="artist">ARTIST</span>' : ''}${LANG_TAG[r.lang] ? `<span class="lang">${LANG_TAG[r.lang]}</span>` : ''}</div>
+    <div class="ct">${r.to ? `<span class="at">@${esc(r.to)}</span> ` : ''}${esc(r.text)}</div>${trHTML(r)}
+    <div class="cm"><span class="muted">${ago(r.at)}</span>${r.me ? '' : `<button class="link" data-act="reply" data-cid="${parent.id}" data-rid="${r.id}">回复</button>`}</div>
+  </div></div>`;
+}
+function onNewComment(post, c) {
+  if (!(UI.tab === 'feed' && UI.postId === post.id)) return;
+  const list = $('#clist'); if (!list) return;
+  if (UI.sort === 'new') {
+    $('#noc')?.remove();
+    list.insertAdjacentHTML('afterbegin', commentHTML(c, true));
+    hydrate(list.firstElementChild);
+    while (list.children.length > 200) list.lastElementChild.remove();
+  } else {
+    UI.newHot++; const pill = $('#newpill'); if (pill) { pill.hidden = false; pill.textContent = `↻ ${UI.newHot} 条新评论`; }
+  }
+}
+function onNewReply(post, parent) {
+  if (!(UI.tab === 'feed' && UI.postId === post.id)) return;
+  const box = $(`[data-reps="${parent.id}"]`); if (!box) return;
+  box.innerHTML = parent.replies.map(r => replyHTML(r, parent)).join('');
+  hydrate(box);
+  const last = box.lastElementChild; if (last) last.classList.add('new');
+}
+function updCommentLikes(c) { const el = $(`[data-cl="${c.id}"]`); if (el) el.textContent = fmtNum(c.likes); }
+const lastShown = {};
+function updCounters() {
+  for (const p of S.posts) {
+    const prev = lastShown[p.id] || {};
+    $$(`[data-lc="${p.id}"]`).forEach(el => { el.textContent = fmtNum(p.likes); if (prev.l !== undefined && prev.l !== p.likes) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); } });
+    $$(`[data-cc="${p.id}"]`).forEach(el => { el.textContent = fmtNum(p.commentCount); });
+    lastShown[p.id] = { l: p.likes };
+  }
+  $$('[data-fol]').forEach(el => el.textContent = fmtNum(S.profile.followers));
+}
+function openReplyBox(cid, rid) {
+  const post = S.posts.find(x => x.id === UI.postId); if (!post) return;
+  const c = post.comments.find(x => x.id === cid); if (!c) return;
+  const target = rid ? c.replies.find(r => r.id === rid) : c;
+  $$('.rbox').forEach(b => b.innerHTML = '');
+  UI.replyTo = { cid, rid: rid || null };
+  const box = $(`[data-rbox="${cid}"]`);
+  box.innerHTML = `<div class="row"><input id="rep-in" placeholder="回复 @${esc(target.user)}" maxlength="300"><button class="btn primary sm" data-act="sendrep">发送</button></div>`;
+  $('#rep-in').focus();
+}
+function sendReply() {
+  const post = S.posts.find(x => x.id === UI.postId); const inp = $('#rep-in');
+  if (!post || !inp || !UI.replyTo) return;
+  const text = inp.value.trim(); if (!text) return;
+  const c = post.comments.find(x => x.id === UI.replyTo.cid); if (!c) return;
+  const target = UI.replyTo.rid ? c.replies.find(r => r.id === UI.replyTo.rid) : c;
+  $(`[data-rbox="${c.id}"]`).innerHTML = ''; UI.replyTo = null;
+  artistReply(post, c, target, text);
+}
+function myComment() {
+  const post = S.posts.find(x => x.id === UI.postId); const inp = $('#my-cmt');
+  if (!post || !inp) return; const text = inp.value.trim(); if (!text) return;
+  inp.value = '';
+  const c = { id: uid(), user: S.profile.name, me: true, lang: 'zh', text, zh: null, at: Date.now(), likes: 0, replies: [] };
+  post.comments.unshift(c); post.commentCount++;
+  if (UI.sort === 'new') onNewComment(post, c); else render();
+  updCounters(); save();
+  // 本人评论自己的帖子 → 粉丝在楼中楼里起哄
+  if (aiOn()) aiReactions(post, c, null, text); else tplReactions(post, c, null);
+}
+
+/* ---------- 通知 ---------- */
+const NIC = { like: '❤️', comment: '💬', reply: '↩️', sched: '🗓', live: '📹', system: '🐱' };
+function viewNotif() {
+  return `<div class="row" style="margin:4px 4px 10px"><b style="font-size:18px">通知</b><span class="sp"></span><button class="link" data-act="clearnotif">清空</button></div>
+  <div class="card">${S.notifs.length ? S.notifs.slice(0, 150).map(n => `
+    <div class="notif ${n.read ? '' : 'unread'}" data-act="opennotif" data-nid="${n.id}">
+      <div class="nic">${NIC[n.type] || '🔔'}</div>
+      <div style="flex:1;min-width:0"><div class="nt">${esc(n.text)}</div>${n.sub ? `<div class="ns">${esc(n.sub)}</div>` : ''}<div class="muted" style="font-size:12px">${ago(n.at)}</div></div>
+    </div>`).join('') : '<div class="empty">暂时没有通知</div>'}</div>`;
+}
+function openNotif(n) {
+  if (n.postId && S.posts.some(p => p.id === n.postId)) {
+    UI.tab = 'feed'; UI.postId = n.postId; render(); window.scrollTo(0, 0);
+    if (n.cid) setTimeout(() => { const el = $(`[data-cid="${n.cid}"]`); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('flash'); } }, 80);
+  } else if (n.type === 'sched') { UI.tab = 'sched'; render(); }
+  else if (n.type === 'live') { UI.tab = 'live'; render(); }
+}
+function updBadges() {
+  const n = S.notifs.filter(x => !x.read).length; const t = n ? (n > 99 ? '99+' : String(n)) : '';
+  $('#bell-badge').textContent = t; $('#tab-badge').textContent = t;
+}
+function toast(text, sub = '', onClick) {
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<div style="font-size:20px">🔔</div><div style="min-width:0;flex:1"><div>${esc(text)}</div>${sub ? `<div class="ns">${esc(sub)}</div>` : ''}</div>`;
+  el.onclick = () => { el.remove(); onClick && onClick(); };
+  const box = $('#toasts'); box.prepend(el);
+  while (box.children.length > 3) box.lastElementChild.remove();
+  setTimeout(() => el.remove(), 4200);
+}
+
+/* =========================================================
+   直播
+   ========================================================= */
+const LIVE_TPL = {
+  greet: ['来了来了！', '{n}晚上好！', '前排！', '终于开播了！！', '刚下班就看到直播', '{n}今天好好看', '我来啦～', '准时蹲到了', '{n}！！！', '报到！'],
+  chat: ['好可爱', '哈哈哈哈', '{n}今天穿的是什么呀', '笑死', '啊啊啊啊', '爱你', '看镜头看镜头', '{n}吃饭了吗', '今天练习累不累', '什么时候回归', '唱首歌吧', '猫猫在吗', '镜头好近哈哈', '截屏了', '下次多播一会', '我在这里！', '声音好好听', '{n}看评论！', '第一次看直播好紧张', '比个心❤️', '可以叫我名字吗', '今天的发型好可爱', '{n}在宿舍吗', '有点卡吗还是我网不好', '老婆贴贴', '安可～', '{n}最近在听什么歌', '截到一张丑萌的哈哈', '想{n}了'],
+  chatF: { ko: [['안녕하세요!! 한국에서 왔어요', '大家好！！从韩国来的'], ['너무 귀여워요 ㅠㅠ', '太可爱了呜呜'], ['사랑해요 💙', '爱你 💙']], ja: [['こんばんは〜！', '晚上好～！'], ['かわいい！', '好可爱！']], en: [['hiii {name}!!', '嗨{name}！！'], ['love from the US 💙', '来自美国的爱 💙'], ['so cute omg', '天哪好可爱']] },
+  greetR: ['晚上好！！', '{n}好～', '在在在！', 'hello！！', '来啦来啦', '{n}也好呀'],
+  food: ['吃什么了吃什么了', '我也饿了', '吃播吃播！', '多吃点！', '好香的样子', '分我一口'],
+  sing: ['唱！！！', '现场版来了', '录屏了录屏了', '好好听呜呜', '安可！', '耳朵怀孕了', 'live 天后'],
+  dance: ['跳一个！', '要看要看', '镜头拉远一点哈哈', '练习室直拍复刻！'],
+  cat: ['喵～', '喵喵喵', '猫猫{n}', '学猫叫！', '是小猫本猫'],
+  bye: ['不要走😭', '再播五分钟！', '晚安{n}', '下次什么时候播', '好梦～', '舍不得', '明天还来吗'],
+  q: ['想！', '要！', '当然！', '我！我！', '好呀好呀', '都可以！', '{n}决定就好', '要要要', '必须的'],
+  thanks: ['应该的！', '是我们要谢谢你', '呜呜呜', '{n}太温柔了'],
+  tired: ['辛苦了！', '早点休息', '抱抱', '心疼', '今天也很棒了'],
+  comeback: ['啊啊啊剧透！', '期待！！', '可以再多说一点吗', '冲冲冲', '已经准备好打榜了', '是新歌吗！'],
+  fandom: ['在！', '{f}在这里！', '到！', '叫我了叫我了', '我在我在'],
+  love: ['我也爱你！！', '啊啊啊啊啊', '我也爱你老婆', '原地去世', '心动了'],
+  generic: ['哈哈哈哈', '嗯嗯！', '是的是的', '好可爱', '懂了', '确实', '哈哈哈太好笑了', '真的吗', '然后呢然后呢'],
+  echo: ['{n}说「{q}」哈哈哈', '「{q}」好可爱', '「{q}」记下了', '刚刚说「{q}」吗']
+};
+const LIVE_KW = [
+  ['greetR', /大家好|你们好|哈喽|hello|嗨|晚上好|早上好|안녕/i], ['food', /吃|饭|饿|零食|喝/], ['sing', /唱|歌/], ['dance', /跳|舞/],
+  ['cat', /猫|喵/], ['bye', /晚安|下播|拜拜|再见|走了|要睡/], ['q', /吗|呢|什么|怎么|要不要|想不想|有没有|[?？]/],
+  ['thanks', /谢谢|感谢/], ['tired', /累|困|辛苦|好忙/], ['comeback', /新歌|回归|专辑|打歌|演唱会|签售|综艺/],
+  ['love', /爱你|喜欢你|想你/]
+];
+let LIVE = null;
+function viewLive() {
+  const hist = S.lives.slice(0, 8);
+  return `<div class="card">
+    <h3 style="margin:2px 0 10px">开始直播</h3>
+    <div class="preview" id="pv-box"><span>📷 点击「预览摄像头」看看效果</span></div>
+    <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
+    <div class="row wrap"><button class="btn ghost" data-act="pvcam">预览摄像头</button><span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始直播</button></div>
+    ${IN_FRAME ? '<p class="muted" style="margin:0 0 10px;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头，只能用「纯聊天直播」。想真人出镜，请用浏览器直接打开 HTML 文件。</p>' : ''}
+    <p class="muted" style="margin:10px 0 0">会请求摄像头和麦克风权限。直播中可以直接说话（浏览器语音识别，推荐 Chrome / Edge），粉丝会根据你说的内容刷弹幕；也可以打字。${'webkitSpeechRecognition' in window || 'SpeechRecognition' in window ? '' : '<br>⚠️ 当前浏览器不支持语音识别，只能打字互动。'}${aiOn() ? '<br>✨ AI 粉丝已开启：会结合画面和你说的话来回应。' : ''}</p>
+  </div>
+  <div class="sec-title">直播记录</div>
+  <div class="card">${hist.length ? hist.map(l => `<div class="rule"><div style="flex:1"><b>${esc(l.title)}</b><div class="muted">${new Date(l.start).toLocaleString('zh-CN')} · 时长 ${hms(l.end - l.start)}</div></div><div class="muted" style="text-align:right">👁 峰值 ${fmtNum(l.peak)}<br>♥ ${fmtNum(l.hearts)} · 💬 ${fmtNum(l.comments)}</div></div>`).join('') : '<div class="empty">还没有直播过</div>'}</div>`;
+}
+let pvStream = null;
+async function previewCam() {
+  try {
+    stopPreview();
+    pvStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+    const box = $('#pv-box'); box.innerHTML = '<video autoplay playsinline muted></video>'; box.firstChild.srcObject = pvStream;
+  } catch (e) { toast('无法打开摄像头', camErr(e)); }
+}
+function stopPreview() { if (pvStream) { pvStream.getTracks().forEach(t => t.stop()); pvStream = null; } }
+const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+function camErr(e) {
+  if (IN_FRAME) return '在 Claude 链接里打开时，平台不允许网页使用摄像头。可以用「纯聊天直播」，或用浏览器直接打开 HTML 文件来真人出镜';
+  if (!navigator.mediaDevices) return '当前环境不允许使用摄像头（需要 https 网页或直接打开本地文件）';
+  return e && e.name === 'NotAllowedError' ? '摄像头权限被拒绝了：请到 设置 → Safari → 摄像头/麦克风 里改成「询问」或「允许」' : (e && e.message) || String(e);
+}
+async function startLive() {
+  const title = ($('#lv-title-in')?.value || '').trim() || '直播中';
+  S.prefs.lastLiveTitle = title;
+  stopPreview();
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true }); }
+  catch (e) {
+    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); toast('没有拿到麦克风，只能打字互动'); }
+    catch (e2) {
+      if (!confirm('无法打开摄像头：' + camErr(e2) + '\n\n要用「纯聊天直播」开播吗？（不出镜，打字和粉丝互动）')) return;
+      stream = null;
+    }
+  }
+  const layer = document.createElement('div'); layer.id = 'live-layer';
+  layer.innerHTML = `<video autoplay playsinline muted></video><div class="lv-shade"></div>
+    <div class="lv-top"><span class="lv-badge">LIVE</span><span class="lv-pill" id="lv-time">00:00:00</span><span class="lv-pill">👁 <span id="lv-view">0</span></span><span class="lv-pill">♥ <span id="lv-heart">0</span></span><span class="sp"></span><button class="lv-end" id="lv-end">结束</button></div>
+    <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
+    <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-mic" title="语音识别">🎤</button></div>`;
+  document.body.appendChild(layer); hydrate(layer);
+  const vEl = layer.querySelector('video');
+  if (stream) vEl.srcObject = stream;
+  else { vEl.remove(); layer.style.background = 'radial-gradient(circle at 50% 35%, #2fd3d8, #6a5cff 60%, #1b1442)'; layer.insertAdjacentHTML('afterbegin', `<div style="position:absolute;inset:0;display:grid;place-items:center"><div class="av" style="width:140px;height:140px;font-size:56px;box-shadow:0 0 0 6px rgba(255,255,255,.25);background:linear-gradient(135deg,var(--accent),var(--accent2))">${S.profile.avatar ? `<img data-mid="${S.profile.avatar}" alt="">` : esc(S.profile.name[0] || 'C')}</div></div>`); hydrate(layer); }
+  LIVE = { title, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.3, .55)), hearts: 0, comments: 0, lastTpl: [], acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
+  $('#lv-end').onclick = endLive;
+  $('#lv-send').onclick = liveSend;
+  $('#lv-input').onkeydown = e => { if (e.key === 'Enter') liveSend(); };
+  $('#lv-mic').onclick = () => LIVE.micOn ? stopRec() : startRec();
+  sysChat(stream ? '直播开始啦！粉丝正在进入直播间…' : '纯聊天直播开始啦！打字和粉丝们聊天吧～');
+  if (stream && stream.getAudioTracks().length) startRec();
+  LIVE.timer = setInterval(liveTick, 250);
+}
+function liveTick() {
+  const L = LIVE; if (!L) return;
+  const el = Date.now() - L.start;
+  $('#lv-time').textContent = hms(el);
+  // 在线人数：前 3 分钟快速涌入，然后随机波动
+  const want = L.target * Math.min(1, el / 180000) * (1 + .08 * Math.sin(el / 47000));
+  L.viewers = Math.max(0, Math.round(L.viewers + (want - L.viewers) * .05 + rand(-3, 3)));
+  L.peak = Math.max(L.peak, L.viewers);
+  $('#lv-view').textContent = fmtNum(L.viewers);
+  // 弹幕
+  const rate = clamp(L.viewers / 140, .3, 5) + (L.queue.length ? 1.2 : 0);
+  L.acc += rate * .25;
+  while (L.acc >= 1) { L.acc -= 1; emitLiveComment(el); }
+  // 爱心
+  L.hacc += L.viewers / 90 * .25;
+  while (L.hacc >= 1) { L.hacc -= 1; L.hearts += ri(1, 6); if (Math.random() < .35) spawnHeart(); }
+  $('#lv-heart').textContent = fmtNum(L.hearts);
+  // AI 弹幕
+  if (aiOn() && !L.aiBusy && (Date.now() - L.lastAi > 10000) && (L.newSpeech || Date.now() - L.lastAi > 30000)) liveAI();
+}
+function emitLiveComment(elapsed) {
+  const L = LIVE;
+  let c = L.queue.shift();
+  if (!c) {
+    const r = Math.random();
+    if (r < .1) { const lang = pick(['ko', 'ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); c = { lang, text: fill(it[0]), zh: fill(it[1]) }; }
+    else {
+      const pool = elapsed < 60000 && Math.random() < .6 ? LIVE_TPL.greet : LIVE_TPL.chat;
+      let t = pick(pool); for (let i = 0; i < 4 && L.lastTpl.includes(t); i++) t = pick(pool);
+      L.lastTpl.push(t); if (L.lastTpl.length > 8) L.lastTpl.shift();
+      c = { lang: 'zh', text: fill(t) };
+    }
+  }
+  const fan = makeFan(c.lang || 'zh');
+  pushChat({ user: c.user || fan.user, color: fan.color, text: c.text, zh: c.zh, lang: c.lang });
+}
+function pushChat(c, cls = '') {
+  if (!LIVE) return;
+  LIVE.comments++;
+  LIVE.recent.push(`${c.user}：${c.text}`); if (LIVE.recent.length > 15) LIVE.recent.shift();
+  const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc ' + cls;
+  d.innerHTML = `<b style="color:${cls ? '#fff' : c.color || '#9ff'}">${esc(c.user)}</b>${esc(c.text)}${c.zh ? `<span class="ltr">译：${esc(c.zh)}</span>` : ''}`;
+  box.appendChild(d); while (box.children.length > 40) box.firstElementChild.remove();
+}
+function sysChat(text) { if (!LIVE) return; const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc sys'; d.textContent = text; box.appendChild(d); }
+function spawnHeart() {
+  const box = $('#lv-hearts'); if (!box) return;
+  const h = document.createElement('div'); h.className = 'ht'; h.textContent = pick(['💙', '🩵', '❤️', '💜', '🐱', '✨', '🩷']);
+  h.style.setProperty('--dx', rand(-40, 20) + 'px'); box.appendChild(h); setTimeout(() => h.remove(), 3000);
+}
+function liveReact(text) {
+  const L = LIVE; if (!L) return;
+  L.speech = (L.speech + ' ' + text).slice(-300); L.newSpeech = true;
+  let hit = false;
+  for (const [cat, re] of LIVE_KW) {
+    if (!re.test(text)) continue; hit = true;
+    pickN(LIVE_TPL[cat], ri(2, 5)).forEach(t => L.queue.push({ lang: 'zh', text: fill(t) }));
+  }
+  if (S.profile.fandom && text.toLowerCase().includes(S.profile.fandom.toLowerCase())) { hit = true; pickN(LIVE_TPL.fandom, ri(3, 5)).forEach(t => L.queue.push({ lang: 'zh', text: fill(t) })); }
+  if (!hit) pickN(LIVE_TPL.generic, ri(1, 3)).forEach(t => L.queue.push({ lang: 'zh', text: fill(t) }));
+  const q = snippet(text); if (q && Math.random() < .5) L.queue.push({ lang: 'zh', text: fill(pick(LIVE_TPL.echo), q) });
+  // 打乱一下，混一点外语
+  if (Math.random() < .3) { const lang = pick(['ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); L.queue.push({ lang, text: fill(it[0]), zh: fill(it[1]) }); }
+  L.queue.sort(() => Math.random() - .5);
+  L.target += ri(5, 30);
+}
+function liveSend() {
+  const inp = $('#lv-input'); const t = inp.value.trim(); if (!t) return; inp.value = '';
+  pushChat({ user: S.profile.name + ' (主播)', text: t }, 'host');
+  liveReact(t);
+}
+function startRec() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { sysChat('当前浏览器不支持语音识别，可以打字和粉丝互动'); return; }
+  const rec = new SR(); rec.lang = 'zh-CN'; rec.continuous = true; rec.interimResults = true;
+  rec.onresult = e => {
+    let fin = '', inter = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t; else inter += t; }
+    const sub = $('#lv-sub'); if (sub) sub.innerHTML = esc(fin || '') + (inter ? `<span class="interim">${esc(inter)}</span>` : '');
+    if (fin.trim()) { liveReact(fin.trim()); clearTimeout(LIVE._subT); LIVE._subT = setTimeout(() => { const s = $('#lv-sub'); if (s) s.textContent = ''; }, 4000); }
+  };
+  rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { sysChat('语音识别被拒绝/不可用，可以打字互动'); stopRec(); } };
+  rec.onend = () => { if (LIVE && LIVE.micOn) { try { rec.start(); } catch (e) { } } };
+  try { rec.start(); LIVE.rec = rec; LIVE.micOn = true; $('#lv-mic').classList.add('on'); sysChat('🎤 语音识别已开启，说话粉丝就能“听到”'); } catch (e) { sysChat('语音识别启动失败：' + e.message); }
+}
+function stopRec() { if (!LIVE) return; LIVE.micOn = false; try { LIVE.rec && LIVE.rec.stop(); } catch (e) { } $('#lv-mic')?.classList.remove('on'); }
+async function liveAI() {
+  const L = LIVE; L.aiBusy = true; L.lastAi = Date.now(); const speech = L.speech; L.newSpeech = false; L.speech = '';
+  try {
+    const content = [];
+    const v = L.layer.querySelector('video'); const data = v ? drawB64(v, v.videoWidth, v.videoHeight, 512) : '';
+    if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
+    content.push({ type: 'text', text:
+`${S.profile.name} 正在直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
+${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话。'}
+最近的弹幕：
+${L.recent.slice(-10).join('\n')}
+请生成 10 条新弹幕：大部分要回应她刚说的话或画面里的细节（如果她提问就回答），短一点（多数 2~15 字），像直播间弹幕。` });
+    const list = await aiComments(content, 1500);
+    if (LIVE === L) L.queue.unshift(...list.map(b => ({ user: b.user, lang: b.lang, text: b.text, zh: b.zh })));
+  } catch (e) { aiFail(e); }
+  finally { L.aiBusy = false; }
+}
+function endLive() {
+  const L = LIVE; if (!L) return;
+  if (!confirm('确定结束直播吗？')) return;
+  LIVE = null;
+  clearInterval(L.timer); L.micOn = false; try { L.rec && L.rec.stop(); } catch (e) { }
+  if (L.stream) L.stream.getTracks().forEach(t => t.stop()); L.layer.remove();
+  const rec = { title: L.title, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments };
+  S.lives.unshift(rec);
+  const newF = Math.round(L.peak * rand(.02, .06) + (rec.end - rec.start) / 60000 * rand(1, 3));
+  S.profile.followers += newF;
+  pushNotif({ type: 'live', text: `直播结束：峰值 ${fmtNum(L.peak)} 人观看，收到 ${fmtNum(L.hearts)} 颗爱心`, sub: `时长 ${hms(rec.end - rec.start)} · ${fmtNum(L.comments)} 条弹幕 · 新增粉丝 ${newF}` }, false);
+  save();
+  openModal(`<h3>直播结束 🎉</h3>
+    <div class="kpi"><div><b>${hms(rec.end - rec.start)}</b><span>时长</span></div><div><b>${fmtNum(rec.peak)}</b><span>峰值在线</span></div><div><b>${fmtNum(rec.hearts)}</b><span>爱心</span></div><div><b>${fmtNum(rec.comments)}</b><span>弹幕</span></div></div>
+    <p class="muted">新增粉丝 +${newF}</p>
+    <div class="row"><button class="btn ghost" data-act="close">关闭</button><span class="sp"></span><button class="btn primary" data-act="livepost">发一条帖子</button></div>`);
+  render();
+}
+
+/* =========================================================
+   行程
+   ========================================================= */
+const CATS = { '打歌': '#ff5c8a', '上课/练习': '#5b8def', '综艺': '#f5a623', '电台': '#14b8a6', '物料': '#9b6bff', '签售': '#2bb673', '公演': '#e8590c', '校庆': '#f06595', '活动': '#0ea5e9', '演唱会': '#ff3b30', '其他': '#8e8e93' };
+// 预设只带「类别 + 标题 + 地点」，时间在后台添加时再填
+const PRESETS = {
+  '打歌': [
+    ['KBS《Music Bank》', 'KBS 汝矣岛新馆公开厅'], ['MBC《Show! 音乐中心》', 'MBC 上岩公开厅'], ['SBS《人气歌谣》', 'SBS 上岩 Prism Tower'],
+    ['Mnet《M Countdown》', 'CJ ENM 上岩中心'], ['SBS funE《THE SHOW》', 'SBS 上岩 Prism Tower'], ['MBC M《Show Champion》', 'MBC 一山 Dream Center'],
+    ['《Music Bank》事前录制', 'KBS 汝矣岛新馆公开厅'], ['《人气歌谣》事前录制', 'SBS 上岩 Prism Tower'], ['《M Countdown》事前录制', 'CJ ENM 上岩中心'],
+    ['打歌彩排', ''], ['回归 Showcase', 'YES24 Live Hall'], ['一位安可直拍', '']
+  ],
+  '上课/练习': [
+    ['声乐课', '公司 声乐室'], ['舞蹈课', '公司 练习室'], ['个人舞蹈练习', '公司 练习室'], ['新歌编舞学习', '公司 练习室'], ['舞台走位排练', '公司 大练习室'],
+    ['体能训练', '公司 健身房'], ['普拉提', '普拉提工作室'], ['表演课', '公司 表演教室'], ['作曲课', '公司 作曲室'], ['Rap 课', '公司 练习室'],
+    ['韩语课', '公司 会议室'], ['日语课', '公司 会议室'], ['英语课', '公司 会议室'], ['录音', '公司 录音室'], ['月末评估', '公司 大练习室']
+  ],
+  '综艺': [
+    ['JTBC《认识的哥哥》', 'JTBC 一山演播室'], ['SBS《Running Man》', '外景'], ['MBC《Radio Star》', 'MBC 上岩演播室'], ['tvN《惊人的星期六》', 'tvN 演播室'],
+    ['MBC every1《周刊偶像》', 'MBC every1 演播室'], ['MBC《我独自生活》', '宿舍 / 外景'], ['KBS《你好》', 'KBS 演播室'], ['MBC《玩什么好呢》', '外景'],
+    ['网综《Pinggyego》', '外景'], ['网综《Salon Drip》', 'TEO 演播室'], ['网综《짠한형》', '录制场地'], ['网综《Workman》', '外景'], ['自制综艺拍摄', '公司 / 外景']
+  ],
+  '电台': [
+    ['SBS PowerFM《Cultwo Show》', 'SBS 木洞广播中心'], ['SBS PowerFM《朴笑炫的 Love Game》', 'SBS 木洞广播中心'], ['SBS PowerFM《崔华贞的 Power Time》', 'SBS 木洞广播中心'],
+    ['MBC 标准FM《Idol Radio》', 'MBC 上岩广播中心'], ['MBC 标准FM《正午的希望歌谣》', 'MBC 上岩广播中心'], ['MBC FM4U《裴哲秀的音乐营》', 'MBC 上岩广播中心'],
+    ['KBS CoolFM《Volume Up》', 'KBS 汝矣岛广播中心'], ['KBS CoolFM《Kiss the Radio》', 'KBS 汝矣岛广播中心'], ['电台可视直播', '']
+  ],
+  '物料': [
+    ['MV 拍摄', '外景 / 摄影棚'], ['专辑封面拍摄', '摄影棚'], ['预告照拍摄', '摄影棚'], ['Dance Practice 拍摄', '公司 练习室'], ['舞蹈挑战拍摄', ''],
+    ['杂志画报《VOGUE KOREA》', '摄影棚'], ['杂志画报《ELLE Korea》', '摄影棚'], ['杂志画报《W Korea》', '摄影棚'], ['杂志画报《Dazed Korea》', '摄影棚'], ['杂志画报《Cosmopolitan Korea》', '摄影棚'],
+    ['1theK《Relay Dance》', '1theK 演播室'], ['《Studio Choom》', 'Studio Choom 演播室'], ['Dingo《Killing Voice》', 'Dingo 演播室'], ['《It\'s Live》', 'It\'s Live 演播室'], ['KBS《Leemujin Service》', 'KBS'],
+    ['Vlog 拍摄', '宿舍'], ['广告拍摄', '摄影棚'], ['采访', '']
+  ],
+  '签售': [
+    ['线下签售会', '弘大 签售场'], ['线下签售会', '江南 COEX'], ['视频通话签售（Soundwave）', '公司'], ['视频通话签售（Withmuu）', '公司'], ['视频通话签售（Makestar）', '公司'],
+    ['Apple Music 签售', 'Apple Music 签售场'], ['粉丝见面会', '奥林匹克公园 奥林匹克大厅'], ['生日见面会', '']
+  ],
+  '公演': [
+    ['《Dream Concert 梦想演唱会》', '首尔世界杯体育场'], ['《Waterbomb 首尔》', 'KINTEX 室外场地'], ['《KCON JAPAN》', '千叶 幕张展览馆'], ['《KCON LA》', '洛杉矶 Crypto.com Arena'],
+    ['《Music Bank World Tour》', ''], ['KBS《歌谣大祝祭》', 'KBS 汝矣岛新馆公开厅'], ['SBS《歌谣大战》', ''], ['MBC《歌谣大祭典》', ''], ['音乐节演出', ''], ['地方庆典演出', '']
+  ],
+  '校庆': [
+    ['延世大学 AKARAKA 庆典', '延世大学 新村校区 露天剧场'], ['高丽大学 入实典', '高丽大学 绿地运动场'], ['成均馆大学 大东祭', '成均馆大学 人文社会科学校区'],
+    ['汉阳大学 庆典', '汉阳大学 首尔校区 露天剧场'], ['中央大学 LUCAUS 庆典', '中央大学 首尔校区'], ['庆熙大学 庆典', '庆熙大学 首尔校区'],
+    ['建国大学 庆典', '建国大学 一鉴湖 露天舞台'], ['韩国外国语大学 庆典', '韩国外国语大学 首尔校区'], ['釜山大学 庆典', '釜山大学 运动场'], ['西江大学 庆典', '西江大学']
+  ],
+  '活动': [
+    ['MAMA AWARDS', ''], ['MMA Melon Music Awards', '仁川 INSPIRE Arena'], ['金唱片奖 Golden Disc Awards', ''], ['首尔歌谣大赏 SMA', ''], ['AAA Asia Artist Awards', ''], ['Circle Chart 音乐颁奖典礼', ''],
+    ['机场出发', '仁川国际机场 T2'], ['机场入境', '仁川国际机场'], ['首尔时装周', '东大门 DDP'], ['海外时装周 · 品牌秀场', ''], ['品牌活动 / 快闪店', '圣水洞'], ['广告代言签约活动', ''], ['Weverse Live', '宿舍']
+  ],
+  '演唱会': [
+    ['Solo 演唱会 · 首尔场', 'KSPO DOME（奥林匹克体操竞技场）'], ['Solo 演唱会 · 首尔场', '奥林匹克公园 Handball 竞技场'], ['Solo 演唱会 · 首尔场', '高尺天空巨蛋'],
+    ['演唱会彩排', ''], ['巡演 · 东京场', '东京巨蛋'], ['巡演 · 大阪场', '京瓷巨蛋大阪'], ['巡演 · 横滨场', 'K-Arena 横滨'], ['巡演 · 台北场', '台北小巨蛋'],
+    ['巡演 · 香港场', 'AsiaWorld-Arena'], ['巡演 · 曼谷场', 'IMPACT Arena'], ['巡演 · 新加坡场', '新加坡室内体育馆'], ['巡演 · 洛杉矶场', 'Crypto.com Arena']
+  ],
+  '其他': [['公司会议', '公司 会议室'], ['行程简报', '公司'], ['体检', '医院'], ['休息日', '']]
+};
+function rulesFor(k) {
+  const dow = parseD(k).getDay();
+  return S.schedule.rules.filter(r => r.repeat === 'daily' || (r.repeat === 'weekly' && (r.days || []).includes(dow)) || (r.repeat === 'once' && r.date === k))
+    .sort((a, b) => a.start.localeCompare(b.start));
+}
+const toMin = t => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m; };
+function viewSched() {
+  const k = UI.schedDate, today = dkey(Date.now());
+  const d0 = parseD(k); const mon = addDays(k, -((d0.getDay() + 6) % 7));
+  const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
+  const items = rulesFor(k); const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  return `
+  <div class="row" style="margin:4px 4px 8px"><b style="font-size:18px">${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}</b>${k === today ? '<span class="chip" style="background:var(--accent)">今天</span>' : ''}<span class="sp"></span>
+    ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
+    <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
+  <div class="card week">
+    <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
+    ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
+    <button class="link" data-act="sdate" data-k="${addDays(k, 7)}">›</button>
+  </div>
+  <div class="card">${items.length ? items.map(r => {
+    const dk = k + '|' + r.id, done = !!S.schedule.done[dk];
+    let st = '';
+    if (k === today) { const s = toMin(r.start), e = toMin(r.end); st = done ? '<span class="status" style="color:var(--accent)">已完成</span>' : nowMin >= e ? '<span class="status muted">已结束</span>' : nowMin >= s ? '<span class="status now">● 进行中</span>' : `<span class="status muted">${s - nowMin >= 60 ? Math.floor((s - nowMin) / 60) + ' 小时' : ''}${(s - nowMin) % 60} 分钟后</span>`; }
+    else if (done) st = '<span class="status" style="color:var(--accent)">已完成</span>';
+    return `<div class="sched ${done ? 'done' : ''}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${CATS[r.cat] || '#999'}"></div>
+      <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
+      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}</div>
+      <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
+  }).join('') : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
+}
+function presetListHTML() {
+  const q = (UI.presetQ || '').trim().toLowerCase();
+  const list = q ? Object.entries(PRESETS).flatMap(([c, xs]) => xs.map(x => [c, ...x])).filter(([c, t, l]) => (c + t + l).toLowerCase().includes(q))
+    : (PRESETS[UI.presetCat] || []).map(x => [UI.presetCat, ...x]);
+  return list.length ? list.map(([c, t, l]) => `<button class="preset" data-act="preset" data-c="${esc(c)}" data-t="${esc(t)}" data-l="${esc(l)}"><span class="chip" style="background:${CATS[c] || '#999'}">${esc(c)}</span><b>${esc(t)}</b>${l ? `<span class="muted">📍 ${esc(l)}</span>` : ''}</button>`).join('') : '<div class="muted" style="padding:8px">没有匹配的预设，可以直接在下面手动填写</div>';
+}
+function adminHTML(edit) {
+  const r = edit || { title: '', cat: '上课/练习', start: '', end: '', loc: '', repeat: 'once', days: [], date: UI.schedDate, note: '' };
+  UI.presetCat = UI.presetCat || '打歌';
+  const list = [...S.schedule.rules].sort((a, b) => (a.repeat + a.date + a.start).localeCompare(b.repeat + b.date + b.start));
+  const rep = x => x.repeat === 'daily' ? '每天' : x.repeat === 'weekly' ? '每周' + (x.days || []).sort().map(d => WD[d]).join('') : x.date;
+  return `<div class="row"><h3 style="flex:1">⚙ 行程后台</h3><button class="btn ghost sm" data-act="close">完成</button></div>
+  ${edit ? '' : `<div class="card">
+    <b>从预设选择</b> <span class="muted">选好后在下面填写时间</span>
+    <input id="preset-q" placeholder="搜索预设，如：Music Bank、延世、画报" value="${esc(UI.presetQ || '')}" style="margin:8px 0">
+    <div class="pcats">${Object.keys(PRESETS).map(c => `<button class="pcat ${c === UI.presetCat && !UI.presetQ ? 'on' : ''}" data-act="pcat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="plist" id="plist">${presetListHTML()}</div>
+  </div>`}
+  <div class="card" id="r-form">
+    <b>${edit ? '编辑行程' : '行程详情'}</b>
+    <input type="hidden" id="r-id" value="${edit ? edit.id : ''}">
+    <div class="field" style="margin-top:8px"><label>标题</label><input id="r-title" value="${esc(r.title)}" placeholder="选择预设或直接输入"></div>
+    <div class="grid2">
+      <div class="field"><label>类别</label><select id="r-cat">${Object.keys(CATS).map(c => `<option ${c === r.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>地点</label><input id="r-loc" value="${esc(r.loc)}"></div>
+      <div class="field"><label>开始时间</label><input type="time" id="r-start" value="${r.start}"></div>
+      <div class="field"><label>结束时间</label><input type="time" id="r-end" value="${r.end}"></div>
+    </div>
+    <div class="field"><label>重复</label><select id="r-rep">
+      <option value="once" ${r.repeat === 'once' ? 'selected' : ''}>仅一次（指定日期）</option>
+      <option value="weekly" ${r.repeat === 'weekly' ? 'selected' : ''}>每周（选择星期）</option>
+      <option value="daily" ${r.repeat === 'daily' ? 'selected' : ''}>每天</option></select></div>
+    <div class="field" id="r-days-f"><label>星期</label><div class="days">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" value="${d}" ${(r.days || []).includes(d) ? 'checked' : ''}>周${WD[d]}</label>`).join('')}</div></div>
+    <div class="field" id="r-date-f"><label>日期</label><input type="date" id="r-date" value="${r.date || UI.schedDate}"></div>
+    <div class="field"><label>备注</label><input id="r-note" value="${esc(r.note)}"></div>
+    <div class="row"><span class="sp"></span>${edit ? '<button class="btn ghost" data-act="admin">取消编辑</button>' : ''}<button class="btn primary" data-act="rsave">${edit ? '保存修改' : '添加到行程'}</button></div>
+  </div>
+  <div class="card">
+    <b>已添加的行程（${list.length}）</b>
+    ${list.length ? list.map(x => `<div class="rule"><span class="chip" style="background:${CATS[x.cat] || '#999'}">${esc(x.cat)}</span><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><div class="muted">${rep(x)} · ${x.start}-${x.end}${x.loc ? ' · ' + esc(x.loc) : ''}</div></div>
+      <button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button></div>`).join('') : '<div class="muted" style="padding:8px 0">还没有行程</div>'}
+  </div>`;
+}
+function syncRepFields() {
+  const v = $('#r-rep')?.value; if (!v) return;
+  $('#r-days-f').style.display = v === 'weekly' ? '' : 'none';
+  $('#r-date-f').style.display = v === 'once' ? '' : 'none';
+}
+function saveRule() {
+  const title = $('#r-title').value.trim(); if (!title) return toast('请填写标题');
+  const r = { id: $('#r-id').value || uid(), title, cat: $('#r-cat').value, start: $('#r-start').value || '09:00', end: $('#r-end').value || '10:00', loc: $('#r-loc').value.trim(), repeat: $('#r-rep').value, days: $$('#r-days-f input:checked').map(i => +i.value), date: $('#r-date').value, note: $('#r-note').value.trim() };
+  if (!$('#r-start').value || !$('#r-end').value) return toast('请填写开始和结束时间');
+  if (r.repeat === 'weekly' && !r.days.length) return toast('请至少选择一个星期');
+  if (r.repeat === 'once' && !r.date) return toast('请选择日期');
+  const i = S.schedule.rules.findIndex(x => x.id === r.id);
+  if (i >= 0) S.schedule.rules[i] = r; else S.schedule.rules.push(r);
+  save(); UI.presetQ = ''; openModal(adminHTML()); syncRepFields(); render(); toast(i >= 0 ? '已保存' : '已添加行程', `${r.title} · ${r.start}-${r.end}`);
+}
+function schedReminders() {
+  const k = dkey(Date.now()); const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  for (const r of rulesFor(k)) {
+    const key = k + '|' + r.id; const diff = toMin(r.start) - nowMin;
+    if (diff > 0 && diff <= 10 && !S.schedule.reminded[key] && !S.schedule.done[key]) {
+      S.schedule.reminded[key] = 1;
+      pushNotif({ type: 'sched', text: `行程提醒：${diff} 分钟后「${r.title}」`, sub: `${r.start}-${r.end}${r.loc ? ' · ' + r.loc : ''}` }, true);
+    }
+  }
+}
+
+/* =========================================================
+   我的 / 设置
+   ========================================================= */
+function viewMe() {
+  const p = S.profile; const totalL = S.posts.reduce((s, x) => s + x.likes, 0), totalC = S.posts.reduce((s, x) => s + x.commentCount, 0);
+  return `
+  <div class="card">
+    <div class="hero">
+      <label style="cursor:pointer" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label>
+      <div style="flex:1"><h2>${esc(p.name)} <span class="artist">ARTIST</span></h2><div class="muted">出道日 ${esc(p.debut)} · D+${dday()} · 动物塑：${esc(p.animal)}</div><div class="muted">粉丝名：${esc(p.fandom)}</div></div>
+    </div>
+    <div class="kpi"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
+  </div>
+  <div class="sec-title">🐱 人设</div>
+  <div class="card">
+    <div class="grid2">
+      <div class="field"><label>艺名</label><input id="p-name" value="${esc(p.name)}"></div>
+      <div class="field"><label>粉丝名</label><input id="p-fandom" value="${esc(p.fandom)}"></div>
+      <div class="field"><label>出道日</label><input type="date" id="p-debut" value="${esc(p.debut)}"></div>
+      <div class="field"><label>动物塑</label><input id="p-animal" value="${esc(p.animal)}"></div>
+      <div class="field"><label>总粉丝数</label><input type="number" id="p-fol" value="${p.followers}"></div>
+      <div class="field"><label>活跃粉丝（最少 ~ 最多）</label><div class="row"><input type="number" id="p-amin" value="${p.activeMin}"><input type="number" id="p-amax" value="${p.activeMax}"></div></div>
+    </div>
+    <div class="field"><label>粉丝对你的称呼（用逗号分隔）</label><input id="p-nicks" value="${esc(p.nicks.join('，'))}"></div>
+    <div class="field"><label>简介</label><input id="p-bio" value="${esc(p.bio)}" placeholder="可以不填"></div>
+    <div class="row"><span class="sp"></span><button class="btn primary" data-act="psave">保存人设</button></div>
+  </div>
+  <div class="sec-title">✨ AI 粉丝（可选）</div>
+  <div class="card">
+    <p class="muted" style="margin-top:0">不开启时，粉丝用内置模板根据你帖子里的关键词评论（免费、离线）。开启后会调用 Claude API：粉丝能真正“看懂”你发的图片/视频截帧和直播画面，评论更贴切，外语评论也会附带实时翻译。需要你自己的 Anthropic API Key（按量计费），Key 只保存在这个浏览器里。</p>
+    <div class="switch"><span>启用 AI 粉丝</span><input type="checkbox" id="ai-on" ${S.ai.enabled ? 'checked' : ''}></div>
+    <div class="field"><label>API Key</label><input type="password" id="ai-key" value="${esc(S.ai.key)}" placeholder="sk-ant-..." autocomplete="off"></div>
+    <div class="field"><label>模型</label><select id="ai-model">
+      ${[['claude-opus-5-5', 'Claude Opus 5.5（默认，最聪明）'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5（更快、更便宜）'], ['claude-haiku-5-5', 'Claude Haiku 5.5（最便宜）']].map(([v, t]) => `<option value="${v}" ${S.ai.model === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误：${esc(S.ai.lastError)}</p>` : ''}
+    <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
+  </div>
+  <div class="sec-title">⚙ 其他设置</div>
+  <div class="card">
+    <div class="switch"><span>外语评论自动显示翻译</span><input type="checkbox" id="pf-tr" ${S.prefs.autoTr ? 'checked' : ''}></div>
+    <div class="switch"><span>页面在后台时弹出系统通知</span><input type="checkbox" id="pf-sys" ${S.prefs.sysNotif ? 'checked' : ''}></div>
+    <div class="switch"><span>时间流速（测试用，加速后热度衰减更快）</span><select id="pf-speed" style="width:auto">${[1, 5, 20, 60].map(v => `<option value="${v}" ${S.prefs.speed == v ? 'selected' : ''}>${v}×</option>`).join('')}</select></div>
+  </div>
+  <div class="sec-title">🗄 数据</div>
+  <div class="card">
+    <p class="muted" style="margin-top:0">所有数据都保存在你这个浏览器里（换浏览器或清除网站数据会丢失）。</p>
+    <div class="row wrap"><button class="btn ghost" data-act="export">导出数据（JSON）</button><label class="btn ghost">导入数据<input type="file" id="imp-file" accept="application/json" hidden></label><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
+  </div>
+  `;
+}
+
+/* =========================================================
+   模态框
+   ========================================================= */
+function openModal(html) { $('#sheet').innerHTML = html; $('#modal').classList.add('on'); hydrate($('#sheet')); }
+function closeModal() { $('#modal').classList.remove('on'); $('#sheet').innerHTML = ''; }
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+/* =========================================================
+   事件
+   ========================================================= */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const a = t.dataset.act;
+  switch (a) {
+    case 'tab': stopPreview(); UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
+    case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
+    case 'back': UI.postId = null; render(); break;
+    case 'publish': publish(); break;
+    case 'unpend': { const f = pending.splice(+t.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f._url); renderPending(); break; }
+    case 'delpost': {
+      if (!confirm('删除这条帖子？')) break;
+      const p = S.posts.find(x => x.id === t.dataset.id);
+      if (p) { p.media.forEach(m => idbDel(m.id)); S.posts = S.posts.filter(x => x !== p); }
+      UI.postId = null; save(); render(); break;
+    }
+    case 'sort': UI.sort = t.dataset.s; render(); break;
+    case 'refresh': render(); break;
+    case 'tr': { const tr = t.previousElementSibling; tr.hidden = !tr.hidden; t.textContent = tr.hidden ? '查看翻译' : '隐藏翻译'; break; }
+    case 'clike': {
+      const post = S.posts.find(x => x.id === UI.postId); const c = post && post.comments.find(x => x.id === t.dataset.cid); if (!c) break;
+      c.liked = !c.liked; c.likes += c.liked ? 1 : -1; t.classList.toggle('liked', c.liked); updCommentLikes(c); save();
+      if (c.liked && !c.me && Math.random() < .5) later(rand(4000, 15000), () => pushNotif({ type: 'reply', postId: post.id, cid: c.id, text: `${c.user} 发现你点赞了TA的评论！`, sub: '「啊啊啊啊被' + S.profile.name + '点赞了！！」' }, true));
+      break;
+    }
+    case 'reply': openReplyBox(t.dataset.cid, t.dataset.rid); break;
+    case 'sendrep': sendReply(); break;
+    case 'mycmt': myComment(); break;
+    case 'zoom': openModal(`<img src="${urlCache[t.dataset.mid2] || ''}" style="width:100%;border-radius:12px"><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn ghost" data-act="close">关闭</button></div>`); break;
+    case 'opennotif': { const n = S.notifs.find(x => x.id === t.dataset.nid); if (n) openNotif(n); break; }
+    case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
+    case 'pvcam': previewCam(); break;
+    case 'golive': startLive(); break;
+    case 'livepost': closeModal(); UI.tab = 'feed'; UI.postId = null; draft = `今天的直播谢谢大家陪我！${'\n'}聊得好开心，下次见～ 🐱💙`; render(); $('#cmp-text')?.focus(); break;
+    case 'close': closeModal(); break;
+    case 'sdate': UI.schedDate = t.dataset.k; render(); break;
+    case 'sdone': { const k = t.dataset.dk; if (t.checked) S.schedule.done[k] = 1; else delete S.schedule.done[k]; save(); render(); break; }
+    case 'pcat': UI.presetCat = t.dataset.c; UI.presetQ = ''; $('#preset-q').value = ''; $$('.pcat').forEach(x => x.classList.toggle('on', x === t)); $('#plist').innerHTML = presetListHTML(); break;
+    case 'preset': {
+      $('#r-title').value = t.dataset.t; $('#r-cat').value = t.dataset.c; $('#r-loc').value = t.dataset.l;
+      $$('.preset').forEach(x => x.classList.toggle('on', x === t));
+      $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
+    }
+    case 'admin': openModal(adminHTML()); syncRepFields(); break;
+    case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); break;
+    case 'rdel': if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
+    case 'rsave': saveRule(); break;
+    case 'psave': {
+      const p = S.profile;
+      p.name = $('#p-name').value.trim() || p.name; p.fandom = $('#p-fandom').value.trim() || p.fandom;
+      p.debut = $('#p-debut').value || p.debut; p.animal = $('#p-animal').value.trim() || p.animal;
+      p.followers = Math.max(0, +$('#p-fol').value || p.followers);
+      const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
+      p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
+      p.bio = $('#p-bio').value.trim();
+      save(); render(); toast('人设已保存'); break;
+    }
+    case 'aisave': S.ai.enabled = $('#ai-on').checked; S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value; S.ai._backoff = 0; save(); render(); toast(S.ai.enabled && S.ai.key ? 'AI 粉丝已开启 ✨' : 'AI 设置已保存'); break;
+    case 'aitest': {
+      S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value;
+      if (!S.ai.key) { toast('请先填写 API Key'); break; }
+      t.disabled = true; t.textContent = '测试中…';
+      try { const r = await aiComments([{ type: 'text', text: `${S.profile.name} 发帖：「测试一下，大家能看到吗？」请生成 3 条粉丝评论。` }], 800); S.ai.lastError = ''; S.ai._backoff = 0; save(); toast('连接成功 ✨', r.map(x => x.text).join(' / ')); }
+      catch (err) { toast('连接失败', String(err.message || err)); S.ai.lastError = String(err.message || err); save(); }
+      t.disabled = false; t.textContent = '测试连接'; break;
+    }
+    case 'export': {
+      const blob = new Blob([JSON.stringify(S, (k, v) => k.startsWith('_') || k === 'key' ? undefined : v, 1)], { type: 'application/json' });
+      const filename = `sia-space-${dkey(Date.now())}.json`;
+      // 在 claude.ai 链接里打开时走平台的下载确认；直接打开本地文件时用普通下载
+      const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+      if (dl) { try { await dl.save({ filename, data: blob }); toast('已导出'); } catch (err) { if (err && err.code !== 'declined') toast('导出失败', err.message || String(err.code)); } break; }
+      const aEl = document.createElement('a'); aEl.href = URL.createObjectURL(blob); aEl.download = filename; aEl.click(); break;
+    }
+    case 'reset': if (confirm('确定重置所有数据？帖子、评论、行程都会清空。')) { localStorage.removeItem(STORE_KEY); indexedDB.deleteDatabase('cyan-idol-media'); location.reload(); } break;
+  }
+});
+document.addEventListener('change', async e => {
+  const t = e.target;
+  if (t.id === 'cmp-file') {
+    for (const f of t.files) {
+      if (f.size > 300 * 1024 * 1024) { toast('文件太大了（>300MB）', f.name); continue; }
+      f._url = URL.createObjectURL(f); pending.push(f);
+    }
+    if (pending.length > 9) { pending.slice(9).forEach(f => URL.revokeObjectURL(f._url)); pending = pending.slice(0, 9); toast('最多 9 个图片/视频'); }
+    t.value = ''; renderPending();
+  } else if (t.id === 'av-file' && t.files[0]) {
+    const id = uid(); const f = t.files[0];
+    try { await idbPut(id, f); } catch (err) { }
+    urlCache[id] = URL.createObjectURL(f);
+    if (S.profile.avatar) idbDel(S.profile.avatar);
+    S.profile.avatar = id; save(); render(); toast('头像已更新');
+  } else if (t.id === 'imp-file' && t.files[0]) {
+    try { const j = JSON.parse(await t.files[0].text()); if (!j.profile || !j.posts) throw new Error('格式不对'); j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; save(); location.reload(); }
+    catch (err) { toast('导入失败', err.message); }
+  } else if (t.id === 'r-rep') syncRepFields();
+  else if (t.id === 'pf-tr') { S.prefs.autoTr = t.checked; save(); }
+  else if (t.id === 'pf-speed') { S.prefs.speed = +t.value; save(); toast(`时间流速 ${t.value}×`); }
+  else if (t.id === 'pf-sys') {
+    S.prefs.sysNotif = t.checked; save();
+    if (t.checked && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'cmp-text') draft = e.target.value;
+  if (e.target.id === 'preset-q') { UI.presetQ = e.target.value; $$('.pcat').forEach(x => x.classList.toggle('on', !UI.presetQ && x.dataset.c === UI.presetCat)); $('#plist').innerHTML = presetListHTML(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+  if (e.target.id === 'rep-in') { e.preventDefault(); sendReply(); }
+  if (e.target.id === 'my-cmt') { e.preventDefault(); myComment(); }
+});
+
+/* =========================================================
+   启动
+   ========================================================= */
+function seedPosts() {
+  if (S.seeded) return;
+  S.seeded = true;
+  pushNotif({ type: 'system', text: '社区开通啦！', sub: '发第一条帖子和粉丝们打个招呼吧 🐱' }, false);
+}
+// 旧版本数据迁移：去掉示例帖子、示例行程和旧简介
+function migrate() {
+  if ((S.v || 1) >= 2) return;
+  const oldPosts = /^(今天的舞蹈练习终于结束啦！腿已经不是自己的了|下周就是签售会了！好想快点见到)/;
+  S.posts = S.posts.filter(p => !oldPosts.test(p.text));
+  S.notifs = S.notifs.filter(n => !/平行世界/.test(n.text) && (!n.postId || S.posts.some(p => p.id === n.postId)));
+  if (/^平行世界 solo 歌手/.test(S.profile.bio || '')) S.profile.bio = '';
+  const oldRules = ['早间体能训练', '声乐课', '舞蹈练习', '《星光音乐局》事前录制', '《周四舞台》直播打歌', '《人气旋律》打歌', 'Weverse 日常 vlog 拍摄', '杂志《MEOW》画报拍摄', '综艺《猫咪也疯狂》录制', '二辑线下签售会', '首场 Solo 演唱会《CYAN: 9.1Hz》'];
+  S.schedule.rules = S.schedule.rules.filter(r => !oldRules.includes(r.title));
+  delete S.schedule.flex;
+  S.v = 2;
+}
+migrate();
+seedPosts();
+catchUp();
+S.sim.lastTick = Date.now();
+save();
+render();
+setInterval(tick, 1500);
+setInterval(flushAgg, 6000);
+setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
+window.addEventListener('beforeunload', () => { S.sim.lastTick = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } });
+</script>
+</body>
+</html>
