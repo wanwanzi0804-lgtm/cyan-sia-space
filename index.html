@@ -1124,8 +1124,8 @@ async function bbSend(type, payload = {}) {
   if (aiOn()) bbAI(m);
 }
 async function bbAI(m) {
-  // 省钱：5 分钟内只请一次 AI（一轮聊天用一次）；只有表情或很短的消息不请
-  if (Date.now() - (S.bubble._lastAi || 0) < 5 * 60000) return;
+  // 省钱：3 分钟内只请一次 AI（一轮聊天用一次）；只有表情或很短的消息不请
+  if (Date.now() - (S.bubble._lastAi || 0) < 3 * 60000) return;
   if (m.type === 'text' && m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|\uFE0F|\s/gu, '').length < 4) return;
   S.bubble._lastAi = Date.now();
   try {
