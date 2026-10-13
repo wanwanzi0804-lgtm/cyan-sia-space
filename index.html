@@ -640,6 +640,8 @@ async function aiComments(content, maxTokens = 4000) {
     output_config: { effort: 'low', format: { type: 'json_schema', schema: AI_SCHEMA } }
   };
   if (FALLBACK_MODELS.includes(S.ai.model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
+  // Haiku 写短评论不需要额外思考，关掉能省输出费用
+  if (S.ai.model === 'claude-haiku-5-5') req.thinking = { type: 'disabled' };
   const r = await client.beta.messages.create(req);
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage();
   u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
@@ -1119,8 +1121,9 @@ async function bbSend(type, payload = {}) {
   if (aiOn()) bbAI(m);
 }
 async function bbAI(m) {
-  // 连着发好几条时，1 分钟内只请一次 AI，省钱
-  if (Date.now() - (S.bubble._lastAi || 0) < 60000) return;
+  // 省钱：5 分钟内只请一次 AI（一轮聊天用一次）；只有表情或很短的消息不请
+  if (Date.now() - (S.bubble._lastAi || 0) < 5 * 60000) return;
+  if (m.type === 'text' && m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|\uFE0F|\s/gu, '').length < 4) return;
   S.bubble._lastAi = Date.now();
   try {
     const content = [];
@@ -1128,8 +1131,8 @@ async function bbAI(m) {
     const recent = S.bubble.msgs.slice(-4, -1).map(x => x.type === 'text' ? x.text : `[${x.type}]`).join(' / ');
     const kind = { text: '文字', image: '照片', video: '视频', voice: '语音' }[m.type];
     content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里给订阅粉丝发了一条${kind}消息${m.text ? `：「${m.text.split(BB_TOK).join('【粉丝自己的昵称】')}」` : ''}。${m.replyTo ? `这是在回复粉丝「${m.replyTo.user}」的消息「${m.replyTo.text}」。` : ''}${recent ? `她前面几条消息：${recent}。` : ''}
-每个粉丝都以为这是偶像单独发给自己的私聊。请生成 12 条粉丝发给她的私信回复：大部分是回应她发的内容、回答她的问题、或者追问她（在哪/和谁/然后呢/今天怎么样），少量撒娇或分享自己的日常。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
-    const list = await aiComments(content, 1200);
+每个粉丝都以为这是偶像单独发给自己的私聊。请生成 8 条粉丝发给她的私信回复：大部分是回应她发的内容、回答她的问题、或者追问她（在哪/和谁/然后呢/今天怎么样），少量撒娇或分享自己的日常。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
+    const list = await aiComments(content, 700);
     S.bubble.aiPool.push(...list);
   } catch (e) { aiFail(e); }
 }
