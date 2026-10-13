@@ -158,6 +158,17 @@ main{padding:0 12px}
 /* live */
 #live-layer{position:fixed;inset:0;z-index:80;background:#000;color:#fff;overflow:hidden}
 #live-layer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+video.bv-glow{pointer-events:none}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:8px 0;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.voice-pv{background:radial-gradient(circle at 50% 40%,#2fd3d8,#6a5cff 65%,#1b1442);aspect-ratio:4/3}
+.voice-bg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;padding-top:17vh;background:radial-gradient(circle at 50% 35%,#2fd3d8,#6a5cff 60%,#1b1442)}
+.voice-av{transition:transform .12s,box-shadow .12s;box-shadow:0 0 0 6px rgba(255,255,255,.2)}
+.voice-tag{font-size:14px;opacity:.85}
+#lv-beauty{position:absolute;left:10px;right:10px;bottom:70px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:14px;padding:10px;z-index:3}
+#lv-beauty .pcat{background:rgba(255,255,255,.12);border-color:transparent;color:#fff}
+#lv-beauty .pcat.on{background:var(--accent)}
 .lv-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 22%,transparent 55%,rgba(0,0,0,.6));pointer-events:none}
 .lv-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 12px) 14px 8px;font-size:14px;font-weight:600}
 .lv-badge{background:#ff2d55;border-radius:6px;padding:1px 8px;font-weight:800;letter-spacing:.5px;animation:pulse 1.6s infinite}
@@ -183,6 +194,7 @@ main{padding:0 12px}
 @keyframes float{0%{transform:translate(0,0) scale(.6);opacity:0}10%{opacity:1}100%{transform:translate(var(--dx),-55vh) scale(1.1);opacity:0}}
 .preview{position:relative;border-radius:16px;overflow:hidden;background:#111;aspect-ratio:3/4;max-height:420px;margin:0 auto 12px;display:grid;place-items:center;color:#aaa}
 .preview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.preview{position:relative}
 .empty{padding:40px 10px;text-align:center;color:var(--muted)}
 </style>
 </head>
@@ -251,9 +263,9 @@ function seedSchedule() { return { rules: [], done: {}, reminded: {} }; }
 function defaultState() {
   return {
     v: 2,
-    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, bio: '', avatar: null },
+    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
     ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '' },
-    prefs: { autoTr: false, speed: 1, sysNotif: false },
+    prefs: { autoTr: false, speed: 1, sysNotif: false, liveMode: 'video', beauty: { preset: 'natural', level: 60 } },
     sim: { lastTick: Date.now() },
     posts: [], notifs: [], lives: [],
     schedule: seedSchedule(),
@@ -389,6 +401,13 @@ const TPL = {
   },
   weather: { zh: ['{n}那边也下雨了吗，记得带伞', '天冷多穿点！', '注意防晒呀', '今天的天气配{n}的歌刚好', '降温了！要穿秋裤！'] },
   birthday: { zh: ['纪念日快乐！！', '生日快乐我的宝贝！！', '会陪你过每一个纪念日', 'D+{d}，往后也请多多指教'], en: [['happy happy day!!', '快乐快乐！！']] },
+  romance: {
+    zh: ['祝福祝福！！一定要幸福呀', '只要{n}开心就好💙', '对方要好好对我们{n}啊！', '嗑到了嗑到了', '早就猜到了哈哈哈', '恋爱也要甜甜的', '{n}值得被好好爱着', '谈恋爱的{n}也好可爱', '我宣布我是你们的cp粉', '甜度超标了', '请对方报上名来（不是）', '恭喜！！要一直幸福下去'],
+    ko: [['축하해요!! 꼭 행복해야 해요 💙', '恭喜！！一定要幸福 💙'], ['행복하면 그걸로 충분해요', '你幸福就足够了']],
+    ja: [['おめでとう！幸せになってね💙', '恭喜！要幸福哦💙']],
+    en: [['congrats!! you deserve all the love 💙', '恭喜！！你值得所有的爱 💙'], ['as long as you are happy 🥹', '只要你开心就好 🥹']]
+  },
+  romanceSad: { zh: ['说实话有点难过…但还是会支持的', '需要一点时间消化一下', '我可能要冷静几天', '心情有点复杂', '呜呜呜我的心碎了一点点', '虽然难过但还是祝福吧'] },
   question: { zh: ['想！！', '要要要！', '当然啦', '我我我我', '{n}问什么我都答应', '第一个！选第一个！', '都想要可以吗', '这还用问吗！'] },
   quote: { zh: ['「{q}」这句我记住了', '看到「{q}」直接破防', '「{q}」呜呜呜', '重点：{q}', '「{q}」好可爱哈哈哈'] }
 };
@@ -404,6 +423,7 @@ const CAT_KW = {
   love: /爱你|想你|谢谢|感谢|喜欢你|宝贝/,
   weather: /天气|下雨|雨天|好冷|好热|下雪|太阳|降温|刮风/,
   birthday: /生日|纪念日|周年|D\+/,
+  romance: /恋爱|男朋友|女朋友|男友|女友|对象|约会|在一起|喜欢的人|公开恋情|结婚|热恋/,
   question: /[?？]|吗|什么|要不要|想不想|有没有|哪个|猜猜/
 };
 const EMO = ['🐱', '💙', '！！', '～', '😭', '✨', '🥺', 'hhh', '！', '❤️', '🫶'];
@@ -424,7 +444,8 @@ function tplComment(ctx) {
   detectCats(ctx.text).forEach(c => pool.push(c, c, c));
   if (ctx.hasImg) pool.push('photo', 'photo', 'photo');
   if (ctx.hasVid) pool.push('video', 'video', 'video');
-  const cat = pick(pool);
+  let cat = pick(pool);
+  if (cat === 'romance' && lang === 'zh' && Math.random() < .15) cat = 'romanceSad';
   let arr = TPL[cat][lang];
   if (!arr || !arr.length) arr = lang === 'zh' ? TPL.generic.zh : TPL.generic[lang];
   const it = pick(arr);
@@ -465,11 +486,13 @@ function aiSystem() {
   const p = S.profile;
   return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
 偶像资料：艺名 ${p.name}，solo 女歌手，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
+粉丝群体设定：${p.fanRules || '（无）'}
 写作要求：
 - 像 Weverse / 微博超话里的真实粉丝：口语化、短句为主（多数 4~30 字），偶尔长一点；可以用表情、网络用语、「啊啊啊」「呜呜呜」、玩梗。语气多样：激动、温柔、搞笑、关心、提问。
 - 必须紧扣偶像发的具体内容（文字里的细节、图片/画面里看得到的东西：衣服颜色、背景、表情、物品、动作等），不要泛泛而谈，不要彼此重复。
 - 大约 80% 用中文（lang=zh），其余用韩语(ko)/日语(ja)/英语(en)。外语评论在 zh 字段给出自然的中文翻译；中文评论的 zh 字段填空字符串。
 - user 是粉丝昵称，中文粉丝用中文/拼音风格昵称，外语粉丝用对应语言风格昵称，可以带数字或 emoji。
+- 帖子或直播涉及恋爱、约会、对象时，按「粉丝群体设定」里的比例来反应。
 - 内容友善健康，不涉及恶评、低俗或真实名人。`;
 }
 async function aiComments(content, maxTokens = 4000) {
@@ -497,11 +520,12 @@ function aiFail(e) {
   save();
 }
 function once(el, ev, ms = 6000) { return new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('timeout')), ms); el.addEventListener(ev, () => { clearTimeout(t); res(); }, { once: true }); }); }
-function drawB64(src, w, h, max) {
+function drawB64(src, w, h, max, filter) {
   if (!w || !h) return '';
   const s = Math.min(1, max / Math.max(w, h)); const c = document.createElement('canvas');
   c.width = Math.round(w * s); c.height = Math.round(h * s);
-  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  const ctx = c.getContext('2d'); if (filter && filter !== 'none') ctx.filter = filter;
+  ctx.drawImage(src, 0, 0, c.width, c.height);
   return c.toDataURL('image/jpeg', .8).split(',')[1];
 }
 async function imageB64(blob, max = 768) {
@@ -552,10 +576,11 @@ function makeComment(base, fan) {
 function nextComment(post) {
   if (post.aiPool && post.aiPool.length) { const b = post.aiPool.shift(); return makeComment(b, makeFan(b.lang)); }
   const ctx = { text: post.text, hasImg: post.media.some(m => m.type === 'image'), hasVid: post.media.some(m => m.type === 'video') };
-  const recent = post._recent || (post._recent = post.comments.slice(0, 25).map(c => c.text));
+  const base = t => t.replace(/(hhh|[！!～~\s]|\p{Extended_Pictographic}|\uFE0F)+$/u, '');
+  const recent = post._recent || (post._recent = post.comments.slice(0, 30).map(c => base(c.text)));
   let b = tplComment(ctx);
-  for (let i = 0; i < 6 && recent.includes(b.text); i++) b = tplComment(ctx);
-  recent.unshift(b.text); if (recent.length > 25) recent.pop();
+  for (let i = 0; i < 8 && recent.includes(base(b.text)); i++) b = tplComment(ctx);
+  recent.unshift(base(b.text)); if (recent.length > 30) recent.pop();
   return makeComment(b, makeFan(b.lang));
 }
 const agg = {}; // postId -> {likes, likers:[], comments:[]}
@@ -629,7 +654,7 @@ function pushNotif(n, toastIt) {
   updBadges();
   if (UI.tab === 'notif') render();
   const viewingPost = UI.tab === 'feed' && UI.postId && UI.postId === n.postId;
-  if (toastIt && !viewingPost && Date.now() - lastToast > 3500) { lastToast = Date.now(); toast(n.text, n.sub, () => openNotif(n)); }
+  if (toastIt && !viewingPost && (!LIVE || n.type === 'sched') && Date.now() - lastToast > 3500) { lastToast = Date.now(); toast(n.text, n.sub, () => openNotif(n)); }
   sysNotify(n);
 }
 let lastSys = 0;
@@ -957,6 +982,7 @@ const LIVE_TPL = {
   comeback: ['啊啊啊剧透！', '期待！！', '可以再多说一点吗', '冲冲冲', '已经准备好打榜了', '是新歌吗！'],
   fandom: ['在！', '{f}在这里！', '到！', '叫我了叫我了', '我在我在'],
   love: ['我也爱你！！', '啊啊啊啊啊', '我也爱你老婆', '原地去世', '心动了'],
+  romance: ['什么什么！！', '祝福！！', '嗑到了', '是谁是谁', '要幸福呀', '只要你开心就好', '对方好幸福', '有点小难过但祝福', '展开说说！！'],
   generic: ['哈哈哈哈', '嗯嗯！', '是的是的', '好可爱', '懂了', '确实', '哈哈哈太好笑了', '真的吗', '然后呢然后呢'],
   echo: ['{n}说「{q}」哈哈哈', '「{q}」好可爱', '「{q}」记下了', '刚刚说「{q}」吗']
 };
@@ -964,73 +990,123 @@ const LIVE_KW = [
   ['greetR', /大家好|你们好|哈喽|hello|嗨|晚上好|早上好|안녕/i], ['food', /吃|饭|饿|零食|喝/], ['sing', /唱|歌/], ['dance', /跳|舞/],
   ['cat', /猫|喵/], ['bye', /晚安|下播|拜拜|再见|走了|要睡/], ['q', /吗|呢|什么|怎么|要不要|想不想|有没有|[?？]/],
   ['thanks', /谢谢|感谢/], ['tired', /累|困|辛苦|好忙/], ['comeback', /新歌|回归|专辑|打歌|演唱会|签售|综艺/],
-  ['love', /爱你|喜欢你|想你/]
+  ['love', /爱你|喜欢你|想你/], ['romance', /恋爱|男朋友|女朋友|男友|女友|对象|约会/]
 ];
 let LIVE = null;
+/* ---------- 美颜 ---------- */
+const BEAUTY = {
+  raw: { name: '原相机', f: () => 'none', smooth: 0 },
+  natural: { name: '自然', f: l => `brightness(${1 + .08 * l}) contrast(${1 - .05 * l}) saturate(${1 + .06 * l})`, smooth: .5 },
+  cream: { name: '奶油肌', f: l => `brightness(${1 + .12 * l}) contrast(${1 - .1 * l}) saturate(${1 - .04 * l}) sepia(${.08 * l})`, smooth: .8 },
+  white: { name: '冷白皮', f: l => `brightness(${1 + .14 * l}) contrast(${1 - .06 * l}) saturate(${1 - .12 * l}) hue-rotate(${-6 * l}deg)`, smooth: .7 },
+  vivid: { name: '元气', f: l => `brightness(${1 + .06 * l}) contrast(${1 + .03 * l}) saturate(${1 + .28 * l})`, smooth: .4 },
+  film: { name: '胶片', f: l => `brightness(${1 + .04 * l}) contrast(${1 + .06 * l}) saturate(${1 - .15 * l}) sepia(${.22 * l})`, smooth: .3 }
+};
+function beautyCfg() { const b = S.prefs.beauty || {}; return { preset: BEAUTY[b.preset] ? b.preset : 'natural', level: b.level ?? 60 }; }
+function beautyFilter() { const b = beautyCfg(); return BEAUTY[b.preset].f(b.level / 100); }
+// 磨皮：同一路视频叠一层模糊的，透明度越高皮肤越柔和
+function applyBeauty(root = document) {
+  const b = beautyCfg(), l = b.level / 100, p = BEAUTY[b.preset];
+  $$('video.bv-main', root).forEach(v => v.style.filter = p.f(l));
+  $$('video.bv-glow', root).forEach(v => { v.style.filter = `blur(${2 + 3 * l}px) ${p.f(l) === 'none' ? '' : p.f(l)}`; v.style.opacity = (p.smooth * l * .6).toFixed(2); });
+}
+function beautyPanelHTML() {
+  const b = beautyCfg();
+  return `<div class="bpanel"><div class="pcats">${Object.entries(BEAUTY).map(([k, v]) => `<button class="pcat ${k === b.preset ? 'on' : ''}" data-act="bpreset" data-k="${k}">${v.name}</button>`).join('')}</div>
+    <div class="row" style="margin-top:6px"><span style="font-size:13px;white-space:nowrap">强度</span><input type="range" id="b-level" min="0" max="100" value="${b.level}" style="padding:0" ${b.preset === 'raw' ? 'disabled' : ''}><span id="b-val" style="font-size:13px;width:28px">${b.level}</span></div></div>`;
+}
+function videoPair(stream) { return `<video class="bv-main" autoplay playsinline muted></video><video class="bv-glow" autoplay playsinline muted></video>`; }
+function attachPair(root, stream) { $$('video.bv-main, video.bv-glow', root).forEach(v => { v.srcObject = stream; v.play && v.play().catch(() => { }); }); applyBeauty(root); }
+
 function viewLive() {
-  const hist = S.lives.slice(0, 8);
+  const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video';
   return `<div class="card">
     <h3 style="margin:2px 0 10px">开始直播</h3>
-    <div class="preview" id="pv-box"><span>📷 点击「预览摄像头」看看效果</span></div>
+    <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button></div>
+    ${mode === 'video' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>
+    <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
+    : `<div class="preview voice-pv">${bigAvatar(110)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">语音直播不开摄像头，粉丝只听得到你的声音</span></div>`}
     <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
-    <div class="row wrap"><button class="btn ghost" data-act="pvcam">预览摄像头</button><span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始直播</button></div>
-    ${IN_FRAME ? '<p class="muted" style="margin:0 0 10px;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头，只能用「纯聊天直播」。想真人出镜，请用浏览器直接打开 HTML 文件。</p>' : ''}
-    <p class="muted" style="margin:10px 0 0">会请求摄像头和麦克风权限。直播中可以直接说话（浏览器语音识别，推荐 Chrome / Edge），粉丝会根据你说的内容刷弹幕；也可以打字。${'webkitSpeechRecognition' in window || 'SpeechRecognition' in window ? '' : '<br>⚠️ 当前浏览器不支持语音识别，只能打字互动。'}${aiOn() ? '<br>✨ AI 粉丝已开启：会结合画面和你说的话来回应。' : ''}</p>
+    <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'video' ? '视频' : '语音'}直播</button></div>
+    ${IN_FRAME ? '<p class="muted" style="margin:10px 0 0;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头和麦克风，只能用「纯聊天直播」。</p>' : ''}
+    <p class="muted" style="margin:10px 0 0">直播中可以直接说话（浏览器语音识别），粉丝会根据你说的内容刷弹幕；也可以打字。iPhone 需要在 设置 → 通用 → 键盘 里打开「启用听写」。${aiOn() ? '<br>✨ AI 粉丝已开启：会结合画面和你说的话来回应。' : ''}</p>
   </div>
   <div class="sec-title">直播记录</div>
-  <div class="card">${hist.length ? hist.map(l => `<div class="rule"><div style="flex:1"><b>${esc(l.title)}</b><div class="muted">${new Date(l.start).toLocaleString('zh-CN')} · 时长 ${hms(l.end - l.start)}</div></div><div class="muted" style="text-align:right">👁 峰值 ${fmtNum(l.peak)}<br>♥ ${fmtNum(l.hearts)} · 💬 ${fmtNum(l.comments)}</div></div>`).join('') : '<div class="empty">还没有直播过</div>'}</div>`;
+  <div class="card">${hist.length ? hist.map(l => `<div class="rule"><div style="flex:1"><b>${l.mode === 'voice' ? '🎙 ' : l.mode === 'chat' ? '💬 ' : '📹 '}${esc(l.title)}</b><div class="muted">${new Date(l.start).toLocaleString('zh-CN')} · 时长 ${hms(l.end - l.start)}</div></div><div class="muted" style="text-align:right">👁 峰值 ${fmtNum(l.peak)}<br>♥ ${fmtNum(l.hearts)} · 💬 ${fmtNum(l.comments)}</div></div>`).join('') : '<div class="empty">还没有直播过</div>'}</div>`;
+}
+function bigAvatar(px) {
+  return `<div class="av voice-av" style="width:${px}px;height:${px}px;font-size:${Math.round(px * .4)}px;background:linear-gradient(135deg,var(--accent),var(--accent2))">${S.profile.avatar ? `<img data-mid="${S.profile.avatar}" alt="">` : esc(S.profile.name[0] || 'C')}</div>`;
 }
 let pvStream = null;
 async function previewCam() {
   try {
     stopPreview();
     pvStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-    const box = $('#pv-box'); box.innerHTML = '<video autoplay playsinline muted></video>'; box.firstChild.srcObject = pvStream;
+    const box = $('#pv-box'); box.innerHTML = videoPair(); attachPair(box, pvStream);
   } catch (e) { toast('无法打开摄像头', camErr(e)); }
 }
 function stopPreview() { if (pvStream) { pvStream.getTracks().forEach(t => t.stop()); pvStream = null; } }
 const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 function camErr(e) {
-  if (IN_FRAME) return '在 Claude 链接里打开时，平台不允许网页使用摄像头。可以用「纯聊天直播」，或用浏览器直接打开 HTML 文件来真人出镜';
-  if (!navigator.mediaDevices) return '当前环境不允许使用摄像头（需要 https 网页或直接打开本地文件）';
-  return e && e.name === 'NotAllowedError' ? '摄像头权限被拒绝了：请到 设置 → Safari → 摄像头/麦克风 里改成「询问」或「允许」' : (e && e.message) || String(e);
+  if (IN_FRAME) return '在 Claude 链接里打开时，平台不允许网页使用摄像头和麦克风';
+  if (!navigator.mediaDevices) return '当前环境不允许使用摄像头/麦克风（需要 https 网页）';
+  return e && e.name === 'NotAllowedError' ? '权限被拒绝了：请到 设置 → Safari → 摄像头 / 麦克风 里改成「询问」或「允许」' : (e && e.message) || String(e);
 }
 async function startLive() {
   const title = ($('#lv-title-in')?.value || '').trim() || '直播中';
+  const want = S.prefs.liveMode || 'video';
   S.prefs.lastLiveTitle = title;
   stopPreview();
-  let stream;
-  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true }); }
-  catch (e) {
-    try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); toast('没有拿到麦克风，只能打字互动'); }
-    catch (e2) {
-      if (!confirm('无法打开摄像头：' + camErr(e2) + '\n\n要用「纯聊天直播」开播吗？（不出镜，打字和粉丝互动）')) return;
-      stream = null;
+  let stream = null, mode = want;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(want === 'video' ? { video: { facingMode: 'user' }, audio: true } : { audio: true });
+  } catch (e) {
+    if (want === 'video') {
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }); toast('没有拿到麦克风，只能打字互动'); } catch (e2) { e = e2; }
+    }
+    if (!stream) {
+      if (!confirm(`无法打开${want === 'video' ? '摄像头' : '麦克风'}：${camErr(e)}\n\n要用「纯聊天直播」开播吗？（打字和粉丝互动）`)) return;
+      mode = 'chat';
     }
   }
   const layer = document.createElement('div'); layer.id = 'live-layer';
-  layer.innerHTML = `<video autoplay playsinline muted></video><div class="lv-shade"></div>
+  layer.innerHTML = `${mode === 'video' ? videoPair() : `<div class="voice-bg">${bigAvatar(150)}<div class="voice-tag">${mode === 'voice' ? '🎙 语音直播中' : '💬 聊天直播中'}</div></div>`}<div class="lv-shade"></div>
     <div class="lv-top"><span class="lv-badge">LIVE</span><span class="lv-pill" id="lv-time">00:00:00</span><span class="lv-pill">👁 <span id="lv-view">0</span></span><span class="lv-pill">♥ <span id="lv-heart">0</span></span><span class="sp"></span><button class="lv-end" id="lv-end">结束</button></div>
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
-    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-mic" title="语音识别">🎤</button></div>`;
+    <div id="lv-beauty" hidden></div>
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
-  const vEl = layer.querySelector('video');
-  if (stream) vEl.srcObject = stream;
-  else { vEl.remove(); layer.style.background = 'radial-gradient(circle at 50% 35%, #2fd3d8, #6a5cff 60%, #1b1442)'; layer.insertAdjacentHTML('afterbegin', `<div style="position:absolute;inset:0;display:grid;place-items:center"><div class="av" style="width:140px;height:140px;font-size:56px;box-shadow:0 0 0 6px rgba(255,255,255,.25);background:linear-gradient(135deg,var(--accent),var(--accent2))">${S.profile.avatar ? `<img data-mid="${S.profile.avatar}" alt="">` : esc(S.profile.name[0] || 'C')}</div></div>`); hydrate(layer); }
-  LIVE = { title, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.3, .55)), hearts: 0, comments: 0, lastTpl: [], acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
+  if (mode === 'video') attachPair(layer, stream);
+  LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.3, .55) * (mode === 'video' ? 1 : .75)), hearts: 0, comments: 0, lastTpl: [], acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
+  // 语音直播：头像跟着说话音量跳动
+  if (mode === 'voice' && stream) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC(); ac.resume && ac.resume();
+      const an = ac.createAnalyser(); an.fftSize = 512; ac.createMediaStreamSource(stream).connect(an);
+      LIVE.audio = { ac, an, buf: new Uint8Array(an.fftSize) };
+    } catch (e) { }
+  }
   $('#lv-end').onclick = endLive;
   $('#lv-send').onclick = liveSend;
   $('#lv-input').onkeydown = e => { if (e.key === 'Enter') liveSend(); };
-  $('#lv-mic').onclick = () => LIVE.micOn ? stopRec() : startRec();
-  sysChat(stream ? '直播开始啦！粉丝正在进入直播间…' : '纯聊天直播开始啦！打字和粉丝们聊天吧～');
+  if ($('#lv-mic')) $('#lv-mic').onclick = () => LIVE.micOn ? stopRec() : startRec();
+  if ($('#lv-bty')) $('#lv-bty').onclick = () => { const p = $('#lv-beauty'); p.hidden = !p.hidden; if (!p.hidden) p.innerHTML = beautyPanelHTML(); $('#lv-bty').classList.toggle('on', !p.hidden); };
+  sysChat(mode === 'video' ? '直播开始啦！粉丝正在进入直播间…' : mode === 'voice' ? '语音直播开始啦！说话粉丝就能听到～' : '聊天直播开始啦！打字和粉丝们聊天吧～');
   if (stream && stream.getAudioTracks().length) startRec();
   LIVE.timer = setInterval(liveTick, 250);
+}
+function voiceLevel() {
+  const A = LIVE && LIVE.audio; if (!A) return;
+  A.an.getByteTimeDomainData(A.buf); let s = 0; for (const v of A.buf) { const d = (v - 128) / 128; s += d * d; }
+  const rms = Math.sqrt(s / A.buf.length), k = Math.min(1, rms * 6);
+  const av = $('#live-layer .voice-av'); if (av) { av.style.transform = `scale(${1 + k * .12})`; av.style.boxShadow = `0 0 0 ${6 + k * 26}px rgba(255,255,255,${.12 + k * .25})`; }
 }
 function liveTick() {
   const L = LIVE; if (!L) return;
   const el = Date.now() - L.start;
   $('#lv-time').textContent = hms(el);
+  voiceLevel();
   // 在线人数：前 3 分钟快速涌入，然后随机波动
   const want = L.target * Math.min(1, el / 180000) * (1 + .08 * Math.sin(el / 47000));
   L.viewers = Math.max(0, Math.round(L.viewers + (want - L.viewers) * .05 + rand(-3, 3)));
@@ -1117,10 +1193,10 @@ async function liveAI() {
   const L = LIVE; L.aiBusy = true; L.lastAi = Date.now(); const speech = L.speech; L.newSpeech = false; L.speech = '';
   try {
     const content = [];
-    const v = L.layer.querySelector('video'); const data = v ? drawB64(v, v.videoWidth, v.videoHeight, 512) : '';
+    const v = L.layer.querySelector('video.bv-main'); const data = v ? drawB64(v, v.videoWidth, v.videoHeight, 512, beautyFilter()) : '';
     if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
     content.push({ type: 'text', text:
-`${S.profile.name} 正在直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
+`${S.profile.name} 正在${L.mode === 'video' ? '视频' : L.mode === 'voice' ? '语音（没有画面，只有声音）' : '纯文字聊天'}直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
 ${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话。'}
 最近的弹幕：
 ${L.recent.slice(-10).join('\n')}
@@ -1135,8 +1211,8 @@ function endLive() {
   if (!confirm('确定结束直播吗？')) return;
   LIVE = null;
   clearInterval(L.timer); L.micOn = false; try { L.rec && L.rec.stop(); } catch (e) { }
-  if (L.stream) L.stream.getTracks().forEach(t => t.stop()); L.layer.remove();
-  const rec = { title: L.title, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments };
+  if (L.stream) L.stream.getTracks().forEach(t => t.stop()); if (L.audio) try { L.audio.ac.close(); } catch (e) { } L.layer.remove();
+  const rec = { title: L.title, mode: L.mode, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments };
   S.lives.unshift(rec);
   const newF = Math.round(L.peak * rand(.02, .06) + (rec.end - rec.start) / 60000 * rand(1, 3));
   S.profile.followers += newF;
@@ -1167,11 +1243,14 @@ const PRESETS = {
     ['韩语课', '公司 会议室'], ['日语课', '公司 会议室'], ['英语课', '公司 会议室'], ['录音', '公司 录音室'], ['月末评估', '公司 大练习室']
   ],
   '综艺': [
+    ['网综 嘉宾录制', '录制场地'], ['YouTube 频道合作', '录制场地'], ['偶像 YouTube 访谈', '录制场地'], ['Arirang TV《After School Club》', 'Arirang TV 演播室'],
+    ['Arirang TV《Pops in Seoul》', 'Arirang TV 演播室'], ['地方台综艺', '地方电视台'], ['音乐节目后台采访', ''], ['游戏 / 料理类网综', '外景'], ['同期好友 vlog 客串', ''],
     ['JTBC《认识的哥哥》', 'JTBC 一山演播室'], ['SBS《Running Man》', '外景'], ['MBC《Radio Star》', 'MBC 上岩演播室'], ['tvN《惊人的星期六》', 'tvN 演播室'],
     ['MBC every1《周刊偶像》', 'MBC every1 演播室'], ['MBC《我独自生活》', '宿舍 / 外景'], ['KBS《你好》', 'KBS 演播室'], ['MBC《玩什么好呢》', '外景'],
     ['网综《Pinggyego》', '外景'], ['网综《Salon Drip》', 'TEO 演播室'], ['网综《짠한형》', '录制场地'], ['网综《Workman》', '外景'], ['自制综艺拍摄', '公司 / 外景']
   ],
   '电台': [
+    ['电台嘉宾（深夜档）', ''], ['地方电台访谈', ''], ['播客 Podcast 录制', '录音室'], ['Naver NOW 直播节目', ''],
     ['SBS PowerFM《Cultwo Show》', 'SBS 木洞广播中心'], ['SBS PowerFM《朴笑炫的 Love Game》', 'SBS 木洞广播中心'], ['SBS PowerFM《崔华贞的 Power Time》', 'SBS 木洞广播中心'],
     ['MBC 标准FM《Idol Radio》', 'MBC 上岩广播中心'], ['MBC 标准FM《正午的希望歌谣》', 'MBC 上岩广播中心'], ['MBC FM4U《裴哲秀的音乐营》', 'MBC 上岩广播中心'],
     ['KBS CoolFM《Volume Up》', 'KBS 汝矣岛广播中心'], ['KBS CoolFM《Kiss the Radio》', 'KBS 汝矣岛广播中心'], ['电台可视直播', '']
@@ -1183,10 +1262,14 @@ const PRESETS = {
     ['Vlog 拍摄', '宿舍'], ['广告拍摄', '摄影棚'], ['采访', '']
   ],
   '签售': [
+    ['小型签名会', ''], ['唱片店签售', '唱片店'], ['线上 Fan Meeting', '公司'],
     ['线下签售会', '弘大 签售场'], ['线下签售会', '江南 COEX'], ['视频通话签售（Soundwave）', '公司'], ['视频通话签售（Withmuu）', '公司'], ['视频通话签售（Makestar）', '公司'],
     ['Apple Music 签售', 'Apple Music 签售场'], ['粉丝见面会', '奥林匹克公园 奥林匹克大厅'], ['生日见面会', '']
   ],
   '公演': [
+    ['弘大 Live Club 演出', '弘大 Rolling Hall'], ['小型 Live', 'KT&G 想象Madang Live Hall'], ['小型 Live', 'YES24 Wanderloch Hall'], ['小型 Live', 'Musinsa Garage'],
+    ['路演 Busking', '弘大 走走路'], ['路演 Busking', '延南洞'], ['商场路演', ''], ['大学路 小剧场演出', '大学路'], ['地方庆典 / 市民节', ''], ['军队慰问演出', ''],
+    ['体育赛事 中场表演', '蚕室棒球场'], ['线上 Live 演出', ''], ['合作舞台（和前辈/同期）', ''],
     ['《Dream Concert 梦想演唱会》', '首尔世界杯体育场'], ['《Waterbomb 首尔》', 'KINTEX 室外场地'], ['《KCON JAPAN》', '千叶 幕张展览馆'], ['《KCON LA》', '洛杉矶 Crypto.com Arena'],
     ['《Music Bank World Tour》', ''], ['KBS《歌谣大祝祭》', 'KBS 汝矣岛新馆公开厅'], ['SBS《歌谣大战》', ''], ['MBC《歌谣大祭典》', ''], ['音乐节演出', ''], ['地方庆典演出', '']
   ],
@@ -1196,10 +1279,13 @@ const PRESETS = {
     ['建国大学 庆典', '建国大学 一鉴湖 露天舞台'], ['韩国外国语大学 庆典', '韩国外国语大学 首尔校区'], ['釜山大学 庆典', '釜山大学 运动场'], ['西江大学 庆典', '西江大学']
   ],
   '活动': [
+    ['棒球开球仪式', '蚕室棒球场'], ['品牌门店开业活动', ''], ['公益活动', ''], ['快闪见面会', ''], ['生日应援咖啡店探访', '弘大'], ['粉丝 Mini 生日会', ''],
+    ['电影 VIP 试映会', 'CGV / 乐天影院'], ['音乐剧 / 话剧 观演', ''], ['海外 Showcase', ''], ['商场签名活动', ''],
     ['MAMA AWARDS', ''], ['MMA Melon Music Awards', '仁川 INSPIRE Arena'], ['金唱片奖 Golden Disc Awards', ''], ['首尔歌谣大赏 SMA', ''], ['AAA Asia Artist Awards', ''], ['Circle Chart 音乐颁奖典礼', ''],
     ['机场出发', '仁川国际机场 T2'], ['机场入境', '仁川国际机场'], ['首尔时装周', '东大门 DDP'], ['海外时装周 · 品牌秀场', ''], ['品牌活动 / 快闪店', '圣水洞'], ['广告代言签约活动', ''], ['Weverse Live', '宿舍']
   ],
   '演唱会': [
+    ['首场 Solo 小型演唱会', '奥林匹克公园 奥林匹克大厅'], ['小型演唱会', 'YES24 Live Hall'], ['小型演唱会', '蓝色广场 Blue Square'], ['线上演唱会', ''],
     ['Solo 演唱会 · 首尔场', 'KSPO DOME（奥林匹克体操竞技场）'], ['Solo 演唱会 · 首尔场', '奥林匹克公园 Handball 竞技场'], ['Solo 演唱会 · 首尔场', '高尺天空巨蛋'],
     ['演唱会彩排', ''], ['巡演 · 东京场', '东京巨蛋'], ['巡演 · 大阪场', '京瓷巨蛋大阪'], ['巡演 · 横滨场', 'K-Arena 横滨'], ['巡演 · 台北场', '台北小巨蛋'],
     ['巡演 · 香港场', 'AsiaWorld-Arena'], ['巡演 · 曼谷场', 'IMPACT Arena'], ['巡演 · 新加坡场', '新加坡室内体育馆'], ['巡演 · 洛杉矶场', 'Crypto.com Arena']
@@ -1331,6 +1417,7 @@ function viewMe() {
     </div>
     <div class="field"><label>粉丝对你的称呼（用逗号分隔）</label><input id="p-nicks" value="${esc(p.nicks.join('，'))}"></div>
     <div class="field"><label>简介</label><input id="p-bio" value="${esc(p.bio)}" placeholder="可以不填"></div>
+    <div class="field"><label>粉丝群体设定（AI 粉丝会照这个来反应）</label><textarea id="p-fanrules" style="min-height:70px">${esc(p.fanRules || '')}</textarea></div>
     <div class="row"><span class="sp"></span><button class="btn primary" data-act="psave">保存人设</button></div>
   </div>
   <div class="sec-title">✨ AI 粉丝（可选）</div>
@@ -1340,6 +1427,7 @@ function viewMe() {
     <div class="field"><label>API Key</label><input type="password" id="ai-key" value="${esc(S.ai.key)}" placeholder="sk-ant-..." autocomplete="off"></div>
     <div class="field"><label>模型</label><select id="ai-model">
       ${[['claude-opus-5-5', 'Claude Opus 5.5（默认，最聪明）'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5（更快、更便宜）'], ['claude-haiku-5-5', 'Claude Haiku 5.5（最便宜）']].map(([v, t]) => `<option value="${v}" ${S.ai.model === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    <p class="muted" style="margin:0 0 8px">大概费用（粗略估算，以实际账单为准）：<br>· Opus 5.5：每条帖子约 ¥0.4～3；直播每小时约 ¥30～50<br>· Sonnet 5.5：大约是 Opus 的一半<br>· Haiku 5.5：大约是 Opus 的 1/40（直播每小时约 ¥1）</p>
     ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误：${esc(S.ai.lastError)}</p>` : ''}
     <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
   </div>
@@ -1398,6 +1486,11 @@ document.addEventListener('click', async e => {
     case 'opennotif': { const n = S.notifs.find(x => x.id === t.dataset.nid); if (n) openNotif(n); break; }
     case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
     case 'pvcam': previewCam(); break;
+    case 'lmode': stopPreview(); S.prefs.liveMode = t.dataset.m; save(); render(); break;
+    case 'bpreset': {
+      S.prefs.beauty = Object.assign(beautyCfg(), { preset: t.dataset.k }); save(); applyBeauty();
+      const panel = t.closest('.bpanel'); panel.outerHTML = beautyPanelHTML(); break;
+    }
     case 'golive': startLive(); break;
     case 'livepost': closeModal(); UI.tab = 'feed'; UI.postId = null; draft = `今天的直播谢谢大家陪我！${'\n'}聊得好开心，下次见～ 🐱💙`; render(); $('#cmp-text')?.focus(); break;
     case 'close': closeModal(); break;
@@ -1420,7 +1513,7 @@ document.addEventListener('click', async e => {
       p.followers = Math.max(0, +$('#p-fol').value || p.followers);
       const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
       p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
-      p.bio = $('#p-bio').value.trim();
+      p.bio = $('#p-bio').value.trim(); p.fanRules = $('#p-fanrules').value.trim();
       save(); render(); toast('人设已保存'); break;
     }
     case 'aisave': S.ai.enabled = $('#ai-on').checked; S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value; S.ai._backoff = 0; save(); render(); toast(S.ai.enabled && S.ai.key ? 'AI 粉丝已开启 ✨' : 'AI 设置已保存'); break;
@@ -1470,6 +1563,7 @@ document.addEventListener('change', async e => {
   }
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
   if (e.target.id === 'cmp-text') draft = e.target.value;
   if (e.target.id === 'preset-q') { UI.presetQ = e.target.value; $$('.pcat').forEach(x => x.classList.toggle('on', !UI.presetQ && x.dataset.c === UI.presetCat)); $('#plist').innerHTML = presetListHTML(); }
 });
