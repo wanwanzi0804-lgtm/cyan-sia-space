@@ -17,7 +17,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Noto Sans SC","Apple SD Gothic Neo",sans-serif;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer}
-input,textarea,select{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;outline:none}
+input,textarea,select{font:inherit;font-size:16px;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;outline:none}
 input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:80px}
 #app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:76px}
@@ -35,7 +35,11 @@ textarea{resize:vertical;min-height:80px}
 .tab .badge{top:3px;right:calc(50% - 22px)}
 main{padding:0 12px}
 main.flush{padding:0}
-.bb{display:flex;flex-direction:column;height:calc(100dvh - 116px - env(safe-area-inset-bottom));background:var(--card)}
+.bb{display:flex;flex-direction:column;background:var(--card);position:fixed;left:0;right:0;margin:0 auto;max-width:560px;top:var(--topH,52px);height:calc(var(--vvh,100dvh) - var(--topH,52px) - var(--tabH,60px))}
+body.bbmode{overflow:hidden;overscroll-behavior:none}
+body.bbmode #app{padding-bottom:0}
+body.kb .tabbar{display:none}
+body.kb .bb{top:var(--vvTop,0px);height:var(--vvh,100dvh);z-index:40}
 .bb-head{display:flex;align-items:center;justify-content:center;position:relative;padding:10px 12px 4px;background:var(--card)}
 .bb-title{font-weight:800;font-size:17px}
 .bb-more{position:absolute;right:6px;border:0;background:none;font-size:22px;padding:2px 12px}
@@ -1195,7 +1199,7 @@ function renderBubbleChat() {
   let h = `<div class="bb-welcome"><div class="muted" style="font-size:11.5px">📌 欢迎语 · 新订阅的粉丝会自动收到</div><div>${esc(B.welcome).split(esc(BB_TOK)).join(`<span class="bb-fan">${esc(bbFan())}</span>`)}</div></div>` + bbGroupHTML(byAfter._);
   for (const m of B.msgs) h += bbMsgHTML(m) + bbGroupHTML(byAfter[m.id]);
   const last = B.msgs[B.msgs.length - 1];
-  if (!last || Date.now() - last.at > 3 * 3600e3) h += `<div class="bb-wait">粉丝们正在等你的消息 🫧</div>`;
+  if (last && Date.now() - last.at > 3 * 3600e3) h += `<div class="bb-wait">粉丝们正在等你的消息 🫧</div>`;
   if (!B.msgs.length && !bbOpen().fans.length) h += `<div class="bb-wait" style="margin-top:30%">发第一条消息，和订阅的粉丝们打个招呼吧 🫧</div>`;
   box.innerHTML = h; hydrate(box); bbWallpaper();
   box.scrollTop = box.scrollHeight;
@@ -1305,6 +1309,23 @@ function avatarHTML(cls = '') {
 }
 function fanAv(c, cls = '') { return c.me ? avatarHTML(cls) : `<div class="av ${cls}" style="background:${c.color || '#aaa'}">${esc((c.user || '?')[0])}</div>`; }
 
+// 根据真实屏幕和键盘调整布局：Bubble 固定在顶栏和底栏之间；键盘弹出时隐藏底栏
+function layoutVars() {
+  const vv = window.visualViewport, root = document.documentElement.style;
+  const h = vv ? vv.height : innerHeight;
+  root.setProperty('--vvh', h + 'px');
+  root.setProperty('--vvTop', (vv ? vv.offsetTop : 0) + 'px');
+  const kb = !!vv && innerHeight - vv.height > 140 && /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '');
+  document.body.classList.toggle('kb', kb);
+  const top = $('.topbar'), tab = $('.tabbar');
+  if (top) root.setProperty('--topH', top.offsetHeight + 'px');
+  if (tab && !kb) root.setProperty('--tabH', tab.offsetHeight + 'px');
+  if (kb && UI.tab === 'bubble') { const c = $('#bbchat'); if (c) c.scrollTop = c.scrollHeight; }
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', layoutVars); visualViewport.addEventListener('scroll', layoutVars); }
+addEventListener('resize', layoutVars);
+document.addEventListener('focusin', () => setTimeout(layoutVars, 300));
+document.addEventListener('focusout', () => setTimeout(layoutVars, 100));
 function render() {
   $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === UI.tab));
   let h = '';
@@ -1316,6 +1337,9 @@ function render() {
   else h = viewMe();
   view.innerHTML = h;
   view.classList.toggle('flush', UI.tab === 'bubble' && !!S.bubble.welcome);
+  document.body.classList.toggle('bbmode', UI.tab === 'bubble' && !!S.bubble.welcome);
+  if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0);
+  layoutVars();
   hydrate(view);
   if (UI.tab === 'bubble' && S.bubble.welcome) { S.bubble.unread = 0; renderBubbleChat(); bbReplyBar(); }
   if (UI.tab === 'feed' && !UI.postId) { const t = $('#cmp-text'); if (t) t.value = draft; renderPending(); }
