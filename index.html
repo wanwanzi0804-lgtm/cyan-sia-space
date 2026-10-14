@@ -1159,7 +1159,7 @@ async function bbSend(type, payload = {}) {
   if (UI.tab === 'bubble') { renderBubbleChat(); bbReplyBar(); }
   bbAiOnSend(m);
 }
-/* ---------- Bubble AI：3 分钟请一次，一批约 15 条；你每发一条就放出 2~5 条 AI 回复 ---------- */
+/* ---------- Bubble AI：3 分钟请一次，一批 8 条；你每发一条就放出 2~3 条 AI 回复 ---------- */
 const BB_AI_WINDOW = 3 * 60000;
 let bbAiTimer = null;
 const bbAiWorth = m => m.type !== 'text' || m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️|\s/gu, '').length >= 4;
@@ -1169,7 +1169,7 @@ function bbRelease(n) {
 }
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
-  const want = ri(2, 5);
+  const want = ri(2, 3);
   const windowOpen = Date.now() - (B._lastAi || 0) >= BB_AI_WINDOW && !B._aiBusy;
   if (windowOpen && (bbAiWorth(m) || B._aiScheduled)) {
     // 新的 3 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
@@ -1191,8 +1191,8 @@ async function bbAI() {
     const lines = batch.map(x => `- [${kind[x.type]}]${x.text ? ' ' + x.text.split(BB_TOK).join('【粉丝自己的昵称】') : ''}${x.replyTo ? `（回复粉丝「${x.replyTo.user}」：「${x.replyTo.text}」）` : ''}`).join('\n');
     content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}：
 ${lines}
-每个粉丝都以为这是偶像单独发给自己的私聊。请生成 15 条粉丝发给她的私信回复：如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。可以有几条适合她接下来继续聊天时也能用的回复。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
-    const list = await aiComments(content, 1800);
+每个粉丝都以为这是偶像单独发给自己的私聊。请生成 8 条粉丝发给她的私信回复：如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 1 条是提问。可以有几条适合她接下来继续聊天时也能用的回复。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
+    const list = await aiComments(content, 1200);
     B.aiPool = list; save();
     bbRelease(B._owed || 0);
   } catch (e) { aiFail(e); }
