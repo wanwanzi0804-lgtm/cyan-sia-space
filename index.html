@@ -136,6 +136,10 @@ body.typing .bb-tick.bb-tick2{display:block}
 .me-more summary{cursor:pointer;color:var(--muted);padding:4px 0}
 .done-tg{display:flex;width:100%;justify-content:center;gap:6px;border:0;background:var(--bg);color:var(--muted);border-radius:12px;padding:10px;margin-top:10px;font-size:13.5px}
 .rule.done b{color:var(--muted)}
+.cb-intro{margin-top:8px;font-size:13.5px;line-height:1.6;color:var(--muted);background:var(--bg);border-radius:10px;padding:8px 10px;max-height:7.5em;overflow:auto}
+.alb-intro{margin-top:4px;font-size:13px;color:var(--muted)}
+.alb-intro summary{cursor:pointer}
+.alb-intro div{margin-top:4px;line-height:1.6}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -753,6 +757,7 @@ function aiNews() {
   if (t && Date.now() < t.until) { const h = (S.hot.hist || []).slice().reverse().find(x => x.id === t.id) || S.hot.cur; if (h) out.push(`最近热搜：#${h.title}#${h.result ? '（' + h.result + '）' : ''}，粉丝偶尔会聊到`); }
   const a = c && cbAlbum();
   if (a && ph === 'tease') out.push(`她的${ALB_TYPE[a.type] || '新歌'}《${a.name}》（主打《${albTitle(a)}》）${c.date} 回归，正在预热`);
+  if (a && a.intro && ['tease', 'promo', 'rest', 'follow'].includes(ph)) out.push(`这张专辑的简介：${a.intro.replace(/\s+/g, " ").slice(0, 150)}`);
   if (a && ph === 'promo') out.push(`她正在${ALB_TYPE[a.type] || ''}《${a.name}》主打曲《${albTitle(a)}》的打歌期`);
   if (a && ph === 'rest') out.push(`她刚结束《${albTitle(a)}》的主打活动，这周休息`);
   if (a && ph === 'follow') out.push(`她正在后续打歌收录曲《${c.follow}》`);
@@ -1436,6 +1441,7 @@ const CB_TALK = {
 function cbLine() {
   const c = S.cb, p = cbPhase(), a = cbAlbum(); if (!c || !a || !CB_TALK[p]) return null;
   const won = (c.res || []).some(x => x.rank === 1 && Date.now() - x.at < 2 * 86400e3);
+  if (a.intro && !won && ['tease', 'promo'].includes(p) && Math.random() < .2) return fill(pick(['专辑简介看哭了', '这次的概念好特别', '简介里那句好戳我', '读完简介更期待了', '《{album}》的故事好好']).replace(/\{album\}/g, a.name));
   return fill(pick(won ? CB_TALK.win : CB_TALK[p])).replace(/\{song\}/g, cbSong() || a.name).replace(/\{album\}/g, a.name).replace(/\{type\}/g, ALB_TYPE[a.type] || '新歌');
 }
 // 每个打歌周：固定星期几出音乐节目结果
@@ -1494,6 +1500,7 @@ function cbHTML() {
     const ph = p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
     const steps = ['预热 2 周', `主打《${albTitle(a)}》${c.weeks} 周`].concat(c.rest ? ['休息周'] : [], c.follow ? [`后续《${c.follow}》1 周`] : []);
     top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${esc(c.date)} 回归 · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
+      ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
       <div class="muted" style="font-size:12.5px;margin-top:6px">每周${WD[c.day ?? 0]}晚上 7 点出音乐节目结果 · 打歌日请加到行程里（类别选「打歌」），排得越多机会越大</div>
       ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">${esc(x.label || '第' + x.w + '周')} · 《${esc(x.song || albTitle(a))}》${x.gigs != null ? `<span class="muted" style="font-size:12px"> · 打歌 ${x.gigs} 次</span>` : ''}</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
@@ -1504,6 +1511,7 @@ function discoHTML() {
   const list = disco().slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   return `<div class="row" style="margin-bottom:4px"><span class="sp"></span><button class="link" data-act="albnew">＋ 添加作品</button></div>
     ${list.length ? list.map(x => `<div class="alb"><div class="alb-h"><span class="chip" style="background:${x.type === 'full' ? '#7b61ff' : x.type === 'mini' ? '#2fb5c4' : x.type === 'single' ? '#ff8a3d' : '#999'}">${ALB_TYPE[x.type] || '其他'}</span><b>${esc(x.name)}</b><span class="muted" style="font-size:12px">${esc(x.date || '')}</span><span class="sp"></span><button class="link" data-act="albedit" data-id="${x.id}">编辑</button></div>
+      ${x.intro ? `<details class="alb-intro"><summary>专辑简介</summary><div>${esc(x.intro).replace(/\n/g, '<br>')}</div></details>` : ''}
       <ol class="alb-t">${x.tracks.map(t => `<li>${t.title ? '<b>' + esc(t.name) + '</b> <span class="alb-star">主打</span>' : esc(t.name)}${S.cb && !S.cb.over && S.cb.albumId === x.id && S.cb.follow === t.name ? ' <span class="alb-star" style="background:#7b61ff">后续</span>' : ''}</li>`).join('')}</ol></div>`).join('') : '<div class="muted" style="padding:6px 0">还没有歌，添加你发过的作品吧（粉丝点歌、聊天时会提到）</div>'}`;
 }
 // 作品编辑（加歌单 / 计划回归共用）
@@ -1515,6 +1523,7 @@ function albHTML() {
       <div class="grid2"><div class="field"><label>${cb ? '专辑 / 单曲名' : '作品名'}</label><input id="al-name" value="${esc(A.name)}" placeholder="比如：9.1Hz"></div>
         <div class="field"><label>类型</label><select id="al-type">${Object.entries(ALB_TYPE).map(([k, v]) => `<option value="${k}" ${A.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
       <div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}"></div>
+      <div class="field"><label>专辑简介 <span class="muted">（概念、故事、想对粉丝说的话，可不填）</span></label><textarea id="al-intro" style="min-height:80px" placeholder="比如：这张专辑讲的是一只猫在城市里迷路又找到家的故事…">${esc(A.intro || '')}</textarea></div>
       <div class="field"><label>收录曲 <span class="muted">（点 ★ 设为主打）</span></label>
         ${A.tracks.map((t, i) => `<div class="trk"><button class="trk-star ${t.title ? 'on' : ''}" data-act="alstar" data-i="${i}" title="设为主打">★</button><input class="al-t" value="${esc(t.name)}" placeholder="第 ${i + 1} 首">${A.tracks.length > 1 ? `<button class="link" data-act="aldel" data-i="${i}">✕</button>` : ''}</div>`).join('')}
         ${single && A.tracks.length >= 2 ? '' : '<button class="link" data-act="aladd" style="margin-top:4px">＋ 添加一首</button>'}</div>
@@ -1530,7 +1539,7 @@ function albHTML() {
 }
 function albCollect() {
   const A = UI.alb; if (!$('#al-name')) return A;
-  A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value;
+  A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value; A.intro = $('#al-intro').value.trim();
   $$('.al-t').forEach((el, i) => { if (A.tracks[i]) A.tracks[i].name = el.value.trim(); });
   if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.day = +$('#al-day').value; A.rest = $('#al-rest').checked; A.follow = $('#al-follow').value; }
   return A;
@@ -1547,7 +1556,7 @@ function albSave() {
   if (!A.name || !tracks.length) return toast('请填写作品名和至少一首歌');
   if (!tracks.some(t => t.title)) tracks[0].title = true;
   if (A.mode === 'cb' && !A.date) return toast('请选择回归日期');
-  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title })) };
+  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title })) };
   const i = disco().findIndex(x => x.id === alb.id); if (i >= 0) disco()[i] = alb; else disco().push(alb);
   if (A.mode === 'cb') {
     const keep = S.cb && !S.cb.over && S.cb.albumId === alb.id && S.cb.date === A.date ? S.cb : null;
