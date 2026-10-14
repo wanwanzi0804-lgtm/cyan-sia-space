@@ -2274,7 +2274,9 @@ function presetListHTML() {
 function adminHTML(edit) {
   const r = edit || { title: '', cat: '练习', start: '', end: '', loc: '', repeat: 'once', days: [], date: UI.schedDate, note: '' };
   UI.presetCat = UI.presetCat || '打歌';
-  const list = [...S.schedule.rules].sort((a, b) => (a.repeat + a.date + a.start).localeCompare(b.repeat + b.date + b.start));
+  const tk = dkey(Date.now()), nm = new Date().getHours() * 60 + new Date().getMinutes();
+  const finished = x => x.repeat === 'once' && (S.schedule.done[x.date + '|' + x.id] || x.date < tk || (x.date === tk && toMin(x.end) <= nm));
+  const list = S.schedule.rules.filter(x => !finished(x)).sort((a, b) => (a.repeat + a.date + a.start).localeCompare(b.repeat + b.date + b.start));
   const rep = x => x.repeat === 'daily' ? '每天' : x.repeat === 'weekly' ? '每周' + (x.days || []).sort().map(d => WD[d]).join('') : x.date;
   return `<div class="row"><h3 style="flex:1">⚙ 行程后台</h3><button class="btn ghost sm" data-act="close">完成</button></div>
   ${edit ? '' : `<div class="card">
@@ -2303,7 +2305,7 @@ function adminHTML(edit) {
     <div class="row"><span class="sp"></span>${edit ? '<button class="btn ghost" data-act="admin">取消编辑</button>' : ''}<button class="btn primary" data-act="rsave">${edit ? '保存修改' : '添加到行程'}</button></div>
   </div>
   <div class="card">
-    <b>已添加的行程（${list.length}）</b>
+    <b>已添加的行程（${list.length}）</b>${S.schedule.rules.length > list.length ? `<span class="muted"> · 已完成的 ${S.schedule.rules.length - list.length} 条不显示</span>` : ''}
     ${list.length ? list.map(x => `<div class="rule"><span class="chip" style="background:${CATS[x.cat] || '#999'}">${esc(x.cat)}</span><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><div class="muted">${rep(x)} · ${x.start}-${x.end}${x.loc ? ' · ' + esc(x.loc) : ''}</div></div>
       <button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button></div>`).join('') : '<div class="muted" style="padding:8px 0">还没有行程</div>'}
   </div>`;
