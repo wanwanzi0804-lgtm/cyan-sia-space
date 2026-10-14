@@ -574,15 +574,6 @@ function fill(t, q = '') {
 const IMG_TAGS = [['selfie', '🤳 自拍'], ['outfit', '👗 穿搭'], ['makeup', '💄 妆容'], ['food', '🍜 美食'], ['cafe', '☕ 咖啡厅'], ['cat', '🐱 猫咪'], ['pet', '🐶 小动物'], ['stage', '🎤 舞台'], ['backstage', '📸 后台'], ['practice', '💃 练习室'], ['scenery', '🌇 风景'], ['nightview', '🌙 夜景'], ['travel', '✈️ 旅行'], ['group', '👯 合照'], ['gift', '🎁 礼物'], ['exercise', '🏃 运动']];
 // 从图片描述里提取能被"看到"的东西，比如「白色毛衣」「草莓蛋糕」
 // 从偶像的消息里挑话题词（AI 给了就用 AI 的，没有就本地猜）
-const KW_STOP = /^(今天|明天|昨天|现在|刚刚|刚才|一下|一起|真的|什么|怎么|大家|你们|我们|自己|有点|一点|这个|那个|时候|的话|然后|但是|所以|因为|还是|已经|一直|有人|人)$|紧张|开心|激动|难过|兴奋|无聊|好累|幸福|害羞|可爱|好看|厉害|舒服|难受/;
-function msgKeywords(m) {
-  if (!m || !m.text) return [];
-  if (m.kw && m.kw.length) return m.kw;
-  return [...new Set(m.text.split(BB_TOK).join('').split(/[，。、,.!！?？\s~～…]+|的|和|跟|在|了|是|有|去|回|到|从|把|被|给|也|都|还|就|很|超|好|太|真|又|再|才|刚|看到|看了|吃了|喝了|去了|做了|买了|听了|遇到|发现|结束|开始|觉得|问我|问|说|告诉我|告诉|路上|一路|见面|有点|一点|第一次|想|要|会|能|啦|吧|呢|哦|呀|啊|嘛|哈+|嘿+|k{2,}|ㅋ+/)
-    .map(x => x.trim().replace(/^(我|你|他|她|人|今天|这|那|一[个张杯只件条块碗盘份束])+/, ''))
-    .filter(x => x.length >= 2 && x.length <= 5 && !KW_STOP.test(x) && !/^\p{Extended_Pictographic}/u.test(x)))].slice(0, 4);
-}
-const KW_TPL = ['{k}！！', '{k}好棒', '说到{k}我就开心', '{k}我也喜欢', '{k}～好想看', '{k}！我懂', '是{k}耶', '好在意{k}', '{k}哈哈哈', '{k}这个好可爱', '我也想要{k}', '{k}也太好了吧'];
 function descPhrases(desc) {
   return [...new Set((desc || '').split(/[，。、,.!！?？\s~～]+|和|跟|与|在|的|穿着|穿了|拿着|戴着|抱着|吃着|喝着|里面|里|上面|桌上|手里|旁边|一起|还有|背景是|是|有/)
     .map(x => x.trim().replace(/^(我|今天|这|那|一[个张杯只件条块碗盘份束]|很多|好多|超|好|很)+/, '').replace(/(了|呀|啊|哦)+$/, ''))
@@ -1146,10 +1137,33 @@ const BB_FOREIGN = {
   ja: [['かわいい！', '好可爱！'], ['大好き！', '最喜欢了！'], ['おやすみ〜', '晚安～']],
   en: [['love you!!', '爱你！！'], ['omg 😭', '天哪 😭'], ['miss you', '想你'], ['so cute', '好可爱']]
 };
+/* ---------- Bubble 免费回复：先看懂你在说什么情况，再按情况回应 ---------- */
+const BB_INTENT = [
+  [/饿|没吃饭|还没吃|肚子叫/, ['快去吃东西！', '别饿着呀😭', '想吃什么呀', '宿舍有吃的吗', '快吃快吃', '吃饱再睡！', '我也饿了哈哈哈', '吃点热乎的～', '点个外卖吧', '不要饿肚子呀', '饿死可不行哈哈哈', '泡面也算吃饭！', '吃完记得来报告']],
+  [/回宿舍|回家|下班|收工|回去了|往回走|在路上/, ['路上小心！', '到了说一声～', '辛苦啦，快回去', '回去好好休息', '注意安全', '慢慢走～']],
+  [/工位|桌子|书桌|房间|床上|乱糟糟|乱七八糟|好乱|有点乱/, ['乱乱的也好可爱哈哈哈', '我的桌子比你还乱', '好有生活气息！', '乱中有序！', '艺术家的桌子都这样', '有空收拾一下嘛哈哈哈', '看到{n}的日常好开心', '偷偷看到{n}的小世界了']],
+  [/累|好困|困了|没力气|腿软|好疲惫|累死/, ['辛苦了😭', '早点休息', '抱抱', '心疼', '不要太累了', '休息一下吧', '今天也很努力了']],
+  [/要睡了|去睡|准备睡|睡不着|失眠|好想睡/, ['早点睡哦', '好梦～', '睡个好觉', '睡前别玩手机太久哈哈', '我也准备睡了']],
+  [/忙|加班|工作|赶行程|好多事/, ['辛苦了！', '忙完要好好休息', '别太累啦', '加油加油', '等你忙完']],
+  [/无聊|好闲|没事做/, ['那来陪我们聊天！', '在干嘛呀', '发张自拍解闷吧😆', '我也好无聊哈哈']],
+  [/难过|不开心|想哭|哭了|烦|emo|压力|焦虑/i, ['抱抱🫂', '我们都在', '摸摸头', '不要难过呀', '有我们陪你', '想说就说出来～']],
+  [/疼|生病|感冒|发烧|不舒服|头痛|嗓子/, ['多喝热水！', '快去休息', '要不要吃药', '心疼😭', '早点好起来']],
+  [/晚霞|夕阳|日落|天空|月亮|星星|彩虹|风景|樱花|海边/, ['好想看！', '拍照了吗～', '求照片！', '我这边也看到了！', '好浪漫', '和{n}看同一片天空', '好治愈']],
+  [/冷|降温|下雪/, ['多穿点！', '别着凉了', '要穿厚一点']],
+  [/热|好晒|出汗/, ['多喝水！', '注意防晒', '开空调吧哈哈']],
+  [/开心|好棒|成功|做到了|好幸福|太好了/, ['真为你开心！', '太棒啦', '你最棒', '我也跟着开心', '恭喜恭喜！']],
+  [/想你们|想大家|想见你们/, ['我们也想你！！', '想你想你', '快来见我们呀', '一直都在想你']],
+  [/好吃|在吃|吃了|吃完/, ['吃的什么呀', '好吃吗', '多吃点！', '我也想吃', '有好好吃饭真好']]
+];
+const BB_SAD = /饿|累|困|难过|不开心|想哭|哭|烦|死|ㅠ|ㅜ|😭|疼|病|不舒服|惨|压力|焦虑/;
+const BB_CARE = ['呜呜呜', '抱抱', '心疼{n}', '{n}要照顾好自己', '摸摸头', '哈哈哈哈好可爱', '我们都在', '{n}辛苦啦'];
+const BB_FOREIGN_CARE = { ko: [['ㅠㅠㅠ', '呜呜呜'], ['밥 꼭 챙겨 먹어요', '一定要好好吃饭'], ['푹 쉬어요', '好好休息'], ['괜찮아요?', '还好吗？']], ja: [['大丈夫？', '没事吧？'], ['ゆっくり休んでね', '好好休息哦']], en: [['take care!!', '照顾好自己！！'], ['aww 🥺', '呜 🥺']] };
+function bbIntents(t) { return BB_INTENT.filter(([re]) => re.test(t)).map(x => x[1]); }
 function bbLine(msg, chatting) {
   const lang = pickLang();
   const leaving = chatting && msg && msg.text && LEAVE_RE.test(msg.text);
-  if (lang !== 'zh') { const it = pick(leaving && Math.random() < .7 ? BB_BYE_F[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
+  const sad = chatting && msg && BB_SAD.test(msg.text || '');
+  if (lang !== 'zh') { const it = pick(leaving && Math.random() < .7 ? BB_BYE_F[lang] : sad ? BB_FOREIGN_CARE[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
   const t = (msg && msg.text) || '', r = Math.random();
   if (chatting && msg) {
     // 泡泡里粉丝主要是：回答你的问题 / 回应你发的内容 / 追问你
@@ -1157,24 +1171,20 @@ function bbLine(msg, chatting) {
     const ans = clean && answerFor(clean);
     if (ans && r < (leaving ? .8 : .45)) return { lang, text: fill(pick(ans)) };
     if (leaving) return { lang, text: Math.random() < .5 ? pick(BB_LINES.emoji) : fill(pick(['呜呜呜', '爱你', '舍不得', '今天也好开心'])) };
-    // 你开话题时：大部分粉丝是接话、附和、表达情绪，提问只占一小部分
-    const cats = detectCats(clean).filter(c => TPL[c] && TPL[c].zh && c !== 'question');
-    const sn = snippet(t.split(BB_TOK).join(''));
-    // 只发了表情包：粉丝主要是对表情包本身的反应
-    const pool = msg.type === 'sticker' ? [['react', 24], ['emoji', 16], ['media', 60]] : [['react', 34], ['agree', 22], ['emoji', 16], ['follow', 9]];
-    const kws = msgKeywords(msg);
-    if (kws.length) pool.push(['kw', 22]);
+    // 先看你说的是什么情况（饿了、回宿舍、工位乱…），大部分粉丝按情况回应
+    const ints = bbIntents(clean);
+    if (ints.length && Math.random() < .7) return { lang, text: fill(pick(pick(ints))) };
+    const cats = ints.length ? [] : detectCats(clean).filter(c => TPL[c] && TPL[c].zh && !['question', 'food', 'comfort'].includes(c));
+    const pool = msg.type === 'sticker' ? [['react', 24], ['emoji', 16], ['media', 60]] : [['react', 34], ['agree', sad ? 6 : 18], ['emoji', 16], ['follow', sad ? 3 : 9]];
     if (msg.type !== 'text' && msg.type !== 'sticker') pool.push(['media', 28]);
     if (cats.length) pool.push(['cat', 26]);
-    if (sn) pool.push(['echo', 7]);
     let x = Math.random() * pool.reduce((a, p) => a + p[1], 0), k = 'react';
     for (const [name, w] of pool) { x -= w; if (x <= 0) { k = name; break; } }
     if (k === 'media') return { lang, text: fill(pick(msg.type === 'sticker' && STICKERS[msg.sticker] && Math.random() < .6 ? STICKERS[msg.sticker].r : BB_LINES[msg.type])) };
     if (k === 'cat') { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
-    if (k === 'echo') return { lang, text: pick([`「${sn}」哈哈哈`, `「${sn}」好可爱`, `「${sn}」懂了懂了`]) };
-    if (k === 'kw') return { lang, text: fill(pick(KW_TPL)).replace(/\{k\}/g, pick(kws)) };
-    if (k === 'emoji') return { lang, text: pick(BB_LINES.emoji) };
+    if (k === 'emoji') return { lang, text: sad ? pick(['😭😭😭', '🥺🥺🥺', '🫂🫂🫂', '💙💙💙']) : pick(BB_LINES.emoji) };
     if (k === 'follow') return { lang, text: fill(pick(BB_LINES.follow)) };
+    if (k === 'react' && sad) return { lang, text: fill(pick(BB_CARE)) };
     return { lang, text: fill(pick(BB_LINES[k])) };
   }
   const h = new Date().getHours();
@@ -1276,7 +1286,7 @@ ${lines}
 每个粉丝都以为这是偶像单独发给自己的私聊。
 请写 18 条粉丝回复放进 r：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
 格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
-另外在 k 里给出她这些消息里的 2~5 个话题关键词（名词，1~6 个字，比如：晚霞、宿舍、打歌）。` });
+回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。` });
     const res = await aiCompact(content, 3000);
     B.aiPool = res.r;
     if (res.k.length) batch.forEach(x => x.kw = res.k);
