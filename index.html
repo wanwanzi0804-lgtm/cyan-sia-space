@@ -140,6 +140,14 @@ body.typing .bb-tick.bb-tick2{display:block}
 .alb-intro{margin-top:4px;font-size:13px;color:var(--muted)}
 .alb-intro summary{cursor:pointer}
 .alb-intro div{margin-top:4px;line-height:1.6}
+.iv-q b{display:block;margin-bottom:8px;font-size:14.5px}
+.iv-q textarea{min-height:70px}
+.iv-art h2{margin:4px 0 8px;font-size:20px;line-height:1.4}
+.iv-k{font-size:12px;color:#eb7350;font-weight:700}
+.iv-intro{color:var(--muted);line-height:1.7;margin:0 0 12px}
+.iv-qa{margin:14px 0}
+.iv-qq{font-weight:700;margin-bottom:4px}
+.iv-aa{line-height:1.75}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -694,7 +702,7 @@ function tplComment(ctx) {
   if (ctx.tone === 'neg' && lang === 'zh' && Math.random() < .55) return { lang, text: fill(pick(TPL.neg.zh)), zh: null };
   if (lang === 'zh' && ctx.text && ctx.tone !== 'neg' && !ctx.ans && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
   if (lang === 'zh' && Math.random() < .07) { const ev = eventLine(); if (ev) return { lang, text: ev, zh: null }; }
-  if (lang === 'zh' && Math.random() < .1) { const hl = Math.random() < .5 ? hotLine() || cbLine() : cbLine() || hotLine(); if (hl) return { lang, text: hl, zh: null }; }
+  if (lang === 'zh' && Math.random() < .1) { const hl = newsLine(); if (hl) return { lang, text: hl, zh: null }; }
   if (lang === 'zh' && ctx.ans && Math.random() < .5) return { lang, text: fill(pick(ctx.ans)), zh: null };
   if (lang === 'zh' && ctx.hour !== undefined && Math.random() < .06) {
     const h = ctx.hour, list = h < 5 || h >= 23 ? ['这么晚还不睡！', '熬夜被我抓到了', '{n}快去睡觉', '深夜营业好幸福'] : h < 9 ? ['早起的{n}！', '一大早就营业', '早安早安'] : null;
@@ -761,6 +769,7 @@ function aiNews() {
   if (a && ph === 'promo') out.push(`她正在${ALB_TYPE[a.type] || ''}《${a.name}》主打曲《${albTitle(a)}》的打歌期`);
   if (a && ph === 'rest') out.push(`她刚结束《${albTitle(a)}》的主打活动，这周休息`);
   if (a && ph === 'follow') out.push(`她正在后续打歌收录曲《${c.follow}》`);
+  const ar = S.intv && S.intv.list[0]; if (ar && Date.now() - ar.at < 2 * 86400e3) out.push(`她刚接受了${ar.media}的采访，标题是${ar.title}`);
   return out.length ? '近期动态：' + out.join('；') + '。\n' : '';
 }
 function aiSystem() {
@@ -1565,6 +1574,124 @@ function albSave() {
   syncSongs(); save(); closeModal(); render();
   toast(A.mode === 'cb' ? '回归定下了 💿' : '已保存到歌单', `《${alb.name}》`);
 }
+/* =========================================================
+   采访：媒体不定时发来邀约 → 你认真回答 → 几小时后刊登成文章，粉丝讨论
+   ========================================================= */
+const IV_MEDIA = [
+  [0, ['校园电台《午后频道》', '音乐博客「耳朵里的猫」', '独立杂志《小众》', '新人观察站']],
+  [12000, ['线上杂志 Moonline', '音乐网站 K-Note', '《MEOW》杂志 线上专栏', '偶像周刊 Starry Weekly']],
+  [30000, ['音乐杂志《Beat》', '时尚杂志《LUNA》', '综合娱乐媒体 Spotlight']]
+];
+const IV_Q = {
+  daily: ['最近一天是怎么过的？', '最近让你最开心的一件小事是什么？', '休息日一般会做什么？', '最近在听什么歌？', '如果用一种动物形容现在的自己，会是什么？', '睡前一定会做的事情是什么？', '最近有没有新的爱好？', '最近一次哭是因为什么？', '如果有一天完全自由的假期，想做什么？', '最近最想吃的东西是什么？'],
+  career: ['出道到现在，最难忘的一个瞬间是？', '练习生时期最辛苦的是什么？', '觉得出道后自己最大的变化是什么？', '舞台上最紧张的一次是什么时候？', '有没有想挑战的音乐风格？', '五年后想成为什么样的歌手？', '有想合作的艺人吗？', '舞台前一定会做的小习惯是什么？'],
+  fans: ['有什么想对{f}说的话？', '和粉丝之间印象最深的一件事？', '粉丝给你取的昵称里最喜欢哪个？', '会偷偷看粉丝的评论吗？', '你觉得{f}是什么样的存在？'],
+  cb: ['《{album}》是一张什么样的{type}？', '主打《{title}》最想让大家注意哪个部分？', '准备《{album}》期间最辛苦的是什么？', '{type}里私心最喜欢的一首是？', '这次回归的造型有什么想法？', '这次回归期有什么目标？'],
+  serim: ['和世琳是怎么成为好朋友的？', '世琳对你来说是什么样的朋友？']
+};
+function ivState() { return S.intv || (S.intv = { next: 0, cur: null, list: [] }); }
+function ivGap() {
+  const f = S.profile.followers, d = f < 15000 ? rand(6, 10) : f < 30000 ? rand(4, 7) : rand(3, 5);
+  return d * 86400e3 * (['tease', 'promo'].includes(cbPhase()) ? .6 : 1);
+}
+function ivNew() {
+  const f = S.profile.followers, tier = IV_MEDIA.filter(x => f >= x[0]).pop()[1];
+  const a = cbAlbum(), ph = cbPhase(), cb = a && ['tease', 'promo', 'follow'].includes(ph);
+  const fillQ = q => q.replace(/\{f\}/g, S.profile.fandom).replace(/\{album\}/g, a ? a.name : '').replace(/\{title\}/g, albTitle(a)).replace(/\{type\}/g, a ? (ALB_TYPE[a.type] || '专辑') : '');
+  const qs = [];
+  const take = (pool, n) => pickN(pool.filter(q => !qs.includes(q)), n).forEach(q => qs.push(q));
+  if (cb) take(IV_Q.cb, 2);
+  take(IV_Q.fans, 1);
+  if (Math.random() < .15) take(IV_Q.serim, 1);
+  take(IV_Q.career, cb ? 1 : 2);
+  take(IV_Q.daily, 5 - qs.length);
+  return { id: uid(), media: pick(tier), topic: cb ? `${ALB_TYPE[a.type] || ''}《${a.name}》回归采访` : pick(['近况采访', '新人专访', '一问一答']), cb: !!cb, qs: qs.map(fillQ), ans: qs.map(() => ''), at: Date.now(), until: Date.now() + 48 * 3600e3 };
+}
+function ivTick() {
+  const I = ivState(), now = Date.now();
+  if (!I.next) I.next = now + ivGap() * rand(.2, .5);
+  if (!I.cur && now >= I.next && new Date().getHours() >= 10) {
+    I.next = now + ivGap(); I.cur = ivNew();
+    pushNotif({ type: 'intv', text: `📝 ${I.cur.media} 想采访你`, sub: `${I.cur.topic} · ${I.cur.qs.length} 个问题，48 小时内回答` }, true);
+  }
+  const c = I.cur;
+  if (c && !c.sent && now > c.until) { I.cur = null; pushNotif({ type: 'intv', text: `📝 ${c.media} 的采访邀请过期了`, sub: '下次有邀约记得早点回答哦' }, false); }
+  if (c && c.sent && now >= c.pubAt) ivPublish();
+  for (const ar of I.list) {
+    const age = now - ar.at; if (age > 3 * 86400e3) continue;
+    ar.lastC = ar.lastC || ar.at;
+    if (now - ar.lastC > 5 * 60e3 * (1 + age / (6 * 3600e3))) { ar.lastC = now; if (ar.cm.length < 50) { const c = ivComment(ar); if (!ar.cm.some(x => x.text === c.text)) ar.cm.push(c); ar.cc += ri(1, 4); } ar.likes += ri(3, 25); ar.views += ri(20, 200); }
+  }
+}
+function ivSubmit() {
+  const c = ivState().cur; if (!c) return;
+  $$('.iv-a').forEach((el, i) => c.ans[i] = el.value.trim());
+  const n = c.ans.filter(Boolean).length; if (n < 3) return toast('至少回答 3 个问题吧');
+  c.sent = true; c.pubAt = Date.now() + rand(60, 180) * 60e3; logAct('post'); save();
+  closeModal(); toast('采访已提交 📝', '几个小时后就会刊登');
+}
+function ivComment(ar) {
+  const qa = ar.qa.filter(x => x.a), ql = qa.filter(x => x.a.length >= 4), q = ql.length ? pick(ql).a : '';
+  const short = qa.length && qa.reduce((s, x) => s + x.a.length, 0) / qa.length < 8;
+  const quote = q.length > 22 ? q.slice(0, 20) + '…' : q;
+  const r = Math.random(); let text;
+  if (ar.serim && r < .2) text = pick(TPL.serim.zh);
+  else if (ar.neg && r < .35) text = pick(['这个回答有点…', '是不是状态不太好', '心疼，最近是不是太累了', '别过度解读啦']);
+  else if (short && r < .3) text = pick(['回答好短哈哈哈', '是不是很赶', '她就是话少啦', '惜字如金']);
+  else if (quote && r < .55) text = pick([`「${quote}」这句好戳我`, `「${quote}」我记住了`, `「${quote}」读了好几遍`, `最喜欢「${quote}」这个回答`]);
+  else text = fill(pick(['采访好好看', '她回答得好认真', '这篇我要存下来', '{n}好真诚', '看哭了', '原来{n}是这么想的', '想看更多这种采访', '这家媒体问的问题好好', '路人看完有点心动了', '第一次了解她，好喜欢']));
+  return { id: uid(), user: Math.random() < .3 ? '用户' + ri(1000000, 9999999) : makeFan('zh').user, text, likes: Math.round(rand(0, S.profile.followers / 500) * Math.random()), at: Date.now() };
+}
+function ivPublish() {
+  const I = ivState(), c = I.cur; I.cur = null;
+  const qa = c.qs.map((q, i) => ({ q, a: c.ans[i] })).filter(x => x.a);
+  const all = qa.map(x => x.a).join(' ');
+  const best = qa.map(x => x.a).filter(a => a.length >= 4 && a.length <= 28).sort((a, b) => b.length - a.length)[0] || (qa[0] ? qa[0].a.slice(0, 20) : '');
+  const a = cbAlbum(), avg = all.length / Math.max(1, qa.length);
+  const intro = c.cb && a ? `出道第 ${dday()} 天的 ${S.profile.name}，带着${ALB_TYPE[a.type] || ''}《${a.name}》回来了。我们和她聊了聊这次回归，还有最近的生活。`
+    : pick([`在一个普通的午后，我们和出道第 ${dday()} 天的 ${S.profile.name} 聊了聊最近的生活。`, `${S.profile.name} 出道第 ${dday()} 天，我们问了她 ${qa.length} 个问题。`, `比起舞台上的样子，这次我们想认识一个更日常的 ${S.profile.name}。`]);
+  const neg = tone(all) === 'neg', serim = CAT_KW.serim.test(all);
+  const tierK = IV_MEDIA.findIndex(x => x[1].includes(c.media));
+  const f = S.profile.followers;
+  let frac = rand(.003, .01) * (1 + Math.max(0, tierK) * .6) * (avg >= 20 ? 1.4 : avg < 8 ? .4 : 1);
+  if (neg) frac = -rand(.003, .01);
+  const net = Math.round(f * frac), now = Date.now();
+  hotState().fx.push({ from: now, to: now + 24 * 3600e3, total: net, done: 0, reason: '采访：' + c.media });
+  const ar = { id: c.id, media: c.media, topic: c.topic, title: `${S.profile.name}：「${best}」`, intro, qa, at: now, views: Math.round(f * rand(.05, .2) * (1 + tierK)), likes: Math.round(f * rand(.01, .04)), cc: 0, cm: [], liked: false, neg, serim, net };
+  for (let i = 0; i < ri(8, 12); i++) { let c = ivComment(ar); for (let k = 0; k < 5 && ar.cm.some(x => x.text === c.text); k++) c = ivComment(ar); ar.cm.push(c); ar.cc += ri(1, 4); }
+  ar.cm.sort((x, y) => y.likes - x.likes);
+  I.list.unshift(ar); if (I.list.length > 20) I.list.length = 20;
+  pushNotif({ type: 'intv', key: ar.id, text: `📝 ${c.media} 刊登了你的采访`, sub: `${ar.title} · 粉丝 ${net >= 0 ? '+' : ''}${fmtNum(net)}（一天内陆续变化）` }, true);
+}
+function ivLine() {
+  const ar = ivState().list[0]; if (!ar || Date.now() - ar.at > 2 * 86400e3) return null;
+  const q = pick(ar.qa.filter(x => x.a.length >= 4) || []); if (!q) return null;
+  const s = q.a.length > 16 ? q.a.slice(0, 15) + '…' : q.a;
+  return pick([`看了采访，「${s}」这句好戳`, `${ar.media}的采访我看了三遍`, `采访里说「${s}」，我记住了`, '采访好真诚呜呜']);
+}
+function ivFormHTML() {
+  const c = ivState().cur; if (!c) return '';
+  return `<div class="row"><h3 style="flex:1">📝 ${esc(c.media)}</h3><button class="btn ghost sm" data-act="close">稍后再答</button></div>
+    <div class="muted" style="margin:-4px 0 10px">${esc(c.topic)} · 剩 ${hotLeft(c.until - Date.now())} · 至少回答 3 题，写得越用心越好</div>
+    ${c.qs.map((q, i) => `<div class="card iv-q"><b>Q${i + 1}. ${esc(q)}</b><textarea class="iv-a" data-i="${i}" placeholder="写下你的回答…（不想答可以空着）">${esc(c.ans[i] || '')}</textarea></div>`).join('')}
+    <div class="row"><span class="muted" style="font-size:12.5px;flex:1">写的内容会自动保存</span><button class="btn primary" data-act="ivsubmit">提交采访</button></div>`;
+}
+function ivArticleHTML(id) {
+  const ar = ivState().list.find(x => x.id === id);
+  if (!ar) return `<div class="row"><h3 style="flex:1">📝 采访</h3><button class="btn ghost sm" data-act="close">关闭</button></div><div class="empty">找不到这篇采访</div>`;
+  return `<div class="row"><h3 style="flex:1">📝 ${esc(ar.media)}</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card iv-art"><div class="iv-k">${esc(ar.topic)}</div><h2>${esc(ar.title)}</h2><p class="iv-intro">${esc(ar.intro)}</p>
+      ${ar.qa.map(x => `<div class="iv-qa"><div class="iv-qq">Q. ${esc(x.q)}</div><div class="iv-aa">${esc(x.a).replace(/\n/g, '<br>')}</div></div>`).join('')}
+      <div class="hp-stats"><span>👁 ${fmtNum(ar.views)}</span><span>💬 ${fmtNum(ar.cc)}</span><button class="hp-like ${ar.liked ? 'on' : ''}" data-act="ivlike" data-id="${ar.id}">${ar.liked ? '❤️' : '🤍'} ${fmtNum(ar.likes)}</button></div></div>
+    <div class="sec-title">评论 ${fmtNum(ar.cc)}</div>
+    <div class="card" style="padding:4px 12px">${ar.cm.map(x => `<div class="hp-c"><div style="flex:1;min-width:0"><b>${esc(x.user)}</b><div>${esc(x.text)}</div></div><button class="hp-cl ${x.liked ? 'on' : ''}" data-act="ivclike" data-a="${ar.id}" data-id="${x.id}">${x.liked ? '❤️' : '🤍'} ${x.likes || ''}</button></div>`).join('')}</div>`;
+}
+function ivPanelHTML() {
+  const I = ivState(), c = I.cur;
+  return `${c ? `<button class="hot-opt" data-act="ivopen">📝 ${esc(c.media)} · ${esc(c.topic)}<span class="muted" style="font-size:12.5px"> · ${c.sent ? '等待刊登' : '剩 ' + hotLeft(c.until - Date.now())}</span></button>` : '<div class="muted" style="padding:4px 0 8px">暂时没有采访邀约，媒体会不定时找你 📮</div>'}
+    ${I.list.slice(0, 6).map(x => `<div class="rule" data-act="ivread" data-id="${x.id}" style="cursor:pointer"><div style="flex:1;min-width:0"><div>${esc(x.title)}</div><div class="muted" style="font-size:12px">${esc(x.media)} · ${ago(x.at)}</div></div>${fanSign(x.net)}</div>`).join('')}`;
+}
+function newsLine() { const ls = [hotLine(), cbLine(), ivLine()].filter(Boolean); return ls.length ? pick(ls) : null; }
 
 let lastReal = Date.now();
 function tick() {
@@ -1572,7 +1699,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); bubbleTick(dt, false);
+  dailyFans(); schedFans(); hotTick(); cbTick(); ivTick(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -1831,7 +1958,7 @@ function bbLine(msg, chatting) {
   const h = new Date().getHours();
   if (Math.random() < .55 * Math.exp(-bbDays() / 2)) return { lang, text: fill(pick(BB_LINES.newsub)) };
   if (r < .12) { const ev = eventLine(); if (ev) return { lang, text: ev }; }
-  if (r < .3) { const hl = Math.random() < .5 ? hotLine() || cbLine() : cbLine() || hotLine(); if (hl) return { lang, text: hl }; }
+  if (r < .3) { const hl = newsLine(); if (hl) return { lang, text: hl }; }
   if (r < .4) return { lang, text: fill(pick(TPL.ask.zh)) };
   if (r < .52) return { lang, text: fill(pick(h >= 5 && h < 10 ? BB_LINES.morning : (h >= 23 || h < 4) ? BB_LINES.night : BB_LINES.idle)) };
   return { lang, text: fill(pick(BB_LINES.idle)) };
@@ -2395,7 +2522,7 @@ function myComment() {
 }
 
 /* ---------- 通知 ---------- */
-const NIC = { like: '❤️', comment: '💬', reply: '↩️', sched: '🗓', live: '📹', system: '🐱', hot: '📰', cb: '💿' };
+const NIC = { like: '❤️', comment: '💬', reply: '↩️', sched: '🗓', live: '📹', system: '🐱', hot: '📰', cb: '💿', intv: '📝' };
 function viewNotif() {
   return `<div class="row" style="margin:4px 4px 10px"><b style="font-size:18px">通知</b><span class="sp"></span><button class="link" data-act="clearnotif">清空</button></div>
   <div class="card">${S.notifs.length ? S.notifs.slice(0, 150).map(n => `
@@ -2411,6 +2538,7 @@ function openNotif(n) {
   } else if (n.type === 'sched') { UI.tab = 'sched'; render(); }
   else if (n.type === 'live') { UI.tab = 'live'; render(); }
   else if (n.type === 'hot') openModal(hotPostHTML(n.key || hotState().cur?.key));
+  else if (n.type === 'intv') { if (n.key) openModal(ivArticleHTML(n.key)); else if (ivState().cur && !ivState().cur.sent) openModal(ivFormHTML()); else { UI.tab = 'me'; UI.meTab = 'stats'; render(); } }
   else if (n.type === 'cb') { UI.tab = 'me'; render(); }
 }
 function updBadges() {
@@ -3126,7 +3254,9 @@ function viewMe() {
   <div class="sec-title">📈 粉丝动态</div>
   <div class="card">${fanPanelHTML()}</div>
   <div class="sec-title">📰 热搜</div>
-  <div class="card">${hotPanelHTML()}</div>`,
+  <div class="card">${hotPanelHTML()}</div>
+  <div class="sec-title">📝 采访</div>
+  <div class="card">${ivPanelHTML()}</div>`,
   music: () => `
   <div class="sec-title">💿 回归</div>
   <div class="card">${cbHTML()}</div>
@@ -3316,6 +3446,11 @@ document.addEventListener('click', async e => {
     case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); $('#sheet').scrollTop = 0; break;
     case 'rdel': if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
     case 'rsave': saveRule(); break;
+    case 'ivopen': { const c = ivState().cur; if (!c) break; if (c.sent) toast('已经提交啦', '几个小时后就会刊登'); else openModal(ivFormHTML()); break; }
+    case 'ivsubmit': ivSubmit(); render(); break;
+    case 'ivread': openModal(ivArticleHTML(t.dataset.id)); break;
+    case 'ivlike': { const ar = ivState().list.find(x => x.id === t.dataset.id); if (!ar) break; ar.liked = !ar.liked; ar.likes += ar.liked ? 1 : -1; save(); t.classList.toggle('on', ar.liked); t.textContent = `${ar.liked ? '❤️' : '🤍'} ${fmtNum(ar.likes)}`; break; }
+    case 'ivclike': { const ar = ivState().list.find(x => x.id === t.dataset.a), x = ar && ar.cm.find(c => c.id === t.dataset.id); if (!x) break; x.liked = !x.liked; x.likes = (x.likes || 0) + (x.liked ? 1 : -1); save(); t.classList.toggle('on', x.liked); t.textContent = `${x.liked ? '❤️' : '🤍'} ${x.likes || ''}`; break; }
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
@@ -3398,6 +3533,7 @@ document.addEventListener('change', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
+  if (e.target.classList.contains('iv-a')) { const c = ivState().cur; if (c) { c.ans[+e.target.dataset.i] = e.target.value; save(); } }
   if (e.target.id === 'cmp-text') draft = e.target.value;
   if (e.target.id === 'cmp-desc') draftDesc = e.target.value;
   if (e.target.id === 'bb-in') { UI.bbDraft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }
