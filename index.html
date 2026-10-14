@@ -1151,41 +1151,38 @@ const BB_INTENT = [
   [/晚霞|夕阳|日落|天空|月亮|星星|彩虹|风景|樱花|海边/, ['好想看！', '拍照了吗～', '求照片！', '我这边也看到了！', '好浪漫', '和{n}看同一片天空', '好治愈']],
   [/冷|降温|下雪/, ['多穿点！', '别着凉了', '要穿厚一点']],
   [/热|好晒|出汗/, ['多喝水！', '注意防晒', '开空调吧哈哈']],
-  [/开心|好棒|成功|做到了|好幸福|太好了/, ['真为你开心！', '太棒啦', '你最棒', '我也跟着开心', '恭喜恭喜！']],
+  [/开心|好棒|成功|做到了|好幸福|太好了/, ['真为你开心！', '太棒啦', '你最棒', '我也跟着开心', '看你开心我也开心']],
   [/想你们|想大家|想见你们/, ['我们也想你！！', '想你想你', '快来见我们呀', '一直都在想你']],
   [/好吃|在吃|吃了|吃完/, ['吃的什么呀', '好吃吗', '多吃点！', '我也想吃', '有好好吃饭真好']]
 ];
 const BB_SAD = /饿|累|困|难过|不开心|想哭|哭|烦|死|ㅠ|ㅜ|😭|疼|病|不舒服|惨|压力|焦虑/;
-const BB_CARE = ['呜呜呜', '抱抱', '心疼{n}', '{n}要照顾好自己', '摸摸头', '哈哈哈哈好可爱', '我们都在', '{n}辛苦啦'];
+const BB_CARE = ['呜呜呜', '抱抱', '心疼{n}', '{n}要照顾好自己', '摸摸头', '我们都在', '{n}辛苦啦'];
 const BB_FOREIGN_CARE = { ko: [['ㅠㅠㅠ', '呜呜呜'], ['밥 꼭 챙겨 먹어요', '一定要好好吃饭'], ['푹 쉬어요', '好好休息'], ['괜찮아요?', '还好吗？']], ja: [['大丈夫？', '没事吧？'], ['ゆっくり休んでね', '好好休息哦']], en: [['take care!!', '照顾好自己！！'], ['aww 🥺', '呜 🥺']] };
 function bbIntents(t) { return BB_INTENT.filter(([re]) => re.test(t)).map(x => x[1]); }
+// 泡泡要“精”：宁可少回，也只回贴题的话；看不懂的消息就只回安全的短句和表情
+const BB_SAFE = ['好可爱', '爱你', '{n}！！', '嘿嘿嘿', '看到{n}的消息就开心', '今天也好喜欢你', '嗯嗯！', '收到！', '{n}来啦', '被可爱到了'];
+const BB_SAFE_F = { ko: [['사랑해요', '爱你'], ['💙💙💙', '💙💙💙'], ['귀여워요 ㅠㅠ', '好可爱呜呜']], ja: [['大好き！', '最喜欢了！'], ['かわいい！', '好可爱！']], en: [['love you!!', '爱你！！'], ['so cute', '好可爱']] };
 function bbLine(msg, chatting) {
   const lang = pickLang();
   const leaving = chatting && msg && msg.text && LEAVE_RE.test(msg.text);
   const sad = chatting && msg && BB_SAD.test(msg.text || '');
-  if (lang !== 'zh') { const it = pick(leaving && Math.random() < .7 ? BB_BYE_F[lang] : sad ? BB_FOREIGN_CARE[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
+  if (lang !== 'zh') { const it = pick(leaving ? BB_BYE_F[lang] : sad ? BB_FOREIGN_CARE[lang] : chatting ? BB_SAFE_F[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
   const t = (msg && msg.text) || '', r = Math.random();
   if (chatting && msg) {
-    // 泡泡里粉丝主要是：回答你的问题 / 回应你发的内容 / 追问你
     const clean = t.split(BB_TOK).join(bbFan());
+    // 1. 你在提问：大部分人回答你
     const ans = clean && answerFor(clean);
-    if (ans && r < (leaving ? .8 : .45)) return { lang, text: fill(pick(ans)) };
-    if (leaving) return { lang, text: Math.random() < .5 ? pick(BB_LINES.emoji) : fill(pick(['呜呜呜', '爱你', '舍不得', '今天也好开心'])) };
-    // 先看你说的是什么情况（饿了、回宿舍、工位乱…），大部分粉丝按情况回应
+    if (ans && r < (leaving ? .85 : .6)) return { lang, text: fill(pick(ans)) };
+    if (leaving) return { lang, text: fill(pick(ANS.bye)) };
+    // 2. 看得懂你在说什么情况（饿了、回宿舍、工位乱…）：按情况回应
     const ints = bbIntents(clean);
-    if (ints.length && Math.random() < .7) return { lang, text: fill(pick(pick(ints))) };
-    const cats = ints.length ? [] : detectCats(clean).filter(c => TPL[c] && TPL[c].zh && !['question', 'food', 'comfort'].includes(c));
-    const pool = msg.type === 'sticker' ? [['react', 24], ['emoji', 16], ['media', 60]] : [['react', 34], ['agree', sad ? 6 : 18], ['emoji', 16], ['follow', sad ? 3 : 9]];
-    if (msg.type !== 'text' && msg.type !== 'sticker') pool.push(['media', 28]);
-    if (cats.length) pool.push(['cat', 26]);
-    let x = Math.random() * pool.reduce((a, p) => a + p[1], 0), k = 'react';
-    for (const [name, w] of pool) { x -= w; if (x <= 0) { k = name; break; } }
-    if (k === 'media') return { lang, text: fill(pick(msg.type === 'sticker' && STICKERS[msg.sticker] && Math.random() < .6 ? STICKERS[msg.sticker].r : BB_LINES[msg.type])) };
-    if (k === 'cat') { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
-    if (k === 'emoji') return { lang, text: sad ? pick(['😭😭😭', '🥺🥺🥺', '🫂🫂🫂', '💙💙💙']) : pick(BB_LINES.emoji) };
-    if (k === 'follow') return { lang, text: fill(pick(BB_LINES.follow)) };
-    if (k === 'react' && sad) return { lang, text: fill(pick(BB_CARE)) };
-    return { lang, text: fill(pick(BB_LINES[k])) };
+    if (ints.length && Math.random() < .8) return { lang, text: fill(pick(pick(ints))) };
+    // 3. 表情包 / 照片 / 视频 / 语音：对内容本身的反应
+    if (msg.type === 'sticker' && Math.random() < .75) return { lang, text: fill(pick(STICKERS[msg.sticker] && Math.random() < .6 ? STICKERS[msg.sticker].r : BB_LINES.sticker)) };
+    if (msg.type !== 'text' && msg.type !== 'sticker' && Math.random() < .6) return { lang, text: fill(pick(BB_LINES[msg.type])) };
+    // 4. 其余只回安全的短句和表情
+    if (sad) return { lang, text: Math.random() < .35 ? pick(['😭😭😭', '🥺🥺🥺', '🫂🫂🫂', '💙💙💙']) : fill(pick(BB_CARE)) };
+    return { lang, text: Math.random() < .3 ? pick(BB_LINES.emoji) : fill(pick(BB_SAFE)) };
   }
   const h = new Date().getHours();
   if (Math.random() < .55 * Math.exp(-bbDays() / 2)) return { lang, text: fill(pick(BB_LINES.newsub)) };
@@ -1235,7 +1232,7 @@ async function bbSend(type, payload = {}) {
   const B = S.bubble, g = bbOpen();
   if (g.fans.length) { g.closed = true; g.emoji = g._emo || pick(BB_EMOJI); } else B.groups.pop();
   const h = new Date().getHours();
-  const m = { id: uid(), type, text: payload.text || '', at: Date.now(), burst: Math.round(bbSubs() * rand(.05, .12) * heat() * (h >= 22 || h < 2 ? 1.3 : 1)) };
+  const m = { id: uid(), type, text: payload.text || '', at: Date.now(), burst: Math.round(bbSubs() * rand(.015, .035) * heat() * (h >= 22 || h < 2 ? 1.3 : 1)) };
   if (payload.blob) { const id = uid(); try { await idbPut(id, payload.blob); } catch (e) { } urlCache[id] = URL.createObjectURL(payload.blob); m.media = id; if (payload.dur) m.dur = payload.dur; }
   else if (payload.media) { m.media = payload.media; if (payload.dur) m.dur = payload.dur; }
   if (payload.sticker) m.sticker = payload.sticker;
