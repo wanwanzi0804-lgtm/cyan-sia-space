@@ -134,6 +134,8 @@ body.typing .bb-tick.bb-tick2{display:block}
 .fb span{font-size:11px;color:var(--muted);margin-top:3px}
 .me-more{margin-top:10px;font-size:14px}
 .me-more summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.done-tg{display:flex;width:100%;justify-content:center;gap:6px;border:0;background:var(--bg);color:var(--muted);border-radius:12px;padding:10px;margin-top:10px;font-size:13.5px}
+.rule.done b{color:var(--muted)}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -3015,6 +3017,7 @@ function adminHTML(edit) {
   const tk = dkey(Date.now()), nm = new Date().getHours() * 60 + new Date().getMinutes();
   const finished = x => x.repeat === 'once' && (S.schedule.done[x.date + '|' + x.id] || x.date < tk || (x.date === tk && toMin(x.end) <= nm));
   const list = S.schedule.rules.filter(x => !finished(x)).sort((a, b) => (a.repeat + a.date + a.start).localeCompare(b.repeat + b.date + b.start));
+  const doneList = S.schedule.rules.filter(finished).sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start)); // 最近完成的在前
   const rep = x => x.repeat === 'daily' ? '每天' : x.repeat === 'weekly' ? '每周' + (x.days || []).sort().map(d => WD[d]).join('') : x.date;
   return `<div class="row"><h3 style="flex:1">⚙ 行程后台</h3><button class="btn ghost sm" data-act="close">完成</button></div>
   ${edit ? '' : `<div class="card">
@@ -3043,9 +3046,12 @@ function adminHTML(edit) {
     <div class="row"><span class="sp"></span>${edit ? '<button class="btn ghost" data-act="admin">取消编辑</button>' : ''}<button class="btn primary" data-act="rsave">${edit ? '保存修改' : '添加到行程'}</button></div>
   </div>
   <div class="card">
-    <b>已添加的行程（${list.length}）</b>${S.schedule.rules.length > list.length ? `<span class="muted"> · 已完成的 ${S.schedule.rules.length - list.length} 条不显示</span>` : ''}
+    <b>已添加的行程（${list.length}）</b>
     ${list.length ? list.map(x => `<div class="rule"><span class="chip" style="background:${CATS[x.cat] || '#999'}">${esc(x.cat)}</span><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><div class="muted">${rep(x)} · ${x.start}-${x.end}${x.loc ? ' · ' + esc(x.loc) : ''}</div></div>
       <button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button></div>`).join('') : '<div class="muted" style="padding:8px 0">还没有行程</div>'}
+    ${doneList.length ? `<button class="done-tg" data-act="rshowdone">${UI.showDone ? '收起' : '查看'}已完成的行程（${doneList.length}）<span>${UI.showDone ? '▴' : '▾'}</span></button>
+    ${UI.showDone ? doneList.map(x => `<div class="rule done"><span class="chip" style="background:${CATS[x.cat] || '#999'}">${esc(x.cat)}</span><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><div class="muted">${rep(x)} · ${x.start}-${x.end}${x.loc ? ' · ' + esc(x.loc) : ''}</div></div>
+      <button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button></div>`).join('') : ''}` : ''}
   </div>`;
 }
 function syncRepFields() {
@@ -3297,7 +3303,8 @@ document.addEventListener('click', async e => {
       $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
     }
     case 'admin': openModal(adminHTML()); syncRepFields(); break;
-    case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); break;
+    case 'rshowdone': UI.showDone = !UI.showDone; { const sc = $('#sheet').scrollTop; openModal(adminHTML()); syncRepFields(); $('#sheet').scrollTop = sc; } break;
+    case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); $('#sheet').scrollTop = 0; break;
     case 'rdel': if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
     case 'rsave': saveRule(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
