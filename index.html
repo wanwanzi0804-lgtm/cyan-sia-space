@@ -219,6 +219,7 @@ body.typing .bb{bottom:0}
 .day.today b{text-decoration:underline;text-underline-offset:3px}
 .dots{display:flex;gap:2px;height:5px;margin-top:2px}
 .dots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.7}
+.worksum{margin-top:10px;padding:14px;border-radius:14px;background:color-mix(in srgb,var(--accent) 12%,transparent);text-align:center;display:flex;flex-direction:column;gap:4px;font-size:14px}.worksum b{font-size:20px;color:var(--accent)}
 .sched{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--line);align-items:flex-start}
 .sched:first-child{border-top:0}
 .sched .time{width:52px;flex:none;font-weight:700;font-size:14px}
@@ -2259,7 +2260,17 @@ function viewSched() {
       <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
       <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
-  }).join('') : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
+  }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
+}
+function workSumHTML(k, items, today, nowMin) {
+  const fin = r => S.schedule.done[k + '|' + r.id] || k < today || (k === today && nowMin >= toMin(r.end));
+  if (!items.every(fin)) return '';
+  const iv = items.map(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return [s, e]; }).sort((a, b) => a[0] - b[0]);
+  let tot = 0, cs = -1, ce = -1;
+  for (const [s, e] of iv) { if (s > ce) { if (ce > cs) tot += ce - cs; cs = s; ce = e; } else ce = Math.max(ce, e); }
+  if (ce > cs) tot += ce - cs;
+  const h = Math.floor(tot / 60), m = tot % 60, d = k === today ? '今日' : '当日';
+  return `<div class="worksum">🎉 ${d}行程全部完成<b>${d}工作时长 ${h ? h + ' 小时 ' : ''}${m || !h ? m + ' 分钟' : ''}</b><span class="muted">共 ${items.length} 项行程</span></div>`;
 }
 function presetMatches() {
   const q = (UI.presetQ || '').trim().toLowerCase();
