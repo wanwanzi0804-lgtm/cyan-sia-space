@@ -120,6 +120,17 @@ body.typing .bb-tick.bb-tick2{display:block}
 .bb-recbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);font-size:14px}
 .rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2d55;animation:pulse 1s infinite}
 #bb-side{position:fixed;inset:0;z-index:85}
+.cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
+.cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
+.cb-steps i{font-style:normal;color:var(--muted)}
+.alb{padding:10px 0;border-top:1px solid var(--line)}
+.alb-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.alb-t{margin:6px 0 0 18px;padding:0;font-size:14px;line-height:1.7}
+.alb-star{font-size:10px;background:var(--accent);color:#fff;border-radius:6px;padding:1px 5px;vertical-align:1px}
+.trk{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.trk input{flex:1}
+.trk-star{border:0;background:none;font-size:20px;color:#ccd2d8;width:30px;flex:none;padding:0}
+.trk-star.on{color:#ffb400}
 #hot-bar{flex-basis:100%;order:9;display:flex;align-items:center;gap:6px;background:#fff4e5;color:#b35c00;border-radius:12px;padding:7px 12px;font-size:13px;cursor:pointer;margin-top:2px}
 #hot-bar[hidden]{display:none}
 #hot-bar .hb-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
@@ -724,8 +735,11 @@ async function aiClient() {
 function aiNews() {
   const out = [], t = S.hot && S.hot.talk, c = S.cb, ph = c && cbPhase();
   if (t && Date.now() < t.until) { const h = (S.hot.hist || []).slice().reverse().find(x => x.id === t.id) || S.hot.cur; if (h) out.push(`最近热搜：#${h.title}#${h.result ? '（' + h.result + '）' : ''}，粉丝偶尔会聊到`); }
-  if (ph === 'tease') out.push(`她的新歌《${c.song}》${c.date} 回归，正在预热`);
-  if (ph === 'promo') out.push(`她正在《${c.song}》打歌期`);
+  const a = c && cbAlbum();
+  if (a && ph === 'tease') out.push(`她的${ALB_TYPE[a.type] || '新歌'}《${a.name}》（主打《${albTitle(a)}》）${c.date} 回归，正在预热`);
+  if (a && ph === 'promo') out.push(`她正在${ALB_TYPE[a.type] || ''}《${a.name}》主打曲《${albTitle(a)}》的打歌期`);
+  if (a && ph === 'rest') out.push(`她刚结束《${albTitle(a)}》的主打活动，这周休息`);
+  if (a && ph === 'follow') out.push(`她正在后续打歌收录曲《${c.follow}》`);
   return out.length ? '近期动态：' + out.join('；') + '。\n' : '';
 }
 function aiSystem() {
@@ -1110,7 +1124,82 @@ const HOT_EVENTS = [
     talk: ['「{e}」直拍看了吗', '「{e}」状态好好', '{e}那天的造型绝了', '路人被「{e}」圈粉了'],
     opts: [{ t: '转发直拍', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .012, .03, '直拍又火了一轮'], [.4, .003, .01, '粉丝很开心']] },
       { t: '发一组后台照片', task: { where: 'post', need: 'image', hint: '在社区发照片' }, r: [[.55, .01, .025, '后台照片被说好看'], [.45, .002, .008, '老粉狂喜']] },
-      { t: '继续准备下一个行程', r: [[.5, .005, .015, '直拍自己慢慢火了'], [.5, 0, .005, '热度过去了']] }] }
+      { t: '继续准备下一个行程', r: [[.5, .005, .015, '直拍自己慢慢火了'], [.5, 0, .005, '热度过去了']] }] },
+  { id: 'fansign', min: 0, w: 1, au: ['签售repo', '粉丝'], title: '{name} 签售', body: '今天签售 {name} 居然记得我上次说的话！！呜呜呜她怎么记得的',
+    talk: ['好羡慕被记住', '签售repo看哭了', '{n}记性也太好了', '下次签售我也要去'],
+    opts: [{ t: '谢谢来签售的粉丝', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝说说签售' }, r: [[.6, .005, .015, '粉丝都说下次还要去'], [.4, .001, .006, '粉丝很开心']] },
+      { t: '发签售那天的照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.6, .006, .018, '照片被转了好多次'], [.4, .001, .006, '老粉狂喜']] },
+      { t: '不回应', r: [[1, .001, .006, 'repo 自己慢慢传开']] }] },
+  { id: 'cover', min: 0, w: 2, big: 1, au: ['翻唱收藏夹', '音乐博主'], title: '{name} 翻唱', body: '{name} 随手翻唱的一小段被传开了，声音太适合这首了吧 [视频]',
+    talk: ['这段翻唱循环一百遍', '求完整版！！', '音色好特别', '翻唱都这么好听'],
+    opts: [{ t: '发完整版', task: { where: 'any', need: 'sound', hint: '在泡泡或社区发一段唱歌的语音或视频' }, r: [[.6, .015, .035, '完整版被很多人收藏'], [.4, .003, .01, '老粉都很满足']] },
+      { t: '开直播再唱一次', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .01, .025, '直播切片又传开了'], [.45, .002, .008, '直播热度一般']] },
+      { t: '不回应', r: [[.6, .004, .012, '片段自己继续传着'], [.4, 0, .004, '热度过去了']] }] },
+  { id: 'challenge', min: 0, w: 1, big: 1, au: ['挑战榜单', '舞蹈博主'], title: '{name} 舞蹈挑战', body: '好多人在跳 {name} 的舞蹈挑战，结果本人还没跳过？？',
+    talk: ['本人快来跳！', '我也跳了，好难', '挑战视频刷了一晚上', '想看本人和世琳一起跳'],
+    opts: [{ t: '发一段挑战视频', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.6, .015, .035, '本人挑战被转疯了'], [.4, .004, .012, '粉丝跟着跳了一大波']] },
+      { t: '问粉丝想看谁一起跳', task: { where: 'bubble', need: 'any', hint: '在泡泡里问问粉丝' }, r: [[.5, .005, .015, '粉丝讨论得很热烈'], [.5, 0, .005, '没什么后续']] },
+      { t: '不回应', r: [[.5, .002, .01, '挑战自己慢慢火'], [.5, 0, .004, '热度过去了']] }] },
+  { id: 'fanart', min: 0, w: 1, au: ['画画的小鱼', '画手'], title: '{name} 同人图', body: '画了猫猫 {name}！！尾巴是按她的动物塑画的 [图片]',
+    talk: ['画得好可爱', '太太好会画', '猫猫安安', '求高清原图'],
+    opts: [{ t: '转发夸夸', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .005, .015, '画手和粉丝都很开心'], [.4, .001, .006, '粉丝很开心']] },
+      { t: '和粉丝说看到了', task: { where: 'bubble', need: 'any', hint: '在泡泡里说一句' }, r: [[.6, .003, .01, '泡泡截图被画手转发了'], [.4, 0, .004, '没什么后续']] },
+      { t: '不回应', r: [[1, 0, .005, '画自己慢慢传开了']] }] },
+  { id: 'school', min: 0, w: 1, au: ['考古队', '粉丝'], title: '{name} 学生时代', body: '挖到了 {name} 学生时代的照片！！好青涩 [图片]',
+    talk: ['学生时代也好可爱', '考古队辛苦了', '从小就是猫猫', '这张存了'],
+    opts: [{ t: '发一张现在的同角度照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.6, .008, .02, '新旧对比图被转了好多次'], [.4, .002, .006, '粉丝笑疯了']] },
+      { t: '在泡泡里吐槽一下', task: { where: 'bubble', need: 'any', hint: '在泡泡里说两句' }, r: [[.6, .003, .01, '粉丝笑得好开心'], [.4, 0, .004, '没什么后续']] },
+      { t: '不回应', r: [[1, 0, .006, '照片自己传开了']] }] },
+  { id: 'meow', min: 0, w: 1, au: ['直播切片站', '切片博主'], title: '{name} 学猫叫', body: '{name} 上次直播突然学了一声猫叫，切片已经被转了好几千次 [视频]',
+    talk: ['喵！！', '我耳朵怀孕了', '再学一次好不好', '猫猫本猫实锤'],
+    opts: [{ t: '发一条语音', task: { where: 'bubble', need: 'voice', hint: '在泡泡里发一条语音' }, r: [[.6, .006, .018, '语音被粉丝转录成了铃声'], [.4, .002, .006, '粉丝很开心']] },
+      { t: '开直播再学一次', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .008, .02, '又出了一个名场面切片'], [.45, .001, .006, '直播热度一般']] },
+      { t: '不回应', r: [[1, .001, .008, '切片自己继续传着']] }] },
+  { id: 'weight', min: 0, w: 1, neg: 1, au: ['身材观察', '路人'], title: '{name} 状态', body: '{name} 最近上镜是不是有点浮肿？是不是太累了',
+    talk: ['别对女孩子的身材指指点点', '只是灯光问题吧', '心疼，最近行程太多了', '健康最重要'],
+    opts: [{ t: '发一张日常照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.5, .002, .01, '大家说状态很好'], [.5, -.006, 0, '被说急了']] },
+      { t: '和粉丝说说最近', task: { where: 'bubble', need: 'text', hint: '在泡泡里说说最近' }, r: [[.6, 0, .008, '粉丝很心疼'], [.4, -.004, .002, '讨论变多了']] },
+      { t: '不回应', r: [[.5, -.006, 0, '帖子还在被讨论'], [.5, 0, .004, '很快就过去了']] }] },
+  { id: 'rude', min: 8000, w: 1, neg: 1, au: ['现场目击', '粉丝'], title: '{name} 签售 冒犯', body: '有人在签售上对 {name} 说了很过分的话，她还是笑着回了…',
+    talk: ['那个人太过分了', '心疼死了', '保护好{n}', '工作人员该管管'],
+    opts: [{ t: '安慰一下担心的粉丝', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝说说' }, r: [[.6, .003, .012, '粉丝更心疼你了'], [.4, 0, .004, '粉丝还是很生气']] },
+      { t: '发帖说说感受', task: { where: 'post', need: 'text', hint: '在社区发一段文字' }, r: [[.5, .004, .015, '很多路人站在你这边'], [.5, -.004, .002, '讨论越来越多，吵起来了']] },
+      { t: '不回应', r: [[.6, 0, .004, '事情慢慢过去了'], [.4, -.003, 0, '粉丝觉得你受了委屈']] }] },
+  { id: 'coffee', min: 8000, w: 1, au: ['应援情报', '粉丝后援'], title: '{name} 应援咖啡车', body: '粉丝自发给 {name} 送了咖啡车 ☕ 横幅上写着「猫猫今天也辛苦了」[图片]',
+    talk: ['咖啡车好可爱', '我们{f}最棒', '横幅好暖', '下次我也要参与'],
+    opts: [{ t: '发照片谢谢大家', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.7, .005, .015, '粉丝说值了'], [.3, .001, .005, '粉丝很开心']] },
+      { t: '在泡泡里说谢谢', task: { where: 'bubble', need: 'any', hint: '在泡泡里说谢谢' }, r: [[.7, .003, .01, '粉丝都哭了'], [.3, 0, .004, '粉丝很开心']] },
+      { t: '默默喝完', r: [[.5, 0, .004, '有人说你都没提'], [.5, .001, .005, '工作人员拍到你喝了']] }] },
+  { id: 'compare', min: 15000, w: 1, neg: 1, au: ['娱乐吃瓜站', '营销号'], title: '{name} 同期新人', body: '同期出道的新人里，{name} 是不是最没存在感的一个？',
+    talk: ['拉踩滚', '我们安安有自己的节奏', '营销号又在挑事', '用作品说话'],
+    opts: [{ t: '发一段舞蹈视频', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.55, .008, .022, '用作品回应被夸了'], [.45, -.004, .004, '被说「急了」']] },
+      { t: '和粉丝说别在意', task: { where: 'bubble', need: 'text', hint: '在泡泡里和粉丝说说' }, r: [[.6, 0, .008, '粉丝冷静下来了'], [.4, -.004, 0, '帖子还是被顶上去了']] },
+      { t: '不回应', r: [[.5, -.008, -.002, '拉踩越来越多'], [.5, 0, .003, '很快就没人讨论了']] }] },
+  { id: 'serimDuet', min: 0, w: 1, au: ['嗑学家', 'CP 博主'], title: '{name} 世琳 合唱', body: '想看 {name} 和世琳合唱！！有没有人和我一样',
+    talk: ['我我我！', '友谊合唱好想听', '我先嗑为敬', '两个人声音好配'],
+    opts: [{ t: '问粉丝想听什么歌', task: { where: 'bubble', need: 'any', hint: '在泡泡里问问粉丝' }, r: [[.6, .005, .015, '粉丝的点歌单排了好长'], [.4, 0, .005, '粉丝很开心']] },
+      { t: '发一段两个人的视频', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.5, .012, .03, '两边粉丝都疯了'], [.5, -.004, .006, '有人说别总是捆绑']] },
+      { t: '不回应', r: [[1, 0, .005, '话题慢慢降温']] }] },
+  { id: 'lyrics', min: 0, w: 1, needSong: true, au: ['歌词摘抄', '音乐博主'], title: '{song} 歌词', body: '《{song}》的歌词原来 {name} 自己也参与写了？这句太戳我了',
+    talk: ['歌词好戳', '原来是自己写的！', '才华横溢', '《{song}》歌词抄下来了'],
+    opts: [{ t: '讲讲写歌词的事', task: { where: 'post', need: 'text', hint: '在社区发一段文字' }, r: [[.6, .008, .02, '幕后故事被很多人看到'], [.4, .002, .006, '粉丝很感动']] },
+      { t: '在泡泡里说说', task: { where: 'bubble', need: 'any', hint: '在泡泡里说说' }, r: [[.6, .003, .01, '泡泡截图被转了'], [.4, 0, .004, '没什么后续']] },
+      { t: '不回应', r: [[1, .001, .006, '帖子慢慢沉下去了']] }] },
+  { id: 'cbTeaser', min: 0, w: 5, phase: 'tease', au: ['回归情报局', '娱乐博主'], title: '{name} 回归预告', body: '{name} 回归预告公开，《{song}》概念照氛围感拉满 [图片]',
+    talk: ['概念照好绝', '回归倒计时！', '《{song}》好期待', '这次的造型好特别'],
+    opts: [{ t: '发一张同风格的自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.6, .01, .025, '路人被概念照吸引了'], [.4, .002, .008, '粉丝更期待了']] },
+      { t: '剧透一点点', task: { where: 'bubble', need: 'any', hint: '在泡泡里剧透一点' }, r: [[.6, .005, .015, '剧透截图被转出去了'], [.4, -.002, .004, '有人说剧透太多就没惊喜了']] },
+      { t: '保持神秘', r: [[.6, .003, .012, '神秘感让大家更好奇'], [.4, 0, .004, '热度平平']] }] },
+  { id: 'cbChart', min: 0, w: 5, phase: 'promo', au: ['音源榜观察', '音乐博主'], title: '{song} 音源', body: '《{song}》音源排名小幅上升，评论区都在说副歌上头',
+    talk: ['打榜打榜！', '副歌太上头了', '《{song}》循环中', '音源冲冲冲'],
+    opts: [{ t: '发帖谢谢大家', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .008, .02, '粉丝更有动力打榜了'], [.4, .002, .008, '热度平稳']] },
+      { t: '开直播唱一段', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .01, .025, '直播 live 版又被传开了'], [.45, .002, .008, '直播热度一般']] },
+      { t: '专心打歌', r: [[.5, .004, .012, '排名自己慢慢上去了'], [.5, 0, .005, '排名没太大变化']] }] },
+  { id: 'cbFollow', min: 0, w: 5, phase: 'follow', au: ['打歌舞台站', '站姐'], title: '{song} 舞台', body: '后续打歌《{song}》的第一个舞台出来了，没想到收录曲的舞台这么好看 [视频]',
+    talk: ['收录曲舞台太好看了', '后续打歌值了', '《{song}》舞台循环', '路人被收录曲圈粉'],
+    opts: [{ t: '发一段后台视频', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.6, .008, .02, '后台视频被夸认真'], [.4, .002, .008, '老粉狂喜']] },
+      { t: '和粉丝聊聊这首歌', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这首歌' }, r: [[.6, .004, .012, '粉丝更喜欢这首了'], [.4, 0, .004, '没什么后续']] },
+      { t: '继续打歌', r: [[.5, .003, .01, '舞台自己慢慢火了'], [.5, 0, .004, '热度平平']] }] }
 ];
 const HOT_NONE = [[.5, -.004, .004, '你没有回应，话题慢慢过去了'], [.5, 0, .006, '热度自然消散了']];
 const HOT_PASSER = ['路过，这是谁？', '第一次知道这个人', '有点好看', '关注了', '什么时候出道的', '求介绍', '刷到好几次了', '这个人我有印象', '首页一直推', '感觉挺可爱的'];
@@ -1141,11 +1230,12 @@ function hotPick() {
   const H = hotState(), f = S.profile.followers, recent = H.hist.slice(-8).map(x => x.id);
   const F = fanState(), sched = F.lastEvent && Date.now() - F.lastEvent.at < 2 * 86400e3 ? F.lastEvent : null;
   const songs = (S.profile.songs || []).filter(Boolean);
-  const pool = HOT_EVENTS.filter(e => f >= e.min && !recent.includes(e.id) && (!e.needSong || songs.length) && (!e.needSched || sched));
+  const ph = cbPhase();
+  const pool = HOT_EVENTS.filter(e => f >= e.min && !recent.includes(e.id) && (!e.needSong || songs.length) && (!e.needSched || sched) && (!e.phase || e.phase === ph));
   if (!pool.length) return null;
   let x = Math.random() * pool.reduce((a, e) => a + e.w, 0), ev = pool[0];
   for (const e of pool) { x -= e.w; if (x <= 0) { ev = e; break; } }
-  return { id: ev.id, song: songs.length ? pick(songs) : '', e: sched ? sched.title : '' };
+  return { id: ev.id, song: ev.phase ? cbSong() : songs.length ? pick(songs) : '', e: sched ? sched.title : '' };
 }
 function hotComment(ev, kind) {
   const passer = Math.random() < .5;
@@ -1283,57 +1373,155 @@ function hotPostHTML(key) {
 }
 
 /* =========================================================
-   回归 / 打歌期：预热两周 → 回归 → 三周打歌（每周一次一位结果）→ 空窗期
+   歌单 + 回归：预热两周 → 主打打歌 N 周（每周固定一天出音乐节目结果）
+   → 休息周（可选）→ 后续打歌一周（可选）→ 空窗期
+   打歌日不固定，读你行程里「打歌」类别的安排
    ========================================================= */
+const ALB_TYPE = { single: '单曲', mini: '迷你专辑', full: '正规专辑', other: '其他' };
+function disco() { return S.disco || (S.disco = []); }
+function syncSongs() { S.profile.songs = [...new Set(disco().flatMap(a => a.tracks.map(t => t.name)).filter(Boolean))]; }
+function albTitle(a) { return a ? ((a.tracks.find(t => t.title) || a.tracks[0] || {}).name || a.name) : ''; }
+function cbAlbum() { return S.cb ? disco().find(a => a.id === S.cb.albumId) : null; }
 function cbDay() { const c = S.cb; if (!c) return null; return Math.round((parseD(c.date).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); }
-function cbPhase() { const d = cbDay(); if (d == null || S.cb.over) return null; return d > 14 ? 'plan' : d > 0 ? 'tease' : d >= -20 ? 'promo' : 'end'; }
-function cbBoost() { const p = cbPhase(); return p === 'tease' ? .08 : p === 'promo' ? .25 : 0; }
+function cbPlan() {
+  const c = S.cb, promoEnd = 7 * (c.weeks || 3), followStart = promoEnd + (c.rest ? 7 : 0);
+  return { promoEnd, followStart, followEnd: followStart + (c.follow ? 7 : 0) };
+}
+function cbPhase() {
+  const c = S.cb; if (!c || c.over) return null;
+  const d = cbDay(); if (d > 14) return 'plan'; if (d > 0) return 'tease';
+  const s = -d, P = cbPlan();
+  return s < P.promoEnd ? 'promo' : s < P.followStart ? 'rest' : s < P.followEnd ? 'follow' : 'end';
+}
+function cbBoost() { return { tease: .08, promo: .25, rest: .05, follow: .12 }[cbPhase()] || 0; }
+function cbSong() { return cbPhase() === 'follow' ? S.cb.follow : albTitle(cbAlbum()); }
 const CB_TALK = {
-  tease: ['回归倒计时！', '《{song}》什么时候发啊啊啊', '预告看了二十遍', '已经开始期待《{song}》了', '预告里的造型好绝', '回归要准备应援了'],
-  promo: ['《{song}》循环中', '今天打歌我会守着', '一位冲冲冲！！', '《{song}》直拍好绝', '《{song}》副歌好上头', '打榜打榜！', '《{song}》的舞好难，我学不会'],
+  tease: ['回归倒计时！', '《{song}》什么时候发啊啊啊', '预告看了二十遍', '已经开始期待《{song}》了', '预告里的造型好绝', '回归要准备应援了', '{type}！！好期待', '曲目表什么时候公开呀'],
+  promo: ['《{song}》循环中', '今天打歌我会守着', '一位冲冲冲！！', '《{song}》直拍好绝', '《{song}》副歌好上头', '打榜打榜！', '《{song}》的舞好难，我学不会', '《{album}》整张都好好听'],
+  rest: ['主打活动辛苦了！', '休息周好好休息', '会有后续打歌吗？', '收录曲也好好听', '想念打歌的日子了'],
+  follow: ['后续打歌《{song}》！！', '终于能看《{song}》的舞台了', '《{song}》是我最喜欢的收录曲', '后续曲也要冲！'],
   win: ['一位恭喜！！！', '我们拿一位了呜呜呜', '《{song}》一位！！', '一位安可看哭了', '终于等到这一天']
 };
 function cbLine() {
-  const c = S.cb, p = cbPhase(); if (!c || !['tease', 'promo'].includes(p)) return null;
+  const c = S.cb, p = cbPhase(), a = cbAlbum(); if (!c || !a || !CB_TALK[p]) return null;
   const won = (c.res || []).some(x => x.rank === 1 && Date.now() - x.at < 2 * 86400e3);
-  return fill(pick(won ? CB_TALK.win : CB_TALK[p])).replace(/\{song\}/g, c.song);
+  return fill(pick(won ? CB_TALK.win : CB_TALK[p])).replace(/\{song\}/g, cbSong() || a.name).replace(/\{album\}/g, a.name).replace(/\{type\}/g, ALB_TYPE[a.type] || '新歌');
+}
+// 每个打歌周：固定星期几出音乐节目结果
+function cbShows() {
+  const c = S.cb, P = cbPlan(), out = [];
+  const week = (start, label, song, follow) => {
+    for (let i = 0; i < 7; i++) { const k = addDays(c.date, start + i); if (parseD(k).getDay() === (c.day ?? 0)) { out.push({ key: k, from: addDays(c.date, start), label, song, follow }); return; } }
+  };
+  for (let w = 0; w < (c.weeks || 3); w++) week(w * 7, `主打第 ${w + 1} 周`, albTitle(cbAlbum()), false);
+  if (c.follow) week(P.followStart, '后续打歌', c.follow, true);
+  return out;
 }
 function cbTick() {
-  const c = S.cb; if (!c || c.over) return;
-  const d = cbDay(), f = S.profile.followers, today = dkey(Date.now()), done = c.done || (c.done = {});
+  const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return;
+  const d = cbDay(), f = S.profile.followers, today = dkey(Date.now()), done = c.done || (c.done = {}), P = cbPlan(), s = -d, title = albTitle(a);
   const once = (k, fn) => { if (!done[k]) { done[k] = 1; fn(); } };
+  const tp = ALB_TYPE[a.type] || '';
   if (d > 0 && d <= 14) once('t' + today, () => addFans(f * .0015 * heat(), '回归预热'));
-  if (d === 7) once('teaser', () => pushNotif({ type: 'cb', text: `💿 《${c.song}》预告公开`, sub: '粉丝们开始倒计时了' }, true));
-  if (d === 1) once('eve', () => pushNotif({ type: 'cb', text: `💿 明天就是《${c.song}》回归日`, sub: '粉丝们在准备应援' }, true));
-  if (d <= 0 && d >= -20) once('d0', () => { const n = Math.round(f * rand(.02, .045) * heat()); addFans(n, '回归：' + c.song); pushNotif({ type: 'cb', text: `💿 《${c.song}》正式回归！`, sub: `回归首日涨粉 +${fmtNum(n)}，接下来三周是打歌期` }, true); });
-  // 每周一次音乐节目结果（回归后第 2、9、16 天晚上 7 点后）
-  const hr = new Date().getHours();
-  [2, 9, 16].forEach((w, i) => {
-    if (-d > w || (-d === w && hr >= 19)) once('show' + i, () => {
-      const F = fanState(), cut = Date.now() - 7 * 86400e3; let act = 0;
-      for (const a of F.act) if (a.t > cut) act += a.type === 'post' ? .03 : a.type === 'live' ? .05 : a.type === 'bubble' ? .01 : 0;
-      const p = clamp((f < 15000 ? .1 : f < 30000 ? .18 : f < 60000 ? .3 : .45) + (heat() - 1) * .35 + Math.min(act, .25), .04, .8);
-      const win = Math.random() < p, rank = win ? 1 : pick([2, 2, 3, 3, 4, 5, 6, 8]);
-      const n = Math.round(f * (win ? rand(.04, .08) : rand(.004, .015)));
-      addFans(n, `打歌第 ${i + 1} 周`);
-      (c.res || (c.res = [])).push({ w: i + 1, rank, at: Date.now() });
-      pushNotif({ type: 'cb', text: win ? `🏆 《${c.song}》拿下音乐节目一位！` : `💿 打歌第 ${i + 1} 周：第 ${rank} 位`, sub: win ? `粉丝们哭成一片 · 涨粉 +${fmtNum(n)}` : `${rank <= 3 ? '离一位只差一点点' : '粉丝说下周继续冲'} · 涨粉 +${fmtNum(n)}` }, true);
-    });
+  if (d === 7) once('teaser', () => pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》预告公开`, sub: '粉丝们开始倒计时了' }, true));
+  if (d === 1) once('eve', () => pushNotif({ type: 'cb', text: `💿 明天就是《${a.name}》回归日`, sub: '粉丝们在准备应援' }, true));
+  if (d <= 0 && s < P.promoEnd) once('d0', () => {
+    const n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1));
+    addFans(n, '回归：' + a.name);
+    pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》正式回归！`, sub: `主打《${title}》${a.tracks.length > 1 ? ` · 共 ${a.tracks.length} 首` : ''} · 回归首日涨粉 +${fmtNum(n)}` }, true);
   });
-  if (d < -20) once('end', () => { c.over = true; pushNotif({ type: 'cb', text: `💿 《${c.song}》活动期结束`, sub: '辛苦了！空窗期热度会慢慢回落' }, true); });
+  if (c.rest && s >= P.promoEnd && s < P.followStart) once('rest', () => pushNotif({ type: 'cb', text: `💿 《${title}》主打活动结束`, sub: '这周是休息周，好好休息一下吧' }, true));
+  if (c.follow && s >= P.followStart && s < P.followEnd) once('follow', () => pushNotif({ type: 'cb', text: `💿 后续打歌《${c.follow}》开始`, sub: '粉丝们很期待收录曲的舞台' }, true));
+  // 音乐节目结果：这周你行程里排了几次「打歌」会影响结果
+  const hr = new Date().getHours();
+  for (const sh of cbShows()) {
+    if (today < sh.key || (today === sh.key && hr < 19)) continue;
+    once('show' + sh.key, () => {
+      let gigs = 0; for (let k = addDays(sh.key, -6); k <= sh.key; k = addDays(k, 1)) if (k >= c.date) gigs += rulesFor(k).filter(r => r.cat === '打歌').length; // 结果日前 7 天里排的打歌
+      const F = fanState(), cut = parseD(sh.key).getTime() - 7 * 86400e3; let act = 0;
+      for (const x of F.act) if (x.t > cut) act += x.type === 'post' ? .03 : x.type === 'live' ? .05 : x.type === 'bubble' ? .01 : 0;
+      let p = (f < 15000 ? .08 : f < 30000 ? .15 : f < 60000 ? .27 : .42) + (heat() - 1) * .3 + Math.min(act, .2) + Math.min(gigs, 4) * .04;
+      if (!gigs) p *= .4; if (sh.follow) p *= .6;
+      p = clamp(p, .02, .8);
+      const win = Math.random() < p, rank = win ? 1 : pick(gigs ? [2, 2, 3, 3, 4, 5, 6] : [5, 6, 8, 9, 11]);
+      const n = Math.round(f * (win ? rand(.04, .08) : rand(.003, .012) * (gigs ? 1 : .5)));
+      addFans(n, sh.label);
+      (c.res || (c.res = [])).push({ label: sh.label, song: sh.song, rank, gigs, at: Date.now() });
+      pushNotif({ type: 'cb', text: win ? `🏆 《${sh.song}》拿下音乐节目一位！` : `💿 ${sh.label} · 《${sh.song}》第 ${rank} 位`, sub: (win ? '粉丝们哭成一片' : !gigs ? '这周没排打歌，曝光少了一些' : rank <= 3 ? '离一位只差一点点' : '粉丝说下周继续冲') + ` · 涨粉 +${fmtNum(n)}` }, true);
+    });
+  }
+  if (cbPhase() === 'end') once('end', () => { c.over = true; pushNotif({ type: 'cb', text: `💿 《${a.name}》活动期结束`, sub: '辛苦了！空窗期热度会慢慢回落' }, true); });
 }
 function cbHTML() {
-  const c = S.cb, p = cbPhase();
-  if (!c || c.over) {
-    const def = addDays(dkey(Date.now()), 14);
-    return `${c && c.over ? `<div class="muted" style="margin-bottom:8px">上一次回归：《${esc(c.song)}》${(c.res || []).map(x => `第${x.w}周 ${x.rank === 1 ? '🏆一位' : '第' + x.rank + '位'}`).join(' · ')}</div>` : ''}
-      <div class="grid2"><div class="field"><label>新歌名</label><input id="cb-song" placeholder="比如：猫步"></div><div class="field"><label>回归日期</label><input type="date" id="cb-date" value="${def}"></div></div>
-      <div class="row"><span class="muted" style="flex:1;font-size:12.5px">回归前两周预热，回归后三周打歌，每周有一次音乐节目结果</span><button class="btn primary" data-act="cbstart">定下回归</button></div>`;
+  const c = S.cb, a = cbAlbum(), p = cbPhase();
+  let top;
+  if (!c || c.over || !a) {
+    top = `${c && c.over && a ? `<div class="muted" style="margin-bottom:8px">上一次回归：《${esc(a.name)}》${(c.res || []).map(x => `${x.label} ${x.rank === 1 ? '🏆' : '第' + x.rank + '位'}`).join(' · ')}</div>` : ''}
+      <button class="btn primary" style="width:100%" data-act="cbnew">＋ 计划一次回归</button>`;
+  } else {
+    const d = cbDay(), s = -d, P = cbPlan();
+    const ph = p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
+    const steps = ['预热 2 周', `主打《${albTitle(a)}》${c.weeks} 周`].concat(c.rest ? ['休息周'] : [], c.follow ? [`后续《${c.follow}》1 周`] : []);
+    top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${esc(c.date)} 回归 · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
+      <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
+      <div class="muted" style="font-size:12.5px;margin-top:6px">每周${WD[c.day ?? 0]}晚上 7 点出音乐节目结果 · 打歌日请加到行程里（类别选「打歌」），排得越多机会越大</div>
+      ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">${esc(x.label || '第' + x.w + '周')} · 《${esc(x.song || albTitle(a))}》${x.gigs != null ? `<span class="muted" style="font-size:12px"> · 打歌 ${x.gigs} 次</span>` : ''}</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
   }
-  const d = cbDay();
-  const ph = p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `打歌期 · 第 ${Math.min(3, Math.floor(-d / 7) + 1)} 周` : '活动期结束';
-  return `<div class="row"><div style="flex:1"><b style="font-size:16px">《${esc(c.song)}》</b><div class="muted">${esc(c.date)} 回归 · ${ph}</div></div><button class="link" data-act="cbcancel">取消</button></div>
-    ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">打歌第 ${x.w} 周</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
+  const list = disco().slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+  return `${top}
+    <div class="row" style="margin-top:16px"><b style="flex:1;font-size:15px">🎵 我的歌单</b><button class="link" data-act="albnew">＋ 添加作品</button></div>
+    ${list.length ? list.map(x => `<div class="alb"><div class="alb-h"><span class="chip" style="background:${x.type === 'full' ? '#7b61ff' : x.type === 'mini' ? '#2fb5c4' : x.type === 'single' ? '#ff8a3d' : '#999'}">${ALB_TYPE[x.type] || '其他'}</span><b>${esc(x.name)}</b><span class="muted" style="font-size:12px">${esc(x.date || '')}</span><span class="sp"></span><button class="link" data-act="albedit" data-id="${x.id}">编辑</button></div>
+      <ol class="alb-t">${x.tracks.map(t => `<li>${t.title ? '<b>' + esc(t.name) + '</b> <span class="alb-star">主打</span>' : esc(t.name)}${S.cb && !S.cb.over && S.cb.albumId === x.id && S.cb.follow === t.name ? ' <span class="alb-star" style="background:#7b61ff">后续</span>' : ''}</li>`).join('')}</ol></div>`).join('') : '<div class="muted" style="padding:6px 0">还没有歌，添加你发过的作品吧（粉丝点歌、聊天时会提到）</div>'}`;
+}
+// 作品编辑（加歌单 / 计划回归共用）
+function albHTML() {
+  const A = UI.alb, cb = A.mode === 'cb', single = A.type === 'single';
+  const others = A.tracks.filter(t => !t.title && t.name.trim());
+  return `<div class="row"><h3 style="flex:1">${cb ? '💿 计划回归' : A.id ? '编辑作品' : '添加作品'}</h3><button class="btn ghost sm" data-act="close">取消</button></div>
+    <div class="card">
+      <div class="grid2"><div class="field"><label>${cb ? '专辑 / 单曲名' : '作品名'}</label><input id="al-name" value="${esc(A.name)}" placeholder="比如：9.1Hz"></div>
+        <div class="field"><label>类型</label><select id="al-type">${Object.entries(ALB_TYPE).map(([k, v]) => `<option value="${k}" ${A.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
+      <div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}"></div>
+      <div class="field"><label>收录曲 <span class="muted">（点 ★ 设为主打）</span></label>
+        ${A.tracks.map((t, i) => `<div class="trk"><button class="trk-star ${t.title ? 'on' : ''}" data-act="alstar" data-i="${i}" title="设为主打">★</button><input class="al-t" value="${esc(t.name)}" placeholder="第 ${i + 1} 首">${A.tracks.length > 1 ? `<button class="link" data-act="aldel" data-i="${i}">✕</button>` : ''}</div>`).join('')}
+        ${single && A.tracks.length >= 2 ? '' : '<button class="link" data-act="aladd" style="margin-top:4px">＋ 添加一首</button>'}</div>
+    </div>
+    ${cb ? `<div class="card">
+      <div class="grid2"><div class="field"><label>主打打歌几周</label><select id="al-weeks">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option ${A.weeks === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+        <div class="field"><label>每周结果日（晚 7 点）</label><select id="al-day">${[1, 2, 3, 4, 5, 6, 0].map(n => `<option value="${n}" ${A.day === n ? 'selected' : ''}>周${WD[n]}</option>`).join('')}</select></div></div>
+      <div class="switch"><span>主打活动结束后休息一周</span><input type="checkbox" id="al-rest" ${A.rest ? 'checked' : ''}></div>
+      <div class="field"><label>休息周后，后续打歌一首收录曲（一周）</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
+      <div class="muted" style="font-size:12.5px">打歌日不固定：把你的打歌安排加到「行程」里（类别选「打歌」），每周排得越多，拿一位的机会越大。</div>
+    </div>` : ''}
+    <div class="row">${A.id && !cb ? '<button class="btn ghost" data-act="albdel" style="color:var(--danger)">删除作品</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="alsave">${cb ? '定下回归' : '保存'}</button></div>`;
+}
+function albCollect() {
+  const A = UI.alb; if (!$('#al-name')) return A;
+  A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value;
+  $$('.al-t').forEach((el, i) => { if (A.tracks[i]) A.tracks[i].name = el.value.trim(); });
+  if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.day = +$('#al-day').value; A.rest = $('#al-rest').checked; A.follow = $('#al-follow').value; }
+  return A;
+}
+function albOpen(mode, a) {
+  const c = S.cb && !S.cb.over && mode === 'cb' && a ? S.cb : null;
+  UI.alb = a ? { ...JSON.parse(JSON.stringify(a)), mode } : { mode, name: '', type: mode === 'cb' ? 'mini' : 'single', date: mode === 'cb' ? addDays(dkey(Date.now()), 14) : '', tracks: [{ name: '', title: true }] };
+  if (mode === 'cb') Object.assign(UI.alb, c ? { date: c.date, weeks: c.weeks, day: c.day, rest: c.rest, follow: c.follow || '' } : { weeks: 3, day: 0, rest: true, follow: '' });
+  openModal(albHTML());
+}
+function albSave() {
+  const A = albCollect(), tracks = A.tracks.filter(t => t.name);
+  if (!A.name && tracks.length) A.name = tracks[0].name;
+  if (!A.name || !tracks.length) return toast('请填写作品名和至少一首歌');
+  if (!tracks.some(t => t.title)) tracks[0].title = true;
+  if (A.mode === 'cb' && !A.date) return toast('请选择回归日期');
+  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title })) };
+  const i = disco().findIndex(x => x.id === alb.id); if (i >= 0) disco()[i] = alb; else disco().push(alb);
+  if (A.mode === 'cb') {
+    const keep = S.cb && !S.cb.over && S.cb.albumId === alb.id && S.cb.date === A.date ? S.cb : null;
+    S.cb = { albumId: alb.id, date: A.date, weeks: A.weeks, day: A.day, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [] };
+  }
+  syncSongs(); save(); closeModal(); render();
+  toast(A.mode === 'cb' ? '回归定下了 💿' : '已保存到歌单', `《${alb.name}》`);
 }
 
 let lastReal = Date.now();
@@ -2885,7 +3073,7 @@ function viewMe() {
   </div>
   <div class="sec-title">📈 粉丝动态</div>
   <div class="card">${fanPanelHTML()}</div>
-  <div class="sec-title">💿 回归</div>
+  <div class="sec-title">💿 回归与歌单</div>
   <div class="card">${cbHTML()}</div>
   <div class="sec-title">🐱 人设</div>
   <div class="card">
@@ -2898,7 +3086,6 @@ function viewMe() {
       <div class="field"><label>活跃粉丝（最少 ~ 最多）</label><div class="row"><input type="number" id="p-amin" value="${p.activeMin}"><input type="number" id="p-amax" value="${p.activeMax}"></div></div>
     </div>
     <div class="field"><label>粉丝对你的称呼（用逗号分隔）</label><input id="p-nicks" value="${esc(p.nicks.join('，'))}"></div>
-    <div class="field"><label>你的歌（用逗号分隔，粉丝点歌时会说）</label><input id="p-songs" value="${esc((p.songs || []).join('，'))}" placeholder="比如：猫步，9.1Hz，晚安电台"></div>
     <div class="field"><label>简介</label><input id="p-bio" value="${esc(p.bio)}" placeholder="可以不填"></div>
     <div class="field"><label>粉丝群体设定（AI 粉丝会照这个来反应）</label><textarea id="p-fanrules" style="min-height:70px">${esc(p.fanRules || '')}</textarea></div>
     <div class="row"><span class="sp"></span><button class="btn primary" data-act="psave">保存人设</button></div>
@@ -3071,14 +3258,19 @@ document.addEventListener('click', async e => {
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
     case 'hotclike': { const post = hotState().posts[t.dataset.k], x = post && post.cm.find(c => c.id === t.dataset.id); if (!x) break; x.liked = !x.liked; x.likes = (x.likes || 0) + (x.liked ? 1 : -1); save(); t.classList.toggle('on', x.liked); t.textContent = `${x.liked ? '❤️' : '🤍'} ${x.likes || ''}`; break; }
-    case 'cbstart': {
-      const song = $('#cb-song').value.trim().replace(/[《》]/g, ''), date = $('#cb-date').value;
-      if (!song) { toast('请填写新歌名'); break; } if (!date || date < dkey(Date.now())) { toast('请选择今天或以后的日期'); break; }
-      S.cb = { song, date, done: {}, res: [] };
-      S.profile.songs = S.profile.songs || []; if (!S.profile.songs.includes(song)) S.profile.songs.push(song);
-      save(); render(); toast('回归定下了 💿', `《${song}》· ${date}`); break;
+    case 'cbnew': albOpen('cb'); break;
+    case 'cbedit': albOpen('cb', cbAlbum()); break;
+    case 'albnew': albOpen('disco'); break;
+    case 'albedit': albOpen('disco', disco().find(x => x.id === t.dataset.id)); break;
+    case 'aladd': albCollect().tracks.push({ name: '', title: false }); openModal(albHTML()); break;
+    case 'aldel': { const A = albCollect(); const was = A.tracks[+t.dataset.i].title; A.tracks.splice(+t.dataset.i, 1); if (was && A.tracks[0]) A.tracks[0].title = true; openModal(albHTML()); break; }
+    case 'alstar': { const A = albCollect(); A.tracks.forEach((x, i) => x.title = i === +t.dataset.i); openModal(albHTML()); break; }
+    case 'alsave': albSave(); break;
+    case 'albdel': {
+      const id = UI.alb.id; if (S.cb && !S.cb.over && S.cb.albumId === id) { toast('这张正在回归中，先取消回归才能删除'); break; }
+      bbConfirm('删除作品？', `《${UI.alb.name}》会从歌单里删除`, () => { S.disco = disco().filter(x => x.id !== id); syncSongs(); save(); closeModal(); render(); }); break;
     }
-    case 'cbcancel': bbConfirm('取消回归？', `《${S.cb?.song || ''}》的回归计划会被取消`, () => { S.cb = null; save(); render(); }); break;
+    case 'cbcancel': bbConfirm('取消回归？', `《${cbAlbum()?.name || ''}》的回归计划会被取消（歌会留在歌单里）`, () => { S.cb = null; save(); render(); }); break;
     case 'psave': {
       const p = S.profile;
       p.name = $('#p-name').value.trim() || p.name; p.fandom = $('#p-fandom').value.trim() || p.fandom;
@@ -3086,7 +3278,6 @@ document.addEventListener('click', async e => {
       p.followers = Math.max(0, +$('#p-fol').value || p.followers); p.folBase = p.followers;
       const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
       p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
-      p.songs = $('#p-songs').value.split(/[,，、]+/).map(x => x.trim().replace(/^《|》$/g, '')).filter(Boolean);
       p.bio = $('#p-bio').value.trim(); p.fanRules = $('#p-fanrules').value.trim();
       save(); render(); toast('人设已保存'); break;
     }
@@ -3166,6 +3357,14 @@ function seedPosts() {
 }
 // 旧版本数据迁移：去掉示例帖子、示例行程和旧简介
 function migrate() {
+  if (!S.disco) {
+    // 旧版的「你的歌」→ 歌单；旧版的回归 → 新格式
+    S.disco = (S.profile.songs || []).filter(Boolean).map(x => ({ id: uid(), name: x, type: 'single', date: '', tracks: [{ name: x, title: true }] }));
+    if (S.cb && S.cb.song && !S.cb.albumId) {
+      let a = S.disco.find(x => x.name === S.cb.song); if (!a) { a = { id: uid(), name: S.cb.song, type: 'single', date: S.cb.date, tracks: [{ name: S.cb.song, title: true }] }; S.disco.push(a); }
+      a.date = S.cb.date; S.cb = { albumId: a.id, date: S.cb.date, weeks: 3, day: parseD(addDays(S.cb.date, 2)).getDay(), rest: false, follow: '', done: S.cb.done || {}, res: (S.cb.res || []).map(x => ({ label: `主打第 ${x.w} 周`, song: a.name, rank: x.rank, at: x.at })), over: S.cb.over };
+    }
+  }
   if ((S.v || 1) < 3) {
     // 「上课/练习」拆成「上课」和「练习」
     S.schedule.rules.forEach(r => { if (r.cat === '上课/练习') r.cat = /课/.test(r.title) ? '上课' : '练习'; });
