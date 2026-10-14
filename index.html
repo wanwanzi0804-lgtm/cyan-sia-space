@@ -45,6 +45,8 @@ body.typing .bb{bottom:0}
 .bb-more{position:absolute;right:6px;border:0;background:none;font-size:22px;padding:2px 12px}
 .bb-top{background:var(--card);padding:14px 22px 10px;border-radius:0 0 22px 22px;box-shadow:0 6px 14px rgba(0,0,0,.06);position:relative;z-index:2}
 .bb-top{cursor:pointer}
+.bb-tick.bb-tick2{display:none;height:32px;font-size:15px;padding:3px 16px;color:var(--muted);background:var(--card);border-top:1px solid var(--line)}
+body.typing .bb-tick.bb-tick2{display:block}
 .bb-tick{height:26px;overflow:hidden;font-size:16px;color:var(--text)}
 .bb-tick .ti{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:26px;line-height:26px}
 .bb-handle{width:38px;height:4px;border-radius:2px;background:var(--line);margin:10px auto 0}
@@ -1324,6 +1326,7 @@ function viewBubble() {
     <div class="bb-chat" id="bbchat"></div>
     <div id="bb-replybar"></div>
     <div id="bb-rec"></div>
+    <div class="bb-tick bb-tick2" id="bb-tick2" data-act="bbtickopen">${bbTickItem(bbLastFan())}</div>
     <div class="bb-comp">
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
       <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
@@ -1504,6 +1507,7 @@ setInterval(() => {
     if (bbTickQ.length > 4) bbTickQ = bbTickQ.slice(-4); // 刷得太快就跳到最新的
     const f = bbTickQ.shift(), box = $('#bb-tick');
     if (box) { box.innerHTML = bbTickItem(f); const it = box.firstElementChild; it.classList.add('in'); }
+    const box2 = $('#bb-tick2'); if (box2) { box2.innerHTML = bbTickItem(f); box2.firstElementChild.classList.add('in'); }
   }
 }, 1200);
 
