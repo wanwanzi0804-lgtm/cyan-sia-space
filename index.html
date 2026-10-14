@@ -120,6 +120,30 @@ body.typing .bb-tick.bb-tick2{display:block}
 .bb-recbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);font-size:14px}
 .rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2d55;animation:pulse 1s infinite}
 #bb-side{position:fixed;inset:0;z-index:85}
+#bb-rl{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;background:var(--card);max-width:560px;margin:0 auto}
+.bb-rl-head{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 8px) 8px 8px;background:var(--card)}
+.bb-rl-head button{border:0;background:none;font-size:24px;width:40px;height:40px;color:var(--text)}
+.bb-rl-head b{font-size:18px}
+.bb-rl-list{flex:1;overflow-y:auto;padding:12px 14px 20px;overscroll-behavior:contain}
+.bb-rl-row{display:flex;gap:10px;margin-bottom:14px}
+.bb-rl-av{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);display:grid;place-items:center;font-size:24px;flex:none}
+.bb-rl-main{min-width:0;flex:1}
+.bb-rl-name{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35);margin-bottom:4px}
+.bb-rl-rep{border:0;background:rgba(0,0,0,.2);color:#fff;font-size:10px;border-radius:10px;padding:2px 8px;text-shadow:none}
+.bb-rl-line{display:flex;align-items:flex-end;gap:6px}
+.bb-rl-bub{background:#fff;color:#1d2329;border-radius:18px;padding:10px 14px;font-size:15.5px;line-height:1.45;max-width:84%;word-break:break-word;box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer}
+.bb-rl-bub:active{background:#eceff2}
+.bb-rl-zh{color:#8a939c;font-size:13.5px;margin-top:4px;padding-top:4px;border-top:1px dashed #e3e7eb}
+.bb-rl-tr{border:1.5px solid rgba(255,255,255,.9);background:rgba(0,0,0,.22);color:#fff;width:26px;height:26px;border-radius:50%;font-size:14px;flex:none;padding:0;line-height:1}
+.bb-rl-tr.on{background:#fff;color:var(--accent)}
+.bb-rl-note{text-align:center;color:#fff;font-size:12px;margin:4px 0 12px;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.bb-rl-back{border:0;background:var(--accent);color:#fff;font-size:16px;font-weight:600;padding:16px 0 calc(16px + env(safe-area-inset-bottom))}
+#bb-as{position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom))}
+.bb-as-box{width:100%;max-width:540px;display:flex;flex-direction:column;gap:8px;animation:asup .2s ease-out}
+@keyframes asup{from{transform:translateY(40px);opacity:0}}
+.bb-as-grp{background:rgba(250,250,252,.96);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.bb-as-grp button{border:0;background:none;padding:17px;font-size:18px;color:#0a84ff}
+.bb-as-grp button+button{border-top:1px solid rgba(0,0,0,.12)}
 .bb-side-mask{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .25s}
 #bb-side.on .bb-side-mask{background:rgba(0,0,0,.45)}
 .bb-side-panel{position:absolute;top:0;right:0;bottom:0;width:min(78vw,360px);background:var(--card);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s;padding-top:env(safe-area-inset-top)}
@@ -1393,8 +1417,8 @@ function renderBubbleChat() {
   box.scrollTop = box.scrollHeight;
   $$('img,video', box).forEach(x => x.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true }));
 }
-async function bbWallpaper() {
-  const box = $('#bbchat'); if (!box) return;
+async function bbWallpaper(box = $('#bbchat')) {
+  if (!box) return;
   const B = S.bubble;
   if (B.wall === 'custom' && B.wallImg) { const u = await mediaURL(B.wallImg); if (u) { box.style.background = `center/cover no-repeat url("${u}")`; return; } }
   box.style.background = (BB_WALL[B.wall] || BB_WALL.skyg)[1];
@@ -1449,14 +1473,28 @@ function bbReplyBar() {
   const bar = $('#bb-replybar'); if (!bar) return; const rt = S.bubble.replyTo;
   bar.innerHTML = rt ? `<div class="bb-rbar"><div style="flex:1;min-width:0"><b>回复给 ${esc(rt.user)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(rt.text)}</div></div><button class="link" data-act="bbrcancel">✕</button></div>` : '';
 }
-function bbListHTML(g) {
-  const list = g.fans.slice().reverse();
-  return `<div class="row"><h3 style="flex:1">粉丝消息 · ${fmtNum(g.count || g.fans.length)} 条</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    ${(g.count || 0) > g.fans.length ? `<div class="muted" style="margin-bottom:6px">只保留了最近 ${g.fans.length} 条</div>` : ''}
-    <div class="card" style="padding:4px 12px">${list.map(f => `<div class="cmt"><div class="av" style="background:#fff;font-size:22px;border:1px solid var(--line)">${f.st}</div><div class="cb">
-      <div class="cn">${esc(f.user)}${LANG_TAG[f.lang] ? `<span class="lang">${LANG_TAG[f.lang]}</span>` : ''}</div><div class="ct">${esc(f.text)}</div>
-      ${f.zh ? `<div class="tr" ${S.prefs.autoTr ? '' : 'hidden'}>译：${esc(f.zh)}</div><button class="link" data-act="tr">${S.prefs.autoTr ? '隐藏翻译' : '查看翻译'}</button>` : ''}
-      <div class="cm"><span class="muted">${bbTime(f.at)}</span><button class="link" data-act="bbreply" data-g="${g.id}" data-f="${f.id}">回复</button></div></div></div>`).join('') || '<div class="empty">还没有消息</div>'}</div>`;
+/* ---------- 查看回复：点开 FROM FAN 后的整页粉丝消息 ---------- */
+function bbListOpen(g) {
+  $('#bb-rl')?.remove();
+  const d = document.createElement('div'); d.id = 'bb-rl'; d.dataset.g = g.id;
+  const more = (g.count || 0) > g.fans.length ? `<div class="bb-rl-note">只显示最近 ${g.fans.length} 条 · 共 ${fmtNum(g.count)} 条</div>` : '';
+  d.innerHTML = `<div class="bb-rl-head"><button data-act="bbrlclose" aria-label="关闭">✕</button><b>查看回复</b><span style="width:40px"></span></div>
+    <div class="bb-rl-list" id="bb-rl-list">${more}${g.fans.map(f => `<div class="bb-rl-row">
+      <div class="bb-rl-av">${f.st || '🐶'}</div>
+      <div class="bb-rl-main"><div class="bb-rl-name">${esc(f.user)}<button class="bb-rl-rep" data-act="bbreport">举报</button></div>
+        <div class="bb-rl-line"><div class="bb-rl-bub" data-act="bbrlmenu" data-f="${f.id}"><div>${esc(f.text)}</div>${f.zh ? `<div class="bb-rl-zh" ${S.prefs.autoTr ? '' : 'hidden'}>${esc(f.zh)}</div>` : ''}</div>
+        ${f.zh ? `<button class="bb-rl-tr${S.prefs.autoTr ? ' on' : ''}" data-act="bbrltr" title="翻译">Ⓐ</button>` : ''}</div></div></div>`).join('') || '<div class="bb-rl-note">还没有消息</div>'}</div>
+    <button class="bb-rl-back" data-act="bbrlclose">返回聊天室</button>`;
+  document.body.appendChild(d); bbWallpaper($('#bb-rl-list'));
+  const l = $('#bb-rl-list'); l.scrollTop = l.scrollHeight;
+}
+function bbRlFan(id) { const g = S.bubble.groups.find(x => x.id === $('#bb-rl')?.dataset.g); return g && g.fans.find(x => x.id === id); }
+function bbActionSheet(items) {
+  $('#bb-as')?.remove();
+  const d = document.createElement('div'); d.id = 'bb-as';
+  d.innerHTML = `<div class="bb-as-box"><div class="bb-as-grp">${items.map((x, i) => `<button data-i="${i}">${esc(x[0])}</button>`).join('')}</div><div class="bb-as-grp"><button data-i="-1" style="font-weight:600">取消</button></div></div>`;
+  d.addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (!b && e.target !== d) return; d.remove(); const i = b ? +b.dataset.i : -1; if (i >= 0) items[i][1](); });
+  document.body.appendChild(d);
 }
 function bbSideOpen() {
   bbSideClose();
@@ -2560,7 +2598,18 @@ document.addEventListener('click', async e => {
     case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
     case 'pvcam': previewCam(); break;
     case 'bbmenu': bbSideOpen(); break;
-    case 'bbtickopen': { const g = [...S.bubble.groups].reverse().find(x => x.fans.length); if (g) openModal(bbListHTML(g)); break; }
+    case 'bbtickopen': { const g = [...S.bubble.groups].reverse().find(x => x.fans.length); if (g) bbListOpen(g); break; }
+    case 'bbrlclose': $('#bb-rl')?.remove(); break;
+    case 'bbreport': toast('已举报', '我们会尽快处理'); break;
+    case 'bbrltr': { const z = t.previousElementSibling.querySelector('.bb-rl-zh'); if (z) { z.hidden = !z.hidden; t.classList.toggle('on', !z.hidden); } break; }
+    case 'bbrlmenu': {
+      const f = bbRlFan(t.dataset.f); if (!f) break;
+      bbActionSheet([
+        ['复制', () => { (navigator.clipboard ? navigator.clipboard.writeText(f.text) : Promise.reject()).then(() => toast('已复制'), () => toast('复制失败')); }],
+        ['回复', () => { S.bubble.replyTo = { user: f.user, text: f.text, zh: f.zh, lang: f.lang }; $('#bb-rl')?.remove(); bbReplyBar(); $('#bb-in')?.focus(); }]
+      ]);
+      break;
+    }
     case 'bbinsw': { const inp = $('#bb-s-welcome'); const a = inp.selectionStart ?? inp.value.length; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(inp.selectionEnd ?? a); inp.focus(); break; }
     case 'bblaunch': {
       const w = $('#bb-s-welcome').value.trim(); if (!w) { toast('请先写一句欢迎语'); break; }
@@ -2602,7 +2651,7 @@ document.addEventListener('click', async e => {
     case 'bbvoice': closeModal(); bbRecStart(); break;
     case 'bbreccancel': bbRecStop(false); break;
     case 'bbrecsend': bbRecStop(true); break;
-    case 'bbopen': { const g = S.bubble.groups.find(x => x.id === t.dataset.g); if (g) openModal(bbListHTML(g)); break; }
+    case 'bbopen': { const g = S.bubble.groups.find(x => x.id === t.dataset.g); if (g) bbListOpen(g); break; }
     case 'bbreply': {
       const g = S.bubble.groups.find(x => x.id === t.dataset.g), f = g && g.fans.find(x => x.id === t.dataset.f); if (!f) break;
       S.bubble.replyTo = { user: f.user, text: f.text, zh: f.zh, lang: f.lang }; closeModal(); bbReplyBar(); $('#bb-in')?.focus(); break;
