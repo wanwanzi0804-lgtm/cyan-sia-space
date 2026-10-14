@@ -513,6 +513,13 @@ const TPL = {
   },
   weather: { zh: ['{n}那边也下雨了吗，记得带伞', '天冷多穿点！', '注意防晒呀', '今天的天气配{n}的歌刚好', '降温了！要穿秋裤！'] },
   birthday: { zh: ['纪念日快乐！！', '生日快乐我的宝贝！！', '会陪你过每一个纪念日', 'D+{d}，往后也请多多指教'], en: [['happy happy day!!', '快乐快乐！！']] },
+  // 世琳（세림）：和她暧昧、被粉丝嗑的 CP。大部分起哄嗑糖，少数不想捆绑
+  serim: {
+    zh: ['世琳！！！', '又是世琳😏', '世琳和{n}是真的', '我嗑的cp是真的！！', '你们俩到底什么关系啊啊啊', '提到世琳的时候语气都不一样了', '世琳又出现了，嗑到了', '民政局我搬来了', '世琳知道你这么说吗哈哈哈', '老实交代你们是不是在一起了', '这俩又来了', '好甜我先晕一下', '世琳和{n}，锁死🔒', '能不能发张和世琳的合照', '每次说到世琳都笑得好开心', '世琳也在吗！', '好嗑好嗑', 'cp粉过年了', '世琳看到会脸红吧', '{n}三句不离世琳哈哈哈', '是谁又在发糖', '别装了我们都懂😏', '好想看你们俩同框', '世琳的反应呢！', '今天的糖收到了', '超话又要爆了', '我就说吧！！', '世琳是不是就在旁边', '这是官方发糖吗', '我宣布今天是世琳安安日', '截图发超话了', '你们一起去的吗？？', '世琳听到要开心死了', '嗑生嗑死', '嗑归嗑，别太捆绑哈', '我只想看{n}一个人…'],
+    ko: [['세림이 또 나왔다 ㅋㅋㅋ', '世琳又出现了 哈哈哈'], ['둘이 무슨 사이예요?? 😳', '你们俩什么关系？？ 😳'], ['세림 {name} 진짜 최고', '世琳和{name}真的绝了'], ['나 이 조합 너무 좋아 ㅠㅠ', '我好喜欢这个组合 呜呜'], ['세림이 반응 궁금해요', '好好奇世琳的反应'], ['둘이 같이 있어요?? 👀', '你们俩在一起吗？？ 👀']],
+    ja: [['セリムちゃん！！', '世琳！！'], ['二人の関係が気になる…', '好在意两人的关系…'], ['尊い…', '太好嗑了…']],
+    en: [['SERIM?? 👀', '世琳？？ 👀'], ['the way you talk about serim…', '你说起世琳的样子…'], ['my ship is real 😭', '我嗑的CP是真的 😭'], ['serim x {name} supremacy', '世琳x{name}天下第一']]
+  },
   romance: {
     zh: ['祝福祝福！！一定要幸福呀', '只要{n}开心就好💙', '对方要好好对我们{n}啊！', '嗑到了嗑到了', '早就猜到了哈哈哈', '恋爱也要甜甜的', '{n}值得被好好爱着', '谈恋爱的{n}也好可爱', '我宣布我是你们的cp粉', '甜度超标了', '请对方报上名来（不是）', '恭喜！！要一直幸福下去'],
     ko: [['축하해요!! 꼭 행복해야 해요 💙', '恭喜！！一定要幸福 💙'], ['행복하면 그걸로 충분해요', '你幸福就足够了']],
@@ -546,6 +553,7 @@ const TPL = {
   quote: { zh: ['「{q}」这句我记住了', '看到「{q}」直接破防', '「{q}」呜呜呜', '重点：{q}', '「{q}」好可爱哈哈哈'] }
 };
 const CAT_KW = {
+  serim: /世琳|세림|serim/i,
   practice: /练习|练舞|舞蹈|跳舞|声乐|排练|训练|上课|练到|dance|practice/i,
   food: /吃|饭|好吃|饿|外卖|咖啡|奶茶|零食|火锅|炸鸡|蛋糕|甜品|早餐|午餐|晚餐|夜宵/,
   music: /歌|新曲|录音|作曲|写歌|demo|专辑|回归|旋律|音源|歌词|MV|唱/i,
@@ -612,6 +620,7 @@ function tplComment(ctx) {
   const pool = ['generic', 'generic', 'ask'];
   if (ctx.tone === 'neg') pool.push('neg', 'neg', 'neg', 'neg', 'neg', 'neg');
   detectCats(ctx.text).forEach(c => { if (!(c === 'question' && ctx.ans)) pool.push(c, c, c); });
+  if (CAT_KW.serim.test(ctx.text || '') || CAT_KW.serim.test(ctx.desc || '')) pool.push(...Array(10).fill('serim')); // 提到世琳：大半评论都在嗑
   (ctx.tags || []).forEach(c => { if (TPL[c]) pool.push(c, c, c, c); });
   if (ctx.desc) detectCats(ctx.desc).forEach(c => pool.push(c, c));
   if (ctx.desc && lang === 'zh' && Math.random() < .3) { const d = descComment(ctx.desc); if (d) return { lang, text: d, zh: null }; }
@@ -665,6 +674,7 @@ function aiSystem() {
   return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
 偶像资料：艺名 ${p.name}，solo 女歌手，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
 粉丝群体设定：${p.fanRules || '（无）'}
+世琳（韩文 세림）是和她关系暧昧、被粉丝嗑的 CP：她一提到世琳，大部分粉丝会起哄、嗑糖、猜两人关系、想看同框，少数人表示别太捆绑。
 写作要求：
 - 像 Weverse / 微博超话里的真实粉丝：口语化、短句为主（多数 4~30 字），偶尔长一点；可以用表情、网络用语、「啊啊啊」「呜呜呜」、玩梗。语气多样：激动、温柔、搞笑、关心、提问。
 - 必须紧扣偶像发的具体内容（文字里的细节、图片/画面里看得到的东西：衣服颜色、背景、表情、物品、动作等），不要泛泛而谈，不要彼此重复。
@@ -1169,6 +1179,8 @@ function bbLine(msg, chatting) {
   const lang = pickLang();
   const leaving = chatting && msg && msg.text && LEAVE_RE.test(msg.text);
   const sad = chatting && msg && BB_SAD.test(msg.text || '');
+  const serim = chatting && msg && CAT_KW.serim.test(msg.text || '');
+  if (lang !== 'zh' && serim && !leaving && Math.random() < .7) { const it = pick(TPL.serim[lang]); return { lang, text: fill(it[0]), zh: fill(it[1]) }; }
   if (lang !== 'zh') { const it = pick(leaving ? BB_BYE_F[lang] : sad ? BB_FOREIGN_CARE[lang] : chatting && Math.random() < .4 ? BB_SAFE_F[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
   const t = (msg && msg.text) || '', r = Math.random();
   if (chatting && msg) {
@@ -1177,6 +1189,7 @@ function bbLine(msg, chatting) {
     const ans = clean && answerFor(clean);
     if (ans && r < (leaving ? .85 : .6)) return { lang, text: fill(pick(ans)) };
     if (leaving) return { lang, text: fill(pick(ANS.bye)) };
+    if (serim && Math.random() < .7) return { lang, text: fill(pick(TPL.serim.zh)) }; // 提到世琳：大部分人在嗑
     // 2. 看得懂你在说什么情况（饿了、回宿舍、工位乱…）：按情况回应
     const ints = bbIntents(clean);
     if (!sad && Math.random() < .08) return { lang, text: fill(pick(BB_LINES.follow)) }; // 偶尔有人顺口问点别的
@@ -2079,6 +2092,7 @@ function liveReact(text) {
   const us = [...new Set(L.users)].reverse();
   const called = us.find(u => u && text.includes(u)) || us.find(u => u && u.length >= 4 && text.includes(u.slice(-3)));
   if (called) { hit = true; L.queue.unshift({ user: called, lang: 'zh', text: fill(pick(NAME_CALLED)) }); fresh(['羡慕死了', '我也想被叫名字', '也叫叫我！', '好幸福的姐妹'], ri(1, 2)).forEach(push); }
+  if (CAT_KW.serim.test(text)) { hit = true; fresh(TPL.serim.zh, ri(3, 5)).forEach(push); const fl = pick(['ko', 'en']), f = pick(TPL.serim[fl]); L.queue.push({ lang: fl, text: fill(f[0]), zh: fill(f[1]) }); }
   // 言行：负面 / 恋爱话题会影响人气
   const tn = tone(text);
   if (tn === 'neg') { fresh(LIVE_TPL.neg, ri(2, 3)).forEach(push); L.target *= .9; L.fanD -= S.profile.followers * .003; hit = true; }
