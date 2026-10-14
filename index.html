@@ -1045,7 +1045,8 @@ function bbTime(ts) { const d = new Date(ts), h = d.getHours(); return `${h < 12
 const fmtDur = s => `${Math.floor(s / 60)}:${pad(Math.floor(s % 60))}`;
 
 const BB_LINES = {
-  react: ['哈哈哈哈哈', '嗯嗯！', '真的吗！', '好可爱', '爱你', '呜呜呜', '{n}！！', '啊啊啊啊', '好幸福', '今天也好喜欢你', '被可爱到了', '原来如此', '心动了', '我也是！', '知道啦～', '收到！', '笑死我了', '你怎么这么可爱'],
+  react: ['哈哈哈哈哈', '嗯嗯！', '好可爱', '爱你', '呜呜呜', '{n}！！', '啊啊啊啊', '好幸福', '今天也好喜欢你', '被可爱到了', '原来如此', '心动了', '知道啦～', '收到！', '笑死我了', '你怎么这么可爱', '听起来好开心', '这也太可爱了吧', '好想一起', '真好～', '好羡慕呀', '辛苦了！', '{n}说什么都可爱', '看到{n}的消息就开心', '好治愈', '嘿嘿嘿'],
+  agree: ['我也是！', '对对对', '是吧是吧', '我懂！', '确实！', '同意', '我也这么觉得', '一样一样', '真的！', '好有道理', '哈哈哈我也会这样', '+1'],
   emoji: ['🥳🥳🥳', '❤️❤️❤️❤️❤️', '😭😭😭', '🥰🥰🥰', '💙💙💙', '😍😍😍😍😍', '🫶🫶🫶', '😘😘😘'],
   image: ['照片！！！', '{n}好好看', '这是今天拍的吗', '已保存', '这张要设成壁纸', '好好看呜呜', '发型好可爱', '谢谢{n}发照片'],
   video: ['视频！！', '循环了好多遍', '好可爱的视频', '再发一个吧', '已经录屏了'],
@@ -1078,13 +1079,22 @@ function bbLine(msg, chatting) {
     const clean = t.split(BB_TOK).join(bbFan());
     const ans = clean && answerFor(clean);
     if (ans && r < (leaving ? .8 : .45)) return { lang, text: fill(pick(ans)) };
-    if (msg.type !== 'text' && r < .55) return { lang, text: fill(pick(BB_LINES[msg.type])) };
-    const cats = detectCats(clean).filter(c => TPL[c] && TPL[c].zh && c !== 'question');
-    if (cats.length && r < .65) { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
     if (leaving) return { lang, text: Math.random() < .5 ? pick(BB_LINES.emoji) : fill(pick(['呜呜呜', '爱你', '舍不得', '今天也好开心'])) };
-    if (r < .84) return { lang, text: fill(pick(Math.random() < .7 ? BB_LINES.follow : TPL.ask.zh)) };
-    if (r < .9) return { lang, text: pick(BB_LINES.emoji) };
-    return { lang, text: fill(pick(BB_LINES.react)) };
+    // 你开话题时：大部分粉丝是接话、附和、表达情绪，提问只占一小部分
+    const cats = detectCats(clean).filter(c => TPL[c] && TPL[c].zh && c !== 'question');
+    const sn = snippet(t.split(BB_TOK).join(''));
+    const pool = [['react', 34], ['agree', 22], ['emoji', 16], ['follow', 9]];
+    if (msg.type !== 'text') pool.push(['media', 28]);
+    if (cats.length) pool.push(['cat', 26]);
+    if (sn) pool.push(['echo', 7]);
+    let x = Math.random() * pool.reduce((a, p) => a + p[1], 0), k = 'react';
+    for (const [name, w] of pool) { x -= w; if (x <= 0) { k = name; break; } }
+    if (k === 'media') return { lang, text: fill(pick(BB_LINES[msg.type])) };
+    if (k === 'cat') { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
+    if (k === 'echo') return { lang, text: pick([`「${sn}」哈哈哈`, `「${sn}」好可爱`, `「${sn}」懂了懂了`]) };
+    if (k === 'emoji') return { lang, text: pick(BB_LINES.emoji) };
+    if (k === 'follow') return { lang, text: fill(pick(BB_LINES.follow)) };
+    return { lang, text: fill(pick(BB_LINES[k])) };
   }
   const h = new Date().getHours();
   if (Math.random() < .55 * Math.exp(-bbDays() / 2)) return { lang, text: fill(pick(BB_LINES.newsub)) };
@@ -1160,7 +1170,7 @@ async function bbAI(m) {
     const recent = S.bubble.msgs.slice(-4, -1).map(x => x.type === 'text' ? x.text : `[${x.type}]`).join(' / ');
     const kind = { text: '文字', image: '照片', video: '视频', voice: '语音' }[m.type];
     content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里给订阅粉丝发了一条${kind}消息${m.text ? `：「${m.text.split(BB_TOK).join('【粉丝自己的昵称】')}」` : ''}。${m.replyTo ? `这是在回复粉丝「${m.replyTo.user}」的消息「${m.replyTo.text}」。` : ''}${recent ? `她前面几条消息：${recent}。` : ''}
-每个粉丝都以为这是偶像单独发给自己的私聊。请生成 8 条粉丝发给她的私信回复：大部分是回应她发的内容、回答她的问题、或者追问她（在哪/和谁/然后呢/今天怎么样），少量撒娇或分享自己的日常。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
+每个粉丝都以为这是偶像单独发给自己的私聊。请生成 8 条粉丝发给她的私信回复：如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 1 条是提问。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
     const list = await aiComments(content, 1200);
     S.bubble.aiPool.push(...list);
   } catch (e) { aiFail(e); }
