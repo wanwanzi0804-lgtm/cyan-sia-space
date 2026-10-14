@@ -120,9 +120,23 @@ body.typing .bb-tick.bb-tick2{display:block}
 .bb-recbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);font-size:14px}
 .rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2d55;animation:pulse 1s infinite}
 #bb-side{position:fixed;inset:0;z-index:85}
-.hot-card{border-left:4px solid #ff5a5f}
-.hot-rank{font-size:12px;color:#ff5a5f;font-weight:700}
-.hot-title{font-size:18px;font-weight:800;margin-top:2px}
+#hot-bar{flex-basis:100%;order:9;display:flex;align-items:center;gap:6px;background:#fff4e5;color:#b35c00;border-radius:12px;padding:7px 12px;font-size:13px;cursor:pointer;margin-top:2px}
+#hot-bar[hidden]{display:none}
+#hot-bar .hb-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+#hot-bar .hb-l{flex:none;opacity:.8;font-size:12px}
+.topbar{flex-wrap:wrap}
+.hp-top{display:flex;align-items:center;gap:10px}
+.hp-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ffb36b,#ff6f61);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.hp-body{margin-top:10px;font-size:15px;line-height:1.6;word-break:break-word}
+.hp-tag{color:#eb7350}
+.hp-media{margin-top:10px;height:150px;border-radius:12px;background:linear-gradient(135deg,#d9dee4,#b8c0c9);display:grid;place-items:center;font-size:40px;color:#fff}
+.hp-stats{display:flex;justify-content:space-around;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.hp-like,.hp-cl{border:0;background:none;color:var(--muted);font-size:13px;padding:2px 4px}
+.hp-like.on,.hp-cl.on{color:#ff5a5f}
+.hp-todo{background:#fff4e5;color:#7a3e00;border:0}
+.hp-c{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.hp-c:first-child{border-top:0}
+.hp-c b{font-size:13px;color:#eb7350;font-weight:600}
 .hot-opt{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:14px;padding:13px 14px;margin-bottom:8px;font-size:15px}
 .hot-opt:active{background:var(--bg)}
 #bb-rl{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;background:var(--card);max-width:560px;margin:0 auto}
@@ -343,6 +357,7 @@ video.bv-glow{pointer-events:none}
     <span class="logo">SIA SPACE</span>
     <span class="sp"></span>
     <button class="iconbtn" data-act="tab" data-tab="notif" title="通知">🔔<span class="badge" id="bell-badge"></span></button>
+    <div id="hot-bar" data-act="hotopen" hidden></div>
   </header>
   <main id="view"></main>
   <nav class="tabbar"><div class="inner">
@@ -985,123 +1000,142 @@ function eventLine() {
 }
 
 /* =========================================================
-   热搜事件：不定时冒出来，你选怎么回应；结果有运气成分，几小时后才知道
+   热搜事件：冒出一条“微博帖子”，你选一个回应方式，然后真的去做
+   （在泡泡 / 社区 / 直播里），做完一段时间后才知道结果
    ========================================================= */
+// task：要去哪里做（post 社区 / bubble 泡泡 / any 两者都行 / live 直播），need：要发什么（any / text / image / video / sound）
 // r: [[概率, 粉丝变化下限, 上限（占总粉丝的比例）, 后续]]
 const HOT_EVENTS = [
-  { id: 'fancam', min: 0, w: 3, title: '{name} 练习室直拍', desc: '一段你练习室的直拍被一个舞蹈博主转发了，播放量还在涨。',
+  { id: 'fancam', min: 0, w: 3, big: 1, au: ['舞蹈区小鱼', '舞蹈博主'], title: '{name} 练习室直拍', body: '刷到一个新人 solo 的练习室直拍，这个力度和表情管理也太稳了吧！！[视频]',
     talk: ['直拍我看了好多遍', '新粉报到！被直拍圈的', '这个直拍是谁拍的，太会了', '直拍里的表情管理绝了', '路人问我这是谁，我说是我老婆'],
-    opts: [{ t: '转发一下', r: [[.6, .02, .04, '转发之后更多路人点进了主页'], [.4, .004, .012, '热度平稳，老粉都很开心']] },
-      { t: '在泡泡里聊聊这件事', r: [[.5, .008, .02, '粉丝把泡泡截图发了出去，又带来一波新粉'], [.5, .002, .008, '粉丝们很开心，话题慢慢降温']] },
+    opts: [{ t: '转发一下', task: { where: 'post', need: 'any', hint: '在社区发帖聊聊这个直拍' }, r: [[.6, .02, .04, '更多路人点进了你的主页'], [.4, .004, .012, '热度平稳，老粉都很开心']] },
+      { t: '和粉丝聊聊这件事', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝聊聊直拍' }, r: [[.5, .008, .02, '粉丝把泡泡截图发了出去，又带来一波新粉'], [.5, .002, .008, '粉丝们很开心，话题慢慢降温']] },
       { t: '继续练习', r: [[.4, .01, .025, '「不营业的神秘感」反而被讨论了'], [.6, 0, .006, '热度很快就过去了']] }] },
-  { id: 'candid', min: 0, w: 2, title: '{name} 路透', desc: '有站姐拍到你下班路上的照片，其中一张抓拍被说像漫画里走出来的。',
+  { id: 'candid', min: 0, w: 2, au: ['安安今天出门了吗', '站姐'], title: '{name} 路透', body: '下班路上的小猫被我抓到了📷 这张像不像漫画里走出来的 [图片]',
     talk: ['那张路透是什么神图', '站姐太会拍了', '路透比精修还好看', '下班路上都这么好看吗'],
-    opts: [{ t: '发一张同角度的自拍', r: [[.55, .01, .025, '同角度自拍被说「本人认证」，又火了一下'], [.45, 0, .008, '粉丝玩得很开心，路人没怎么注意']] },
-      { t: '去站姐评论区留言', r: [[.5, .006, .018, '「本人亲自来了」的截图被到处转'], [.5, -.004, .004, '有人说偶像不该和站姐互动，吵了几句']] },
+    opts: [{ t: '发一张同角度的自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.55, .01, .025, '同角度自拍被说「本人认证」，又火了一下'], [.45, 0, .008, '粉丝玩得很开心，路人没怎么注意']] },
+      { t: '说一句被拍到了', task: { where: 'bubble', need: 'any', hint: '在泡泡里提一下被拍到的事' }, r: [[.5, .006, .018, '泡泡截图被到处转'], [.5, -.004, .004, '有人说偶像不该关注站姐，吵了几句']] },
       { t: '不回应', r: [[.7, .002, .01, '照片自己慢慢传开了'], [.3, 0, .003, '没什么后续']] }] },
-  { id: 'mistake', min: 0, w: 2, title: '{name} 舞台失误', desc: '上次舞台上耳返掉了，有一小段没跟上，那几秒被单独剪了出来。',
+  { id: 'mistake', min: 0, w: 2, neg: 1, au: ['舞台观察员', '娱乐博主'], title: '{name} 舞台失误', body: '新人现场还是要多练啊，耳返掉了那几秒直接没跟上。[视频]',
     talk: ['耳返掉了谁都会这样吧', '心疼，后面马上调整过来了', '那个片段别再转了', '失误也好可爱怎么办'],
-    opts: [{ t: '自嘲一下', r: [[.6, .004, .015, '大家觉得你很真实，反而圈了点粉'], [.4, -.008, 0, '有人觉得态度太随便']] },
-      { t: '发一段长文', r: [[.5, 0, .008, '粉丝很心疼，抱团安慰你'], [.5, -.01, -.002, '被说小题大做，又多讨论了两天']] },
+    opts: [{ t: '自嘲一下', task: { where: 'any', need: 'text', hint: '在泡泡或社区说说这件事' }, r: [[.6, .004, .015, '大家觉得你很真实，反而圈了点粉'], [.4, -.008, 0, '有人觉得态度太随便']] },
+      { t: '写一段长一点的话', task: { where: 'post', need: 'text', hint: '在社区发一段文字' }, r: [[.5, 0, .008, '粉丝很心疼，抱团安慰你'], [.5, -.01, -.002, '被说小题大做，又多讨论了两天']] },
       { t: '不提这件事', r: [[.5, -.006, 0, '片段还在被转'], [.5, 0, .004, '下一个舞台状态很好，大家就忘了']] }] },
-  { id: 'variety', min: 0, w: 2, title: '{name} 综艺名场面', desc: '你在综艺里被问怕不怕猫，回答「我本身就是猫」，那段在到处传。',
+  { id: 'variety', min: 0, w: 2, big: 1, au: ['综艺切片bot', '综艺博主'], title: '{name} 综艺名场面', body: '新人 {name} 被问怕不怕猫，回答「我本身就是猫」哈哈哈哈哈哈 [视频]',
     talk: ['「我本身就是猫」笑死', '这个回答我能笑一年', '猫猫本猫认证', '综艺感好强'],
-    opts: [{ t: '发一张猫猫自拍', r: [[.65, .015, .035, '粉丝和路人一起玩梗，热度更高了'], [.35, .003, .01, '老粉狂喜，路人没跟上']] },
-      { t: '在泡泡里接梗', r: [[.5, .008, .02, '泡泡截图被转出去了'], [.5, .002, .006, '粉丝笑疯了，热度平稳']] },
+    opts: [{ t: '发一张猫猫自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.65, .015, .035, '粉丝和路人一起玩梗，热度更高了'], [.35, .003, .01, '老粉狂喜，路人没跟上']] },
+      { t: '顺着梗聊两句', task: { where: 'bubble', need: 'any', hint: '在泡泡里接这个梗' }, r: [[.5, .008, .02, '泡泡截图被转出去了'], [.5, .002, .006, '粉丝笑疯了，热度平稳']] },
       { t: '不接梗', r: [[.6, .003, .01, '片段自己还在传'], [.4, 0, .003, '话题很快就过去了']] }] },
-  { id: 'outfit', min: 0, w: 2, title: '{name} 同款', desc: '你上次穿的外套被扒出了链接，好多人去买同款。',
+  { id: 'outfit', min: 0, w: 2, au: ['今天穿什么呀', '穿搭博主'], title: '{name} 同款', body: '扒到了！{name} 上次那件外套就是这家的，已经断码了 [图片]',
     talk: ['同款外套已下单', '断货了！！', '求其他衣服的链接', '穿上同款感觉自己也是猫'],
-    opts: [{ t: '晒一套新穿搭', r: [[.6, .008, .02, '新穿搭又被扒了一轮'], [.4, 0, .006, '粉丝很开心']] },
-      { t: '说是自己买的', r: [[.5, .005, .015, '「自费穿搭」被夸接地气'], [.5, 0, .005, '没太多人注意']] },
+    opts: [{ t: '晒一套新穿搭', task: { where: 'post', need: 'image', hint: '在社区发一张穿搭照' }, r: [[.6, .008, .02, '新穿搭又被扒了一轮'], [.4, 0, .006, '粉丝很开心']] },
+      { t: '聊聊这件衣服', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这件衣服' }, r: [[.5, .005, .015, '「自费穿搭」被夸接地气'], [.5, 0, .005, '没太多人注意']] },
       { t: '不回应', r: [[1, 0, .006, '话题自然降温了']] }] },
-  { id: 'busking', min: 0, w: 1, title: '偶遇 {name}', desc: '有路人发帖说在便利店偶遇你，说你本人很温柔，还帮店员捡了东西。',
+  { id: 'meet', min: 0, w: 1, au: ['便利店打工人', '路人'], title: '偶遇 {name}', body: '今天在便利店偶遇 {name} 了！！本人超级温柔，还帮店员捡了掉下来的东西',
     talk: ['偶遇帖我看到了！', '本人好温柔', '好羡慕能偶遇', '我也天天去便利店蹲'],
-    opts: [{ t: '转发说「被认出来了」', r: [[.6, .006, .018, '偶遇帖被更多人看到了'], [.4, -.003, .003, '有人担心便利店位置被曝光']] },
-      { t: '在泡泡里提一句', r: [[.6, .003, .01, '粉丝都很开心'], [.4, 0, .004, '没什么后续']] },
+    opts: [{ t: '说说那天的事', task: { where: 'post', need: 'any', hint: '在社区发帖说说那天' }, r: [[.6, .006, .018, '偶遇帖被更多人看到了'], [.4, -.003, .003, '有人担心便利店位置被曝光']] },
+      { t: '和粉丝提一句', task: { where: 'bubble', need: 'any', hint: '在泡泡里提一句' }, r: [[.6, .003, .01, '粉丝都很开心'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, .001, .008, '帖子慢慢沉下去了，但好感留下了']] }] },
-  { id: 'cat', min: 0, w: 1, title: '{name} 撸猫', desc: '你在路边蹲着撸流浪猫的视频被路人拍到了。',
+  { id: 'cat', min: 0, w: 1, au: ['街边随手拍', '路人'], title: '{name} 撸猫', body: '路边看到一个女生蹲着撸流浪猫撸了十分钟，后来才知道是 {name}？？[视频]',
     talk: ['猫猫撸猫', '这是什么双猫画面', '那只猫好幸福', '视频循环中'],
-    opts: [{ t: '发帖说那只猫的名字', r: [[.6, .01, .022, '猫和你一起火了'], [.4, .002, .008, '粉丝开始给猫取名字']] },
-      { t: '再去看看那只猫', r: [[.5, .004, .014, '有人又拍到了，被说很有爱'], [.5, -.004, .002, '有人说不要暴露行程']] },
+    opts: [{ t: '讲讲那只猫', task: { where: 'post', need: 'any', hint: '在社区发帖讲讲那只猫' }, r: [[.6, .01, .022, '猫和你一起火了'], [.4, .002, .008, '粉丝开始给猫取名字']] },
+      { t: '开个直播聊聊', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.5, .006, .016, '直播里聊猫被剪成了切片'], [.5, -.002, .004, '直播热度一般']] },
       { t: '不回应', r: [[1, .001, .008, '视频自己慢慢传开']] }] },
-  { id: 'serimBracelet', min: 0, w: 2, title: '{name} 世琳 同款手链', desc: '有人发现你和世琳戴着同一款手链，对比图在传。',
+  { id: 'serimBracelet', min: 0, w: 2, au: ['嗑学家', 'CP 博主'], title: '{name} 世琳 同款手链', body: '只有我注意到了吗？{name} 和世琳戴的是同一款手链！！对比图在下面 [图片]',
     talk: ['同款手链！！', '友谊手链吧', '我先嗑为敬', '对比图做得好细', '就是闺蜜款啦'],
-    opts: [{ t: '说是一起逛街买的', r: [[.55, .006, .016, '友情粉狂喜，CP 粉也很满足'], [.45, -.004, .004, '有人说别总是捆绑']] },
-      { t: '发一张两人合照', r: [[.5, .012, .03, '合照被转疯了'], [.5, -.008, .004, '讨论太热烈，吵起来了']] },
+    opts: [{ t: '说说这条手链', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这条手链' }, r: [[.55, .006, .016, '友情粉狂喜，CP 粉也很满足'], [.45, -.004, .004, '有人说别总是捆绑']] },
+      { t: '发一张两人合照', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.5, .012, .03, '合照被转疯了'], [.5, -.008, .004, '讨论太热烈，吵起来了']] },
       { t: '不回应', r: [[.6, .002, .01, '大家各种猜，热度慢慢降下来'], [.4, -.003, .002, '猜测越传越离谱']] }] },
-  { id: 'serimLive', min: 0, w: 1, title: '世琳 提到 {name}', desc: '世琳在自己的直播里提到了你，说你们最近经常一起吃饭。',
+  { id: 'serimLive', min: 0, w: 1, au: ['直播切片站', '切片博主'], title: '世琳 提到 {name}', body: '世琳直播里说最近经常和 {name} 一起吃饭，两个人好要好 [视频]',
     talk: ['世琳提到你了！', '一起吃饭好幸福', '两个人好要好', '想看你们一起直播'],
-    opts: [{ t: '去她评论区打招呼', r: [[.6, .008, .02, '互动截图被两边粉丝转发'], [.4, 0, .006, '粉丝很开心']] },
-      { t: '在泡泡里说一句', r: [[.6, .003, .01, '泡泡截图传开了'], [.4, 0, .004, '没什么后续']] },
+    opts: [{ t: '发帖回应一下', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .008, .02, '两边粉丝都转发了'], [.4, 0, .006, '粉丝很开心']] },
+      { t: '和粉丝说一句', task: { where: 'bubble', need: 'any', hint: '在泡泡里说一句' }, r: [[.6, .003, .01, '泡泡截图传开了'], [.4, 0, .004, '没什么后续']] },
       { t: '装作没看到', r: [[.5, 0, .004, '话题过去了'], [.5, -.003, 0, '有人说你冷淡']] }] },
-  { id: 'hate', min: 0, w: 1, title: '{name} 实力', desc: '有个帖子说你唱功不稳，下面已经吵起来了。',
+  { id: 'hate', min: 0, w: 1, neg: 1, au: ['乐评人老K', '音乐博主'], title: '{name} 实力', body: '说实话，{name} 现场的气息还是不太稳，几个长音都在抖。新人能理解，但别吹太过了。',
     talk: ['别理那个帖子', '唱功好不好听现场就知道', '心疼', '粉丝别去吵了'],
-    opts: [{ t: '发一段清唱', r: [[.55, .01, .025, '清唱被夸，口碑反转'], [.45, -.006, .002, '被说「急了」，又吵了一轮']] },
-      { t: '让粉丝别吵', r: [[.6, 0, .008, '粉丝冷静下来了'], [.4, -.006, 0, '帖子还是被顶上去了']] },
+    opts: [{ t: '发一段清唱', task: { where: 'any', need: 'sound', hint: '在泡泡或社区发一段清唱（语音或视频）' }, r: [[.55, .01, .025, '清唱被夸，口碑反转'], [.45, -.006, .002, '被说「急了」，又吵了一轮']] },
+      { t: '让粉丝别吵', task: { where: 'any', need: 'text', hint: '在泡泡或社区跟粉丝说一声' }, r: [[.6, 0, .008, '粉丝冷静下来了'], [.4, -.006, 0, '帖子还是被顶上去了']] },
       { t: '不看不理', r: [[.5, -.008, -.001, '帖子越传越远'], [.5, 0, .004, '很快就没人讨论了']] }] },
-  { id: 'late', min: 0, w: 1, title: '{name} 迟到', desc: '有人拍到你那天活动迟到了几分钟，视频在传。',
+  { id: 'late', min: 0, w: 1, neg: 1, au: ['现场repo', '路人'], title: '{name} 迟到', body: '今天活动 {name} 迟到了快十分钟，工作人员一直在等。',
     talk: ['堵车了吧', '迟到几分钟而已', '不要被带节奏', '后面不是好好完成了吗'],
-    opts: [{ t: '解释一下原因', r: [[.5, 0, .008, '大家表示理解'], [.5, -.008, -.002, '被说找借口']] },
-      { t: '简单道个歉', r: [[.6, -.002, .006, '态度被夸'], [.4, -.006, 0, '有人觉得没必要道歉，反而又被讨论']] },
+    opts: [{ t: '解释一下', task: { where: 'any', need: 'text', hint: '在泡泡或社区说明一下' }, r: [[.5, 0, .008, '大家表示理解'], [.5, -.008, -.002, '被说找借口']] },
+      { t: '简单说声抱歉', task: { where: 'any', need: 'text', hint: '在泡泡或社区说一声' }, r: [[.6, -.002, .006, '态度被夸'], [.4, -.006, 0, '有人觉得没必要，反而又被讨论']] },
       { t: '不回应', r: [[.5, -.01, -.003, '视频越传越多'], [.5, -.002, .002, '很快就过去了']] }] },
-  { id: 'nomakeup', min: 0, w: 1, title: '{name} 素颜', desc: '你前几天直播没化妆，截图被单独发了出来。',
+  { id: 'nomakeup', min: 0, w: 1, au: ['截图小能手', '粉丝'], title: '{name} 素颜', body: '{name} 前几天直播素颜也太能打了吧，皮肤好好 [图片]',
     talk: ['素颜也好好看', '皮肤好好', '素颜截图存了', '这才是本人状态'],
-    opts: [{ t: '再开一次素颜直播', r: [[.6, .01, .022, '素颜直播被说「真实」'], [.4, .002, .008, '粉丝很开心']] },
-      { t: '发一张素颜自拍', r: [[.55, .006, .018, '路人觉得很亲切'], [.45, -.003, .004, '有人说故意营业']] },
+    opts: [{ t: '再开一次直播', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.6, .01, .022, '直播被说「真实」'], [.4, .002, .008, '粉丝很开心']] },
+      { t: '发一张自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.55, .006, .018, '路人觉得很亲切'], [.45, -.003, .004, '有人说故意营业']] },
       { t: '不回应', r: [[1, 0, .006, '截图自己慢慢传开']] }] },
-  { id: 'clip', min: 0, w: 1, title: '{name} 发言', desc: '你直播里随口说的一句话被截了出来，只剩半句，意思完全变了。',
+  { id: 'clip', min: 0, w: 1, neg: 1, au: ['娱乐吃瓜站', '营销号'], title: '{name} 发言', body: '新人 {name} 直播发言引争议？！网友：这态度… [视频]',
     talk: ['完整视频在这里，别断章取义', '截图的人太坏了', '看完整版就懂了', '粉丝去控评了'],
-    opts: [{ t: '发完整片段', r: [[.6, -.002, .01, '误会解开了，还有路人道歉'], [.4, -.008, -.002, '还是有人不看完整版']] },
-      { t: '开个玩笑带过', r: [[.5, 0, .01, '大家觉得你很大方'], [.5, -.01, -.003, '被说不当回事']] },
+    opts: [{ t: '放出完整片段', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.6, -.002, .01, '误会解开了，还有路人道歉'], [.4, -.008, -.002, '还是有人不看完整版']] },
+      { t: '开个玩笑带过', task: { where: 'bubble', need: 'any', hint: '在泡泡里说两句' }, r: [[.5, 0, .01, '大家觉得你很大方'], [.5, -.01, -.003, '被说不当回事']] },
       { t: '不回应', r: [[.5, -.012, -.004, '截图越传越远'], [.5, -.002, .002, '没过两天就没人提了']] }] },
-  { id: 'song', min: 0, w: 1, needSong: true, title: '{song} 翻红', desc: '你的歌《{song}》被一个短视频用作背景音乐，听的人突然变多了。',
+  { id: 'song', min: 0, w: 1, big: 1, needSong: true, au: ['宝藏歌曲推荐', '音乐博主'], title: '{song} 翻红', body: '最近刷到好多视频用《{song}》当 BGM，原唱是 {name}，真的好好听！',
     talk: ['《{song}》终于被看到了', '短视频刷到好几次', '这首歌本来就好听', '新粉来听《{song}》了'],
-    opts: [{ t: '拍一个这首歌的挑战', r: [[.6, .02, .045, '挑战视频带动了更多人'], [.4, .005, .012, '老粉玩得很开心']] },
-      { t: '发帖谢谢大家', r: [[.6, .008, .02, '帖子被很多新粉看到'], [.4, .002, .008, '热度平稳']] },
+    opts: [{ t: '拍一个这首歌的视频', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.6, .02, .045, '视频带动了更多人'], [.4, .005, .012, '老粉玩得很开心']] },
+      { t: '发帖说点什么', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .008, .02, '帖子被很多新粉看到'], [.4, .002, .008, '热度平稳']] },
       { t: '保持安静', r: [[.5, .005, .015, '歌自己继续火着'], [.5, 0, .005, '热度慢慢降了']] }] },
-  { id: 'senior', min: 12000, w: 1, title: '前辈 点名 {name}', desc: '一位很有名的前辈在采访里说最近很喜欢听你的歌。',
+  { id: 'senior', min: 12000, w: 1, big: 1, au: ['偶像访谈速递', '娱乐博主'], title: '前辈 点名 {name}', body: '前辈在采访里被问最近在听什么歌，提到了新人 {name}，说「声音很特别」[视频]',
     talk: ['前辈点名了！！', '被前辈认可了呜呜', '采访片段我存了', '大前辈都在听'],
-    opts: [{ t: '发帖感谢', r: [[.6, .015, .035, '前辈的粉丝也来看你了'], [.4, .004, .012, '粉丝很骄傲']] },
-      { t: '私下联系前辈', r: [[.5, .006, .02, '前辈后来在社交平台上回应了你'], [.5, 0, .006, '外面没什么动静']] },
+    opts: [{ t: '发帖说点什么', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .015, .035, '前辈的粉丝也来看你了'], [.4, .004, .012, '粉丝很骄傲']] },
+      { t: '和粉丝分享心情', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝分享' }, r: [[.5, .006, .02, '泡泡截图被转出去了'], [.5, 0, .006, '粉丝很开心']] },
       { t: '低调一点', r: [[.5, .005, .015, '被说谦虚'], [.5, 0, .006, '热度慢慢过去']] }] },
-  { id: 'stalker', min: 12000, w: 1, title: '{name} 私生', desc: '有人在宿舍楼下蹲你，被粉丝曝光了。',
+  { id: 'stalker', min: 12000, w: 1, neg: 1, au: ['安安后援会', '粉丝后援'], title: '{name} 私生', body: '有人连续几天在宿舍楼下蹲 {name}，请大家不要去打扰她的私人生活！',
     talk: ['私生滚', '保护好{n}', '大家别去宿舍附近', '公司快管管'],
-    opts: [{ t: '发声明', r: [[.6, 0, .008, '粉丝很支持，私生收敛了'], [.4, -.004, .002, '讨论太多，宿舍位置反而被更多人知道']] },
-      { t: '在泡泡里安抚粉丝', r: [[.6, .002, .01, '粉丝感动'], [.4, -.002, .003, '有人担心你的安全']] },
+    opts: [{ t: '公开说几句', task: { where: 'post', need: 'text', hint: '在社区发一段文字' }, r: [[.6, 0, .008, '粉丝很支持，私生收敛了'], [.4, -.004, .002, '讨论太多，宿舍位置反而被更多人知道']] },
+      { t: '安抚一下粉丝', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝说说' }, r: [[.6, .002, .01, '粉丝感动'], [.4, -.002, .003, '有人担心你的安全']] },
       { t: '交给公司处理', r: [[.6, 0, .004, '事情低调地处理掉了'], [.4, -.004, 0, '粉丝觉得公司反应太慢']] }] },
-  { id: 'brand', min: 20000, w: 1, title: '{name} 代言', desc: '一个化妆品牌在官博 @ 了你，看起来像在暗示合作。',
+  { id: 'brand', min: 20000, w: 1, au: ['美妆情报局', '美妆博主'], title: '{name} 代言', body: '某美妆品牌官博突然 @ 了 {name}，这是要官宣合作了吗？',
     talk: ['是代言吗！！', '品牌眼光好', '已经去看产品了', '冲销量冲销量'],
-    opts: [{ t: '转发并回一句', r: [[.6, .012, .03, '品牌和你一起上了热门'], [.4, -.004, .006, '有人说太商业']] },
-      { t: '发一张用它家产品的照片', r: [[.5, .01, .025, '粉丝开始冲销量'], [.5, 0, .006, '路人没太在意']] },
+    opts: [{ t: '发帖回一句', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .012, .03, '品牌和你一起上了热门'], [.4, -.004, .006, '有人说太商业']] },
+      { t: '发一张化妆的照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.5, .01, .025, '粉丝开始冲销量'], [.5, 0, .006, '路人没太在意']] },
       { t: '不回应', r: [[.6, 0, .006, '大家各种猜'], [.4, .002, .01, '被说高冷，反而更好奇了']] }] },
-  { id: 'choreo', min: 20000, w: 1, title: '{name} 编舞 撞了', desc: '有人说你新舞台的一段编舞和别人的很像，对比视频在传。',
+  { id: 'choreo', min: 20000, w: 1, neg: 1, au: ['舞蹈考古', '舞蹈博主'], title: '{name} 编舞 撞了', body: '{name} 新舞台中段的动作，和某组合前年的编舞是不是有点像？对比视频放下面了 [视频]',
     talk: ['动作就那么几种', '对比视频太牵强了', '等官方说明', '别吵了'],
-    opts: [{ t: '让编舞老师出来说明', r: [[.6, -.002, .008, '说明之后大家理解了'], [.4, -.01, -.003, '说明被挑刺，又吵了一轮']] },
-      { t: '发练习视频', r: [[.5, 0, .012, '练习视频被夸努力'], [.5, -.006, 0, '被说转移话题']] },
+    opts: [{ t: '发一段练习视频', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.5, 0, .012, '练习视频被夸努力'], [.5, -.006, 0, '被说转移话题']] },
+      { t: '和粉丝说明一下', task: { where: 'bubble', need: 'text', hint: '在泡泡里说明一下' }, r: [[.6, -.002, .008, '粉丝理解了'], [.4, -.01, -.003, '说明被截图挑刺']] },
       { t: '不回应', r: [[.5, -.012, -.004, '讨论越来越多'], [.5, -.003, .002, '很快被别的新闻盖过去了']] }] },
-  { id: 'dating', min: 25000, w: 1, title: '{name} 恋情', desc: '有营销号发了一张模糊的照片，说你在谈恋爱。',
+  { id: 'dating', min: 25000, w: 1, neg: 1, au: ['八卦一手', '营销号'], title: '{name} 恋情', body: '网传新人 {name} 疑似恋爱，被拍到和一人深夜同行 [图片]',
     talk: ['照片都糊成这样了', '就算谈了也祝福', '营销号又在编', '等本人说'],
-    opts: [{ t: '说是朋友', r: [[.6, -.002, .008, '大部分人相信了'], [.4, -.01, -.002, '有人不信，讨论更多了']] },
-      { t: '发一张自拍', r: [[.5, 0, .012, '话题被转移了'], [.5, -.008, 0, '被说在回避']] },
+    opts: [{ t: '和粉丝说说', task: { where: 'bubble', need: 'text', hint: '在泡泡里说说' }, r: [[.6, -.002, .008, '大部分人相信了'], [.4, -.01, -.002, '有人不信，讨论更多了']] },
+      { t: '发一张自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.5, 0, .012, '话题被转移了'], [.5, -.008, 0, '被说在回避']] },
       { t: '不回应', r: [[.5, -.012, -.003, '猜测越来越多'], [.5, -.002, .004, '没过几天就没人提了']] }] },
-  { id: 'airport', min: 40000, w: 1, title: '{name} 机场', desc: '你的机场照上了热门，穿搭被很多人讨论。',
+  { id: 'airport', min: 40000, w: 1, au: ['机场时尚', '站姐'], title: '{name} 机场', body: '今日机场 {name}，这身也太好看了 [图片]',
     talk: ['机场神图', '机场造型好绝', '去哪里呀', '一路平安！'],
-    opts: [{ t: '发一张飞机上的照片', r: [[.6, .01, .025, '又上了一次热门'], [.4, .002, .008, '粉丝很开心']] },
-      { t: '在泡泡里报平安', r: [[.6, .004, .012, '粉丝很安心'], [.4, 0, .005, '没什么后续']] },
+    opts: [{ t: '发一张飞机上的照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.6, .01, .025, '又上了一次热门'], [.4, .002, .008, '粉丝很开心']] },
+      { t: '和粉丝报平安', task: { where: 'bubble', need: 'any', hint: '在泡泡里报平安' }, r: [[.6, .004, .012, '粉丝很安心'], [.4, 0, .005, '没什么后续']] },
       { t: '不回应', r: [[1, .002, .01, '照片自己继续传着']] }] },
-  { id: 'sched', min: 0, w: 4, needSched: true, title: '{name} {e}', desc: '「{e}」的直拍被单独剪了出来，评论区都在夸你的状态。',
+  { id: 'sched', min: 0, w: 4, needSched: true, au: ['直拍收藏家', '站姐'], title: '{name} {e}', body: '「{e}」{name} 直拍，状态真的太好了！！[视频]',
     talk: ['「{e}」直拍看了吗', '「{e}」状态好好', '{e}那天的造型绝了', '路人被「{e}」圈粉了'],
-    opts: [{ t: '转发直拍', r: [[.6, .012, .03, '直拍又火了一轮'], [.4, .003, .01, '粉丝很开心']] },
-      { t: '发一组后台照片', r: [[.55, .01, .025, '后台照片被说好看'], [.45, .002, .008, '老粉狂喜']] },
+    opts: [{ t: '转发直拍', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .012, .03, '直拍又火了一轮'], [.4, .003, .01, '粉丝很开心']] },
+      { t: '发一组后台照片', task: { where: 'post', need: 'image', hint: '在社区发照片' }, r: [[.55, .01, .025, '后台照片被说好看'], [.45, .002, .008, '老粉狂喜']] },
       { t: '继续准备下一个行程', r: [[.5, .005, .015, '直拍自己慢慢火了'], [.5, 0, .005, '热度过去了']] }] }
 ];
 const HOT_NONE = [[.5, -.004, .004, '你没有回应，话题慢慢过去了'], [.5, 0, .006, '热度自然消散了']];
-function hotState() { return S.hot || (S.hot = { next: 0, cur: null, hist: [], fx: [], talk: null }); }
+const HOT_PASSER = ['路过，这是谁？', '第一次知道这个人', '有点好看', '关注了', '什么时候出道的', '求介绍', '刷到好几次了', '这个人我有印象', '首页一直推', '感觉挺可爱的'];
+const HOT_HATER = ['也就那样吧', '粉丝别控评了', '这也能上热门？', '买的吧', '没感觉', '新人还是低调点'];
+const HOT_FANC = ['{n}最棒！！', '路人们去看看她的舞台', '我们{n}就是很好', '超话见！', '快去听歌！'];
+const HOT_AFTER = { pos: ['看到回应了，好可爱', '被这个回应圈粉了', '路人转粉', '这波回应满分', '正主回应了！'], neg: ['这回应有点…', '越描越黑了', '还是别回应比较好', '粉丝也很难做'], none: ['正主没回应', '热度过去了吧', '已经没人讨论了'] };
+const HOT_WHERE = { post: '社区', bubble: '泡泡', any: '泡泡或社区', live: '直播' };
+function hotState() {
+  const H = S.hot || (S.hot = { next: 0, cur: null, hist: [], fx: [], talk: null, posts: {} });
+  if (!H.posts) { H.posts = {}; if (H.cur && !H.cur.key) H.cur = null; } // 旧版本的热搜没有帖子
+  return H;
+}
 const hotFill = (t, ev) => fill(t).replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '');
 // 频率按现有粉丝数和热度来：粉丝越多、越火，热搜越多
 function hotGap() {
   const f = S.profile.followers, days = f < 15000 ? rand(2.5, 5) : f < 30000 ? rand(1.8, 3.5) : f < 60000 ? rand(1.2, 2.5) : rand(.8, 1.6);
   return days * 86400e3 / clamp(heat(), .7, 1.6) * (cbPhase() === 'promo' ? .6 : 1);
+}
+// 粉丝少的时候上不了热搜榜，只是在超话 / 同城 / 话题页里小火
+function hotVenue(ev) {
+  const f = S.profile.followers;
+  if (f < 20000) return ev.big && Math.random() < .12 ? `热搜 第 ${ri(42, 50)} 位` : pick(['超话热门', '同城热门', '话题广场 · 实时上升', '舞台区热门']);
+  if (f < 50000) return Math.random() < .5 ? `热搜 第 ${ri(28, 50)} 位` : pick(['实时上升', '超话热门', '文娱榜']);
+  if (f < 150000) return `热搜 第 ${ri(8, 40)} 位`;
+  return `热搜 第 ${ri(1, 20)} 位`;
 }
 function hotPick() {
   const H = hotState(), f = S.profile.followers, recent = H.hist.slice(-8).map(x => x.id);
@@ -1113,49 +1147,98 @@ function hotPick() {
   for (const e of pool) { x -= e.w; if (x <= 0) { ev = e; break; } }
   return { id: ev.id, song: songs.length ? pick(songs) : '', e: sched ? sched.title : '' };
 }
+function hotComment(ev, kind) {
+  const passer = Math.random() < .5;
+  const user = passer ? (Math.random() < .5 ? '用户' + ri(1000000, 9999999) : pick(['吃瓜群众', '路过的猫', '一颗橙子', '今天也要早睡', 'momo', '凌晨三点的风', '不吃香菜'])) : makeFan('zh').user;
+  let text;
+  if (kind) text = pick(HOT_AFTER[kind]);
+  else { const r = Math.random(); text = r < .45 ? pick(ev.talk) : r < .6 ? pick(HOT_FANC) : r < (ev.neg ? .8 : .95) ? pick(HOT_PASSER) : pick(HOT_HATER); }
+  const f = S.profile.followers;
+  return { id: uid(), user, text: fill(text), likes: Math.round(rand(0, f / 400) * Math.random()), at: Date.now() };
+}
+function hotNewPost(p, ev) {
+  const f = S.profile.followers, sc = f / 15000;
+  const body = hotFill(ev.body, p), media = /\[视频\]/.test(body) ? 'video' : /\[图片\]/.test(body) ? 'image' : '';
+  const post = { eid: ev.id, p: { song: p.song, e: p.e }, au: ev.au[0], tag: ev.au[1], body: body.replace(/\s*\[(视频|图片)\]/g, ''), media, at: Date.now(), likes: Math.round(rand(80, 400) * sc), rt: Math.round(rand(10, 80) * sc), cc: 0, liked: false, cm: [] };
+  for (let i = 0; i < ri(6, 10); i++) { const c = hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, p)) }); post.cm.push(c); post.cc += ri(1, Math.max(2, Math.round(4 * sc))); }
+  post.cm.sort((a, b) => b.likes - a.likes);
+  return post;
+}
 function hotTick() {
   const H = hotState(), now = Date.now();
   if (!S.profile || !S.posts) return;
   if (!H.next) H.next = now + hotGap() * rand(.3, .7);
-  // 新热搜（白天才冒出来）
   const hr = new Date().getHours();
   if (!H.cur && now >= H.next && hr >= 9) {
     H.next = now + hotGap();
     const p = hotPick();
     if (p) {
-      const ev = HOT_EVENTS.find(e => e.id === p.id);
-      H.cur = { ...p, at: now, rank: S.profile.followers < 20000 ? ri(18, 48) : S.profile.followers < 50000 ? ri(6, 30) : ri(1, 15), title: hotFill(ev.title, p), desc: hotFill(ev.desc, p), choice: null };
-      pushNotif({ type: 'hot', text: `📰 热搜 #${H.cur.title}#`, sub: H.cur.desc }, true);
+      const ev = HOT_EVENTS.find(e => e.id === p.id), key = uid();
+      H.posts[key] = hotNewPost(p, ev);
+      H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null };
+      pushNotif({ type: 'hot', key, text: `📰 #${H.cur.title}#`, sub: `${H.cur.venue} · ${H.posts[key].body.slice(0, 40)}` }, true);
       H.talk = { id: p.id, song: p.song, e: p.e, until: now + 2 * 86400e3 };
+      const ks = Object.keys(H.posts); while (ks.length > 12) delete H.posts[ks.shift()];
     }
   }
   const c = H.cur;
-  if (c && c.choice == null && now - c.at > 20 * 3600e3) { c.choice = -1; c.resolveAt = now; } // 一直没回应
-  if (c && c.choice != null && now >= c.resolveAt) hotResolve();
-  // 结果造成的粉丝变化在一天内陆续到账
+  if (c) {
+    if (c.choice == null && now - c.at > 20 * 3600e3) { c.choice = -1; c.resolveAt = now; } // 一直没选
+    if (c.task && !c.task.done && now > c.task.until) { c.choice = -1; c.task = null; c.resolveAt = now; hotBar(); } // 说了要做但没做
+    if (c.choice != null && c.resolveAt && now >= c.resolveAt) hotResolve();
+  }
+  // 热搜帖子下面慢慢有新评论
+  for (const k of Object.keys(H.posts)) {
+    const post = H.posts[k], age = now - post.at; if (age > 2 * 86400e3) continue;
+    const gap = 4 * 60e3 * (1 + age / (6 * 3600e3));
+    post.lastC = post.lastC || post.at;
+    if (now - post.lastC > gap) {
+      post.lastC = now; const ev = HOT_EVENTS.find(e => e.id === post.eid);
+      if (ev && post.cm.length < 60) { post.cm.push(hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, post.p || {})) })); post.cc += ri(1, 5); }
+      post.likes += ri(5, 40); post.rt += ri(0, 6);
+    }
+  }
   for (const x of H.fx) {
     const want = Math.round(x.total * clamp((now - x.from) / (x.to - x.from), 0, 1));
     if (want !== x.done) { addFans(want - x.done, x.reason); x.done = want; }
   }
   H.fx = H.fx.filter(x => x.done !== x.total || now < x.to);
+  hotBarTime();
 }
 function hotChoose(i) {
   const c = hotState().cur; if (!c || c.choice != null) return;
-  c.choice = i; c.resolveAt = Date.now() + rand(20, 75) * 60e3;
-  logAct('reply'); save();
+  const ev = HOT_EVENTS.find(e => e.id === c.id), o = ev.opts[i];
+  c.choice = i;
+  if (o.task) { c.task = { ...o.task, until: Date.now() + (o.task.h || 6) * 3600e3, done: false }; c.resolveAt = 0; }
+  else c.resolveAt = Date.now() + rand(20, 75) * 60e3;
+  save(); hotBar();
+}
+// 你在泡泡 / 社区 / 直播里发了东西：看看是不是完成了热搜的回应
+function hotTaskCheck(where, types, text) {
+  const c = S.hot && S.hot.cur, t = c && c.task; if (!t || t.done) return;
+  if (t.where !== 'any' && t.where !== where) return;
+  if (t.where === 'any' && where === 'live') return;
+  const ok = t.need === 'any' || (t.need === 'text' && (text || '').replace(/\s/g, '').length >= 2) || (t.need === 'sound' && types.some(x => x === 'voice' || x === 'video')) || types.includes(t.need);
+  if (!ok) return;
+  t.done = true; t.neg = tone(text || '') === 'neg';
+  c.resolveAt = Date.now() + rand(20, 60) * 60e3;
+  save(); hotBar();
+  setTimeout(() => toast('📌 回应完成', '后续过一会儿就知道了'), 1200);
 }
 function hotResolve() {
-  const H = hotState(), c = H.cur, ev = HOT_EVENTS.find(e => e.id === c.id); H.cur = null; if (!ev) return;
+  const H = hotState(), c = H.cur, ev = HOT_EVENTS.find(e => e.id === c.id); H.cur = null; hotBar(); if (!ev) return;
   const r = c.choice >= 0 ? ev.opts[c.choice].r : HOT_NONE;
   let x = Math.random(), o = r[r.length - 1];
   for (const it of r) { x -= it[0]; if (x <= 0) { o = it; break; } }
-  const f = S.profile.followers, total = Math.round(f * rand(o[1], o[2]));
-  const now = Date.now();
+  if (c.task && c.task.neg) o = r.reduce((a, b) => (b[1] + b[2] < a[1] + a[2] ? b : a)); // 回应里带情绪：往坏的方向走
+  const f = S.profile.followers, total = Math.round(f * rand(o[1], o[2])), now = Date.now();
   H.fx.push({ from: now, to: now + 24 * 3600e3, total, done: 0, reason: '热搜：' + c.title });
-  H.hist.push({ id: c.id, title: c.title, at: c.at, choice: c.choice >= 0 ? ev.opts[c.choice].t : '没有回应', result: o[3], net: total });
+  H.hist.push({ id: c.id, key: c.key, title: c.title, at: c.at, choice: c.choice >= 0 ? ev.opts[c.choice].t : '没有回应', result: o[3], net: total });
   if (H.hist.length > 30) H.hist.shift();
+  const post = H.posts[c.key];
+  if (post) { post.result = o[3]; const kind = c.choice < 0 ? 'none' : total >= 0 ? 'pos' : 'neg'; for (let i = 0; i < ri(2, 4); i++) post.cm.unshift(hotComment(ev, kind)); post.cc += ri(3, 12); }
   if (H.talk && H.talk.id === c.id) H.talk.until = now + 2 * 86400e3;
-  pushNotif({ type: 'hot', text: `📰 后续 #${c.title}#`, sub: `${o[3]} · 粉丝 ${total >= 0 ? '+' : ''}${fmtNum(total)}（一天内陆续变化）` }, true);
+  pushNotif({ type: 'hot', key: c.key, text: `📰 后续 #${c.title}#`, sub: `${o[3]} · 粉丝 ${total >= 0 ? '+' : ''}${fmtNum(total)}（一天内陆续变化）` }, true);
 }
 function hotLine() {
   const t = hotState().talk; if (!t || Date.now() > t.until) return null;
@@ -1166,18 +1249,37 @@ function hotBoost() {
   for (const x of hotState().fx) if (now < x.to) b += x.total > 0 ? .08 : -.05;
   return clamp(b, -.15, .2);
 }
-function hotHTML() {
-  const H = hotState(), c = H.cur;
-  if (!c) {
-    const last = H.hist[H.hist.length - 1];
-    return `<div class="row"><h3 style="flex:1">📰 热搜</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-      ${last ? `<div class="card"><div class="muted" style="font-size:12px">最近一次</div><b>#${esc(last.title)}#</b><div style="margin-top:6px">你的回应：${esc(last.choice)}</div><div class="muted" style="margin-top:4px">${esc(last.result)}</div></div>` : '<div class="empty">暂时没有热搜</div>'}`;
-  }
-  const ev = HOT_EVENTS.find(e => e.id === c.id);
-  return `<div class="row"><h3 style="flex:1">📰 热搜</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="card hot-card"><div class="hot-rank">热搜 第 ${c.rank} 位</div><div class="hot-title">#${esc(c.title)}#</div><div style="margin-top:8px">${esc(c.desc)}</div></div>
-    ${c.choice == null ? `<div class="muted" style="margin:4px 4px 8px">你打算怎么做？</div>${ev.opts.map((o, i) => `<button class="hot-opt" data-act="hotpick" data-i="${i}">${esc(o.t)}</button>`).join('')}`
-      : `<div class="card"><div>你的回应：<b>${esc(c.choice >= 0 ? ev.opts[c.choice].t : '没有回应')}</b></div><div class="muted" style="margin-top:4px">后续会在一段时间后出来…</div></div>`}`;
+const hotLeft = ms => { ms = Math.max(0, ms); const h = Math.floor(ms / 3600e3), m = Math.floor(ms % 3600e3 / 60e3); return h ? `${h} 小时 ${m} 分` : `${m} 分钟`; };
+// 常驻在顶部的小条：提醒你答应要做的事
+function hotBar() {
+  const c = S.hot && S.hot.cur, el = $('#hot-bar'); if (!el) return;
+  const t = c && c.task && !c.task.done ? c.task : null;
+  el.hidden = !t;
+  if (t) el.innerHTML = `📌 <span class="hb-t">${esc(t.hint)}</span><span class="hb-l" id="hot-left">剩 ${hotLeft(t.until - Date.now())}</span>`;
+  layoutVars();
+}
+function hotBarTime() { const c = S.hot && S.hot.cur, el = $('#hot-left'); if (el && c && c.task) el.textContent = '剩 ' + hotLeft(c.task.until - Date.now()); }
+function hotPostHTML(key) {
+  const H = hotState(), post = H.posts[key], c = H.cur && H.cur.key === key ? H.cur : null, h = H.hist.find(x => x.key === key);
+  if (!post) return `<div class="row"><h3 style="flex:1">📰 热搜</h3><button class="btn ghost sm" data-act="close">关闭</button></div><div class="empty">这条热搜已经过去了</div>`;
+  const ev = HOT_EVENTS.find(e => e.id === (c ? c.id : h && h.id));
+  const title = c ? c.title : h ? h.title : '', venue = c ? c.venue : '';
+  const body = esc(post.body).replace(/#([^#]+)#/g, '<span class="hp-tag">#$1#</span>');
+  let act = '';
+  if (c && c.choice == null) act = `<div class="muted" style="margin:12px 4px 8px">你打算怎么做？</div>${ev.opts.map((o, i) => `<button class="hot-opt" data-act="hotpick" data-i="${i}">${esc(o.t)}</button>`).join('')}`;
+  else if (c && c.task && !c.task.done) act = `<div class="card hp-todo">📌 你决定：<b>${esc(ev.opts[c.choice].t)}</b><div style="margin-top:4px">去${HOT_WHERE[c.task.where]}完成：${esc(c.task.hint)}</div><div class="muted" style="margin-top:4px">剩 ${hotLeft(c.task.until - Date.now())}，超时就当作没有回应</div></div>`;
+  else if (c) act = `<div class="card">你的回应：<b>${esc(c.choice >= 0 ? ev.opts[c.choice].t : '没有回应')}</b><div class="muted" style="margin-top:4px">后续过一会儿就出来…</div></div>`;
+  else if (h) act = `<div class="card">你的回应：<b>${esc(h.choice)}</b><div class="muted" style="margin-top:4px">${esc(h.result)}</div></div>`;
+  return `<div class="row"><h3 style="flex:1">📰 ${venue ? esc(venue) : '热搜'}</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card hp">
+      <div class="hp-top"><div class="hp-av">${esc(post.au[0])}</div><div style="flex:1;min-width:0"><b>${esc(post.au)}</b><div class="muted" style="font-size:12px">${esc(post.tag)} · ${ago(post.at)}</div></div></div>
+      <div class="hp-body"><span class="hp-tag">#${esc(title)}#</span> ${body}</div>
+      ${post.media ? `<div class="hp-media">${post.media === 'video' ? '▶︎' : '🖼'}</div>` : ''}
+      <div class="hp-stats"><span>↗ ${fmtNum(post.rt)}</span><span>💬 ${fmtNum(post.cc)}</span><button class="hp-like ${post.liked ? 'on' : ''}" data-act="hotlike" data-k="${key}">${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}</button></div>
+    </div>
+    ${act}
+    <div class="sec-title" style="margin-top:14px">评论 ${fmtNum(post.cc)}</div>
+    <div class="card" style="padding:4px 12px">${post.cm.map(x => `<div class="hp-c"><div style="flex:1;min-width:0"><b>${esc(x.user)}</b><div>${esc(x.text)}</div></div><button class="hp-cl ${x.liked ? 'on' : ''}" data-act="hotclike" data-k="${key}" data-id="${x.id}">${x.liked ? '❤️' : '🤍'} ${x.likes || ''}</button></div>`).join('')}</div>`;
 }
 
 /* =========================================================
@@ -1559,6 +1661,7 @@ async function bbSend(type, payload = {}) {
   B.msgs.push(m); B.groups.push({ id: uid(), after: m.id, fans: [], count: 0, closed: false, st: pick(BB_STICKERS) });
   logAct('bubble'); save();
   if (UI.tab === 'bubble') { renderBubbleChat(); bbReplyBar(); }
+  hotTaskCheck('bubble', [type], m.text);
   bbAiOnSend(m);
 }
 /* ---------- Bubble AI：3 分钟请一次，省字版一批约 18 条；你每发一条就放出 2~5 条 AI 回复 ---------- */
@@ -1944,6 +2047,7 @@ async function publish() {
   const post = { id: uid(), text, media, tags, desc, tone: tn, folD, folR, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24) * (tn === 'neg' || tn === 'romance' ? 1.3 : 1)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
   logAct('post');
   S.posts.unshift(post);
+  hotTaskCheck('post', media.map(m => m.type), text);
   draft = ''; pending = []; draftTags = []; draftDesc = '';
   save(); render();
   toast('发布成功！', '粉丝们正在赶来…');
@@ -2076,7 +2180,7 @@ function openNotif(n) {
     if (n.cid) setTimeout(() => { const el = $(`[data-cid="${n.cid}"]`); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('flash'); } }, 80);
   } else if (n.type === 'sched') { UI.tab = 'sched'; render(); }
   else if (n.type === 'live') { UI.tab = 'live'; render(); }
-  else if (n.type === 'hot') openModal(hotHTML());
+  else if (n.type === 'hot') openModal(hotPostHTML(n.key || hotState().cur?.key));
   else if (n.type === 'cb') { UI.tab = 'me'; render(); }
 }
 function updBadges() {
@@ -2244,6 +2348,7 @@ async function startLive() {
   document.body.appendChild(layer); hydrate(layer);
   if (mode === 'video') attachPair(layer, stream);
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
+  hotTaskCheck('live', [mode], title);
   // 语音直播：头像跟着说话音量跳动
   if (mode === 'voice' && stream) {
     try {
@@ -2762,8 +2867,8 @@ function fanPanelHTML() {
   const src = Object.entries((F.days[today] || { src: {} }).src).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const idle = Math.floor((Date.now() - lastActive()) / 86400e3);
   return `<div class="kpi" style="margin-top:0"><div><b>${heatLabel()}</b><span>人气</span></div><div>${sign(net(today))}<span>今日</span></div><div>${sign(week)}<span>近 7 天</span></div><div><b>${idle ? idle + ' 天' : '今天'}</b><span>上次营业</span></div></div>
-    ${hotState().cur ? `<button class="hot-opt" style="margin-top:12px" data-act="hotopen">📰 正在热搜：#${esc(hotState().cur.title)}#${hotState().cur.choice == null ? ' · 还没回应' : ''}</button>` : ''}
-    ${hotState().hist.length ? `<div style="margin-top:12px"><b style="font-size:14px">最近的热搜</b>${hotState().hist.slice(-5).reverse().map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>#${esc(x.title)}#</div><div class="muted" style="font-size:12px">${esc(x.choice)} · ${esc(x.result)}</div></div>${sign(x.net)}</div>`).join('')}</div>` : ''}
+    ${hotState().cur ? `<button class="hot-opt" style="margin-top:12px" data-act="hotopen">📰 #${esc(hotState().cur.title)}#${hotState().cur.choice == null ? ' · 还没回应' : hotState().cur.task && !hotState().cur.task.done ? ' · 等你去做' : ' · 等后续'}</button>` : ''}
+    ${hotState().hist.length ? `<div style="margin-top:12px"><b style="font-size:14px">最近的热搜</b>${hotState().hist.slice(-5).reverse().map(x => `<div class="rule" data-act="hotopen" data-k="${x.key || ''}" style="cursor:pointer"><div style="flex:1;min-width:0"><div>#${esc(x.title)}#</div><div class="muted" style="font-size:12px">${esc(x.choice)} · ${esc(x.result)}</div></div>${sign(x.net)}</div>`).join('')}</div>` : ''}
     <div style="margin-top:12px"><b style="font-size:14px">今日变化来源</b>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${sign(n)}</div>`).join('') : '<div class="muted" style="padding:6px 0">今天还没有变化</div>'}</div>
     <div style="margin-top:8px"><b style="font-size:14px">最近 7 天</b>${days.map(k => `<div class="rule"><span style="flex:1">${k === today ? '今天' : k.slice(5).replace('-', '月') + '日'}</span>${sign(net(k))}</div>`).join('')}</div>
     <p class="muted" style="margin:10px 0 0">影响人气的因素：常发帖、回复粉丝、开直播会升温；超过 3 天不营业会掉粉；公开行程（打歌、综艺、演出等）结束后会涨粉；负面言论会掉粉，恋爱话题会让少部分粉丝离开。</p>`;
@@ -2962,8 +3067,10 @@ document.addEventListener('click', async e => {
     case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); break;
     case 'rdel': if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
     case 'rsave': saveRule(); break;
-    case 'hotopen': openModal(hotHTML()); break;
-    case 'hotpick': hotChoose(+t.dataset.i); openModal(hotHTML()); toast('已回应', '后续过一会儿就知道了'); break;
+    case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
+    case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
+    case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
+    case 'hotclike': { const post = hotState().posts[t.dataset.k], x = post && post.cm.find(c => c.id === t.dataset.id); if (!x) break; x.liked = !x.liked; x.likes = (x.likes || 0) + (x.liked ? 1 : -1); save(); t.classList.toggle('on', x.liked); t.textContent = `${x.liked ? '❤️' : '🤍'} ${x.likes || ''}`; break; }
     case 'cbstart': {
       const song = $('#cb-song').value.trim().replace(/[《》]/g, ''), date = $('#cb-date').value;
       if (!song) { toast('请填写新歌名'); break; } if (!date || date < dkey(Date.now())) { toast('请选择今天或以后的日期'); break; }
@@ -3079,6 +3186,7 @@ catchUp();
 S.sim.lastTick = Date.now();
 save();
 render();
+hotBar();
 setInterval(tick, 1500);
 setInterval(flushAgg, 6000);
 setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
