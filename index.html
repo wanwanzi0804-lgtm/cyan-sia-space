@@ -559,6 +559,16 @@ function fill(t, q = '') {
 }
 const IMG_TAGS = [['selfie', '🤳 自拍'], ['outfit', '👗 穿搭'], ['makeup', '💄 妆容'], ['food', '🍜 美食'], ['cafe', '☕ 咖啡厅'], ['cat', '🐱 猫咪'], ['pet', '🐶 小动物'], ['stage', '🎤 舞台'], ['backstage', '📸 后台'], ['practice', '💃 练习室'], ['scenery', '🌇 风景'], ['nightview', '🌙 夜景'], ['travel', '✈️ 旅行'], ['group', '👯 合照'], ['gift', '🎁 礼物'], ['exercise', '🏃 运动']];
 // 从图片描述里提取能被"看到"的东西，比如「白色毛衣」「草莓蛋糕」
+// 从偶像的消息里挑话题词（AI 给了就用 AI 的，没有就本地猜）
+const KW_STOP = /^(今天|明天|昨天|现在|刚刚|刚才|一下|一起|真的|什么|怎么|大家|你们|我们|自己|有点|一点|这个|那个|时候|的话|然后|但是|所以|因为|还是|已经|一直|有人|人)$|紧张|开心|激动|难过|兴奋|无聊|好累|幸福|害羞|可爱|好看|厉害|舒服|难受/;
+function msgKeywords(m) {
+  if (!m || !m.text) return [];
+  if (m.kw && m.kw.length) return m.kw;
+  return [...new Set(m.text.split(BB_TOK).join('').split(/[，。、,.!！?？\s~～…]+|的|和|跟|在|了|是|有|去|回|到|从|把|被|给|也|都|还|就|很|超|好|太|真|又|再|才|刚|看到|看了|吃了|喝了|去了|做了|买了|听了|遇到|发现|结束|开始|觉得|问我|问|说|告诉我|告诉|路上|一路|见面|有点|一点|第一次|想|要|会|能|啦|吧|呢|哦|呀|啊|嘛|哈+|嘿+|k{2,}|ㅋ+/)
+    .map(x => x.trim().replace(/^(我|你|他|她|人|今天|这|那|一[个张杯只件条块碗盘份束])+/, ''))
+    .filter(x => x.length >= 2 && x.length <= 5 && !KW_STOP.test(x) && !/^\p{Extended_Pictographic}/u.test(x)))].slice(0, 4);
+}
+const KW_TPL = ['{k}！！', '{k}好棒', '说到{k}我就开心', '{k}我也喜欢', '{k}～好想看', '{k}！我懂', '是{k}耶', '好在意{k}', '{k}哈哈哈', '{k}这个好可爱', '我也想要{k}', '{k}也太好了吧'];
 function descPhrases(desc) {
   return [...new Set((desc || '').split(/[，。、,.!！?？\s~～]+|和|跟|与|在|的|穿着|穿了|拿着|戴着|抱着|吃着|喝着|里面|里|上面|桌上|手里|旁边|一起|还有|背景是|是|有/)
     .map(x => x.trim().replace(/^(我|今天|这|那|一[个张杯只件条块碗盘份束]|很多|好多|超|好|很)+/, '').replace(/(了|呀|啊|哦)+$/, ''))
@@ -656,11 +666,30 @@ function aiSystem() {
 - 内容友善健康，不涉及恶评、低俗或真实名人。`;
 }
 async function aiComments(content, maxTokens = 4000) {
+  const j = await aiRaw(content, maxTokens, AI_SCHEMA);
+  return (j.comments || []).filter(x => x && x.text).map(x => {
+    const lang = ['zh', 'ko', 'ja', 'en'].includes(x.lang) ? x.lang : 'zh';
+    return { user: String(x.user || '').slice(0, 24) || makeFan(lang).user, lang, text: String(x.text).slice(0, 300), zh: lang === 'zh' ? null : String(x.zh || '') || null };
+  });
+}
+// 省字版：AI 只写回复内容（中文直接写；外语写成「ko|原文|中文」），名字由程序生成；顺便给几个话题关键词
+const AI_COMPACT = { type: 'object', additionalProperties: false, required: ['r', 'k'], properties: { r: { type: 'array', items: { type: 'string' } }, k: { type: 'array', items: { type: 'string' } } } };
+async function aiCompact(content, maxTokens) {
+  const j = await aiRaw(content, maxTokens, AI_COMPACT);
+  const r = (j.r || []).map(x => String(x || '').trim()).filter(Boolean).map(x => {
+    const m = x.match(/^(ko|ja|en)\|([^|]+)\|(.+)$/);
+    const lang = m ? m[1] : 'zh';
+    return { user: makeFan(lang).user, lang, text: (m ? m[2] : x).slice(0, 120), zh: m ? m[3].slice(0, 120) : null };
+  });
+  const k = (j.k || []).map(x => String(x || '').trim()).filter(x => x.length >= 1 && x.length <= 8).slice(0, 6);
+  return { r, k };
+}
+async function aiRaw(content, maxTokens, schema) {
   const client = await aiClient();
   const req = {
     model: S.ai.model, max_tokens: maxTokens, system: aiSystem(),
     messages: [{ role: 'user', content }],
-    output_config: { effort: 'low', format: { type: 'json_schema', schema: AI_SCHEMA } }
+    output_config: { effort: 'low', format: { type: 'json_schema', schema } }
   };
   if (FALLBACK_MODELS.includes(S.ai.model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
   const r = await client.beta.messages.create(req);
@@ -670,11 +699,7 @@ async function aiComments(content, maxTokens = 4000) {
   save();
   if (r.stop_reason === 'refusal') throw new Error('模型拒绝了这次请求');
   const txt = r.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  const j = JSON.parse(txt);
-  return (j.comments || []).filter(x => x && x.text).map(x => {
-    const lang = ['zh', 'ko', 'ja', 'en'].includes(x.lang) ? x.lang : 'zh';
-    return { user: String(x.user || '').slice(0, 24) || makeFan(lang).user, lang, text: String(x.text).slice(0, 300), zh: lang === 'zh' ? null : String(x.zh || '') || null };
-  });
+  return JSON.parse(txt);
 }
 function aiFail(e) {
   const msg = (e && (e.message || e.toString())) || '未知错误';
@@ -1084,6 +1109,8 @@ function bbLine(msg, chatting) {
     const cats = detectCats(clean).filter(c => TPL[c] && TPL[c].zh && c !== 'question');
     const sn = snippet(t.split(BB_TOK).join(''));
     const pool = [['react', 34], ['agree', 22], ['emoji', 16], ['follow', 9]];
+    const kws = msgKeywords(msg);
+    if (kws.length) pool.push(['kw', 22]);
     if (msg.type !== 'text') pool.push(['media', 28]);
     if (cats.length) pool.push(['cat', 26]);
     if (sn) pool.push(['echo', 7]);
@@ -1092,6 +1119,7 @@ function bbLine(msg, chatting) {
     if (k === 'media') return { lang, text: fill(pick(BB_LINES[msg.type])) };
     if (k === 'cat') { const c = pick(cats); return { lang, text: fill(pick(c === 'romance' && Math.random() < .15 ? TPL.romanceSad.zh : TPL[c].zh)) }; }
     if (k === 'echo') return { lang, text: pick([`「${sn}」哈哈哈`, `「${sn}」好可爱`, `「${sn}」懂了懂了`]) };
+    if (k === 'kw') return { lang, text: fill(pick(KW_TPL)).replace(/\{k\}/g, pick(kws)) };
     if (k === 'emoji') return { lang, text: pick(BB_LINES.emoji) };
     if (k === 'follow') return { lang, text: fill(pick(BB_LINES.follow)) };
     return { lang, text: fill(pick(BB_LINES[k])) };
@@ -1159,7 +1187,7 @@ async function bbSend(type, payload = {}) {
   if (UI.tab === 'bubble') { renderBubbleChat(); bbReplyBar(); }
   bbAiOnSend(m);
 }
-/* ---------- Bubble AI：3 分钟请一次，一批 8 条；你每发一条就放出 2~3 条 AI 回复 ---------- */
+/* ---------- Bubble AI：3 分钟请一次，省字版一批约 18 条；你每发一条就放出 2~5 条 AI 回复 ---------- */
 const BB_AI_WINDOW = 3 * 60000;
 let bbAiTimer = null;
 const bbAiWorth = m => m.type !== 'text' || m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️|\s/gu, '').length >= 4;
@@ -1169,7 +1197,7 @@ function bbRelease(n) {
 }
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
-  const want = ri(2, 3);
+  const want = ri(2, 5);
   const windowOpen = Date.now() - (B._lastAi || 0) >= BB_AI_WINDOW && !B._aiBusy;
   if (windowOpen && (bbAiWorth(m) || B._aiScheduled)) {
     // 新的 3 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
@@ -1191,9 +1219,14 @@ async function bbAI() {
     const lines = batch.map(x => `- [${kind[x.type]}]${x.text ? ' ' + x.text.split(BB_TOK).join('【粉丝自己的昵称】') : ''}${x.replyTo ? `（回复粉丝「${x.replyTo.user}」：「${x.replyTo.text}」）` : ''}`).join('\n');
     content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}：
 ${lines}
-每个粉丝都以为这是偶像单独发给自己的私聊。请生成 8 条粉丝发给她的私信回复：如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 1 条是提问。可以有几条适合她接下来继续聊天时也能用的回复。短一点，像聊天。不要写「被回复了」「叫我名字了」这类反应。` });
-    const list = await aiComments(content, 1200);
-    B.aiPool = list; save();
+每个粉丝都以为这是偶像单独发给自己的私聊。
+请写 18 条粉丝回复放进 r：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
+格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
+另外在 k 里给出她这些消息里的 2~5 个话题关键词（名词，1~6 个字，比如：晚霞、宿舍、打歌）。` });
+    const res = await aiCompact(content, 1200);
+    B.aiPool = res.r;
+    if (res.k.length) batch.forEach(x => x.kw = res.k);
+    save();
     bbRelease(B._owed || 0);
   } catch (e) { aiFail(e); }
   finally { B._owed = 0; B._aiBusy = false; }
