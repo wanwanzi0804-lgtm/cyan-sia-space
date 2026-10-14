@@ -679,7 +679,7 @@ function aiSystem() {
 - 帖子或直播涉及恋爱、约会、对象时，按「粉丝群体设定」里的比例来反应。
 - 内容友善健康，不涉及恶评、低俗或真实名人。`;
 }
-async function aiComments(content, maxTokens = 4000) {
+async function aiComments(content, maxTokens = 6000) {
   const j = await aiRaw(content, maxTokens, AI_SCHEMA);
   return (j.comments || []).filter(x => x && x.text).map(x => {
     const lang = ['zh', 'ko', 'ja', 'en'].includes(x.lang) ? x.lang : 'zh';
@@ -713,7 +713,26 @@ async function aiRaw(content, maxTokens, schema) {
   save();
   if (r.stop_reason === 'refusal') throw new Error('模型拒绝了这次请求');
   const txt = r.content.filter(b => b.type === 'text').map(b => b.text).join('');
-  return JSON.parse(txt);
+  try { return JSON.parse(txt); } catch (e) {
+    // 写到一半被字数上限截断了：只保留写完整的那几条，不算失败
+    const j = jsonSalvage(txt); if (j) return j;
+    throw new Error(r.stop_reason === 'max_tokens' ? 'AI 回复太长被截断了' : e.message);
+  }
+}
+function jsonSalvage(txt) {
+  const stack = [], cuts = []; let inS = false, esc = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (inS) { if (esc) esc = false; else if (c === '\\') esc = true; else if (c === '"') { inS = false; cuts.push([i + 1, stack.join('')]); } continue; }
+    if (c === '"') inS = true;
+    else if (c === '{' || c === '[') stack.push(c === '{' ? '}' : ']');
+    else if (c === '}' || c === ']') { stack.pop(); cuts.push([i + 1, stack.join('')]); }
+  }
+  for (let j = cuts.length - 1; j >= 0 && j >= cuts.length - 80; j--) {
+    const [p, st] = cuts[j];
+    try { return JSON.parse(txt.slice(0, p) + st.split('').reverse().join('')); } catch (e) { }
+  }
+  return null;
 }
 function aiFail(e) {
   const msg = (e && (e.message || e.toString())) || '未知错误';
@@ -1040,7 +1059,7 @@ async function aiReactions(post, parent, target, text) {
     const prompt = target
       ? `${S.profile.name}（偶像本人）在自己的帖子「${post.text || '（图片/视频帖）'}」下面，回复了粉丝「${target.user}」的评论。\n粉丝原评论（${LANG_NAME[target.lang || 'zh']}）：「${target.text}」\n${S.profile.name} 的回复：「${text}」\n请生成 ${n} 条楼中楼回复：第 1 条必须是粉丝「${target.user}」本人被偶像回复后的反应（用${LANG_NAME[target.lang || 'zh']}写，要接住偶像的回复内容），其余是围观粉丝的反应（羡慕、起哄、接话等）。`
       : `${S.profile.name}（偶像本人）在自己的帖子「${post.text || '（图片/视频帖）'}」下面发了一条评论：「${text}」\n请生成 ${n} 条粉丝在这条评论下的楼中楼回复，要针对她说的内容来回应。`;
-    const list = await aiComments([{ type: 'text', text: prompt }], 2000);
+    const list = await aiComments([{ type: 'text', text: prompt }], 3000);
     list.forEach((b, i) => later(i === 0 ? rand(3000, 9000) : rand(6000, 40000), () => {
       const isTarget = target && i === 0;
       const f = isTarget ? target : makeFan(b.lang);
@@ -1258,7 +1277,7 @@ ${lines}
 请写 18 条粉丝回复放进 r：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
 格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
 另外在 k 里给出她这些消息里的 2~5 个话题关键词（名词，1~6 个字，比如：晚霞、宿舍、打歌）。` });
-    const res = await aiCompact(content, 1200);
+    const res = await aiCompact(content, 3000);
     B.aiPool = res.r;
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
@@ -2181,7 +2200,7 @@ ${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「
 最近的弹幕：
 ${L.recent.slice(-10).join('\n')}
 请生成 ${idle ? 4 : 6} 条新弹幕：大部分要回应她刚说的话或画面里的细节（如果她提问就回答），短一点（多数 2~15 字），像直播间弹幕。` });
-    const list = await aiComments(content, idle ? 600 : 900);
+    const list = await aiComments(content, idle ? 1500 : 2500);
     if (LIVE === L) L.queue.unshift(...list.map(b => ({ user: b.user, lang: b.lang, text: b.text, zh: b.zh })));
   } catch (e) { aiFail(e); }
   finally { L.aiBusy = false; }
@@ -2605,7 +2624,7 @@ document.addEventListener('click', async e => {
       S.ai.key = $('#ai-key').value.trim(); S.ai.model = $('#ai-model').value;
       if (!S.ai.key) { toast('请先填写 API Key'); break; }
       t.disabled = true; t.textContent = '测试中…';
-      try { const r = await aiComments([{ type: 'text', text: `${S.profile.name} 发帖：「测试一下，大家能看到吗？」请生成 3 条粉丝评论。` }], 800); S.ai.lastError = ''; S.ai._backoff = 0; save(); toast('连接成功 ✨', r.map(x => x.text).join(' / ')); }
+      try { const r = await aiComments([{ type: 'text', text: `${S.profile.name} 发帖：「测试一下，大家能看到吗？」请生成 3 条粉丝评论。` }], 2000); S.ai.lastError = ''; S.ai._backoff = 0; save(); toast('连接成功 ✨', r.map(x => x.text).join(' / ')); }
       catch (err) { toast('连接失败', String(err.message || err)); S.ai.lastError = String(err.message || err); save(); }
       t.disabled = false; t.textContent = '测试连接'; break;
     }
