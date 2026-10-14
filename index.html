@@ -140,6 +140,25 @@ body.typing .bb-tick.bb-tick2{display:block}
 .alb-intro{margin-top:4px;font-size:13px;color:var(--muted)}
 .alb-intro summary{cursor:pointer}
 .alb-intro div{margin-top:4px;line-height:1.6}
+.rmb{font-size:11.5px;color:var(--muted);font-weight:400}
+.w-bal{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.w-bar{height:8px;border-radius:6px;background:var(--bg);overflow:hidden;margin-top:6px}
+.w-bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.w-bar.sm{flex:1;height:6px;margin:0 8px}
+.w-cat{display:flex;align-items:center;font-size:13.5px;margin-top:8px}
+.w-cat span{width:90px;flex:none}
+.w-cat b{font-size:13px;min-width:80px;text-align:right}
+.w-pre{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.w-pre button{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:6px 10px;font-size:13px;color:var(--text);display:flex;flex-direction:column;align-items:flex-start}
+.w-pre span{font-size:11px;color:var(--muted)}
+.ch-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.ch-p{width:96px;flex:none;color:var(--muted)}
+.ch-row b{min-width:58px}
+.ch-row i{font-style:normal;font-size:11.5px;color:var(--muted);min-width:34px}
+.ch-row i.up{color:#e5484d}
+.ch-row i.dn{color:#3b82f6}
+.ch-s{margin-left:auto;font-size:12px}
+.me-tabs button{font-size:13px}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -659,6 +678,7 @@ const CAT_KW = {
   question: /[?？]|吗|什么|要不要|想不想|有没有|哪个|猜猜/
 };
 const EMO = ['🐱', '💙', '！！', '～', '😭', '✨', '🥺', 'hhh', '！', '❤️', '🫶'];
+function ageOf() { const b = parseD(S.profile.birth || '2007-08-29'), n = new Date(); return n.getFullYear() - b.getFullYear() - (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate()) ? 1 : 0); }
 function dday() { return Math.max(1, Math.floor((Date.now() - parseD(S.profile.debut).getTime()) / 86400000) + 1); }
 function fill(t, q = '') {
   const p = S.profile, nicks = p.nicks.length ? p.nicks : [p.name];
@@ -766,7 +786,7 @@ function aiNews() {
 function aiSystem() {
   const p = S.profile;
   return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
-偶像资料：艺名 ${p.name}，solo 女歌手，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
+偶像资料：艺名 ${p.name}，solo 女歌手，${ageOf()} 岁（生日 ${p.birth || '2007-08-29'}），${(p.trainee || '2022-10').replace('-', ' 年 ')} 月成为练习生，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
 粉丝群体设定：${p.fanRules || '（无）'}
 世琳（韩文 세림）是她的好朋友（对外对内都是朋友关系）：她一提到世琳，粉丝反应热烈：一部分嗑两人的友情（羡慕、守护友谊、想看同框、问候世琳），一部分开玩笑嗑 CP（起哄、发糖），少数提醒别乱捆绑。不要说她们在恋爱。
 ${aiNews()}写作要求：
@@ -1002,7 +1022,7 @@ function schedFans() {
     const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
     if (r.createdAt && endAt < r.createdAt) continue; // 事后补录的行程不算
     const n = Math.round(rand(g[0], g[1]) * folRatio() * heat());
-    addFans(n, '行程：' + r.title);
+    addFans(n, '行程：' + r.title); walletSchedFee(r);
     F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
     pushNotif({ type: 'sched', text: `「${r.title}」结束，涨粉 +${n}`, sub: pick(['路人被圈粉了！', '直拍在网上小火了一把', '新粉丝涌进社区打招呼', '有人剪了你的高光片段']) }, false);
   }
@@ -1566,13 +1586,206 @@ function albSave() {
   toast(A.mode === 'cb' ? '回归定下了 💿' : '已保存到歌单', `《${alb.name}》`);
 }
 
+/* =========================================================
+   钱包（韩元）+ 实时成绩（音源 / 专辑 / 周边）
+   ========================================================= */
+const FX = { KRW: 1, CNY: 190, CAD: 1000, USD: 1380, JPY: 9.3, HKD: 177, EUR: 1500 }; // 1 单位 ≈ 多少韩元（估算）
+const FX_NAME = { KRW: '韩元', CNY: '人民币', CAD: '加币', USD: '美元', JPY: '日元', HKD: '港币', EUR: '欧元' };
+const BB_PRICE = 5300; // 泡泡约 28 元/月
+const won = n => (n < 0 ? '-' : '') + '₩' + Math.abs(Math.round(n)).toLocaleString('en-US');
+const rmb = n => `≈ ¥${Math.round(n / FX.CNY).toLocaleString('en-US')}`;
+const wonHTML = (n, sign) => `${sign && n > 0 ? '+' : ''}${won(n)} <span class="rmb">${rmb(Math.abs(n))}</span>`;
+const TIERS = { C: { name: '新人合同', gen: .2, bb: .3 }, B: { name: '中坚合同', gen: .3, bb: .4 }, A: { name: '头部合同', gen: .4, bb: .5 } };
+const EXP_CATS = {
+  日常开销: { ic: '🍜', kw: /吃|饭|餐|外卖|咖啡|奶茶|打车|出租|地铁|公交|交通|房租|水电|话费|日用|超市|便利店|早餐|午餐|晚餐|夜宵|零食/, pre: [['☕ 咖啡', 5500], ['🍜 外卖', 18000], ['🍱 便利店', 8000], ['🚕 打车', 12000], ['🚇 交通卡充值', 30000], ['📱 话费', 55000]] },
+  自己花的: { ic: '🛍', kw: /买|购物|游戏|旅行|电影|演唱会|门票|书|手机|耳机|电脑|相机|包|鞋|首饰|礼物|娃娃|周边/, pre: [['🛍 逛街', 120000], ['🎮 游戏充值', 30000], ['🎬 电影', 15000], ['📚 书', 18000], ['🎧 小电器', 89000]] },
+  粉丝回礼: { ic: '🎁', kw: /回礼|应援|签售|粉丝|小礼物|咖啡车|手写信|回赠/, pre: [['🎁 签售小礼物', 300000], ['☕ 咖啡车回礼', 500000], ['💌 手写明信片', 80000], ['🍰 生日回礼', 400000]] },
+  美容造型: { ic: '💄', kw: /美容|皮肤|医美|发型|剪发|染发|烫发|头发|化妆|妆|美甲|睫毛|服装|衣服|造型|护肤|面膜/, pre: [['🧖 皮肤管理', 120000], ['💇 剪发染发', 150000], ['💄 化妆', 80000], ['💅 美甲', 60000], ['👗 服装', 200000]] },
+  健身形体: { ic: '🏋️', kw: /健身|普拉提|瑜伽|私教|体能|形体|蛋白|代餐|跑步|游泳|减脂|拉伸/, pre: [['🏋️ 私教课', 70000], ['🧘 普拉提', 45000], ['🏃 健身房月卡', 90000], ['🥤 蛋白粉', 45000]] }
+};
+// 平台：市场份额、日播放进第 100 名 / 第 1 名大约要多少
+const PLATS = [['Melon', .36, 18000, 900000], ['Genie', .14, 4000, 250000], ['Bugs', .07, 700, 50000], ['FLO', .12, 3000, 180000], ['VIBE', .05, 900, 70000], ['Spotify', .15, 6000, 300000], ['YouTube Music', .11, 4000, 200000]];
+const MERCH_PRESET = [['官方应援棒', 45000, 1], ['猫耳发箍', 18000, 1.4], ['小卡套装', 12000, 2], ['应援手幅', 15000, 1.2], ['猫猫玩偶', 29000, .9]];
+function wallet() {
+  const W = S.wallet || (S.wallet = { bal: 800000, debt: 87500000, debt0: 87500000, tier: 'C', repay: .7, tx: [], pend: {}, day: dkey(Date.now()), month: dkey(Date.now()).slice(0, 7), deals: [], offer: null, nextOffer: 0 });
+  return W;
+}
+function salesState() { return S.sales || (S.sales = { last: Date.now(), alb: {}, trk: {}, mer: {} }); }
+function merch() { return S.merch || (S.merch = MERCH_PRESET.map(([n, p, pop]) => ({ id: uid(), name: n, price: p, pop }))); }
+// 记账：识别金额和货币（30加币 / ¥28 / 28rmb / 1.5万 / $20 …）
+function parseMoney(text, defCur = 'KRW') {
+  const t = (text || '').replace(/,/g, '');
+  const m = t.match(/(\d+(?:\.\d+)?)\s*(万|千|k|w)?/i); if (!m) return null;
+  let n = parseFloat(m[1]); const u = (m[2] || '').toLowerCase();
+  if (u === '万' || u === 'w') n *= 10000; if (u === '千' || u === 'k') n *= 1000;
+  let cur = defCur;
+  if (/加币|加元|cad|c\$|ca\$/i.test(t)) cur = 'CAD';
+  else if (/美元|美金|usd|us\$/i.test(t)) cur = 'USD';
+  else if (/日元|日币|円|jpy/i.test(t)) cur = 'JPY';
+  else if (/港币|港元|hkd/i.test(t)) cur = 'HKD';
+  else if (/欧元|eur|€/i.test(t)) cur = 'EUR';
+  else if (/韩元|韩币|원|krw|won|₩/i.test(t)) cur = 'KRW';
+  else if (/人民币|rmb|cny|元|块|¥|￥/i.test(t)) cur = 'CNY';
+  else if (/\$/.test(t)) cur = 'CAD';
+  return { n, cur, krw: Math.round(n * FX[cur]) };
+}
+function guessCat(text) { for (const k of ['粉丝回礼', '美容造型', '健身形体', '日常开销', '自己花的']) if (EXP_CATS[k].kw.test(text || '')) return k; return '自己花的'; }
+function walletIncome(gross, cat, note, kind = 'gen', at = Date.now()) {
+  const W = wallet(), share = TIERS[W.tier || 'C'][kind], amt = Math.round(gross * share); if (amt <= 0) return;
+  const repay = W.debt > 0 ? Math.min(W.debt, Math.round(amt * W.repay)) : 0;
+  W.debt -= repay; W.bal += amt - repay;
+  W.tx.unshift({ id: uid(), at, amt, gross: Math.round(gross), repay, cat, note, auto: true }); if (W.tx.length > 400) W.tx.length = 400;
+}
+function walletSpend(krw, cat, note, orig) {
+  const W = wallet(); W.bal -= krw;
+  W.tx.unshift({ id: uid(), at: Date.now(), amt: -krw, cat, note, orig, auto: false });
+  if (cat === '粉丝回礼') { addFans(Math.min(S.profile.followers * .004, krw / 1500), '粉丝回礼'); logAct('reply'); }
+}
+// 公开行程的通告费（到公司后再按合同分）
+const FEE = { '打歌': [150000, 400000], '综艺': [400000, 1500000], '电台': [100000, 300000], '物料': [300000, 1000000], '签售': [200000, 500000], '公演': [800000, 2500000], '校庆': [3000000, 8000000], '活动': [800000, 3000000] };
+function walletSchedFee(r) {
+  const f = S.profile.followers, sc = clamp(Math.pow(f / 15000, .6), .5, 6);
+  let gross = r.cat === '演唱会' ? f * rand(.06, .12) * 110000 * .35 : FEE[r.cat] ? rand(...FEE[r.cat]) * sc : 0;
+  if (gross > 0) walletIncome(gross, '通告费', r.title);
+}
+// 每天的目标销量 / 播放量
+function salesTargets(dk) {
+  const f = S.profile.followers, h = heat(), out = { alb: {}, trk: {}, mer: {} };
+  for (const a of disco()) {
+    const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
+    if (d < 0) continue;
+    const boost = d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1;
+    a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h; });
+    if (a.type === 'other' || d >= 999) continue;
+    const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1);
+    out.alb[a.id] = d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25);
+  }
+  const promo = ['promo', 'follow'].includes(cbPhase()) ? 1.8 : 1;
+  for (const m of merch()) out.mer[m.id] = f * .0004 * (m.pop || 1) * h * promo;
+  return out;
+}
+function salesAdd(map, key, dk, n) { const x = map[key] || (map[key] = { total: 0, days: {} }); x.total += n; x.days[dk] = (x.days[dk] || 0) + n; const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()]; }
+function salesAdvance() {
+  const SS = salesState(), W = wallet(), now = Date.now();
+  let t = Math.max(SS.last || now, now - 14 * 86400e3);
+  for (let guard = 0; t < now && guard < 20; guard++) {
+    const dk = dkey(t), dayEnd = parseD(addDays(dk, 1)).getTime(), seg = Math.min(now, dayEnd) - t, fr = seg / 86400e3;
+    const T = salesTargets(dk), P = W.pend[dk] || (W.pend[dk] = { 音源: 0, 专辑: 0, 周边: 0 });
+    for (const [k, v] of Object.entries(T.trk)) { salesAdd(SS.trk, k, dk, v * fr); P.音源 += v * fr * 4; }
+    for (const [k, v] of Object.entries(T.alb)) { salesAdd(SS.alb, k, dk, v * fr); P.专辑 += v * fr * 9000; }
+    for (const m of merch()) { const v = (T.mer[m.id] || 0) * fr; salesAdd(SS.mer, m.id, dk, v); P.周边 += v * m.price * .45; }
+    t += seg;
+  }
+  SS.last = now;
+  // 过了零点：把前一天的分成结算进钱包
+  for (const dk of Object.keys(W.pend).sort()) {
+    if (dk >= dkey(now)) continue;
+    const P = W.pend[dk], at = parseD(addDays(dk, 1)).getTime();
+    if (P.音源 >= 1) walletIncome(P.音源, '音源分成', `${dk.slice(5)} 音源`, 'gen', at);
+    if (P.专辑 >= 1) walletIncome(P.专辑, '专辑分成', `${dk.slice(5)} 专辑销量`, 'gen', at);
+    if (P.周边 >= 1) walletIncome(P.周边, '周边分成', `${dk.slice(5)} 周边销量`, 'gen', at);
+    delete W.pend[dk];
+  }
+}
+function walletTick() {
+  const W = wallet(), now = Date.now(), mon = dkey(now).slice(0, 7);
+  salesAdvance();
+  if (W.month !== mon) {
+    const prev = W.month; W.month = mon;
+    const subs = S.bubble && S.bubble.welcome ? bbSubs() : 0;
+    if (subs) walletIncome(subs * BB_PRICE, '泡泡分成', `${+prev.slice(5)} 月泡泡订阅（${fmtNum(subs)} 人 × ${won(BB_PRICE)}）`, 'bb');
+    for (const d of W.deals) if (d.left > 0) { d.left--; walletIncome(d.fee, '代言', `${d.brand} 代言（剩 ${d.left} 个月）`); }
+    W.deals = W.deals.filter(d => d.left > 0);
+  }
+  // 代言：粉丝 5 万以上才会有品牌来找
+  const f = S.profile.followers;
+  if (f >= 50000 && !W.offer && now > (W.nextOffer || 0)) {
+    W.nextOffer = now + rand(20, 40) * 86400e3;
+    W.offer = { brand: pick(['猫粮品牌 Purrfect', '美妆品牌 Lumi', '运动品牌 Leap', '饮料品牌 Fizz', '耳机品牌 Hush']), fee: Math.round(f * rand(80, 200) / 10000) * 10000, months: pick([3, 6, 12]) };
+    pushNotif({ type: 'cb', text: `💼 ${W.offer.brand} 想找你代言`, sub: `每月 ${won(W.offer.fee)} · ${W.offer.months} 个月 · 去「我的 → 钱包」看看` }, true);
+  }
+}
+// 实时成绩：某首歌在各平台的名次
+function chartRank(p, daily) { if (daily < p[2]) return null; return clamp(Math.round(100 - 99 * Math.log(daily / p[2]) / Math.log(p[3] / p[2])), 1, 100); }
+function chartFocus() {
+  const SS = salesState(), today = dkey(Date.now());
+  const keys = Object.keys(salesTargets(today).trk); if (!keys.length) return null;
+  if (UI.chartTrk && keys.includes(UI.chartTrk)) return UI.chartTrk;
+  const a = cbAlbum(), cs = cbSong(); const k = a && cs && keys.find(x => x === a.id + '|' + cs);
+  return k || keys.sort((x, y) => (salesTargets(today).trk[y] || 0) - (salesTargets(today).trk[x] || 0))[0];
+}
+function chartsHTML() {
+  const SS = salesState(), today = dkey(Date.now()), yest = addDays(today, -1), T = salesTargets(today), TY = salesTargets(yest);
+  const keys = Object.keys(T.trk);
+  if (!keys.length) return '<div class="muted" style="padding:4px 0">先在「我的歌单」里添加作品，就能看到音源、专辑和周边成绩</div>';
+  const focus = chartFocus(), name = focus.split('|').slice(1).join('|');
+  const hr = new Date().getHours(), jit = .85 + .3 * ((hr * 7919) % 100) / 100;
+  const rows = PLATS.map(p => { const d = T.trk[focus] * p[1] * jit, r = chartRank(p, d), ry = chartRank(p, (TY.trk[focus] || 0) * p[1]);
+    const mv = r && ry ? (ry > r ? `<i class="up">▲${ry - r}</i>` : ry < r ? `<i class="dn">▼${r - ry}</i>` : '<i>-</i>') : r ? '<i class="up">NEW</i>' : '';
+    return `<div class="ch-row"><span class="ch-p">${p[0]}</span><b>${r ? r + ' 位' : '<span class="muted">未进榜</span>'}</b>${mv}<span class="muted ch-s">今日约 ${fmtNum(Math.round(d))} 次</span></div>`; }).join('');
+  const tchips = keys.slice(0, 12).map(k => `<button class="pcat ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}">${esc(k.split('|').slice(1).join('|'))}</button>`).join('');
+  const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || '')).slice(0, 4);
+  const albHTML = albs.map(a => { const x = SS.alb[a.id], first = Array.from({ length: 7 }, (_, i) => x.days[addDays(a.date, i)] || 0).reduce((s, n) => s + n, 0);
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · 初动 ${fmtNum(Math.round(first))} 张</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
+  const mer = merch().map(m => { const x = SS.mer[m.id] || { total: 0, days: {} };
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(m.name)}</b><div class="muted" style="font-size:12px">${won(m.price)}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 件</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div><button class="link" data-act="merdel" data-id="${m.id}" style="margin-left:8px">✕</button></div>`; }).join('');
+  return `<b style="font-size:14px">🎧 音源 · 实时榜单</b><div class="pcats" style="margin:8px 0">${tchips}</div>
+    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》在各平台的名次（每小时更新）</div>${rows}
+    <div style="margin-top:14px"><b style="font-size:14px">💿 专辑销量</b>${albHTML || '<div class="muted" style="padding:6px 0;font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>'}</div>
+    <div style="margin-top:14px"><div class="row"><b style="font-size:14px;flex:1">🧸 周边销量</b><button class="link" data-act="meradd">＋ 新周边</button></div>${mer || '<div class="muted" style="padding:6px 0">还没有周边</div>'}</div>`;
+}
+function walletHTML() {
+  const W = wallet(), mon = dkey(Date.now()).slice(0, 7), T = TIERS[W.tier || 'C'];
+  const mtx = W.tx.filter(x => dkey(x.at).slice(0, 7) === mon);
+  const inc = mtx.filter(x => x.amt > 0).reduce((s, x) => s + x.amt - (x.repay || 0), 0), out = -mtx.filter(x => x.amt < 0).reduce((s, x) => s + x.amt, 0);
+  const byCat = {}; mtx.filter(x => x.amt < 0).forEach(x => byCat[x.cat] = (byCat[x.cat] || 0) - x.amt);
+  const mx = Math.max(1, ...Object.values(byCat));
+  const paid = W.debt0 - W.debt, pct = W.debt0 ? Math.round(paid / W.debt0 * 100) : 100;
+  const subs = S.bubble && S.bubble.welcome ? bbSubs() : 0;
+  const f = S.profile.followers;
+  return `
+  <div class="sec-title">💰 钱包</div>
+  <div class="card">
+    <div class="muted" style="font-size:13px">余额</div>
+    <div class="w-bal">${won(W.bal)}</div><div class="rmb" style="margin-top:-2px">${rmb(W.bal)}</div>
+    <div class="kpi"><div><b style="color:var(--accent)">${won(inc)}</b><span>本月到手</span></div><div><b style="color:var(--danger)">${won(out)}</b><span>本月支出</span></div></div>
+    <div style="margin-top:12px"><div class="row"><b style="font-size:14px;flex:1">练习生欠款</b><span class="muted" style="font-size:12.5px">已还 ${pct}%</span></div>
+      <div class="w-bar"><i style="width:${pct}%"></i></div>
+      <div class="muted" style="font-size:12.5px;margin-top:4px">${W.debt > 0 ? `还欠 ${won(W.debt)} <span class="rmb">${rmb(W.debt)}</span> · 每笔到手收入先拿 ${Math.round(W.repay * 100)}% 还给公司` : '🎉 欠款已经还清了！'}</div></div>
+  </div>
+  <div class="card">
+    <b style="font-size:14px">✏️ 记一笔</b>
+    <div class="row" style="margin-top:8px;gap:6px"><input id="w-in" placeholder="比如：打车 15加币 / 剪发 ¥200 / 普拉提 45000" style="flex:1"><select id="w-cur" style="width:auto">${Object.keys(FX).map(k => `<option value="${k}" ${(UI.wCur || 'KRW') === k ? 'selected' : ''}>${FX_NAME[k]}</option>`).join('')}</select></div>
+    <div class="muted" id="w-prev" style="font-size:12.5px;margin-top:6px">没写货币时按右边选的算</div>
+    <div class="pcats" style="margin:8px 0">${Object.entries(EXP_CATS).map(([k, v]) => `<button class="pcat ${(UI.wCat || '') === k ? 'on' : ''}" data-act="wcat" data-k="${k}">${v.ic} ${k}</button>`).join('')}</div>
+    <div class="row"><span class="muted" style="font-size:12.5px;flex:1">不选分类会自动判断</span><button class="btn primary" data-act="wadd">记下</button></div>
+    <details class="me-more"><summary>常用预设（点一下直接记）</summary><div class="w-pre">${Object.entries(EXP_CATS).map(([k, v]) => v.pre.map(([n, a]) => `<button data-act="wpre" data-c="${k}" data-n="${esc(n)}" data-a="${a}">${esc(n)}<span>${won(a)}</span></button>`).join('')).join('')}</div></details>
+  </div>
+  ${Object.keys(byCat).length ? `<div class="card"><b style="font-size:14px">本月支出</b>${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="w-cat"><span>${EXP_CATS[k]?.ic || '•'} ${esc(k)}</span><div class="w-bar sm"><i style="width:${Math.round(v / mx * 100)}%"></i></div><b>${won(v)}</b></div>`).join('')}</div>` : ''}
+  <div class="card"><b style="font-size:14px">📒 流水</b>
+    ${W.tx.length ? W.tx.slice(0, UI.wAll ? 200 : 25).map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>${esc(x.note || x.cat)}</div><div class="muted" style="font-size:12px">${esc(x.cat)} · ${new Date(x.at).getMonth() + 1}/${new Date(x.at).getDate()}${x.orig ? ' · ' + esc(x.orig) : ''}${x.gross ? ` · 总额 ${won(x.gross)}` : ''}${x.repay ? ` · 还欠款 ${won(x.repay)}` : ''}</div></div>
+      <div style="text-align:right"><b style="color:${x.amt > 0 ? 'var(--accent)' : 'var(--danger)'}">${x.amt > 0 ? '+' : ''}${won(x.amt - (x.repay || 0))}</b><div class="rmb">${rmb(Math.abs(x.amt - (x.repay || 0)))}</div></div>${x.auto ? '' : `<button class="link" data-act="wdel" data-id="${x.id}" style="margin-left:6px">✕</button>`}</div>`).join('') : '<div class="muted" style="padding:6px 0">还没有记录。行程结束、音源/专辑/周边每天结算、每月泡泡分成都会自动进账</div>'}
+    ${W.tx.length > 25 ? `<button class="done-tg" data-act="wall">${UI.wAll ? '收起' : '查看全部'}</button>` : ''}</div>
+  <div class="card"><b style="font-size:14px">💼 代言</b>
+    ${W.offer ? `<div class="hot-opt" style="margin-top:8px">${esc(W.offer.brand)} 想找你代言 · 每月 ${won(W.offer.fee)} · ${W.offer.months} 个月<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div></div>` : ''}
+    ${W.deals.length ? W.deals.map(d => `<div class="rule"><span style="flex:1">${esc(d.brand)}</span><span class="muted">每月 ${won(d.fee)} · 剩 ${d.left} 个月</span></div>`).join('') : f < 50000 ? `<div class="muted" style="margin-top:6px;font-size:13px">粉丝到 5 万后会有品牌来找你（现在 ${fmtNum(f)}）</div><div class="w-bar"><i style="width:${Math.min(100, Math.round(f / 500))}%"></i></div>` : (W.offer ? '' : '<div class="muted" style="margin-top:6px;font-size:13px">暂时没有代言，品牌会不定时来找你</div>')}
+  </div>
+  <div class="card"><b style="font-size:14px">📄 合同</b>
+    <div class="grid2" style="margin-top:8px"><div class="field"><label>合同等级</label><select id="w-tier">${Object.entries(TIERS).map(([k, v]) => `<option value="${k}" ${W.tier === k ? 'selected' : ''}>${v.name}（活动 ${v.gen * 100}% / 泡泡 ${v.bb * 100}%）</option>`).join('')}</select></div>
+      <div class="field"><label>到手收入拿多少还欠款</label><select id="w-repay">${[.5, .6, .7, .8, .9, 1].map(v => `<option value="${v}" ${W.repay === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select></div></div>
+    <div class="muted" style="font-size:12.5px;line-height:1.7">通告费、音源、专辑、周边按「活动分成」，你拿 ${T.gen * 100}%；泡泡按「泡泡分成」，你拿 ${T.bb * 100}%（泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月预计 ${won(subs * BB_PRICE * T.bb)}）。<br>汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
+    <div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn ghost sm" data-act="wsave">保存合同</button></div>
+  </div>`;
+}
+
+function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : '没写货币时按右边选的算'; }
 let lastReal = Date.now();
 function tick() {
   const now = Date.now(); const dt = now - lastReal; lastReal = now;
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); bubbleTick(dt, false);
+  dailyFans(); schedFans(); hotTick(); cbTick(); walletTick(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -3117,17 +3330,20 @@ function viewMe() {
   <div class="card">
     <div class="hero">
       <label style="cursor:pointer" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label>
-      <div style="flex:1"><h2>${esc(p.name)} <span class="artist">ARTIST</span></h2><div class="muted">出道日 ${esc(p.debut)} · D+${dday()} · 动物塑：${esc(p.animal)}</div><div class="muted">粉丝名：${esc(p.fandom)}</div></div>
+      <div style="flex:1"><h2>${esc(p.name)} <span class="artist">ARTIST</span></h2><div class="muted">${ageOf()} 岁 · 出道日 ${esc(p.debut)} · D+${dday()} · 动物塑：${esc(p.animal)}</div><div class="muted">粉丝名：${esc(p.fandom)}</div></div>
     </div>
     <div class="kpi"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
   </div>
-  <div class="me-tabs">${[['stats', '📈 动态'], ['music', '💿 音乐'], ['persona', '🐱 人设'], ['set', '⚙ 设置']].map(([k, v]) => `<button class="${(UI.meTab || 'stats') === k ? 'on' : ''}" data-act="metab" data-k="${k}">${v}</button>`).join('')}</div>
+  <div class="me-tabs">${[['stats', '📈 动态'], ['wallet', '💰 钱包'], ['music', '💿 音乐'], ['persona', '🐱 人设'], ['set', '⚙ 设置']].map(([k, v]) => `<button class="${(UI.meTab || 'stats') === k ? 'on' : ''}" data-act="metab" data-k="${k}">${v}</button>`).join('')}</div>
   ${{ stats: () => `
   <div class="sec-title">📈 粉丝动态</div>
   <div class="card">${fanPanelHTML()}</div>
   <div class="sec-title">📰 热搜</div>
   <div class="card">${hotPanelHTML()}</div>`,
+  wallet: () => walletHTML(),
   music: () => `
+  <div class="sec-title">📊 实时成绩</div>
+  <div class="card">${chartsHTML()}</div>
   <div class="sec-title">💿 回归</div>
   <div class="card">${cbHTML()}</div>
   <div class="sec-title">🎵 我的歌单</div>
@@ -3139,6 +3355,8 @@ function viewMe() {
       <div class="field"><label>艺名</label><input id="p-name" value="${esc(p.name)}"></div>
       <div class="field"><label>粉丝名</label><input id="p-fandom" value="${esc(p.fandom)}"></div>
       <div class="field"><label>出道日</label><input type="date" id="p-debut" value="${esc(p.debut)}"></div>
+      <div class="field"><label>生日</label><input type="date" id="p-birth" value="${esc(p.birth || '2007-08-29')}"></div>
+      <div class="field"><label>成为练习生</label><input type="month" id="p-trainee" value="${esc(p.trainee || '2022-10')}"></div>
       <div class="field"><label>动物塑</label><input id="p-animal" value="${esc(p.animal)}"></div>
       <div class="field"><label>总粉丝数</label><input type="number" id="p-fol" value="${p.followers}"></div>
       <div class="field"><label>活跃粉丝（最少 ~ 最多）</label><div class="row"><input type="number" id="p-amin" value="${p.activeMin}"><input type="number" id="p-amax" value="${p.activeMax}"></div></div>
@@ -3316,6 +3534,22 @@ document.addEventListener('click', async e => {
     case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); $('#sheet').scrollTop = 0; break;
     case 'rdel': if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
     case 'rsave': saveRule(); break;
+    case 'wcat': UI.wCat = UI.wCat === t.dataset.k ? null : t.dataset.k; $$('[data-act=wcat]').forEach(b => b.classList.toggle('on', b.dataset.k === UI.wCat)); break;
+    case 'wadd': {
+      const text = $('#w-in').value.trim(), m = parseMoney(text, $('#w-cur').value); if (!m || !m.krw) { toast('没识别到金额', '比如：打车 15加币'); break; }
+      const cat = UI.wCat || guessCat(text);
+      const note = text.replace(/\d[\d,.]*\s*(万|千|k|w)?/gi, '').replace(/加币|加元|cad|c\$|ca\$|美元|美金|usd|us\$|日元|日币|円|jpy|港币|港元|hkd|欧元|eur|€|韩元|韩币|원|krw|won|₩|人民币|rmb|cny|元|块|¥|￥|\$/gi, '').trim() || cat;
+      walletSpend(m.krw, cat, note, m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]}` : ''); UI.wCat = null; save(); render(); toast('记下了 ✏️', `${cat} · ${won(m.krw)}`); break;
+    }
+    case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
+    case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
+    case 'wall': UI.wAll = !UI.wAll; render(); break;
+    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; if (t.dataset.ok === '1') { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } W.offer = null; save(); render(); break; }
+    case 'wsave': { const W = wallet(); W.tier = $('#w-tier').value; W.repay = +$('#w-repay').value; save(); render(); toast('合同已保存'); break; }
+    case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
+    case 'meradd': openModal(`<div class="row"><h3 style="flex:1">🧸 新周边</h3><button class="btn ghost sm" data-act="close">取消</button></div><div class="card"><div class="field"><label>名字</label><input id="mer-n" placeholder="比如：猫猫钥匙扣"></div><div class="field"><label>价格（可以写 ¥39 / 15加币）</label><input id="mer-p" placeholder="比如：15000"></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="mersave">添加</button></div></div>`); break;
+    case 'mersave': { const n = $('#mer-n').value.trim(), m = parseMoney($('#mer-p').value); if (!n || !m) { toast('请填写名字和价格'); break; } merch().push({ id: uid(), name: n, price: m.krw, pop: rand(.8, 1.4) }); save(); closeModal(); render(); break; }
+    case 'merdel': bbConfirm('删除这个周边？', '销量记录也会一起删掉', () => { S.merch = merch().filter(x => x.id !== t.dataset.id); save(); render(); }); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
@@ -3336,7 +3570,7 @@ document.addEventListener('click', async e => {
     case 'psave': {
       const p = S.profile;
       p.name = $('#p-name').value.trim() || p.name; p.fandom = $('#p-fandom').value.trim() || p.fandom;
-      p.debut = $('#p-debut').value || p.debut; p.animal = $('#p-animal').value.trim() || p.animal;
+      p.debut = $('#p-debut').value || p.debut; p.birth = $('#p-birth').value || p.birth; p.trainee = $('#p-trainee').value || p.trainee; p.animal = $('#p-animal').value.trim() || p.animal;
       p.followers = Math.max(0, +$('#p-fol').value || p.followers); p.folBase = p.followers;
       const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
       p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
@@ -3398,6 +3632,7 @@ document.addEventListener('change', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
+  if (e.target.id === 'w-in' || e.target.id === 'w-cur') walletPreview();
   if (e.target.id === 'cmp-text') draft = e.target.value;
   if (e.target.id === 'cmp-desc') draftDesc = e.target.value;
   if (e.target.id === 'bb-in') { UI.bbDraft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }
