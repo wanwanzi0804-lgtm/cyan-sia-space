@@ -1044,13 +1044,13 @@ const HOT_EVENTS = [
     opts: [{ t: '发一张同角度的自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.55, .01, .025, '同角度自拍被说「本人认证」，又火了一下'], [.45, 0, .008, '粉丝玩得很开心，路人没怎么注意']] },
       { t: '说一句被拍到了', task: { where: 'bubble', need: 'any', hint: '在泡泡里提一下被拍到的事' }, r: [[.5, .006, .018, '泡泡截图被到处转'], [.5, -.004, .004, '有人说偶像不该关注站姐，吵了几句']] },
       { t: '不回应', r: [[.7, .002, .01, '照片自己慢慢传开了'], [.3, 0, .003, '没什么后续']] }] },
-  { id: 'mistake', min: 0, w: 2, neg: 1, au: ['舞台观察员', '娱乐博主'], title: '{name} 舞台失误', body: '新人现场还是要多练啊，耳返掉了那几秒直接没跟上。[视频]',
+  { id: 'mistake', min: 0, w: 2, neg: 1, sc: ['打歌', '公演', '校庆', '演唱会', '活动'], au: ['舞台观察员', '娱乐博主'], title: '{name} 舞台失误', body: '「{e}」现场 {name} 耳返好像掉了，有几秒没跟上…新人还是要多练啊 [视频]',
     talk: ['耳返掉了谁都会这样吧', '心疼，后面马上调整过来了', '那个片段别再转了', '失误也好可爱怎么办'],
     opts: [{ t: '自嘲一下', task: { where: 'any', need: 'text', hint: '在泡泡或社区说说这件事' }, r: [[.6, .004, .015, '大家觉得你很真实，反而圈了点粉'], [.4, -.008, 0, '有人觉得态度太随便']] },
       { t: '写一段长一点的话', task: { where: 'post', need: 'text', hint: '在社区发一段文字' }, r: [[.5, 0, .008, '粉丝很心疼，抱团安慰你'], [.5, -.01, -.002, '被说小题大做，又多讨论了两天']] },
       { t: '不提这件事', r: [[.5, -.006, 0, '片段还在被转'], [.5, 0, .004, '下一个舞台状态很好，大家就忘了']] }] },
-  { id: 'variety', min: 0, w: 2, big: 1, au: ['综艺切片bot', '综艺博主'], title: '{name} 综艺名场面', body: '新人 {name} 被问怕不怕猫，回答「我本身就是猫」哈哈哈哈哈哈 [视频]',
-    talk: ['「我本身就是猫」笑死', '这个回答我能笑一年', '猫猫本猫认证', '综艺感好强'],
+  { id: 'variety', min: 0, w: 2, big: 1, sc: ['综艺', '电台'], au: ['综艺切片bot', '综艺博主'], title: '{name} {e}', body: '「{e}」里 {name} 的一段被单独剪了出来，评论区笑疯了 [视频]',
+    talk: ['这段笑死', '综艺感好强', '「{e}」我要去补全集', '新人上综艺这么放得开'],
     opts: [{ t: '发一张猫猫自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.65, .015, .035, '粉丝和路人一起玩梗，热度更高了'], [.35, .003, .01, '老粉狂喜，路人没跟上']] },
       { t: '顺着梗聊两句', task: { where: 'bubble', need: 'any', hint: '在泡泡里接这个梗' }, r: [[.5, .008, .02, '泡泡截图被转出去了'], [.5, .002, .006, '粉丝笑疯了，热度平稳']] },
       { t: '不接梗', r: [[.6, .003, .01, '片段自己还在传'], [.4, 0, .003, '话题很快就过去了']] }] },
@@ -1064,11 +1064,6 @@ const HOT_EVENTS = [
     opts: [{ t: '说说那天的事', task: { where: 'post', need: 'any', hint: '在社区发帖说说那天' }, r: [[.6, .006, .018, '偶遇帖被更多人看到了'], [.4, -.003, .003, '有人担心便利店位置被曝光']] },
       { t: '和粉丝提一句', task: { where: 'bubble', need: 'any', hint: '在泡泡里提一句' }, r: [[.6, .003, .01, '粉丝都很开心'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, .001, .008, '帖子慢慢沉下去了，但好感留下了']] }] },
-  { id: 'cat', min: 0, w: 1, au: ['街边随手拍', '路人'], title: '{name} 撸猫', body: '路边看到一个女生蹲着撸流浪猫撸了十分钟，后来才知道是 {name}？？[视频]',
-    talk: ['猫猫撸猫', '这是什么双猫画面', '那只猫好幸福', '视频循环中'],
-    opts: [{ t: '讲讲那只猫', task: { where: 'post', need: 'any', hint: '在社区发帖讲讲那只猫' }, r: [[.6, .01, .022, '猫和你一起火了'], [.4, .002, .008, '粉丝开始给猫取名字']] },
-      { t: '开个直播聊聊', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.5, .006, .016, '直播里聊猫被剪成了切片'], [.5, -.002, .004, '直播热度一般']] },
-      { t: '不回应', r: [[1, .001, .008, '视频自己慢慢传开']] }] },
   { id: 'serimBracelet', min: 0, w: 2, au: ['嗑学家', 'CP 博主'], title: '{name} 世琳 同款手链', body: '只有我注意到了吗？{name} 和世琳戴的是同一款手链！！对比图在下面 [图片]',
     talk: ['同款手链！！', '友谊手链吧', '我先嗑为敬', '对比图做得好细', '就是闺蜜款啦'],
     opts: [{ t: '说说这条手链', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这条手链' }, r: [[.55, .006, .016, '友情粉狂喜，CP 粉也很满足'], [.45, -.004, .004, '有人说别总是捆绑']] },
@@ -1084,17 +1079,17 @@ const HOT_EVENTS = [
     opts: [{ t: '发一段清唱', task: { where: 'any', need: 'sound', hint: '在泡泡或社区发一段清唱（语音或视频）' }, r: [[.55, .01, .025, '清唱被夸，口碑反转'], [.45, -.006, .002, '被说「急了」，又吵了一轮']] },
       { t: '让粉丝别吵', task: { where: 'any', need: 'text', hint: '在泡泡或社区跟粉丝说一声' }, r: [[.6, 0, .008, '粉丝冷静下来了'], [.4, -.006, 0, '帖子还是被顶上去了']] },
       { t: '不看不理', r: [[.5, -.008, -.001, '帖子越传越远'], [.5, 0, .004, '很快就没人讨论了']] }] },
-  { id: 'late', min: 0, w: 1, neg: 1, au: ['现场repo', '路人'], title: '{name} 迟到', body: '今天活动 {name} 迟到了快十分钟，工作人员一直在等。',
+  { id: 'late', min: 0, w: 1, neg: 1, sc: ['打歌', '综艺', '电台', '物料', '签售', '公演', '校庆', '活动', '演唱会'], au: ['现场repo', '路人'], title: '{name} 迟到', body: '「{e}」那天 {name} 好像迟到了几分钟，有人拍到工作人员在门口等。',
     talk: ['堵车了吧', '迟到几分钟而已', '不要被带节奏', '后面不是好好完成了吗'],
     opts: [{ t: '解释一下', task: { where: 'any', need: 'text', hint: '在泡泡或社区说明一下' }, r: [[.5, 0, .008, '大家表示理解'], [.5, -.008, -.002, '被说找借口']] },
       { t: '简单说声抱歉', task: { where: 'any', need: 'text', hint: '在泡泡或社区说一声' }, r: [[.6, -.002, .006, '态度被夸'], [.4, -.006, 0, '有人觉得没必要，反而又被讨论']] },
       { t: '不回应', r: [[.5, -.01, -.003, '视频越传越多'], [.5, -.002, .002, '很快就过去了']] }] },
-  { id: 'nomakeup', min: 0, w: 1, au: ['截图小能手', '粉丝'], title: '{name} 素颜', body: '{name} 前几天直播素颜也太能打了吧，皮肤好好 [图片]',
-    talk: ['素颜也好好看', '皮肤好好', '素颜截图存了', '这才是本人状态'],
+  { id: 'nomakeup', min: 0, w: 1, live: { video: true }, au: ['截图小能手', '粉丝'], title: '{name} 直播截图', body: '{name} 直播「{lt}」的截图被单独发了出来，状态好好 [图片]',
+    talk: ['截图存了', '直播状态好好', '这张好适合做头像', '下次直播我一定蹲'],
     opts: [{ t: '再开一次直播', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.6, .01, .022, '直播被说「真实」'], [.4, .002, .008, '粉丝很开心']] },
       { t: '发一张自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.55, .006, .018, '路人觉得很亲切'], [.45, -.003, .004, '有人说故意营业']] },
       { t: '不回应', r: [[1, 0, .006, '截图自己慢慢传开']] }] },
-  { id: 'clip', min: 0, w: 1, neg: 1, au: ['娱乐吃瓜站', '营销号'], title: '{name} 发言', body: '新人 {name} 直播发言引争议？！网友：这态度… [视频]',
+  { id: 'clip', min: 0, w: 1, neg: 1, live: {}, au: ['娱乐吃瓜站', '营销号'], title: '{name} 发言', body: '新人 {name} 直播里一句「{q}」被单独截了出来，评论区吵起来了 [视频]',
     talk: ['完整视频在这里，别断章取义', '截图的人太坏了', '看完整版就懂了', '粉丝去控评了'],
     opts: [{ t: '放出完整片段', task: { where: 'post', need: 'video', hint: '在社区发一段视频' }, r: [[.6, -.002, .01, '误会解开了，还有路人道歉'], [.4, -.008, -.002, '还是有人不看完整版']] },
       { t: '开个玩笑带过', task: { where: 'bubble', need: 'any', hint: '在泡泡里说两句' }, r: [[.5, 0, .01, '大家觉得你很大方'], [.5, -.01, -.003, '被说不当回事']] },
@@ -1139,13 +1134,13 @@ const HOT_EVENTS = [
     opts: [{ t: '转发直拍', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .012, .03, '直拍又火了一轮'], [.4, .003, .01, '粉丝很开心']] },
       { t: '发一组后台照片', task: { where: 'post', need: 'image', hint: '在社区发照片' }, r: [[.55, .01, .025, '后台照片被说好看'], [.45, .002, .008, '老粉狂喜']] },
       { t: '继续准备下一个行程', r: [[.5, .005, .015, '直拍自己慢慢火了'], [.5, 0, .005, '热度过去了']] }] },
-  { id: 'fansign', min: 0, w: 1, au: ['签售repo', '粉丝'], title: '{name} 签售', body: '今天签售 {name} 居然记得我上次说的话！！呜呜呜她怎么记得的',
+  { id: 'fansign', min: 0, w: 1, sc: ['签售'], au: ['签售repo', '粉丝'], title: '{name} 签售', body: '「{e}」上 {name} 居然记得我上次说的话！！呜呜呜她怎么记得的',
     talk: ['好羡慕被记住', '签售repo看哭了', '{n}记性也太好了', '下次签售我也要去'],
     opts: [{ t: '谢谢来签售的粉丝', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝说说签售' }, r: [[.6, .005, .015, '粉丝都说下次还要去'], [.4, .001, .006, '粉丝很开心']] },
       { t: '发签售那天的照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.6, .006, .018, '照片被转了好多次'], [.4, .001, .006, '老粉狂喜']] },
       { t: '不回应', r: [[1, .001, .006, 'repo 自己慢慢传开']] }] },
-  { id: 'cover', min: 0, w: 2, big: 1, au: ['翻唱收藏夹', '音乐博主'], title: '{name} 翻唱', body: '{name} 随手翻唱的一小段被传开了，声音太适合这首了吧 [视频]',
-    talk: ['这段翻唱循环一百遍', '求完整版！！', '音色好特别', '翻唱都这么好听'],
+  { id: 'cover', min: 0, w: 2, big: 1, live: { kw: /唱|歌|cover|翻唱/i }, au: ['翻唱收藏夹', '音乐博主'], title: '{name} 直播 唱歌', body: '{name} 直播「{lt}」里唱的那一段被切了出来，评论区都在求完整版 [视频]',
+    talk: ['这段循环一百遍', '求完整版！！', '音色好特别', '直播 live 都这么稳'],
     opts: [{ t: '发完整版', task: { where: 'any', need: 'sound', hint: '在泡泡或社区发一段唱歌的语音或视频' }, r: [[.6, .015, .035, '完整版被很多人收藏'], [.4, .003, .01, '老粉都很满足']] },
       { t: '开直播再唱一次', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .01, .025, '直播切片又传开了'], [.45, .002, .008, '直播热度一般']] },
       { t: '不回应', r: [[.6, .004, .012, '片段自己继续传着'], [.4, 0, .004, '热度过去了']] }] },
@@ -1164,10 +1159,10 @@ const HOT_EVENTS = [
     opts: [{ t: '发一张现在的同角度照片', task: { where: 'post', need: 'image', hint: '在社区发一张照片' }, r: [[.6, .008, .02, '新旧对比图被转了好多次'], [.4, .002, .006, '粉丝笑疯了']] },
       { t: '在泡泡里吐槽一下', task: { where: 'bubble', need: 'any', hint: '在泡泡里说两句' }, r: [[.6, .003, .01, '粉丝笑得好开心'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, 0, .006, '照片自己传开了']] }] },
-  { id: 'meow', min: 0, w: 1, au: ['直播切片站', '切片博主'], title: '{name} 学猫叫', body: '{name} 上次直播突然学了一声猫叫，切片已经被转了好几千次 [视频]',
-    talk: ['喵！！', '我耳朵怀孕了', '再学一次好不好', '猫猫本猫实锤'],
-    opts: [{ t: '发一条语音', task: { where: 'bubble', need: 'voice', hint: '在泡泡里发一条语音' }, r: [[.6, .006, .018, '语音被粉丝转录成了铃声'], [.4, .002, .006, '粉丝很开心']] },
-      { t: '开直播再学一次', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .008, .02, '又出了一个名场面切片'], [.45, .001, .006, '直播热度一般']] },
+  { id: 'liveclip', min: 0, w: 2, live: {}, au: ['直播切片站', '切片博主'], title: '{name} 直播切片', body: '{name} 直播「{lt}」里的一句「{q}」被切了出来，转发了好多 [视频]',
+    talk: ['「{q}」哈哈哈哈', '这段切片我看了好多遍', '直播原来这么好玩', '下次直播我一定蹲', '这句好有{n}的感觉'],
+    opts: [{ t: '再开一次直播', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .008, .02, '新直播又被切了好几段'], [.45, .001, .006, '直播热度一般']] },
+      { t: '聊聊那场直播', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊那场直播' }, r: [[.6, .004, .012, '粉丝又把切片转了一轮'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, .001, .008, '切片自己继续传着']] }] },
   { id: 'weight', min: 0, w: 1, neg: 1, au: ['身材观察', '路人'], title: '{name} 状态', body: '{name} 最近上镜是不是有点浮肿？是不是太累了',
     talk: ['别对女孩子的身材指指点点', '只是灯光问题吧', '心疼，最近行程太多了', '健康最重要'],
@@ -1226,7 +1221,7 @@ function hotState() {
   if (!H.posts) { H.posts = {}; if (H.cur && !H.cur.key) H.cur = null; } // 旧版本的热搜没有帖子
   return H;
 }
-const hotFill = (t, ev) => fill(t).replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '');
+const hotFill = (t, ev) => fill(t, ev.q || '').replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '').replace(/\{lt\}/g, ev.lt || '直播');
 // 频率按现有粉丝数和热度来：粉丝越多、越火，热搜越多
 function hotGap() {
   const f = S.profile.followers, days = f < 15000 ? rand(2.5, 5) : f < 30000 ? rand(1.8, 3.5) : f < 60000 ? rand(1.2, 2.5) : rand(.8, 1.6);
@@ -1240,16 +1235,36 @@ function hotVenue(ev) {
   if (f < 150000) return `热搜 第 ${ri(8, 40)} 位`;
   return `热搜 第 ${ri(1, 20)} 位`;
 }
+// 只用真实发生过的事：最近的直播（你说过的话）、最近结束的行程
+function hotLive(need) {
+  const ok = (S.lives || []).filter(l => Date.now() - l.end < 7 * 86400e3 && (!need.video || l.mode === 'video'));
+  const cands = ok.map(l => ({ l, qs: (l.said || []).filter(x => x.length >= 5 && x.length <= 40 && !/^(大家|你们)?(好|晚上好|早上好|早安|晚安|拜拜|下次见)/.test(x) && !LEAVE_RE.test(x) && (!need.kw || need.kw.test(x))) })).filter(x => need.video && !need.kw ? true : x.qs.length);
+  if (!cands.length) return null;
+  const c = pick(cands); return { lt: c.l.title || '直播', q: c.qs.length ? pick(c.qs) : '' };
+}
+function hotSched(cats) {
+  const today = dkey(Date.now()), nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  for (let i = 0; i >= -3; i--) {
+    const k = addDays(today, i), rs = rulesFor(k).filter(r => cats.includes(r.cat) && r.repeat !== 'daily' && (i < 0 || toMin(r.end) <= nowMin));
+    if (rs.length) return rs[rs.length - 1].title;
+  }
+  return null;
+}
 function hotPick() {
   const H = hotState(), f = S.profile.followers, recent = H.hist.slice(-8).map(x => x.id);
   const F = fanState(), sched = F.lastEvent && Date.now() - F.lastEvent.at < 2 * 86400e3 ? F.lastEvent : null;
   const songs = (S.profile.songs || []).filter(Boolean);
-  const ph = cbPhase();
-  const pool = HOT_EVENTS.filter(e => f >= e.min && !recent.includes(e.id) && (!e.needSong || songs.length) && (!e.needSched || sched) && (!e.phase || e.phase === ph));
+  const ph = cbPhase(), ctx = {};
+  const pool = HOT_EVENTS.filter(e => {
+    if (f < e.min || recent.includes(e.id) || (e.needSong && !songs.length) || (e.needSched && !sched) || (e.phase && e.phase !== ph)) return false;
+    if (e.live && !(ctx[e.id] = hotLive(e.live))) return false;
+    if (e.sc && !(ctx[e.id] = { e: hotSched(e.sc) }).e) return false;
+    return true;
+  });
   if (!pool.length) return null;
   let x = Math.random() * pool.reduce((a, e) => a + e.w, 0), ev = pool[0];
   for (const e of pool) { x -= e.w; if (x <= 0) { ev = e; break; } }
-  return { id: ev.id, song: ev.phase ? cbSong() : songs.length ? pick(songs) : '', e: sched ? sched.title : '' };
+  return { id: ev.id, song: ev.phase ? cbSong() : songs.length ? pick(songs) : '', e: sched ? sched.title : '', ...(ctx[ev.id] || {}) };
 }
 function hotComment(ev, kind) {
   const passer = Math.random() < .5;
@@ -1263,7 +1278,7 @@ function hotComment(ev, kind) {
 function hotNewPost(p, ev) {
   const f = S.profile.followers, sc = f / 15000;
   const body = hotFill(ev.body, p), media = /\[视频\]/.test(body) ? 'video' : /\[图片\]/.test(body) ? 'image' : '';
-  const post = { eid: ev.id, p: { song: p.song, e: p.e }, au: ev.au[0], tag: ev.au[1], body: body.replace(/\s*\[(视频|图片)\]/g, ''), media, at: Date.now(), likes: Math.round(rand(80, 400) * sc), rt: Math.round(rand(10, 80) * sc), cc: 0, liked: false, cm: [] };
+  const post = { eid: ev.id, p: { song: p.song, e: p.e, q: p.q, lt: p.lt }, au: ev.au[0], tag: ev.au[1], body: body.replace(/\s*\[(视频|图片)\]/g, ''), media, at: Date.now(), likes: Math.round(rand(80, 400) * sc), rt: Math.round(rand(10, 80) * sc), cc: 0, liked: false, cm: [] };
   for (let i = 0; i < ri(6, 10); i++) { const c = hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, p)) }); post.cm.push(c); post.cc += ri(1, Math.max(2, Math.round(4 * sc))); }
   post.cm.sort((a, b) => b.likes - a.likes);
   return post;
@@ -1281,7 +1296,7 @@ function hotTick() {
       H.posts[key] = hotNewPost(p, ev);
       H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null };
       pushNotif({ type: 'hot', key, text: `📰 #${H.cur.title}#`, sub: `${H.cur.venue} · ${H.posts[key].body.slice(0, 40)}` }, true);
-      H.talk = { id: p.id, song: p.song, e: p.e, until: now + 2 * 86400e3 };
+      H.talk = { id: p.id, song: p.song, e: p.e, q: p.q, lt: p.lt, until: now + 2 * 86400e3 };
       const ks = Object.keys(H.posts); while (ks.length > 12) delete H.posts[ks.shift()];
     }
   }
@@ -2686,6 +2701,7 @@ function spawnHeart() {
 function liveReact(text) {
   const L = LIVE; if (!L) return;
   L.speech = (L.speech + ' ' + text).slice(-300); L.newSpeech = true;
+  (L.said || (L.said = [])).push(text.trim().slice(0, 60)); if (L.said.length > 60) L.said.shift(); // 记下你直播里说过的话（热搜切片只用这些）
   let hit = false; const qBefore = L.queue.length;
   const push = t => L.queue.push({ lang: 'zh', text: t });
   // 刚有人提问，主播开口 → 当作在回答
@@ -2859,7 +2875,7 @@ function endLive() {
   LIVE = null;
   clearInterval(L.timer); L.micOn = false; try { L.rec && L.rec.stop(); } catch (e) { }
   if (L.stream) L.stream.getTracks().forEach(t => t.stop()); if (L.audio) try { L.audio.ac.close(); } catch (e) { } L.layer.remove();
-  const rec = { title: L.title, mode: L.mode, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments };
+  const rec = { title: L.title, mode: L.mode, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments, said: (L.said || []).slice(-40) };
   S.lives.unshift(rec);
   const newF = Math.round((L.peak * rand(.02, .06) + (rec.end - rec.start) / 60000 * rand(1, 3)) * heat() + L.fanD);
   addFans(newF - L.fanD, '直播'); if (L.fanD) addFans(L.fanD, '直播言论');
