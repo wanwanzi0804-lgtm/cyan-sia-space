@@ -180,6 +180,37 @@ body.typing .bb-tick.bb-tick2{display:block}
 .ct div{background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}
 .ct span{font-size:11.5px;color:var(--muted)}
 .ct b{font-size:13px}
+.rest-tg{display:flex;align-items:center;justify-content:space-between;margin:-4px 4px 10px;font-size:13px;color:var(--muted)}
+.sw{position:relative;width:40px;height:24px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw i{position:absolute;inset:0;background:var(--line);border-radius:12px;transition:.2s}
+.sw i::after{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sw input:checked+i{background:#7b61ff}
+.sw input:checked+i::after{left:19px}
+.offer{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.offer-b{display:flex;flex-direction:column;gap:6px}
+.tg-row{display:flex;align-items:center;gap:8px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
+.tg-ok{color:var(--accent);font-weight:700;font-size:13px}
+.tg-todo{color:#e5484d;font-size:13px;font-weight:600}
+.tg-chip{display:block;margin-top:6px;border:1px solid #e5484d;color:#e5484d;background:none;border-radius:10px;padding:4px 10px;font-size:12.5px}
+.tg-chip.ok{border-color:var(--accent);color:var(--accent)}
+.tg-res{margin-top:6px;font-size:12.5px;padding:4px 8px;border-radius:8px;background:var(--bg);display:inline-block}
+.tg-res.gS{color:#e5a100}.tg-res.gA{color:var(--accent)}.tg-res.g旷{color:#e5484d}
+.tg-d{font-size:15px;line-height:1.7;white-space:pre-wrap}
+.tg-qz{margin:10px 0}
+.tg-ph{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tg-ph button{aspect-ratio:3/4;border:2px solid var(--line);border-radius:10px;background:linear-gradient(160deg,#e9edf2,#cfd6de);font-size:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#555}
+.tg-ph button span{font-size:11px}
+.tg-ph button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.tg-mem{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tg-mem button{aspect-ratio:1;border:0;border-radius:12px;background:var(--accent);font-size:30px}
+.tg-mem button.on{background:var(--bg)}
+.tg-rh{display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 0}
+.tg-beat{width:90px;height:90px;border-radius:50%;background:var(--bg);transition:background .08s,transform .08s}
+.tg-beat.on{background:var(--accent);transform:scale(1.12)}
+#tg-rh-btn{min-width:140px;font-size:18px}
+.btn .badge{position:static;margin-left:4px;display:inline-block;background:#e5484d;color:#fff;border-radius:9px;font-size:11px;padding:0 6px;min-width:0}
+.btn .badge:empty{display:none}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -1036,20 +1067,22 @@ function dailyFans() {
 // 公开行程结束后涨粉
 function schedFans() {
   const F = fanState(), now = new Date(), today = dkey(now), nowMin = now.getHours() * 60 + now.getMinutes();
-  for (const k of [addDays(today, -1), today]) for (const r of rulesFor(k)) {
-    const g = EVENT_GAIN[r.cat]; if (!g && r.cat !== '上课') continue;
+  for (const k of [addDays(today, -2), addDays(today, -1), today]) for (const r of rulesFor(k)) {
+    const g = EVENT_GAIN[r.cat]; if (!g && !TG_EVENTS[r.cat]) continue;
     const key = k + '|' + r.id; if (F.credited[key]) continue;
     if (k === today && toMin(r.end) > nowMin) continue;
-    F.credited[key] = 1;
     const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
-    if (r.createdAt && endAt < r.createdAt) continue; // 事后补录的行程不算
-    if (!g) { walletSchedFee(r); continue; } // 上课：只有课时费
+    if (r.createdAt && endAt < r.createdAt) { F.credited[key] = 1; continue; } // 事后补录的行程不算
+    const st = tgSettle(k, r, key, today);
+    if (st === 'wait') continue; // 通告还没做完，等到今天结束
+    F.credited[key] = 1;
+    if (g) F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
+    if (st === 'done' || !g) continue;
     const n = Math.round(rand(g[0], g[1]) * folRatio() * heat());
     addFans(n, '行程：' + r.title); walletSchedFee(r);
-    F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
     pushNotif({ type: 'sched', text: `「${r.title}」结束，涨粉 +${n}`, sub: pick(['路人被圈粉了！', '直拍在网上小火了一把', '新粉丝涌进社区打招呼', '有人剪了你的高光片段']) }, false);
   }
-  for (const key of Object.keys(F.credited)) if (key.slice(0, 10) < addDays(today, -3)) delete F.credited[key];
+  for (const key of Object.keys(F.credited)) if (key.slice(0, 10) < addDays(today, -4)) delete F.credited[key];
 }
 // 粉丝知道的公开行程（不含上课练习）
 function eventsNear() {
@@ -1465,7 +1498,7 @@ function albTitle(a) { return a ? ((a.tracks.find(t => t.title) || a.tracks[0] |
 function cbAlbum() { return S.cb ? disco().find(a => a.id === S.cb.albumId) : null; }
 function cbDay() { const c = S.cb; if (!c) return null; return Math.round((parseD(c.date).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); }
 function cbPlan() {
-  const c = S.cb, promoEnd = 7 * (c.weeks || 3), followStart = promoEnd + (c.rest ? 7 : 0);
+  const c = S.cb, promoEnd = 7 * (c.weeks || 3), followStart = promoEnd; // 休息周改用行程里的「休息周」开关
   return { promoEnd, followStart, followEnd: followStart + (c.follow ? 7 : 0) };
 }
 function cbPhase() {
@@ -1523,7 +1556,7 @@ function cbHTML() {
   } else {
     const d = cbDay(), s = -d, P = cbPlan();
     const ph = p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
-    const steps = ['预热 2 周', `主打《${albTitle(a)}》${c.weeks} 周`].concat(c.rest ? ['休息周'] : [], c.follow ? [`后续《${c.follow}》1 周`] : []);
+    const steps = ['预热 2 周', `主打《${albTitle(a)}》${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
     top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${esc(c.date)} 回归 · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
       ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
@@ -1557,8 +1590,7 @@ function albHTML() {
     ${cb ? `<div class="card">
       <div class="grid2"><div class="field"><label>主打打歌几周</label><select id="al-weeks">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option ${A.weeks === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
         <div class="field"><label>&nbsp;</label><div id="al-warn">${cbRivalWarn(A.date, A.weeks)}</div></div></div>
-      <div class="switch"><span>主打活动结束后休息一周</span><input type="checkbox" id="al-rest" ${A.rest ? 'checked' : ''}></div>
-      <div class="field"><label>休息周后，后续打歌一首收录曲（一周）</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
+      <div class="field"><label>主打结束后，后续打歌一首收录曲（一周）</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
       <div class="muted" style="font-size:12.5px">打歌日不固定：把你的打歌安排加到「行程」里（类别选「打歌」），每周排得越多，拿一位的机会越大。</div>
     </div>` : ''}
     <div class="row">${A.id && !cb ? '<button class="btn ghost" data-act="albdel" style="color:var(--danger)">删除作品</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="alsave">${cb ? '定下回归' : '保存'}</button></div>`;
@@ -1567,7 +1599,7 @@ function albCollect() {
   const A = UI.alb; if (!$('#al-name')) return A;
   A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value; A.intro = $('#al-intro').value.trim();
   $$('.al-t').forEach((el, i) => { if (A.tracks[i]) A.tracks[i].name = el.value.trim(); });
-  if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.rest = $('#al-rest').checked; A.follow = $('#al-follow').value; }
+  if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.follow = $('#al-follow').value; }
   return A;
 }
 function albOpen(mode, a) {
@@ -2042,6 +2074,217 @@ function awardsHTML() {
       ${!st ? `<div class="w-bar sm" style="margin:6px 0 0;max-width:180px"><i style="width:${Math.min(100, Math.round(r * 100))}%"></i></div><div class="muted" style="font-size:11px">${what} ${fmtNum(Math.round(have))} / ${fmtNum(need)}${rookie ? '（新人）' : ''}</div>` : ''}</div><div style="text-align:right;max-width:45%">${s}</div></div>`; }).join('')}`;
 }
 
+/* =========================================================
+   能力 / 休息周 / 经纪人邀约 / 📋 通告（每个行程当天一张机遇卡）
+   ========================================================= */
+const SKILLS = [['vocal', '声乐'], ['dance', '舞蹈'], ['rap', 'Rap'], ['face', '表情管理'], ['stamina', '体能'], ['variety', '综艺感'], ['lang', '外语']];
+function skills() { return S.skills || (S.skills = { vocal: 55, dance: 60, rap: 35, face: 50, stamina: 55, variety: 40, lang: 35, day: dkey(Date.now()) }); }
+function skillTick() { const K = skills(), today = dkey(Date.now()); while (K.day < today) { K.day = addDays(K.day, 1); for (const [k] of SKILLS) K[k] = Math.max(10, K[k] - .03); } } // 不练会慢慢退步
+const CAT_SKILL = { 打歌: { dance: .4, vocal: .3, face: .3 }, 综艺: { variety: .7, face: .3 }, 电台: { vocal: .4, variety: .6 }, 签售: { variety: .5, face: .5 }, 物料: { face: .7, dance: .3 }, 公演: { stamina: .4, vocal: .3, dance: .3 }, 校庆: { stamina: .4, vocal: .3, dance: .3 }, 活动: { face: .5, variety: .5 }, 演唱会: { stamina: .3, vocal: .35, dance: .35 } };
+function lessonSkill(title) { return /声乐|Vocal|vocal|唱/.test(title) ? 'vocal' : /舞|Dance|dance/.test(title) ? 'dance' : /Rap|rap/.test(title) ? 'rap' : /表演|表情/.test(title) ? 'face' : /体能|健身|普拉提/.test(title) ? 'stamina' : /语|英|日|中文/.test(title) ? 'lang' : /综艺/.test(title) ? 'variety' : 'vocal'; }
+function skillScore(cat) { const w = CAT_SKILL[cat]; if (!w) return .5; const K = skills(); return Object.entries(w).reduce((s, [k, v]) => s + v * K[k] / 100, 0); }
+function skillUp(k, n) { const K = skills(); K[k] = Math.min(100, K[k] + n * (1 - K[k] / 130)); }
+function skillsHTML() {
+  const K = skills();
+  return SKILLS.map(([k, n]) => `<div class="w-cat"><span>${n}</span><div class="w-bar sm"><i style="width:${Math.round(K[k])}%"></i></div><b style="min-width:34px">${Math.round(K[k])}</b></div>`).join('') + '<div class="muted" style="font-size:12px;margin-top:8px">上课、练习的📋通告做完能力会涨，长期不练会慢慢退步。能力会影响行程表现和经纪人接到的活动。</div>';
+}
+// 休息周：周一的日期作为 key
+const isRestWeek = dk => !!(S.schedule.rest || {})[weekOf(dk)];
+const offerDayOk = dk => [0, 6].includes(parseD(dk).getDay()) || isRestWeek(dk);
+/* ---------- 经纪人邀约：随时会来，但活动日期只会在周末或休息周 ---------- */
+function mgr() { return S.mgr || (S.mgr = { mood: 70, offers: [], next: 0 }); }
+function mgrTick() {
+  const M = mgr(), now = Date.now();
+  M.offers = M.offers.filter(o => { if (now > o.exp) { M.mood = Math.max(0, M.mood - 1); return false; } return true; });
+  if (!M.next) M.next = now + rand(.3, 1) * 86400e3;
+  if (now < M.next || new Date().getHours() < 9) return;
+  M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
+  const o = mgrMakeOffer(); if (!o) return;
+  M.offers.push(o);
+  pushNotif({ type: 'sched', text: `📨 经纪人：有个${o.cat}问你接不接`, sub: `${o.title} · ${o.date.slice(5).replace('-', '/')} 周${WD[parseD(o.date).getDay()]} ${o.start}` }, true);
+}
+function mgrMakeOffer() {
+  const f = S.profile.followers, K = skills(), mo = new Date().getMonth() + 1, today = dkey(Date.now());
+  const days = []; for (let i = 3; i <= 24; i++) { const k = addDays(today, i); if (offerDayOk(k)) days.push(k); }
+  if (!days.length) return null;
+  const w = [['综艺', 3 + K.variety / 25], ['电台', 2 + K.vocal / 40], ['活动', 2.5], ['物料', 1.5 + K.face / 40], ['公演', 2]];
+  if ([3, 4, 5, 9, 10, 11].includes(mo)) w.push(['校庆', 2 + K.stamina / 50]);
+  let x = Math.random() * w.reduce((s, a) => s + a[1], 0), cat = w[0][0]; for (const [c, v] of w) { x -= v; if (x <= 0) { cat = c; break; } }
+  const big = /认识的哥哥|Running Man|Radio Star|惊人的星期六|我独自生活|你好|玩什么好呢|VOGUE|ELLE|W Korea|Dazed|延世|高丽|KCON|Dream Concert|Waterbomb|Music Bank World/;
+  let pool = (PRESETS[cat] || []).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
+  pool = pool.filter(([t]) => f >= 80000 || !big.test(t) || Math.random() < .05);
+  if (!pool.length) return null;
+  const [title, loc] = pick(pool), date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
+  const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
+  return { id: uid(), cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end: `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3 };
+}
+function offersHTML() {
+  const M = mgr(); if (!M.offers.length) return '';
+  return `<div class="card"><div class="row"><b style="flex:1">📨 经纪人邀约</b><span class="muted" style="font-size:12px">经纪人心情 ${M.mood >= 70 ? '😊' : M.mood >= 40 ? '😐' : '😮‍💨'}</span></div>
+    ${M.offers.map(o => `<div class="offer"><span class="chip" style="background:${CATS[o.cat] || '#999'}">${o.cat}</span><div style="flex:1;min-width:0"><b>${esc(o.title)}</b><div class="muted" style="font-size:12px">${o.date.slice(5).replace('-', '/')} 周${WD[parseD(o.date).getDay()]} ${o.start}-${o.end}${o.loc ? ' · ' + esc(o.loc) : ''}</div><div class="muted" style="font-size:12px">${o.fee[1] ? `预计收入 ${won(o.fee[0])}～${won(o.fee[1])}` : '没有报酬，但能涨曝光'} · 剩 ${hotLeft(o.exp - Date.now())} 回复</div></div>
+      <div class="offer-b"><button class="btn primary sm" data-act="ofok" data-id="${o.id}">接</button><button class="btn ghost sm" data-act="ofno" data-id="${o.id}">不接</button></div></div>`).join('')}</div>`;
+}
+/* ---------- 📋 通告：每个行程当天的一张机遇卡 ---------- */
+const KO_W = [['고양이', '猫'], ['사랑', '爱'], ['노래', '歌'], ['친구', '朋友'], ['행복', '幸福'], ['무대', '舞台'], ['연습', '练习'], ['감사합니다', '谢谢'], ['보고 싶어요', '想你'], ['맛있어요', '好吃'], ['꿈', '梦想'], ['하늘', '天空']];
+const EN_W = [['stage', '舞台'], ['rehearsal', '彩排'], ['lyrics', '歌词'], ['brave', '勇敢'], ['grateful', '感激'], ['schedule', '日程'], ['sincere', '真诚'], ['audience', '观众'], ['melody', '旋律'], ['effort', '努力']];
+const JA_W = [['ありがとう', '谢谢'], ['ねこ', '猫'], ['うた', '歌'], ['頑張って', '加油'], ['大好き', '最喜欢'], ['ゆめ', '梦想'], ['ともだち', '朋友'], ['そら', '天空']];
+const PHOTO = [['侧脸逆光', .9], ['大笑抓拍', .85], ['回眸', .8], ['正面标准照', .6], ['低头沉思', .7], ['眨眼瞬间', .15], ['对焦失败', .05], ['被头发挡脸', .2], ['和猫道具互动', .75]];
+// 每种行程的机遇事件：kind = choice（选）/ write（写）/ rhythm（节奏）/ memory（翻牌）/ quiz（单词）/ photo（挑照片）/ song（选歌）/ hours（时长）
+const TG_EVENTS = {
+  练习: [
+    r => ({ kind: 'choice', d: `${r.title}练到一半，你发现有一段动作总是慢半拍，镜子里的自己看起来很僵。`, opts: [['拆开慢速练一百遍', .5, .95], ['拍视频和老师的版本对比', .55, .9], ['先放一放，去练别的部分', .2, .6], ['找公司前辈请教', .35, 1]] }),
+    r => ({ kind: 'hours', d: `今天的${r.title}，打算练多久？练得越久涨得越多，但体能不够容易受伤。` }),
+    r => ({ kind: 'rhythm', d: `跟着节拍器练卡点：看到圆圈亮起就点「拍」，一共 8 拍。` }),
+    r => ({ kind: 'write', d: '练完了，给自己写一句练习日记吧。', ph: '今天练了什么、哪里还不够…' })
+  ],
+  上课: [
+    r => /语|英|日|中文/.test(r.title) ? { kind: 'quiz', d: '课堂小测：选出单词的意思（3 题）', lang: /英/.test(r.title) ? 'en' : /日/.test(r.title) ? 'ja' : 'ko' } : { kind: 'rhythm', d: '老师让你跟着节拍打拍子，测测今天的节奏感。' },
+    r => ({ kind: 'choice', d: `${r.title}上，老师突然点名让你当着大家示范一遍。`, opts: [['大大方方上去', .45, 1], ['先说自己还没练熟', .3, .6], ['拉同学一起上', .35, .8]] }),
+    r => ({ kind: 'choice', d: '老师说你上周教的东西没有练，语气有点严厉。', opts: [['老实承认，当场重来', .5, .95], ['解释最近行程太满', .2, .65], ['默默记下，下课加练', .45, .85]] })
+  ],
+  打歌: [
+    r => ({ kind: 'choice', d: '造型师拿来三套今天的打歌造型，问你选哪套。', opts: [['甜酷黑色皮衣', .3, 1], ['奶白色针织 + 猫耳发夹', .45, .95], ['亮色撞色运动风', .25, .9]] }),
+    r => ({ kind: 'rhythm', d: '彩排时间！跟着节拍点「拍」，卡点越准舞台越稳。' }),
+    r => ({ kind: 'choice', d: '事前录制前嗓子有点哑，离上台还有 40 分钟。', opts: [['喝温水，安静休息', .45, .85], ['抓紧时间开嗓', .35, 1], ['和音乐导演商量降一点 key', .3, .75]] }),
+    r => ({ kind: 'choice', d: '最后的 ending pose 还没想好，镜头马上要推过来了。', opts: [['猫爪比心', .4, 1], ['眨眼 wink', .35, .95], ['安静地看镜头', .45, .9], ['即兴做个鬼脸', .1, 1]] })
+  ],
+  综艺: [
+    r => ({ kind: 'choice', d: `${r.title}的台本发来了，PD 问你今天想走什么路线。`, opts: [['搞笑担当，放得开', .2, 1], ['反差萌，安静里突然发疯', .35, .95], ['认真观察，关键时刻接话', .4, .8]] }),
+    r => ({ kind: 'write', d: `节目组的事前问卷：「${pick(['出道后最大的变化是什么？', '宿舍生活最不习惯的是什么？', '有什么别人不知道的小习惯？', '最近一次哭是因为什么？', '理想型是什么样的？'])}」`, ph: '写下你的回答，播出时可能会被剪出来' }),
+    r => ({ kind: 'choice', d: 'MC 突然让你现场展示个人技！', opts: [['猫咪模仿', .2, 1], ['现场跳一段', .45, .9], ['挑战高音', .15, 1], ['讲冷笑话', 0, 1]] }),
+    r => ({ kind: 'memory', d: '游戏环节「默契翻牌」：翻出所有相同的卡片，步数越少越好。' })
+  ],
+  电台: [
+    r => ({ kind: 'song', d: 'DJ 问你今天想现场唱哪首。' }),
+    r => ({ kind: 'write', d: `听众来信：「${pick(['明天要考试了，好紧张，可以给我打打气吗？', '和最好的朋友吵架了，要不要先道歉…', '每天加班好累，想听你说一句话', '下个月第一次面试，好怕'])}」`, ph: '想对这位听众说什么？' }),
+    r => ({ kind: 'write', d: 'DJ：给听众推荐一首最近在听的歌吧。', ph: '歌名 + 一句推荐理由' }),
+    r => ({ kind: 'choice', d: '直播中途，DJ 让你用三个字形容自己。', opts: [['猫、猫、猫', .3, 1], ['认真地想好再说', .4, .85], ['反问 DJ 怎么看', .25, .9]] })
+  ],
+  签售: [
+    r => ({ kind: 'memory', d: '今天来了好多老粉！翻牌记住他们的昵称，配对越快越好。' }),
+    r => ({ kind: 'choice', d: '签售前，经纪人问你要不要准备点小福利。', opts: [['每人一张手写便签', .45, 1], ['现场拍立得', .4, .95], ['戴猫耳发箍营业', .35, .9], ['不用了，专心签名', .15, .5]] }),
+    r => ({ kind: 'choice', d: '有位粉丝紧张得说不出话，只是一直看着你。', opts: [['握住 TA 的手慢慢聊', .5, .95], ['逗 TA 笑', .35, 1], ['主动问 TA 的名字写在专辑上', .45, .9]] })
+  ],
+  物料: [
+    r => ({ kind: 'photo', d: `${r.title}拍完了，摄影师让你从样片里挑 2 张 A-cut。` }),
+    r => ({ kind: 'choice', d: '今天拍摄的概念，造型团队给了三张氛围图。', opts: [['梦幻粉蓝色调', .35, .95], ['黑白胶片质感', .4, 1], ['街头随拍风', .3, .85]] }),
+    r => ({ kind: 'write', d: '编辑的采访问题：「用一句话形容现在的自己？」', ph: '一句话就好' })
+  ],
+  公演: [
+    r => ({ kind: 'song', d: '今天的压轴曲放哪首？' }),
+    r => ({ kind: 'choice', d: '演出到一半音响突然出了问题，台下有点骚动。', opts: [['清唱继续', .3, 1], ['和观众聊天等修好', .4, .9], ['带大家一起打拍子', .45, .95]] }),
+    r => ({ kind: 'write', d: '想对台下观众说的一句话：', ph: '互动台词' })
+  ],
+  活动: [
+    r => ({ kind: 'choice', d: `${r.title}，品牌方希望整体风格「自然、有亲和力」，你选哪套？`, opts: [['白衬衫牛仔裤', .45, .9], ['品牌新款全套', .4, 1], ['自己的私服', .2, .95]] }),
+    r => ({ kind: 'write', d: '主持人请你说一句宣传语：', ph: '一句话' }),
+    r => ({ kind: 'choice', d: '现场有粉丝举着你的应援手幅，但主办方说不能互动太久。', opts: [['快速比心回应', .45, .95], ['走过去打招呼', .2, 1], ['装作没看到', .05, .5]] })
+  ],
+  演唱会: [
+    r => ({ kind: 'song', d: '安可曲选哪首？' }),
+    r => ({ kind: 'write', d: '演唱会最后的感言：', ph: '想对来的每一个人说的话' }),
+    r => ({ kind: 'rhythm', d: '最后一首前的彩排确认：跟着节拍点「拍」。' })
+  ]
+};
+TG_EVENTS.校庆 = TG_EVENTS.公演;
+const TG_PEN_FREE = ['上课', '打歌']; // 这两种旷掉不罚款，只是没效果
+function tgState() { return S.tg || (S.tg = { start: dkey(Date.now()), cards: {} }); }
+function tgCard(k, r) {
+  const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
+  const evs = TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
+  const rr = srng('tg' + key), ev = evs[Math.floor(rr() * evs.length)](r);
+  if (ev.kind === 'photo') ev.photos = pickN(PHOTO, 6);
+  if (ev.kind === 'quiz') { const W = { ko: KO_W, en: EN_W, ja: JA_W }[ev.lang]; ev.qs = pickN(W, 3).map(([w, m]) => ({ w, m, opts: pickN([m, ...pickN(W.filter(x => x[1] !== m), 3).map(x => x[1])], 4) })); }
+  if (ev.kind === 'memory') { const syms = pickN(['🐱', '💙', '🌙', '🍓', '⭐', '🎧'], 3); ev.deck = pickN([...syms, ...syms], 6); }
+  if (ev.kind === 'song') { const tk = []; for (const a of disco()) for (const t of a.tracks) tk.push([t.name, t.title]); ev.songs = tk.length ? pickN(tk, Math.min(4, tk.length)) : [['翻唱一首别人的歌', false]]; }
+  return T.cards[key] = { key, cat: r.cat, title: r.title, ...ev, done: false };
+}
+function tgToday() { const k = dkey(Date.now()); return rulesFor(k).map(r => tgCard(k, r)).filter(Boolean); }
+function tgListHTML() {
+  const cs = tgToday();
+  return `<div class="row"><h3 style="flex:1">📋 今天的通告</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="muted" style="font-size:12.5px;margin-bottom:8px">今天 23:59 前做完。没做完算旷工：会掉粉、没收入，公司还要罚钱（上课和打歌不罚，但没效果）。</div>
+    ${cs.length ? cs.map(c => `<div class="tg-row" data-act="tgopen" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : '<span class="tg-todo">去完成 ›</span>'}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
+}
+function tgCardHTML(key) {
+  const c = tgState().cards[key]; if (!c) return '';
+  const head = `<div class="row"><button class="link" data-act="tglist">‹ 返回</button><span class="sp"></span><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span></div><h3 style="margin:8px 0 4px">${esc(c.title)}</h3>`;
+  if (c.done) return head + `<div class="card"><div class="tg-d">${esc(c.d)}</div><div style="margin-top:10px">你的选择：<b>${esc(c.pickText || '')}</b></div><div class="muted" style="margin-top:6px">完成度 ${Math.round(c.score * 100)}%，行程结束后出结果。</div></div>`;
+  let body = '';
+  if (c.kind === 'choice') body = c.opts.map((o, j) => `<button class="hot-opt" data-act="tgpick" data-j="${j}">${esc(o[0])}</button>`).join('');
+  else if (c.kind === 'write') body = `<textarea id="tg-in" placeholder="${esc(c.ph || '')}" style="min-height:90px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgwrite">完成</button></div>`;
+  else if (c.kind === 'hours') body = [[1, '1 小时'], [2, '2 小时'], [3, '3 小时（体能不够可能受伤）']].map(([h, t]) => `<button class="hot-opt" data-act="tghours" data-h="${h}">${t}</button>`).join('');
+  else if (c.kind === 'song') body = c.songs.map(([n, t], j) => `<button class="hot-opt" data-act="tgsong" data-j="${j}">${esc(n)}${t ? ' <span class="alb-star">主打</span>' : ''}</button>`).join('');
+  else if (c.kind === 'quiz') body = `<div id="tg-quiz">${c.qs.map((q, i) => `<div class="tg-qz"><b>${i + 1}. ${esc(q.w)}</b><div class="pcats" style="margin-top:6px">${q.opts.map(o => `<button class="pcat" data-act="tgq" data-i="${i}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`).join('')}</div><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgqdone">交卷</button></div>`;
+  else if (c.kind === 'photo') body = `<div class="tg-ph">${c.photos.map(([n], j) => `<button data-act="tgph" data-j="${j}">📷<span>${esc(n)}</span></button>`).join('')}</div><div class="row" style="margin-top:8px"><span class="muted" style="flex:1;font-size:12.5px">选 2 张</span><button class="btn primary" data-act="tgphdone">就这两张</button></div>`;
+  else if (c.kind === 'memory') body = `<div class="tg-mem">${c.deck.map((s, j) => `<button data-act="tgmem" data-j="${j}"></button>`).join('')}</div><div class="muted" style="font-size:12.5px;margin-top:6px" id="tg-mem-s">步数 0</div>`;
+  else if (c.kind === 'rhythm') body = `<div class="tg-rh"><div id="tg-beat" class="tg-beat"></div><button class="btn primary" id="tg-rh-btn" data-act="tgrh">开始</button></div><div class="muted" style="font-size:12.5px;text-align:center" id="tg-rh-s">点开始后，圆圈亮起时点「拍」</div>`;
+  return head + `<div class="card"><div class="tg-d">${esc(c.d)}</div><div style="margin-top:10px">${body}</div></div>`;
+}
+function tgFinish(score, pickText) {
+  const c = tgState().cards[UI.tgKey]; if (!c || c.done) return;
+  c.done = true; c.score = clamp(score, 0, 1); c.pickText = pickText; c.at = Date.now();
+  save(); openModal(tgCardHTML(c.key)); toast('通告完成 ✓', c.title); updTgBadge();
+}
+// 小游戏状态
+let TGG = null;
+function tgRhythm() {
+  if (TGG && TGG.kind === 'rh' && TGG.running) { TGG.taps.push(performance.now()); return; }
+  const beat = $('#tg-beat'), btn = $('#tg-rh-btn'); TGG = { kind: 'rh', running: true, taps: [], beats: [] };
+  btn.textContent = '拍'; let i = 0; const iv = 650, t0 = performance.now() + 900;
+  for (let k = 0; k < 8; k++) TGG.beats.push(t0 + k * iv);
+  const tick = () => { if (!TGG || TGG.kind !== 'rh') return; beat.classList.add('on'); setTimeout(() => beat.classList.remove('on'), 160); if (++i < 8) setTimeout(tick, iv); else setTimeout(() => {
+    const errs = TGG.beats.map(b => { const t = TGG.taps.reduce((best, x) => Math.abs(x - b) < Math.abs(best - b) ? x : best, Infinity); return Math.min(400, Math.abs(t - b)); });
+    const sc = clamp(1 - errs.reduce((a, b) => a + b, 0) / errs.length / 320, 0, 1) * (TGG.taps.length > 12 ? .7 : 1);
+    TGG = null; tgFinish(sc, `节奏准确度 ${Math.round(sc * 100)}%`);
+  }, 700); };
+  setTimeout(tick, 900);
+}
+function tgMem(j) {
+  const c = tgState().cards[UI.tgKey]; if (!TGG || TGG.kind !== 'mem') TGG = { kind: 'mem', open: [], got: [], moves: 0 };
+  const G = TGG, els = $$('.tg-mem button'); if (G.got.includes(j) || G.open.includes(j) || G.open.length >= 2) return;
+  G.open.push(j); els[j].textContent = c.deck[j]; els[j].classList.add('on');
+  if (G.open.length === 2) {
+    G.moves++; $('#tg-mem-s').textContent = '步数 ' + G.moves;
+    const [a, b] = G.open;
+    if (c.deck[a] === c.deck[b]) { G.got.push(a, b); G.open = []; if (G.got.length === 6) { const sc = clamp(1 - (G.moves - 3) / 6, .1, 1); TGG = null; setTimeout(() => tgFinish(sc, `${G.moves} 步翻完`), 400); } }
+    else setTimeout(() => { els[a].textContent = ''; els[b].textContent = ''; els[a].classList.remove('on'); els[b].classList.remove('on'); G.open = []; }, 650);
+  }
+}
+function updTgBadge() { const n = tgToday().filter(c => !c.done).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
+// 结算：行程结束 + 通告完成 → 结果卡片；当天没做完 → 旷工
+function tgSettle(k, r, key, today) {
+  const c = tgCard(k, r); if (!c) return 'old';
+  if (!c.done && k >= today) return 'wait';
+  const f = S.profile.followers, R = S.schedule.res || (S.schedule.res = {});
+  if (!c.done) {
+    if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没准备好就上台了，表现很一般', at: Date.now() }; if (r.cat === '打歌') { walletSchedFee(r, .6); addFans(f * .0005, '行程：' + r.title); } return 'done'; }
+    const e = schedEcon(r) || { cost: 0 }, lose = Math.round(f * rand(.002, .005));
+    addFans(-lose, '旷工：' + r.title); walletDeal(0, e.cost + 500000, '旷工罚款', r.title, '成本 + 罚款 ₩500,000');
+    R[key] = { grade: '旷', note: `旷工了。掉粉 ${fmtNum(lose)}，公司按成本加罚款扣钱`, fans: -lose, at: Date.now() };
+    pushNotif({ type: 'sched', text: `⚠️ 「${r.title}」旷工了`, sub: `掉粉 ${fmtNum(lose)} · 公司罚款计入欠款` }, true);
+    return 'done';
+  }
+  const sc = .45 * c.score + .35 * skillScore(r.cat) + .2 * Math.random(), grade = sc >= .72 ? 'S' : sc >= .58 ? 'A' : sc >= .42 ? 'B' : 'C';
+  const mult = { S: 1.3, A: 1.1, B: 1, C: .8 }[grade];
+  let fans = 0, note = '';
+  if (r.cat === '上课' || r.cat === '练习') {
+    const sk = lessonSkill(r.title), h = c.hours || 1.5, n = (r.cat === '上课' ? 1.2 : .6 * h) * (.6 + c.score);
+    skillUp(sk, n); if (r.cat === '上课') walletSchedFee(r);
+    note = `${SKILLS.find(x => x[0] === sk)[1]} +${n.toFixed(1)}${c.hurt ? ' · 练太猛有点拉伤，体能 -2' : ''}`; if (c.hurt) skills().stamina -= 2;
+  } else {
+    const g = EVENT_GAIN[r.cat] || [10, 40]; fans = Math.round(rand(g[0], g[1]) * folRatio() * heat() * { S: 1.6, A: 1.2, B: 1, C: .6 }[grade]);
+    addFans(fans, '行程：' + r.title); walletSchedFee(r, mult);
+    for (const [s, w] of Object.entries(CAT_SKILL[r.cat] || {})) skillUp(s, .3 * w);
+    note = pick(TG_NOTE[grade]);
+    if (grade === 'S' && Math.random() < .35) { const H = hotState(); if (!H.forced && HOT_EVENTS.some(e => e.id === 'sched')) H.forced = { id: 'sched', e: r.title, q: '', at: Date.now() + rand(1, 5) * 3600e3 }; }
+  }
+  R[key] = { grade, note, fans, pick: c.pickText, at: Date.now() };
+  pushNotif({ type: 'sched', text: `「${r.title}」结束 · 表现 ${grade}`, sub: `${note}${fans ? ` · 涨粉 +${fans}` : ''}` }, false);
+  return 'done';
+}
+const TG_NOTE = { S: ['全场最佳，工作人员都在夸你', '片段当晚就被转疯了', '粉丝说今天的你闪闪发光'], A: ['表现很好，反响不错', '粉丝很满意', '顺利又出彩'], B: ['中规中矩，顺利完成', '没什么失误，也没太大亮点'], C: ['有点紧张，发挥一般', '状态不太好，下次加油'] };
+
 function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : '没写货币时按右边选的算'; }
 let lastReal = Date.now();
 function tick() {
@@ -2049,7 +2292,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); walletTick(); contractTick(); awardsTick(); bubbleTick(dt, false);
+  dailyFans(); schedFans(); hotTick(); cbTick(); skillTick(); mgrTick(); walletTick(); contractTick(); awardsTick(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -3458,14 +3701,17 @@ function viewSched() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
   const items = rulesFor(k); const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   return `
-  <div class="row" style="margin:4px 4px 8px"><b style="font-size:18px">${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}</b>${k === today ? '<span class="chip" style="background:var(--accent)">今天</span>' : ''}<span class="sp"></span>
+  <div class="row" style="margin:4px 4px 8px"><b style="font-size:16px;white-space:nowrap">${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}</b>${k === today ? '<span class="chip" style="background:var(--accent)">今天</span>' : ''}<span class="sp"></span>
     ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
+    <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done).length || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
+  ${offersHTML()}
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
     ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
     <button class="link" data-act="sdate" data-k="${addDays(k, 7)}">›</button>
   </div>
+  <div class="rest-tg"><span>${isRestWeek(k) ? '🌙 这周是休息周' : '这周正常营业'}</span><label class="sw"><input type="checkbox" data-act="resttg" data-k="${mon}" ${isRestWeek(k) ? 'checked' : ''}><i></i></label></div>
   <div class="card">${items.length ? items.map(r => {
     const dk = k + '|' + r.id, done = !!S.schedule.done[dk];
     let st = '';
@@ -3473,7 +3719,7 @@ function viewSched() {
     else if (done) st = '<span class="status" style="color:var(--accent)">已完成</span>';
     return `<div class="sched ${done ? 'done' : ''}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${CATS[r.cat] || '#999'}"></div>
       <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
-      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}</div>
+      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && TG_EVENTS[r.cat] ? tgCard(k, r) : null; return c ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
   }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
 }
@@ -3614,6 +3860,8 @@ function viewMe() {
     cb: () => `<div class="card">${cbHTML()}</div>`,
     disco: () => `<div class="card">${discoHTML()}</div>` }[UI.musicTab || 'chart']()}`,
   persona: () => `
+  <div class="sec-title">💪 能力</div>
+  <div class="card">${skillsHTML()}</div>
   <div class="sec-title">🐱 人设</div>
   <div class="card">
     <div class="grid2">
@@ -3814,6 +4062,20 @@ document.addEventListener('click', async e => {
     case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
+    case 'tglist': UI.tgKey = null; TGG = null; openModal(tgListHTML()); break;
+    case 'tgopen': UI.tgKey = t.dataset.k; UI.tgPh = []; TGG = null; openModal(tgCardHTML(t.dataset.k)); break;
+    case 'tgpick': { const c = tgState().cards[UI.tgKey], o = c.opts[+t.dataset.j]; tgFinish(rand(o[1], o[2]), o[0]); break; }
+    case 'tgwrite': { const v = ($('#tg-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .25 : n < 10 ? .5 : n <= 100 ? .75 : .6; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; tgFinish(sc + rand(-.15, .2), v); break; }
+    case 'tghours': { const c = tgState().cards[UI.tgKey], h = +t.dataset.h; c.hours = h; c.hurt = h === 3 && skills().stamina < 55 && Math.random() < .3; tgFinish({ 1: .5, 2: .7, 3: .9 }[h], `练 ${h} 小时`); break; }
+    case 'tgsong': { const c = tgState().cards[UI.tgKey], [n, ti] = c.songs[+t.dataset.j]; tgFinish((ti ? .75 : .5) + rand(-.2, .25), n); break; }
+    case 'tgq': { const c = tgState().cards[UI.tgKey]; (c.ans || (c.ans = {}))[t.dataset.i] = t.dataset.o; $$(`[data-act=tgq][data-i="${t.dataset.i}"]`).forEach(b => b.classList.toggle('on', b === t)); break; }
+    case 'tgqdone': { const c = tgState().cards[UI.tgKey], ok = c.qs.filter((q, i) => (c.ans || {})[i] === q.m).length; tgFinish(ok / 3, `答对 ${ok} / 3`); break; }
+    case 'tgph': { const j = +t.dataset.j, P = UI.tgPh || (UI.tgPh = []); if (P.includes(j)) P.splice(P.indexOf(j), 1); else { if (P.length >= 2) P.shift(); P.push(j); } $$('.tg-ph button').forEach((b, i) => b.classList.toggle('on', P.includes(i))); break; }
+    case 'tgphdone': { const c = tgState().cards[UI.tgKey], P = UI.tgPh || []; if (P.length < 2) { toast('选 2 张'); break; } const ps = P.map(i => c.photos[i]); tgFinish(ps.reduce((a, x) => a + x[1], 0) / 2, ps.map(x => x[0]).join(' + ')); break; }
+    case 'tgmem': tgMem(+t.dataset.j); break;
+    case 'tgrh': tgRhythm(); break;
+    case 'ofok': { const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
+    case 'ofno': { const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
@@ -3890,6 +4152,7 @@ document.addEventListener('change', async e => {
     save(); openModal(bbSettingsHTML());
   } else if (t.id === 'r-rep') syncRepFields();
   else if (t.id === 'ch-sel') { UI.chartTrk = t.value; render(); }
+  else if (t.dataset && t.dataset.act === 'resttg') { const R = S.schedule.rest || (S.schedule.rest = {}); if (t.checked) R[t.dataset.k] = 1; else delete R[t.dataset.k]; save(); render(); }
   else if (t.id === 'pf-tr') { S.prefs.autoTr = t.checked; save(); }
   else if (t.id === 'pf-speed') { S.prefs.speed = +t.value; save(); toast(`时间流速 ${t.value}×`); }
   else if (t.id === 'pf-sys') {
