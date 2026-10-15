@@ -497,7 +497,7 @@ video.bv-glow{pointer-events:none}
     <button class="tab" data-act="tab" data-tab="live"><span class="ic">📹</span>直播</button>
     <button class="tab" data-act="tab" data-tab="bubble"><span class="ic">🫧</span>Bubble<span class="badge" id="bb-badge"></span></button>
     <button class="tab" data-act="tab" data-tab="sched"><span class="ic">🗓</span>行程</button>
-    <button class="tab" data-act="tab" data-tab="notif"><span class="ic">🔔</span>通知<span class="badge" id="tab-badge"></span></button>
+    <button class="tab" data-act="tab" data-tab="kkt"><span class="ic">💬</span>KKT<span class="badge" id="kkt-badge"></span></button>
     <button class="tab" data-act="tab" data-tab="me"><span class="ic">🐱</span>我的</button>
   </div></nav>
 </div>
@@ -2036,8 +2036,7 @@ function walletHTML() {
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
     <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本由公司垫付，结算时先从收入里扣；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
     ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（活动 ${TIERS[C.offer.tier].gen * 100}% / 泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
-  </div>
-  ${mgrCardHTML()}`;
+  </div>`;
 }
 
 /* =========================================================
@@ -2237,7 +2236,7 @@ function mgr() { return S.mgr || (S.mgr = { mood: 70, offers: [], next: 0 }); }
 function mgrTick() {
   const M = mgr(), now = Date.now();
   M.offers = M.offers.filter(o => { if (now > o.exp) { M.mood = Math.max(0, M.mood - 1); mgrResolve('offer', o.id, '已过期'); return false; } return true; });
-  mgrChatter();
+  mgrChatter(); mgrReport();
   if (!M.next) M.next = now + rand(.3, 1) * 86400e3;
   if (now < M.next || new Date().getHours() < 9) return;
   M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
@@ -2271,13 +2270,13 @@ function mgrChat() { const M = mgr(); M.chat = M.chat || []; M.said = M.said || 
 function mgrSay(text, card, silent) {
   const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text, card: card || null });
   if (M.chat.length > 200) M.chat.splice(0, M.chat.length - 200);
-  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; if (!silent) pushNotif({ type: 'sched', text: '💬 经纪人', sub: text.length > 40 ? text.slice(0, 40) + '…' : text }, true); }
+  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; updBadges(); if (!silent) pushNotif({ type: 'sched', text: '💬 经纪人', sub: text.length > 40 ? text.slice(0, 40) + '…' : text }, true); }
   mgrRefresh();
 }
 let mgrQ = 0; // 回复排队，按顺序一条条发
 function mgrReply(text) { mgrQ = Math.max(Date.now(), mgrQ) + 1200 + Math.random() * 1500; setTimeout(() => { mgrSay(text, null, true); save(); }, mgrQ - Date.now()); }
 function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
-function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'me' && UI.meTab === 'wallet' && !UI.mgrOpen) { const c = $('#mgr-card'); if (c) c.outerHTML = mgrCardHTML(); } }
+function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'kkt' && !UI.mgrOpen) render(); }
 // 日常联络：行程提醒、回归倒计时、恭喜、关心…每件事只说一次
 function mgrChatter() {
   const M = mgrChat(), now = new Date(), hr = now.getHours(), today = dkey(Date.now()), once = (k, fn) => { if (!M.said[k]) { M.said[k] = 1; fn(); } };
@@ -2307,6 +2306,31 @@ function mgrChatter() {
       '吃饭了吗？别又只吃沙拉', '下周公司安排体检，时间定了我告诉你', '练习室这周三下午维修，那天去B2的小练习室',
       '有什么想尝试的通告类型可以跟我说，我留意着', '最近睡得怎么样？行程太满的话跟我讲', '代表今天问起你了，说你最近状态好'
     ]));
+  }
+}
+function viewKkt() {
+  return `<div class="sec-title">💬 KKT</div>${mgrCardHTML()}`;
+}
+// 每晚 21:00~次日 03:00 之间随机一个时间，经纪人发当天的工作日报
+function mgrReportAt(dk) { return parseD(dk).getTime() + (21 + 6 * srng('rep' + dk)()) * 3600e3; }
+function mgrReport() {
+  const M = mgrChat(), now = Date.now(), today = dkey(now);
+  for (const dk of [addDays(today, -1), today]) {
+    const at = mgrReportAt(dk); if (M.said['rep' + dk] || now < at || now > at + 10 * 3600e3) continue;
+    M.said['rep' + dk] = 1;
+    const W = wallet(), tx = W.tx.filter(x => dkey(x.at) === dk && ['行程', '课程'].includes(x.cat)).reverse(), rs = rulesFor(dk), prac = rs.filter(r => ['练习', '上课'].includes(r.cat)).length;
+    const head = `📋 ${+dk.slice(5, 7)}/${+dk.slice(8)} 日报`;
+    if (!tx.length) { mgrSay(`${head}
+今天${rs.length ? `${prac ? `练习/上课 ${prac} 项` : '的安排'}都完成了，` : ''}没有对外行程，所以没有收入也没有成本。${pick(['早点休息～', '好好睡一觉', '明天继续加油'])}`); continue; }
+    const g = tx.reduce((a, x) => a + (x.gross || 0), 0), c = tx.reduce((a, x) => a + (x.cost || 0), 0), mine = tx.reduce((a, x) => a + x.amt - (x.repay || 0), 0), owe = tx.reduce((a, x) => a + (x.owe || 0), 0), rp = tx.reduce((a, x) => a + (x.repay || 0), 0);
+    const lines = tx.map(x => `· ${x.note}：收入 ${won(x.gross || 0)} / 成本 ${won(x.cost || 0)}`);
+    const tm = rulesFor(addDays(dk, 1)).filter(r => !['练习', '上课'].includes(r.cat))[0];
+    mgrSay(`${head}
+今天跑了 ${tx.length} 个行程${prac ? `，另外练习/上课 ${prac} 项` : ''}
+${lines.join('\n')}
+合计：收入 ${won(g)}，成本 ${won(c)}
+${mine > 0 ? `你到手 ${won(mine)}` : '你这边没有到手'}${rp ? `，还欠款 ${won(rp)}` : ''}${owe ? `，亏的部分 ${won(owe)} 记到欠款了` : ''}
+${tm ? `明天 ${tm.start} ${tm.title}，早点睡！` : pick(['今天辛苦了 早点休息', '辛苦啦，好好休息～'])}`);
   }
 }
 function mgrCardHTML() {
@@ -3474,6 +3498,7 @@ function render() {
   else if (UI.tab === 'sched') h = viewSched();
   else if (UI.tab === 'bubble') h = viewBubble();
   else if (UI.tab === 'notif') h = viewNotif();
+  else if (UI.tab === 'kkt') h = viewKkt();
   else h = viewMe();
   view.innerHTML = h;
   view.classList.toggle('flush', UI.tab === 'bubble' && !!S.bubble.welcome);
@@ -3692,7 +3717,7 @@ function openNotif(n) {
 }
 function updBadges() {
   const n = S.notifs.filter(x => !x.read).length; const t = n ? (n > 99 ? '99+' : String(n)) : '';
-  $('#bell-badge').textContent = t; $('#tab-badge').textContent = t;
+  $('#bell-badge').textContent = t; const kb = $('#kkt-badge'), ku = (S.mgr && S.mgr.unread) || 0; if (kb) kb.textContent = ku ? (ku > 99 ? '99+' : String(ku)) : '';
   const bb = $('#bb-badge'), u = (S.bubble && S.bubble.unread) || 0;
   if (bb) { bb.classList.toggle('dot', !!(u && S.bubble.muted)); bb.textContent = u && !S.bubble.muted ? (u > 99 ? '99+' : String(u)) : ''; }
 }
@@ -4639,7 +4664,7 @@ document.addEventListener('click', async e => {
     case 'tgrh': tgRhythm(); break;
     case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(pick(['好嘞，我去回复对方，行程已经加上了', '收到，帮你排进行程了 👍'])); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(pick(['行，我帮你推掉', '好的，那这个就不接了'])); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
-    case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
     case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; mgrChat().chat.push({ id: uid(), at: Date.now(), text: v, me: true }); mgrRefresh(); mgrRespond(v); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
