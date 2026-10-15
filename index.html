@@ -205,6 +205,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-zh{margin-top:6px;padding-top:6px;border-top:1px dashed #d5dbe0;font-size:12.5px;color:#6b7680}
 .offer-b{display:flex;flex-direction:column;gap:6px}
 .tg-row{display:flex;align-items:center;gap:8px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
+.tg-row.lock{opacity:.55;cursor:default}
 .tg-ok{color:var(--accent);font-weight:700;font-size:13px}
 .tg-todo{color:#e5484d;font-size:13px;font-weight:600}
 .tg-chip{display:block;margin-top:6px;border:1px solid #e5484d;color:#e5484d;background:none;border-radius:10px;padding:4px 10px;font-size:12.5px}
@@ -2485,60 +2486,7 @@ function dayState() {
   const st = m < toMin(first.start) ? 'before' : all.every(r => toMin(r.end) <= m) ? 'done' : 'during';
   return { st, h: now.getHours(), first, next, cur, ext };
 }
-// 经纪人接收你的话：加行程、推掉行程、请假、设休息周、记一笔花销；其他交代的事记下来，写进当天的日程报告
-const CN_NUM = { 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10, 十一: 11, 十二: 12 };
-function mgrParseDay(t) {
-  const today = dkey(Date.now()), y = today.slice(0, 4);
-  if (/后天|모레/.test(t)) return addDays(today, 2);
-  if (/明天|明日|내일/.test(t)) return addDays(today, 1);
-  if (/今天|今晚|今早|오늘/.test(t)) return today;
-  let m = t.match(/(\d{1,2})\s*[月/.]\s*(\d{1,2})\s*[日号]?/); if (m) { let d = `${y}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`; if (d < today) d = `${+y + 1}${d.slice(4)}`; return d; }
-  m = t.match(/(下下|下个?|这个?|本)?\s*(?:周|星期|礼拜)\s*([一二三四五六日天])/);
-  if (m) { const w = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0 }[m[2]], mon = weekOf(today), off = (w + 6) % 7, add = m[1] && m[1].startsWith('下下') ? 14 : m[1] && m[1].startsWith('下') ? 7 : 0; let d = addDays(mon, off + add); if (!m[1] && d < today) d = addDays(d, 7); return d; }
-  m = t.match(/([월화수목금토일])요일/); if (m) { const w = '일월화수목금토'.indexOf(m[1]); let d = addDays(weekOf(today), (w + 6) % 7); if (d < today) d = addDays(d, 7); return d; }
-  return null;
-}
-function mgrParseTime(t) {
-  let m = t.match(/(\d{1,2})\s*[:：]\s*(\d{2})/); if (m) return [+m[1], +m[2]];
-  m = t.match(/(凌晨|早上|上午|中午|下午|晚上|傍晚|오전|오후|저녁)?\s*(\d{1,2}|[一二两三四五六七八九十]{1,3})\s*[点시]\s*(半|(\d{1,2})\s*分?)?/);
-  if (!m) return null;
-  let h = /\d/.test(m[2]) ? +m[2] : CN_NUM[m[2]] || 0; const mi = m[3] === '半' ? 30 : m[4] ? +m[4] : 0;
-  if (/下午|晚上|傍晚|오후|저녁/.test(m[1] || '') && h < 12) h += 12; else if (!m[1] && h >= 1 && h <= 7) h += 12;
-  return [h, mi];
-}
-const hh = (h, m) => `${String(Math.min(23, h)).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-function mgrGuessCat(t) { return /打歌|音乐中心|Music ?Bank|人气歌谣|M ?Countdown|THE SHOW|Show Champion|음방/i.test(t) ? '打歌' : /综艺|예능|节目录制/.test(t) ? '综艺' : /电台|radio|라디오/i.test(t) ? '电台' : /拍摄|画报|vlog|预告|物料|촬영|화보/i.test(t) ? '物料' : /签售|팬싸|사인회/.test(t) ? '签售' : /练习|연습/.test(t) ? '练习' : /课|레슨|수업/.test(t) ? '上课' : /^看|去看|医院|皮肤|美容|吃饭|约会|朋友|家|个人|병원/.test(t) ? '个人' : /演出|公演|공연/.test(t) ? '公演' : '个人'; }
-function mgrAction(t) {
-  const M = mgrChat(), today = dkey(Date.now()), day = mgrParseDay(t), ask = /什么|几点|哪|吗|呢|[?？]|까|나요/.test(t);
-  if (ask) return null;
-  if (/休息周|쉬는 주|휴식 주/.test(t)) {
-    const wk = weekOf(/下周|下个?星期|다음 주/.test(t) ? addDays(today, 7) : day || today), R = S.schedule.rest || (S.schedule.rest = {}), off = /不|取消|别|안/.test(t);
-    if (off) delete R[wk]; else R[wk] = 1; save(); if (UI.tab === 'sched') render();
-    return off ? [`${kd(wk)} 주 휴식 취소했어요.`, `${zd(wk)} 那周取消休息周了。`] : [`${kd(wk)} 주 휴식주로 해둘게요.`, `${zd(wk)} 那周设成休息周了。`];
-  }
-  if (/推掉|取消|不去|去不了|请假|빼|취소|못 가/.test(t)) {
-    const d = day || today, rs = rulesFor(d).filter(r => r.repeat === 'once');
-    const kw = t.replace(/帮我|麻烦|把|那个|的|行程|日程|通告|推掉|取消|不去了?|去不了|请假|今天|明天|后天|下周|周.|星期.|吧|一下|了|呢|啊|，|。|!|！|\s/g, '');
-    let hit = kw.length >= 2 ? rs.filter(r => r.title.includes(kw) || [...new Set(kw.match(/.{2}/g) || [])].some(p => r.title.includes(p))) : [];
-    if (!hit.length && /请假/.test(t)) hit = rs;
-    if (!hit.length) return rs.length ? [`어떤 일정이요? ${rs.map(r => r.title).join(', ')}`, `哪个日程？${rs.map(r => r.title).join('、')}`] : [`${kd(d)}엔 뺄 일정이 없어요.`, `${zd(d)}没有可以推的日程。`];
-    S.schedule.rules = S.schedule.rules.filter(r => !hit.includes(r)); M.mood = Math.max(0, M.mood - 3 * hit.length); save(); if (UI.tab === 'sched') render();
-    return [`네, ${hit.map(r => r.title).join(', ')} 뺐어요.`, `好，${hit.map(r => r.title).join('、')} 推掉了。`];
-  }
-  if (/花了|买了|付了|交了|充了|썼|샀/.test(t)) {
-    const m = parseMoney(t, UI.wCur || 'CAD');
-    if (m && m.krw) { const cat = guessCat(t, m.krw), note = t.replace(/\d[\d,.]*\s*(万|千|k|w)?/gi, '').replace(/今天|昨天|刚刚|刚才|花了|买了|付了|交了|充了|加币|加元|块|元|rmb|人民币|韩元|원|帮我|记一下|记账|，|。/gi, '').trim() || cat; walletSpend(m.krw, cat, note, m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]}` : ''); save(); return [`기록했어요. (${krw(m.krw)})`, `记下了（${krw(m.krw)}）。`]; }
-  }
-  const tm = mgrParseTime(t);
-  if ((day || tm) && /加|安排|排一?个|约了|有个|要去|추가|잡아/.test(t)) {
-    if (!day || !tm) return ['날짜랑 시간 알려주세요.', '告诉我日期和时间。'];
-    const title = t.replace(/帮我|麻烦|加一?个?|安排一?个?|排一?个?|约了|有个|要去|行程|日程|일정|추가|잡아줘?|今天|今晚|明天|后天|凌晨|早上|上午|中午|下午|晚上|傍晚|下下|下个?|这个?|本|周.|星期.|礼拜.|\d{1,2}\s*[月/.]\s*\d{1,2}\s*[日号]?|\d{1,2}\s*[:：]\s*\d{2}|[\d一二两三四五六七八九十]{1,3}\s*[点시]\s*(半|\d{1,2}\s*分?)?|在|去|的|吧|一下|，|。|\s/g, '').trim() || '个人日程';
-    const cat = mgrGuessCat(title), st = hh(tm[0], tm[1]), en = hh(tm[0] + 2, tm[1]);
-    S.schedule.rules.push({ id: uid(), title, cat, start: st, end: en, loc: '', repeat: 'once', days: [], date: day, note: '经纪人登记', createdAt: Date.now() }); save(); if (UI.tab === 'sched') render();
-    return [`${kd(day)} ${st} ${title} 추가했어요.`, `${zd(day)} ${st} ${title} 加上了。`];
-  }
-  return null;
-}
+// 经纪人只负责记下你交代的事，写进当天的日程报告
 function mgrMemo(t) {
   const M = mgrChat(), today = dkey(Date.now());
   const clean = t.trim();
@@ -2583,7 +2531,6 @@ ${mgrContext()}`, messages: msgs });
   return ko ? [ko.trim(), (zh || '').trim()] : null;
 }
 async function mgrRespond(text) {
-  const act = mgrAction(text); if (act) { mgrReply(act); return; }
   const fact = mgrFacts(text);
   if (!fact) { const memo = mgrMemo(text); if (memo) { mgrReply(memo); return; } }
   if (!fact && aiOn()) { try { const r = await mgrAi(text); if (r) { mgrReply(r); return; } } catch (e) { } }
@@ -2870,11 +2817,13 @@ function tgCard(k, r) {
   if (ev.kind === 'seq') ev.seqv = Array.from({ length: ev.n || 5 }, () => pick(['⬆️', '⬇️', '⬅️', '➡️']));
   return T.cards[key] = { key, cat: r.cat, title: r.title, ...ev, done: false };
 }
-function tgToday() { const k = dkey(Date.now()); return rulesFor(k).map(r => tgCard(k, r)).filter(Boolean); }
+function tgToday() { const k = dkey(Date.now()); return rulesFor(k).map(r => { const c = tgCard(k, r); if (c) c._start = r.start; return c; }).filter(Boolean); }
+// 行程开始后才能做这张通告
+const tgOpen = c => { const n = new Date(); return !c._start || n.getHours() * 60 + n.getMinutes() >= toMin(c._start); };
 function tgListHTML() {
   const cs = tgToday();
   return `<div class="row"><h3 style="flex:1">📋 今天的通告</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    ${cs.length ? cs.map(c => `<div class="tg-row" data-act="tgopen" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : '<span class="tg-todo">去完成 ›</span>'}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
+    ${cs.length ? cs.map(c => `<div class="tg-row${!c.done && !tgOpen(c) ? ' lock' : ''}" data-act="${!c.done && !tgOpen(c) ? '' : 'tgopen'}" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : tgOpen(c) ? '<span class="tg-todo">去完成 ›</span>' : `<span class="muted" style="font-size:12px">${c._start} 开始</span>`}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
 }
 // 选项之外，自己写怎么回应
 function tgCustomHTML() { return `<details class="tg-cus"><summary>✏️ 自己回应…</summary><textarea id="tg-cus" placeholder="写下你会怎么做 / 怎么说" style="min-height:70px;margin-top:6px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="tgcustom">就这样</button></div></details>`; }
@@ -2980,7 +2929,7 @@ function tgOrd(j) {
 }
 document.addEventListener('pointerdown', e => { if (e.target.id === 'tg-hold') { e.preventDefault(); TGG = { kind: 'hold', t: performance.now() }; e.target.classList.add('go'); e.target.textContent = '数到 4…'; } });
 document.addEventListener('pointerup', e => { if (TGG && TGG.kind === 'hold') { const d = performance.now() - TGG.t, b = $('#tg-hold'); TGG = null; if (b) { b.classList.remove('go'); b.textContent = (d / 1000).toFixed(2) + ' 秒'; } const sc = clamp(1 - Math.abs(d - 4000) / 2000, 0, 1); setTimeout(() => tgFinish(sc, `按了 ${(d / 1000).toFixed(2)} 秒`), 500); } });
-function updTgBadge() { const n = tgToday().filter(c => !c.done).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
+function updTgBadge() { const n = tgToday().filter(c => !c.done && tgOpen(c)).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
 // 结算：行程结束 + 通告完成 → 结果卡片；当天没做完 → 旷工
 function tgSettle(k, r, key, today) {
   const c = tgCard(k, r); if (!c) return 'old';
@@ -4456,7 +4405,7 @@ function viewSched() {
   return `
   <div class="row" style="margin:4px 4px 8px"><b style="font-size:16px;white-space:nowrap">${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}</b>${k === today ? '<span class="chip" style="background:var(--accent)">今天</span>' : ''}<span class="sp"></span>
     ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
-    <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done).length || ''}</span></button>
+    <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done && tgOpen(c)).length || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
