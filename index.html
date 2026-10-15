@@ -1339,7 +1339,7 @@ function hotState() {
   if (!H.posts) { H.posts = {}; if (H.cur && !H.cur.key) H.cur = null; } // 旧版本的热搜没有帖子
   return H;
 }
-const hotFill = (t, ev) => fill(t, ev.q || '').replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '').replace(/\{lt\}/g, ev.lt || '直播');
+const hotFill = (t, ev) => fill(t, ev.q || '').replace(/某美妆品牌/g, brandPick(String(ev.at || ev.id || ''), ['beauty'])[0]).replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '').replace(/\{lt\}/g, ev.lt || '直播');
 // 频率按现有粉丝数和热度来：粉丝越多、越火，热搜越多
 function hotGap() {
   const f = S.profile.followers, days = f < 15000 ? rand(2.5, 5) : f < 30000 ? rand(1.8, 3.5) : f < 60000 ? rand(1.2, 2.5) : rand(.8, 1.6);
@@ -2038,7 +2038,7 @@ function walletTick() {
     W.nextOffer = now + rand(20, 45) * 86400e3;
     if (score >= 1 && Math.random() < clamp(.3 + (score - 1) * .5, .3, .85)) {
       const months = pick([3, 6, 12]), total = Math.round((4e6 + 30e6 * Math.pow(luckQ(), 1.4)) * Math.min(2, score) / 1e5) * 1e5;
-      W.offer = { id: uid(), brand: pick(['猫粮品牌', '平价美妆品牌', '运动服品牌', '饮料品牌', '耳机品牌', '手机壳品牌', '零食品牌', '隐形眼镜品牌', '护肤品牌']), fee: Math.round(total / months / 1e4) * 1e4, total, months, exp: now + 3 * 86400e3 };
+      const bd = brandPick(uid()); W.offer = { id: uid(), brand: `${bd[0]}（${bd[1]}）`, fee: Math.round(total / months / 1e4) * 1e4, total, months, exp: now + 3 * 86400e3 };
       mgrSay([`${W.offer.brand} 광고 제안 왔어요. ${months}개월, ${krw(total)}. 3일 안에 답 주세요.`, `${W.offer.brand}代言邀约：${months} 个月，${krw(total)}。三天内答复。`], { type: 'deal', id: W.offer.id });
     }
   }
@@ -2337,7 +2337,8 @@ function mgrMakeOffer() {
   let pool = (PRESETS[cat] || []).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
   pool = pool.filter(([t]) => f >= 80000 || !big.test(t) || Math.random() < .05);
   if (!pool.length) return null;
-  const [title, loc] = pick(pool), date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
+  let [title, loc] = pick(pool); if (/品牌/.test(title)) { const b = brandPick(uid(), /时装|秀场/.test(title) ? ['fashion'] : null)[0]; title = title.replace('品牌门店开业活动', `${b} 门店开业活动`).replace('品牌活动 / 快闪店', `${b} 快闪店活动`).replace('海外时装周 · 品牌秀场', `海外时装周 · ${b} 秀场`).replace(/品牌/, b); }
+  const date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
   const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
   return { id: uid(), cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end: `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3 };
 }
@@ -2826,6 +2827,18 @@ function tgListHTML() {
   return `<div class="row"><h3 style="flex:1">📋 今天的通告</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     ${cs.length ? cs.map(c => `<div class="tg-row${!c.done && !tgOpen(c) ? ' lock' : ''}" data-act="${!c.done && !tgOpen(c) ? '' : 'tgopen'}" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : tgOpen(c) ? '<span class="tg-todo">去完成 ›</span>' : `<span class="muted" style="font-size:12px">${c._start} 开始</span>`}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
 }
+// 合作品牌：按新人体量能接到的真实韩国品牌（[名字, 类别]）
+const BRANDS = {
+  beauty: [['peripera', '彩妆'], ['rom&nd', '彩妆'], ['WAKEMAKE', '彩妆'], ['too cool for school', '彩妆'], ['ETUDE', '彩妆'], ['Round Lab', '护肤'], ['ISOI', '护肤'], ['ILLIYOON', '护肤']],
+  lens: [['OLENS', '彩色隐形眼镜'], ['LENSME', '彩色隐形眼镜']],
+  fashion: [['SPAO', '服饰'], ['Marithé François Girbaud', '服饰'], ['Mardi Mercredi', '服饰'], ['COVERNAT', '服饰'], ['Matin Kim', '服饰']],
+  food: [['Binggrae 香蕉牛奶', '饮料'], ['好丽友 巧克力派', '零食'], ['乐天 Pepero', '零食'], ['巴黎贝甜', '烘焙']],
+  etc: [['Britz', '耳机'], ['Harim Pet Food', '猫粮'], ['CASETiFY', '手机壳']]
+};
+function brandPick(seed, kinds) { const ks = kinds || Object.keys(BRANDS), r = srng('br' + seed), k = ks[Math.floor(r() * ks.length)], l = BRANDS[k]; return l[Math.floor(r() * l.length)]; }
+function brandIn(t) { for (const l of Object.values(BRANDS)) for (const b of l) if ((t || '').includes(b[0])) return b; return null; }
+// 行程里写着「品牌」但没说是谁：按行程固定一个品牌
+function brandOf(r) { return brandIn(r.title) || brandPick(r.id, /时装|秀场/.test(r.title) ? ['fashion'] : null); }
 // 通告卡的背景信息：这是什么活动、在哪、现在处于什么阶段、要宣传哪首歌
 function tgKind(r) {
   const t = r.title;
@@ -2847,10 +2860,11 @@ function tgStage(dk) {
 function tgSong(dk) { const ph = cbPhase(); if (ph && ph !== 'plan' && ph !== 'end' && cbAlbum()) return cbSong(); const l = relList().filter(x => x.date <= dk).slice(-1)[0]; return l ? albTitle(l) : ''; }
 function tgCtxHTML(c) {
   const [dk, rid] = c.key.split('|'), r = S.schedule.rules.find(x => x.id === rid) || { title: c.title, cat: c.cat, start: c._start || '', end: '' };
-  return `<div class="tg-ctx"><div>📍 ${esc(tgKind(r))}</div><div>🕒 ${r.start}${r.end ? '–' + r.end : ''}${r.loc ? ' · ' + esc(r.loc) : ''}</div>${r.note ? `<div>📝 ${esc(r.note)}</div>` : ''}${['练习', '上课', '个人'].includes(r.cat) ? '' : `<div>💿 ${esc(tgStage(dk))}</div>`}</div>`;
+  const isBrand = /品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title), bd = isBrand ? brandOf(r) : null;
+  return `<div class="tg-ctx"><div>📍 ${esc(tgKind(r))}</div>${bd ? `<div>🏷 合作品牌：${esc(bd[0])}（${bd[1]}）</div>` : ''}<div>🕒 ${r.start}${r.end ? '–' + r.end : ''}${r.loc ? ' · ' + esc(r.loc) : ''}</div>${r.note ? `<div>📝 ${esc(r.note)}</div>` : ''}${['练习', '上课', '个人'].includes(r.cat) ? '' : `<div>💿 ${esc(tgStage(dk))}</div>`}</div>`;
 }
 // 事件文字里「新歌 / 宣传语」换成具体的歌
-function tgFill(t, dk, r) { if (r && r.cat === '活动' && /品牌/.test(tgKind(r))) t = t.replace(/说一句宣传语/g, '为这次品牌活动说一句宣传语'); const song = tgSong(dk); if (!song) return t; return t.replace(/宣传新歌/g, `宣传《${song}》`).replace(/说一句宣传语/g, `说一句《${song}》的宣传语`).replace(/你的新歌/g, `《${song}》`).replace(/播了你的歌/g, `播了《${song}》`); }
+function tgFill(t, dk, r) { if (r && (/品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title))) { const b = brandOf(r)[0]; t = t.replace(/品牌方/g, `${b} 方面`).replace(/品牌的/g, `${b} 的`).replace(/品牌新款/g, `${b} 新款`).replace(/品牌标签/g, `${b} 标签`); } const song = tgSong(dk); if (!song) return t; return t.replace(/宣传新歌/g, `宣传《${song}》`).replace(/说一句宣传语/g, `说一句《${song}》的宣传语`).replace(/你的新歌/g, `《${song}》`).replace(/播了你的歌/g, `播了《${song}》`); }
 // 选项之外，自己写怎么回应
 function tgCustomHTML() { return `<details class="tg-cus"><summary>✏️ 自己回应…</summary><textarea id="tg-cus" placeholder="写下你会怎么做 / 怎么说" style="min-height:70px;margin-top:6px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="tgcustom">就这样</button></div></details>`; }
 function tgCustomScore(v) { const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .3 : n < 10 ? .55 : n <= 120 ? .75 : .65; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; if (/粉丝|大家|sia|谢谢|感谢|努力|认真|配合|道歉|抱歉|练习|准备/.test(v)) sc += .08; return clamp(sc + rand(-.1, .1), .05, 1); }
