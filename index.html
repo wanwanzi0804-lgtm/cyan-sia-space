@@ -1103,13 +1103,15 @@ function dailyFans() {
 // 公开行程结束后涨粉
 function schedFans() {
   const F = fanState(), now = new Date(), today = dkey(now), nowMin = now.getHours() * 60 + now.getMinutes();
+  // 补救：通告做完了却因为「事后补录」被跳过、没出结果的，重新结算
+  { const R = S.schedule.res || {}, T = tgState(); for (const k of Object.keys(F.credited)) if (k >= addDays(today, -2) && !R[k] && T.cards[k] && T.cards[k].done) delete F.credited[k]; }
   for (const k of [addDays(today, -2), addDays(today, -1), today]) for (const r of rulesFor(k)) {
     const g = EVENT_GAIN[r.cat]; if (!g && !TG_EVENTS[r.cat]) continue;
     const key = k + '|' + r.id; if (F.credited[key]) continue;
     if (k === today && toMin(r.end) > nowMin) continue;
     const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
-    if (r.createdAt && endAt < r.createdAt) { F.credited[key] = 1; continue; } // 事后补录的行程不算
-    const st = tgSettle(k, r, key, today);
+    if (r.createdAt && endAt < r.createdAt) { const c0 = tgState().cards[key]; if (!(c0 && c0.done)) { F.credited[key] = 1; continue; } } // 事后补录的行程：做了通告就照常结算，没做就不算（也不罚）
+    let st; try { st = tgSettle(k, r, key, today); } catch (e) { console.error('settle', r.title, e); continue; }
     if (st === 'wait') continue; // 通告还没做完，等到今天结束
     F.credited[key] = 1;
     if (g) F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
@@ -2976,7 +2978,8 @@ function tgCard(k, r) {
   const evs = r.cat === '公演' && UNIV_RE.test(r.title) ? TG_EVENTS['校庆'] : TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
   // 剧情事件为主，小游戏偶尔出现
-  const cands = evs.map(f => f(r)).filter(Boolean), wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
+  const cands = evs.map(f => { try { return f(r); } catch (e) { return null; } }).filter(Boolean); if (!cands.length) return null;
+  const wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
   let ev; if (sp.length && (popupOf(r) || rr() < .45)) ev = sp[Math.floor(rr() * sp.length)][1](r);
   else { let x = rr() * wts.reduce((a, b) => a + b, 0); ev = cands[cands.length - 1]; for (let i = 0; i < cands.length; i++) { x -= wts[i]; if (x <= 0) { ev = cands[i]; break; } } }
   if (TG_GAME_KINDS.includes(ev.kind) && sp.length && rr() < .5) { const alt = cands.filter(e => !TG_GAME_KINDS.includes(e.kind)); if (alt.length) ev = alt[Math.floor(rr() * alt.length)]; }
@@ -3220,7 +3223,8 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); skillTick(); mgrTick(); popTick(); walletTick(); contractTick(); awardsTick(); bubbleTick(dt, false);
+  // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
+  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
