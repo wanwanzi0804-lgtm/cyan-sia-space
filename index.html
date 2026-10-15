@@ -1937,10 +1937,11 @@ function chartsHTML() {
   const albs = disco().slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   const sel = `<select id="ch-sel">${albs.map(a => `<optgroup label="${esc(a.name)}${a.date ? ' · ' + a.date.slice(0, 7) : ''}">${a.tracks.map(t => { const k = a.id + '|' + t.name; return `<option value="${esc(k)}" ${k === focus ? 'selected' : ''}>${esc(t.name)}${t.title ? '（主打）' : ''}</option>`; }).join('')}</optgroup>`).join('')}</select>`;
   const top = keys.sort((a, b) => T.trk[b] - T.trk[a]).slice(0, 5);
-  return `<b style="font-size:14px">🎧 今日播放 Top 5</b>
-    ${top.map((k, i) => { const b = best(k); return `<div class="ch-top ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}"><span class="ch-n">${i + 1}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.split('|').slice(1).join('|'))}</span><span class="muted" style="font-size:12px">${b ? `${b[0]} ${b[1]} 位` : '未进榜'} · ${fmtNum(Math.round(T.trk[k]))} 次</span></div>`; }).join('')}
+  return `<b style="font-size:14px">🎧 今日播放 Top 5</b> <span class="muted" style="font-size:12px">（全平台合计）</span>
+    ${top.map((k, i) => { const b = best(k); return `<div class="ch-top ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}"><span class="ch-n">${i + 1}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.split('|').slice(1).join('|'))}</span><span class="muted" style="font-size:12px">${b ? `${b[0]} ${b[1]} 位` : '未进榜'} · ${fmtNum(Math.round(T.trk[k] * jit))} 次</span></div>`; }).join('')}
     <div style="margin-top:14px"><b style="font-size:14px">📊 各平台名次</b><div style="margin:8px 0">${sel}</div>
-    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》（每小时更新）</div>${rows}</div>`;
+    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》全平台累计 <b style="color:var(--text)">${fmtNum(Math.round(SS.trk[focus]?.total || 0))}</b> 次 · 今日全平台约 ${fmtNum(Math.round(T.trk[focus] * jit))} 次</div>
+    <div class="muted" style="font-size:12px;margin-bottom:4px">各平台今日（每小时更新）</div>${rows}</div>`;
 }
 function albumSalesHTML() {
   const SS = salesState(), today = dkey(Date.now());
