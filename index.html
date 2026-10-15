@@ -2349,7 +2349,7 @@ function mgr() { return S.mgr || (S.mgr = { mood: 70, offers: [], next: 0 }); }
 function mgrTick() {
   const M = mgr(), now = Date.now();
   M.offers = M.offers.filter(o => { if (now > o.exp) { M.mood = Math.max(0, M.mood - 1); mgrResolve('offer', o.id, '已过期'); return false; } return true; });
-  mgrChatter(); mgrReport();
+  mgrReplyTick(); mgrChatter(); mgrReport();
   if (!M.next) M.next = now + rand(.3, 1) * 86400e3;
   if (now < M.next || new Date().getHours() < 9) return;
   M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
@@ -2409,7 +2409,7 @@ function mgrSplit(t) {
   if (ks.length >= 2 && ks.length === zs.length && !ko.includes('\n') && Math.random() < .7) return ks.map((k, i) => [k, zs[i]]);
   return [[ko, zh]];
 }
-function mgrReply(t) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 700 + Math.random() * 1300 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
+function mgrReply(t, now) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 900 + Math.random() * 2200 : now ? 200 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
 function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
 function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'kkt' && !UI.mgrOpen) render(); }
 // 日常联络：行程提醒、回归、恭喜、关心…每件事只说一次
@@ -2539,55 +2539,39 @@ function dayState() {
   return { st, h: now.getHours(), first, next, cur, ext };
 }
 // 经纪人只负责记下你交代的事，写进当天的日程报告
-function mgrMemo(t) {
-  const M = mgrChat(), today = dkey(Date.now());
-  const clean = t.trim();
-  if (clean.length >= 6 && !/[?？]$|吗$|까\??$/.test(clean) && !/^(谢谢|辛苦|早|晚安|好的?|收到|嗯|ok)/i.test(clean) && !/[吗呢?？]/.test(clean)) {
-    (M.memos || (M.memos = [])).push({ dk: today, at: Date.now(), text: clean }); if (M.memos.length > 60) M.memos.splice(0, M.memos.length - 60);
-    return pick([['네, 메모해둘게요.', '好，我记下了。'], ['알겠어요. 참고할게요.', '知道了，我会注意。']]);
-  }
+// 闲聊：道歉、笑、「知道了」这类不用记，像人一样随口回，或者干脆不回
+function mgrSmall(t) {
+  const c = t.replace(/\s/g, '');
+  if (/죄송|미안|sorry|抱歉|对不起|不好意思/i.test(c)) return pick([['ㅋㅋㅋ 아니에요~', '哈哈哈没事～'], ['괜찮아요ㅎㅎ', '没关系哈哈'], ['ㅋㅋ 뭘요', '哈哈这有啥']]);
+  if (/^아맞다|^啊对|^对哦|^哦对/.test(c)) return pick([['ㅎㅎ', '嘿嘿'], ['ㅋㅋ 그쵸', '哈哈对吧']]);
+  if (/^[ㅋㅎ哈呵w]+[!~.]*$/i.test(c)) return Math.random() < .5 ? 'NONE' : ['ㅋㅋㅋ', '哈哈哈'];
+  if (c.length <= 14 && /^(네+|넵+|응+|ㅇㅇ|알겠|알았|오케이|ok|好的?|嗯+|知道了|收到|行)/i.test(c)) return Math.random() < .5 ? 'NONE' : pick([['ㅎㅎ 넵', '嗯嗯'], ['👍', '👍']]);
   return null;
 }
-function mgrAnswer(t) {
-  const fact = mgrFacts(t); if (fact) return fact;
-  const D = dayState(), pu = r => { const p = Math.max(0, toMin(r.start) - 60); return `${String(Math.floor(p / 60)).padStart(2, '0')}:${String(p % 60).padStart(2, '0')}`; };
-  if (/谢谢|感谢|辛苦了|辛苦啦|辛苦你|고마|감사|수고/.test(t)) return D.st === 'done' || (D.st === 'none' && D.h >= 18) ? ['수고했어요. 푹 쉬어요.', '辛苦了，好好休息。'] : pick([['네~', '嗯～'], ['별말씀을요.', '哪里的话。']]);
-  if (/早上好|早安|早啊|^早|좋은 아침|안녕/.test(t)) return D.st === 'before' && D.ext && D.ext[0] ? [`좋은 아침이에요. 픽업 ${pu(D.ext[0])}이에요.`, `早上好，${pu(D.ext[0])} 接你。`] : ['좋은 아침이에요.', '早上好。'];
-  if (/晚安|睡了|잘자|잘 자/.test(t)) return ['잘 자요.', '晚安。'];
-  if (/(好|很|太|有点|超)累|累死|^累|累了|困|不舒服|生病|疼|发烧|嗓子|힘들|피곤|아파/.test(t)) return D.st === 'before' || D.st === 'during' ? ['괜찮아요? 필요하면 말해줘요.', '还好吗？需要的话跟我说。'] : ['푹 쉬어요.', '好好休息。'];
-  if (/想接|想上|想去|想做|想试|하고 싶/.test(t)) return ['네, 알아볼게요.', '好，我打听一下。'];
-  if (/[?？]|吗|까|요\?/.test(t)) return ['확인해볼게요.', '我确认一下。'];
-  return pick([['네.', '好。'], ['넵', '嗯'], ['👍', '👍']]);
-}
-function mgrContext() {
-  const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum(), R = W.recv || [];
-  const sch = d => rulesFor(d).map(r => `${hm(r)} ${r.title}（${r.cat}）`).join('；') || '无';
-  const D = dayState(), now = new Date();
-  return `现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
-今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
-结算：每月 ${SETTLE_DAY} 日结算上月已到账收入；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。艺人账户余额 ${won(W.bal)}，未回收的公司前期投入 ${won(W.debt)}。
-${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
-艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。`;
-}
-async function mgrAi(text) {
-  const client = await aiClient(), M = mgrChat();
-  const hist = M.chat.slice(-14).filter(m => m.text).map(m => ({ role: m.me ? 'user' : 'assistant', content: m.text }));
-  while (hist.length && hist[0].role !== 'user') hist.shift();
-  const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
-  if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
-  const r = await client.messages.create({ model: S.ai.model, max_tokens: 200, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。用韩语回复，像真人发 KakaoTalk：口语、自然、有点人情味（会用 ~、ㅎㅎ、ㅠㅠ 这类语气），先直接回答对方问的，再顺口补半句就够了；一般 1~2 句，不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
-可以像真人一样分成 1~3 条短消息发。每条消息输出两行：KO: 韩语；ZH: 中文翻译。多条就重复这两行。不要提到 App 界面（比如「在钱包里能看到」）。
-${mgrContext()}`, messages: msgs });
-  const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
-  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(), msgs2 = [];
-  for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]);
-  return msgs2.length ? msgs2 : null;
+// 交代的事：只有真的在拜托 / 提醒事情时才记
+function mgrMemo(t) {
+  const M = mgrChat(), today = dkey(Date.now()), clean = t.trim();
+  if (clean.length < 6 || /[?？吗呢]|까\??$/.test(clean)) return null;
+  if (!/帮我|麻烦|记得|别忘|提醒|请|要|想|希望|下周|明天|后天|周[一二三四五六日天]|부탁|해주세요|해줘|알려|챙겨|기억|다음 주|내일|모레/.test(clean)) return null;
+  (M.memos || (M.memos = [])).push({ dk: today, at: Date.now(), text: clean }); if (M.memos.length > 60) M.memos.splice(0, M.memos.length - 60);
+  return pick([['넵 알겠어요! 챙겨둘게요', '好嘞，我记着'], ['오케이 기억해둘게요', 'OK，我记住了'], ['네네 그렇게 할게요', '嗯嗯，就这么办']]);
 }
 async function mgrRespond(text) {
-  const fact = mgrFacts(text);
-  if (!fact) { const memo = mgrMemo(text); if (memo) { mgrReply(memo); return; } }
-  if (!fact && aiOn()) { try { const r = await mgrAi(text); if (r) { mgrReply(r); return; } } catch (e) { } }
-  mgrReply(fact || mgrAnswer(text));
+  const small = mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; }
+  const req = /帮我|麻烦|记得|别忘|提醒|부탁|해주세요|해줘|말해|전달|챙겨/.test(text) && !/[?？吗]|까\??$/.test(text.trim());
+  const fact = req ? null : mgrFacts(text);
+  if (!fact) { const memo = mgrMemo(text); if (memo) { mgrReply(memo, true); return; } }
+  if (!fact && aiOn()) { try { const r = await mgrAi(text); if (r) { mgrReply(r, true); return; } } catch (e) { } }
+  mgrReply(fact || mgrAnswer(text), true);
+}
+// 不秒回：等你发完（最后一条后至少 5 秒），再按经纪人当时忙不忙随机等一会儿；你连发几条，他会一起看完再回
+function mgrDelay() { const x = Math.random(); return 1000 * (x < .5 ? rand(4, 15) : x < .85 ? rand(20, 90) : rand(120, 360)); }
+let mgrBusy = false;
+function mgrReplyTick() {
+  const M = mgrChat(); if (!M.replyAt || Date.now() < M.replyAt || mgrBusy) return;
+  M.replyAt = 0; let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
+  const pend = M.chat.slice(i + 1).filter(m => m.me); if (!pend.length) return;
+  mgrBusy = true; mgrRespond(pend.map(m => m.text).join('\n')).finally(() => { mgrBusy = false; save(); });
 }
 /* ---------- 📋 通告：每个行程当天的一张机遇卡 ---------- */
 const KO_W = [['고양이', '猫'], ['사랑', '爱'], ['노래', '歌'], ['친구', '朋友'], ['행복', '幸福'], ['무대', '舞台'], ['연습', '练习'], ['감사합니다', '谢谢'], ['보고 싶어요', '想你'], ['맛있어요', '好吃'], ['꿈', '梦想'], ['하늘', '天空']];
@@ -4916,7 +4900,7 @@ document.addEventListener('click', async e => {
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
-    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; mgrChat().chat.push({ id: uid(), at: Date.now(), text: v, me: true }); mgrRefresh(); mgrRespond(v); save(); break; }
+    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: v, me: true }); M.replyAt = Math.max(M.replyAt || 0, Date.now() + 5000, Date.now() + (M.replyAt ? 0 : mgrDelay())); mgrRefresh(); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
