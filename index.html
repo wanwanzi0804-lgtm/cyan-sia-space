@@ -2539,6 +2539,36 @@ function dayState() {
   return { st, h: now.getHours(), first, next, cur, ext };
 }
 // 经纪人只负责记下你交代的事，写进当天的日程报告
+// 让经纪人退掉 / 推掉某个行程：经纪人会去协调，并从行程表里删掉
+function mgrParseDay(t) {
+  const today = dkey(Date.now()), y = today.slice(0, 4);
+  if (/后天|모레/.test(t)) return addDays(today, 2);
+  if (/明天|明日|내일/.test(t)) return addDays(today, 1);
+  if (/今天|今晚|오늘/.test(t)) return today;
+  let m = t.match(/(\d{1,2})\s*[月/.]\s*(\d{1,2})\s*[日号]?/) || t.match(/(\d{1,2})월\s*(\d{1,2})일/); if (m) { let d = `${y}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`; if (d < today) d = `${+y + 1}${d.slice(4)}`; return d; }
+  m = t.match(/(下下|下个?|这个?|本)?\s*(?:周|星期|礼拜)\s*([一二三四五六日天])/);
+  if (m) { const w = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0 }[m[2]], add = m[1] && m[1].startsWith('下下') ? 14 : m[1] && m[1].startsWith('下') ? 7 : 0; let d = addDays(weekOf(today), (w + 6) % 7 + add); if (!m[1] && d < today) d = addDays(d, 7); return d; }
+  m = t.match(/(다음 ?주\s*)?([월화수목금토일])요일/); if (m) { const w = '일월화수목금토'.indexOf(m[2]); let d = addDays(weekOf(today), (w + 6) % 7 + (m[1] ? 7 : 0)); if (!m[1] && d < today) d = addDays(d, 7); return d; }
+  return null;
+}
+function mgrCancel(t) {
+  if (!/退掉|推掉|取消|不去|去不了|不想去|빼|취소|못 가|안 갈|빠질/.test(t) || /[?？吗]|까\??$/.test(t.trim())) return null;
+  const today = dkey(Date.now()), day = mgrParseDay(t);
+  const pool = S.schedule.rules.filter(r => r.repeat === 'once' && r.date >= today && (!day || r.date === day));
+  const kw = t.replace(/帮我|麻烦|把|那个|这个|的|行程|日程|通告|活动|退掉|推掉|取消|不去了?|去不了|不想去|今天|明天|后天|下周.|周.|星期.|吧|一下|了|呢|啊|일정|스케줄|빼\S*|취소\S*|못 가\S*|안 갈\S*|빠질\S*|오늘|내일|모레|다음 ?주|[월화수목금토일]요일|\d{1,2}\s*[月/.월]\s*\d{1,2}\s*[日号일]?|[，。,.!！~\s]/g, '');
+  let hit = kw.length >= 2 ? pool.filter(r => r.title.includes(kw) || [...new Set(kw.match(/.{2}/g) || [])].some(p => r.title.toLowerCase().includes(p.toLowerCase()))) : [];
+  if (!hit.length && day) { const ext = pool.filter(r => !['练习', '上课'].includes(r.cat)); if (ext.length === 1) hit = ext; }
+  if (!hit.length) { const c = pool.filter(r => !['练习', '上课'].includes(r.cat)).slice(0, 4); return c.length ? [[`어떤 거요? ${c.map(r => `${+r.date.slice(5, 7)}/${+r.date.slice(8)} ${r.title}`).join(', ')} 중에요?`, `哪个？${c.map(r => `${+r.date.slice(5, 7)}/${+r.date.slice(8)} ${r.title}`).join('、')}？`]] : [['빼야 할 일정이 안 보이는데요?', '没看到要推的行程哎？']]; }
+  if (hit.length > 2) hit = hit.slice(0, 2);
+  const big = hit.some(r => ['打歌', '综艺', '演唱会', '校庆', '公演', '物料', '签售'].includes(r.cat)), soon = hit.some(r => r.date === today);
+  S.schedule.rules = S.schedule.rules.filter(r => !hit.includes(r)); const M = mgr(); M.mood = Math.max(0, M.mood - (big ? 6 : 2) * hit.length - (soon ? 4 : 0));
+  (mgrChat().memos || (mgrChat().memos = [])).push({ dk: today, at: Date.now(), text: `取消：${hit.map(r => r.title).join('、')}` });
+  save(); if (UI.tab === 'sched') render();
+  const names = hit.map(r => r.title).join(', ');
+  return soon ? [['헉 오늘이요?ㅠ', '啊今天的？ㅠ'], [`알겠어요, ${names} 쪽에 제가 잘 얘기해볼게요. 일정표에서 뺐어요`, `知道了，${names}那边我去好好说。已经从行程表里拿掉了`]]
+    : big ? [[`음… ${names}은 회사랑 먼저 얘기해봐야 하는데`, `嗯…${names}得先跟公司商量`], ['일단 빼둘게요. 조율되면 다시 말해줄게요', '先拿掉了，协调好了再跟你说']]
+    : [[`네 ${names} 뺐어요~`, `好，${names}拿掉了～`]];
+}
 // 闲聊：道歉、笑、「知道了」这类不用记，像人一样随口回，或者干脆不回
 function mgrSmall(t) {
   const c = t.replace(/\s/g, '');
@@ -2557,6 +2587,7 @@ function mgrMemo(t) {
   return pick([['넵 알겠어요! 챙겨둘게요', '好嘞，我记着'], ['오케이 기억해둘게요', 'OK，我记住了'], ['네네 그렇게 할게요', '嗯嗯，就这么办']]);
 }
 async function mgrRespond(text) {
+  const cancel = mgrCancel(text); if (cancel) { mgrReply(cancel, true); return; }
   const small = mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; }
   const req = /帮我|麻烦|记得|别忘|提醒|부탁|해주세요|해줘|말해|전달|챙겨/.test(text) && !/[?？吗]|까\??$/.test(text.trim());
   const fact = req ? null : mgrFacts(text);
