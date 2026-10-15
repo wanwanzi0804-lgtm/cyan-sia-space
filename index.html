@@ -2495,24 +2495,31 @@ function mgrFacts(t) {
   if (/收入|赚|挣|到手|分成|多少钱|报酬|酬劳|出场费|通告费|结算|정산|출연료|수입|입금/.test(t) && !/欠|余额|빚|잔액/.test(t)) {
     const R = W.recv || [], pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid' && x.gross > 0);
     const mon = today.slice(0, 7), next = (W.setMon === mon || +today.slice(8) >= SETTLE_DAY ? addMonths(mon, 1) : mon);
-    return [`출연료는 ${+next.slice(5)}월 ${SETTLE_DAY}일 정산 때 들어가요. (입금 대기 ${pend.length}건)`, `通告费 ${+next.slice(5)} 月 ${SETTLE_DAY} 日结算时到账。（待付款 ${pend.length} 笔）`];
+    const dd = +today.slice(8), st = (W.stmts || [])[0], doneToday = st && st.mon === mon && dkey(st.at) === today, nm = +next.slice(5);
+    // 问「今天是不是结算日 / 什么时候结算」
+    if (/정산일|정산 날|정산하는 날|언제 정산|오늘.*정산|结算日|几号结算|什么时候结算|今天.*结算/.test(t)) {
+      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [`네 오늘이에요! ${+st.period.slice(5)}월분 정산 들어갔어요. 실수령 ${krw(st.pay)}이고, 명세서는 지갑에서 보실 수 있어요.`, `对，就是今天！${+st.period.slice(5)} 月的结算已经发了，实际到手 ${krw(st.pay)}，明细在钱包里能看到。`] : ['네 오늘인데, 이번엔 정산할 게 없더라고요. 아직 입금 안 된 건들은 다음 달에 같이 들어가요.', '对是今天，不过这次没有可结算的。还没到账的会在下个月一起结。'];
+      const left = dd < SETTLE_DAY ? SETTLE_DAY - dd : null;
+      return left ? [`이번 달 ${SETTLE_DAY}일이에요. ${left === 1 ? '내일이네요!' : `${left}일 남았어요.`}`, `这个月 ${SETTLE_DAY} 号，${left === 1 ? '就是明天！' : `还有 ${left} 天。`}`] : [`이번 달 정산은 끝났고, 다음은 ${nm}월 ${SETTLE_DAY}일이에요.`, `这个月已经结算过了，下次是 ${nm} 月 ${SETTLE_DAY} 日。`];
+    }
+    return pend.length ? pick([[`출연료는 주최 측 입금되면 다음 정산 때 같이 들어가요. 지금 기다리는 게 ${pend.length}건 있어요.`, `通告费等主办方打款后，下次结算一起给你。现在还有 ${pend.length} 笔在等。`], [`아직 입금 안 된 게 ${pend.length}건이라, 들어오는 대로 ${nm}월 ${SETTLE_DAY}일 정산에 반영될 거예요.`, `还有 ${pend.length} 笔没到账，到了就算进 ${nm} 月 ${SETTLE_DAY} 日的结算。`]]) : [`지금 밀린 출연료는 없어요. 다음 정산은 ${nm}월 ${SETTLE_DAY}일이에요.`, `现在没有欠着的通告费，下次结算是 ${nm} 月 ${SETTLE_DAY} 日。`];
   }
   if (/行程|安排|几点|通告|干嘛|做什么|일정|스케줄|몇 시/.test(t)) {
     const rs = rulesFor(day);
-    return rs.length ? [`${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`, `${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`] : [`${dk}은 일정 없어요.`, `${dz}没有日程。`];
+    return rs.length ? [`${dk}은 이렇게 있어요~\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`, `${dz}是这些～\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`] : [`${dk}은 일정 없어요.`, `${dz}没有日程。`];
   }
-  if (/欠|还清|빚|채무/.test(t)) return W.debt > 0 ? [`${krw(W.debt)} 남았어요.`, `还剩 ${krw(W.debt)}。`] : ['다 정산됐어요.', '都结清了。'];
+  if (/欠|还清|빚|채무/.test(t)) return W.debt > 0 ? [`아직 ${krw(W.debt)} 남아 있어요. 천천히 갚아가면 돼요.`, `还剩 ${krw(W.debt)}，慢慢还就行。`] : ['이제 하나도 안 남았어요!', '已经一点都不剩了！'];
   if (/余额|存款|还有多少钱|卡里|잔액|잔고/.test(t)) return [`${krw(W.bal)}이에요.`, `${krw(W.bal)}。`];
-  if (/粉丝|涨粉|掉粉|팬/.test(t)) { const n = Math.round((fanState().days[today] || { net: 0 }).net); return [`${f.toLocaleString()}명, 오늘 ${n >= 0 ? '+' : ''}${n.toLocaleString()}`, `${fmtNum(f)}，今天 ${n >= 0 ? '+' : ''}${n}`]; }
+  if (/粉丝|涨粉|掉粉|팬/.test(t)) { const n = Math.round((fanState().days[today] || { net: 0 }).net); return [`지금 ${f.toLocaleString()}명이에요. ${n === 0 ? '오늘은 변동 없어요.' : n > 0 ? `오늘 ${n.toLocaleString()}명 늘었어요 👍` : `오늘은 ${(-n).toLocaleString()}명 빠졌네요ㅠ`}`, `现在 ${fmtNum(f)}，${n === 0 ? '今天没变化。' : n > 0 ? `今天涨了 ${n} 👍` : `今天掉了 ${-n}ㅠ`}`]; }
   if (/成绩|销量|音源|排名|榜|播放|mv|성적|음원|차트|판매/i.test(t)) {
     const SS = salesState(), T = salesTargets(today), top = Object.entries(T.trk).sort((a, b) => b[1] - a[1])[0], a = relList().slice(-1)[0];
     if (!top) return ['아직 집계된 성적이 없어요.', '还没有统计到的成绩。'];
     const nm = top[0].split('|').slice(1).join('|'), best = PLATS.map(p => [p[0], chartRank(p, T.trk[top[0]] * p[1])]).filter(x => x[1]).sort((x, y) => x[1] - y[1])[0], al = a && SS.alb[a.id] ? Math.round(SS.alb[a.id].total) : 0;
     return [`「${nm}」 ${best ? `${best[0]} ${best[1]}위` : '차트인 전'}${al ? `, 음반 ${al.toLocaleString()}장` : ''}`, `《${nm}》${best ? `${best[0]} ${best[1]} 位` : '还没进榜'}${al ? `，专辑 ${fmtNum(al)} 张` : ''}`];
   }
-  if (/回归|新专|新歌|컴백/.test(t)) { const c = S.cb, a = cbAlbum(), d = cbDay(); return c && a && !c.over ? (d > 0 ? [`D-${d}이에요.`, `还有 ${d} 天。`] : ['지금 활동 기간이에요.', '现在是活动期。']) : ['아직 미정이에요.', '还没定。']; }
-  if (/代言|广告|광고/.test(t)) return W.deals.length ? [W.deals.map(d => `${d.brand} (${d.left}개월)`).join(', '), W.deals.map(d => `${d.brand}（${d.left} 个月）`).join('、')] : W.offer ? [`${W.offer.brand} 건 답 주세요.`, `${W.offer.brand}那个等你答复。`] : ['없어요.', '没有。'];
-  if (/合同|合约|续约|계약/.test(t)) { const C = W.contract; return [`${C.end}까지예요.`, `到 ${C.end}。`]; }
+  if (/回归|新专|新歌|컴백/.test(t)) { const c = S.cb, a = cbAlbum(), d = cbDay(); return c && a && !c.over ? (d > 0 ? [`이제 ${d}일 남았어요!`, `还剩 ${d} 天！`] : ['지금 한창 활동 중이잖아요ㅎㅎ', '现在不就在活动期嘛哈哈']) : ['아직 회사에서 정해진 건 없어요. 나오면 바로 말해줄게요.', '公司还没定，有消息马上告诉你。']; }
+  if (/代言|广告|광고/.test(t)) return W.deals.length ? [W.deals.map(d => `${d.brand} (${d.left}개월)`).join(', '), W.deals.map(d => `${d.brand}（${d.left} 个月）`).join('、')] : W.offer ? [`${W.offer.brand} 건 답 주세요.`, `${W.offer.brand}那个等你答复。`] : ['아직은 없어요. 들어오면 바로 말해줄게요!', '暂时还没有，有了马上告诉你！'];
+  if (/合同|合约|续约|계약/.test(t)) { const C = W.contract; return [`${C.end}까지예요. 아직 한참 남았어요.`, `到 ${C.end}，还早呢。`]; }
   return null;
 }
 // 现在这一天进行到哪了：还没开始 / 进行中 / 都结束了 / 今天没行程
@@ -2561,7 +2568,7 @@ async function mgrAi(text) {
   while (hist.length && hist[0].role !== 'user') hist.shift();
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
-  const r = await client.messages.create({ model: S.ai.model, max_tokens: 200, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。用韩语回复，话很少：通常一句话、十几个字以内，能用「네」「넵」「👍」就别多说；对艺人用 -요 体；不要寒暄、不要主动关心、不要列表。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
+  const r = await client.messages.create({ model: S.ai.model, max_tokens: 200, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。用韩语回复，像真人发 KakaoTalk：口语、自然、有点人情味（会用 ~、ㅎㅎ、ㅠㅠ 这类语气），先直接回答对方问的，再顺口补半句就够了；一般 1~2 句，不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
 输出格式严格为两行：第一行 KO: 韩语回复；第二行 ZH: 对应的中文翻译。
 ${mgrContext()}`, messages: msgs });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
