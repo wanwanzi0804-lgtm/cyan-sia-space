@@ -2162,11 +2162,19 @@ function yearStats() {
   const wins = Object.values(showsState().res).filter(x => x.rank === 1 && x.dk.startsWith(y)).length;
   return { fol: S.profile.followers, alb: Y.alb, strm: Y.strm, wins };
 }
+// 邀请不是到某个数就一定有：粉丝、音源、销量、一位、近期热度、今年有没有活动、公司关系一起算，再看当年竞争和运气
+const AW_W = { fol: { fol: .3, heat: .25, strm: .15, alb: .1, wins: .2 }, strm: { strm: .4, heat: .2, fol: .15, wins: .15, alb: .1 }, alb: { alb: .4, strm: .2, fol: .15, wins: .15, heat: .1 }, stage: { fol: .25, wins: .25, heat: .3, strm: .2 } };
+const AW_PRESTIGE = { mama: 1.35, aaa: .8, kbs: 1, mma: 1.1, sbs: 1, mbc: 1, gda: 1.15, sma: 1 };
 function awardRatio(aw, date) {
   const st = yearStats(), months = (parseD(date).getTime() - parseD(S.profile.debut).getTime()) / (30.4 * 86400e3), rookie = months <= 15;
-  const need = rookie ? aw[6] : aw[5];
-  let r = aw[4] === 'stage' ? (st.fol / need) * (st.wins ? 1.15 : .85) : (st[aw[4]] || 0) / need;
-  return { r, rookie, need, have: aw[4] === 'stage' ? st.fol : st[aw[4]] || 0 };
+  const ref = rookie ? { fol: 30000, strm: 8e6, alb: 20000, wins: 1 } : { fol: 70000, strm: 2.5e7, alb: 70000, wins: 2 }, P = AW_PRESTIGE[aw[0]] || 1;
+  const n = { fol: st.fol / ref.fol, strm: st.strm / ref.strm, alb: st.alb / ref.alb, wins: st.wins / ref.wins, heat: Math.max(0, (heat() - .6) / .7) };
+  let sc = 0; for (const [k, w] of Object.entries(AW_W[aw[4]] || AW_W.fol)) sc += w * Math.min(1.6, Math.sqrt(n[k] / (k === 'heat' ? 1 : P)));
+  const y = date.slice(0, 4), active = relList().some(a => a.date.slice(0, 4) === y || a.date >= addDays(date, -365));
+  sc *= active ? 1 : .55; // 这一年没发歌基本不会被叫
+  sc *= aw[0] === 'mma' ? 1.12 : 1.04; // STARSHIP 是 Kakao 系，和 MMA（Melon）关系好；大公司本身也有点面子
+  sc *= .88 + .24 * srng('awc' + aw[0] + y)(); // 当年新人/艺人扎堆程度不同
+  return { r: sc, rookie };
 }
 function awardsState() { return S.awardsSt || (S.awardsSt = {}); }
 function awardsTick() {
@@ -2174,16 +2182,16 @@ function awardsTick() {
   for (const aw of AWARDS) {
     const date = awardDate(aw), key = aw[0] + date, inv = addDays(date, -25), st = A[key];
     if (!st && today >= inv && today <= date) {
-      const { r, rookie } = awardRatio(aw, date), p = clamp((r - .6) / .6, 0, .95), ok = Math.random() < p;
+      const { r, rookie } = awardRatio(aw, date), p = clamp(1 / (1 + Math.exp(-(r - .85) / .1)), .01, .92), ok = Math.random() < p;
       if (ok) {
-        const noms = aw[7].filter(n => (/新人/.test(n) ? rookie : true) && (/本赏/.test(n) ? r > 1.2 : true));
+        const noms = aw[7].filter(n => (/新人/.test(n) ? rookie : true) && (/本赏/.test(n) ? r > 1.15 : /人气/.test(n) ? true : r > .9 || Math.random() < .5));
         A[key] = { status: 'inv', noms, r };
         S.schedule.rules.push({ id: uid(), title: `${aw[1]} ${date.slice(0, 4)}`, cat: '活动', start: '18:00', end: '23:00', loc: '', repeat: 'once', days: [], date, note: noms.length ? '提名：' + noms.join('、') : '年末舞台', createdAt: Date.now() });
         pushNotif({ type: 'cb', text: `🏅 收到 ${aw[1]} 的邀请！`, sub: `${date.slice(5).replace('-', '/')} ${noms.length ? '· 提名：' + noms.join('、') : '· 年末特别舞台'} · 已加到行程` }, true);
       } else { A[key] = { status: 'no', r }; pushNotif({ type: 'cb', text: `🏅 今年 ${aw[1]} 没有邀请你`, sub: '多积累成绩和粉丝，明年再冲！' }, false); }
     }
     if (st && st.status === 'inv' && (today > date || (today === date && now.getHours() >= 22))) {
-      const won = st.noms.filter(n => Math.random() < clamp((/人气/.test(n) ? st.r - .5 : st.r - .7) * .9, .05, .85));
+      const won = st.noms.filter(n => Math.random() < clamp((/人气/.test(n) ? st.r - .55 : st.r - .75) * 1.1, .04, .8));
       st.status = 'done'; st.won = won;
       if (won.length) { const n = Math.round(f * rand(.03, .06) * won.length); addFans(n, aw[1] + ' 获奖'); pushNotif({ type: 'cb', text: `🏆 ${aw[1]} 获得 ${won.join('、')}！`, sub: `粉丝们疯了 · 涨粉 +${fmtNum(n)}` }, true); }
       else { const n = Math.round(f * rand(.005, .015)); addFans(n, aw[1] + ' 舞台'); pushNotif({ type: 'cb', text: `🏅 ${aw[1]} 结束`, sub: `${st.noms.length ? '这次没有拿奖，' : ''}舞台反响不错 · 涨粉 +${fmtNum(n)}` }, false); }
@@ -2192,12 +2200,12 @@ function awardsTick() {
 }
 function awardsHTML() {
   const A = awardsState(), today = dkey(Date.now());
-  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">邀不邀请看你这一年的粉丝、音源、销量和一位次数；出道 15 个月内按新人门槛算</div>${AWARDS.map(aw => {
-    const date = awardDate(aw), st = A[aw[0] + date], { r, rookie, need, have } = awardRatio(aw, date), what = { fol: '粉丝', strm: '年度音源', alb: '年度销量', stage: '粉丝' }[aw[4]];
+  return `${AWARDS.map(aw => {
+    const date = awardDate(aw), st = A[aw[0] + date];
     const s = st ? (st.status === 'inv' ? `<b class="sh-cand">✅ 受邀${st.noms.length ? ' · 提名 ' + st.noms.join('、') : ''}</b>` : st.status === 'done' ? (st.won.length ? `<b class="sh-win">🏆 ${st.won.join('、')}</b>` : '<span class="muted">已出席</span>') : '<span class="muted">未受邀</span>')
       : `<span class="muted" style="font-size:12px">${addDays(date, -25) > today ? `${addDays(date, -25).slice(5).replace('-', '/')} 决定邀请` : ''}</span>`;
     return `<div class="sh-row" style="align-items:flex-start"><div style="flex:1;min-width:0"><b>${aw[1]}</b> <span class="muted" style="font-size:11.5px">${date.slice(5).replace('-', '/')}</span><div class="muted" style="font-size:11.5px">${aw[3]}</div>
-      ${!st ? `<div class="w-bar sm" style="margin:6px 0 0;max-width:180px"><i style="width:${Math.min(100, Math.round(r * 100))}%"></i></div><div class="muted" style="font-size:11px">${what} ${fmtNum(Math.round(have))} / ${fmtNum(need)}${rookie ? '（新人）' : ''}</div>` : ''}</div><div style="text-align:right;max-width:45%">${s}</div></div>`; }).join('')}`;
+</div><div style="text-align:right;max-width:45%">${s}</div></div>`; }).join('')}`;
 }
 
 /* =========================================================
