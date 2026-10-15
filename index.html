@@ -1955,7 +1955,7 @@ function albumSalesHTML() {
   const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   if (!albs.length) return '<div class="muted" style="font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>';
   return albs.map(a => { const x = SS.alb[a.id];
-    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张${(() => { const R = relHeat(a); return ` · 热度${heatWord(R.H)}${R.tags.length ? '（' + R.tags.join('、') + '）' : ''}`; })()}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
 }
 function walletHTML() {
   const W = wallet(), mon = dkey(Date.now()).slice(0, 7), C = W.contract, T = { gen: cShare('gen'), bb: cShare('bb') };
