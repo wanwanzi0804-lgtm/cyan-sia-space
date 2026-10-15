@@ -172,6 +172,11 @@ body.typing .bb-tick.bb-tick2{display:block}
 .mv-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 .mv-bars i{display:block;width:70%;background:#e5484d;border-radius:3px 3px 0 0;opacity:.8}
 .mv-bars span{font-size:10.5px;color:var(--muted);margin-top:2px}
+.rec-go{display:block;width:fit-content;margin-top:6px;border:0;background:var(--accent);color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600}
+.rec-done{display:block;margin-top:4px;font-size:12px;color:var(--accent)}
+.rec-q{font-size:15.5px;line-height:1.6;margin-bottom:10px}
+.rec-grade{font-size:56px;font-weight:900;line-height:1.1;margin-bottom:4px}
+.rec-grade.gS{color:#e5a100}.rec-grade.gA{color:var(--accent)}.rec-grade.gB{color:#6b7280}.rec-grade.gC{color:#9ca3af}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -799,7 +804,7 @@ function aiNews() {
 function aiSystem() {
   const p = S.profile;
   return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
-偶像资料：艺名 ${p.name}，solo 女歌手，${ageOf()} 岁（生日 ${p.birth || '2007-08-29'}），${(p.trainee || '2022-10').replace('-', ' 年 ')} 月成为练习生，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
+偶像资料：艺名 ${p.name}，${p.company || 'STARSHIP'}（星船娱乐）旗下 solo 女歌手（同公司有 IVE、CRAVITY、KiiiKiii），${ageOf()} 岁（生日 ${p.birth || '2007-08-29'}），${(p.trainee || '2022-10').replace('-', ' 年 ')} 月成为练习生，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
 粉丝群体设定：${p.fanRules || '（无）'}
 世琳（韩文 세림）是她的好朋友（对外对内都是朋友关系）：她一提到世琳，粉丝反应热烈：一部分嗑两人的友情（羡慕、守护友谊、想看同框、问候世琳），一部分开玩笑嗑 CP（起哄、发糖），少数提醒别乱捆绑。不要说她们在恋爱。
 ${aiNews()}写作要求：
@@ -1028,14 +1033,16 @@ function dailyFans() {
 function schedFans() {
   const F = fanState(), now = new Date(), today = dkey(now), nowMin = now.getHours() * 60 + now.getMinutes();
   for (const k of [addDays(today, -1), today]) for (const r of rulesFor(k)) {
-    const g = EVENT_GAIN[r.cat]; if (!g) continue;
+    const g = EVENT_GAIN[r.cat]; if (!g && r.cat !== '上课') continue;
     const key = k + '|' + r.id; if (F.credited[key]) continue;
     if (k === today && toMin(r.end) > nowMin) continue;
     F.credited[key] = 1;
     const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
     if (r.createdAt && endAt < r.createdAt) continue; // 事后补录的行程不算
-    const n = Math.round(rand(g[0], g[1]) * folRatio() * heat());
-    addFans(n, '行程：' + r.title); walletSchedFee(r);
+    if (!g) { walletSchedFee(r); continue; } // 上课：只有课时费
+    const perf = (S.schedule.perf || {})[key], pm = perf ? { S: 1.5, A: 1.2, B: 1, C: .8 }[perf.grade] : 1;
+    const n = Math.round(rand(g[0], g[1]) * folRatio() * heat() * pm);
+    addFans(n, '行程：' + r.title); walletSchedFee(r, perf ? perf.mult : 1);
     F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
     pushNotif({ type: 'sched', text: `「${r.title}」结束，涨粉 +${n}`, sub: pick(['路人被圈粉了！', '直拍在网上小火了一把', '新粉丝涌进社区打招呼', '有人剪了你的高光片段']) }, false);
   }
@@ -1250,6 +1257,18 @@ const HOT_EVENTS = [
       { t: '和粉丝聊聊这首歌', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这首歌' }, r: [[.6, .004, .012, '粉丝更喜欢这首了'], [.4, 0, .004, '没什么后续']] },
       { t: '继续打歌', r: [[.5, .003, .01, '舞台自己慢慢火了'], [.5, 0, .004, '热度平平']] }] }
 ];
+HOT_EVENTS.push(
+  { id: 'radioclip', min: 0, w: 0, au: ['电台切片站', '切片博主'], title: '{name} {e}', body: '「{e}」里 {name} 说的「{q}」被切了出来，听众都在转 [视频]',
+    talk: ['「{q}」这句好戳', '电台的{n}好温柔', '这段我循环了', '去听完整版了'],
+    opts: [{ t: '在泡泡里聊聊那天', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊那天的电台' }, r: [[.6, .005, .015, '粉丝把切片又转了一轮'], [.4, .001, .006, '粉丝很开心']] },
+      { t: '发帖谢谢 DJ 和听众', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .006, .018, '电台官方也转发了'], [.4, .001, .006, '热度平稳']] },
+      { t: '不回应', r: [[1, .002, .01, '切片自己慢慢传开']] }] },
+  { id: 'varietyclip', min: 0, w: 0, big: 1, au: ['综艺切片bot', '综艺博主'], title: '{name} {e}', body: '「{e}」里 {name} 说「{q}」那一段被单独剪了出来，评论区笑疯了 [视频]',
+    talk: ['「{q}」哈哈哈哈', '这段我能看一百遍', '综艺感好强', '去补全集了'],
+    opts: [{ t: '发帖接这个梗', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .012, .03, '粉丝和路人一起玩梗'], [.4, .003, .01, '老粉狂喜']] },
+      { t: '在泡泡里聊聊录制', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊录制' }, r: [[.6, .005, .015, '泡泡截图被转出去了'], [.4, 0, .005, '粉丝很开心']] },
+      { t: '不回应', r: [[.6, .003, .012, '片段自己还在传'], [.4, 0, .004, '话题很快就过去了']] }] }
+);
 const HOT_NONE = [[.5, -.004, .004, '你没有回应，话题慢慢过去了'], [.5, 0, .006, '热度自然消散了']];
 const HOT_PASSER = ['路过，这是谁？', '第一次知道这个人', '有点好看', '关注了', '什么时候出道的', '求介绍', '刷到好几次了', '这个人我有印象', '首页一直推', '感觉挺可爱的'];
 const HOT_HATER = ['也就那样吧', '粉丝别控评了', '这也能上热门？', '买的吧', '没感觉', '新人还是低调点'];
@@ -1328,9 +1347,10 @@ function hotTick() {
   if (!S.profile || !S.posts) return;
   if (!H.next) H.next = now + hotGap() * rand(.3, .7);
   const hr = new Date().getHours();
-  if (!H.cur && now >= H.next && hr >= 9) {
-    H.next = now + hotGap();
-    const p = hotPick();
+  const forced = H.forced && now >= H.forced.at && !H.cur ? H.forced : null;
+  if (!H.cur && ((now >= H.next && hr >= 9) || forced)) {
+    if (forced) H.forced = null; else H.next = now + hotGap();
+    const p = forced ? { id: forced.id, song: '', e: forced.e, q: forced.q } : hotPick();
     if (p) {
       const ev = HOT_EVENTS.find(e => e.id === p.id), key = uid();
       H.posts[key] = hotNewPost(p, ev);
@@ -1488,6 +1508,7 @@ function cbTick() {
   if (d <= 0 && s < P.promoEnd) once('d0', () => {
     const n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1));
     addFans(n, '回归：' + a.name);
+    const pc = { single: [5e7, 1e8], mini: [1.5e8, 2.5e8], full: [2.5e8, 4e8] }[a.type]; if (pc) walletDeal(0, rand(...pc), '专辑制作', `《${a.name}》制作 · 宣传`, '作曲编曲 · 录音 · MV · 宣传');
     pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》正式回归！`, sub: `主打《${title}》${a.tracks.length > 1 ? ` · 共 ${a.tracks.length} 首` : ''} · 回归首日涨粉 +${fmtNum(n)}` }, true);
   });
   if (c.rest && s >= P.promoEnd && s < P.followStart) once('rest', () => pushNotif({ type: 'cb', text: `💿 《${title}》主打活动结束`, sub: '这周是休息周，好好休息一下吧' }, true));
@@ -1498,7 +1519,8 @@ function cbTick() {
 function cbRivalWarn(date, weeks) {
   if (!date) return '';
   const ws = []; for (let w = 0; w < (weeks || 3); w++) { const t = weekRivals(addDays(date, w * 7)).find(x => x.tier === 'top'); if (t) ws.push(`第 ${w + 1} 周 ${t.name}`); }
-  return ws.length ? `<div class="cb-warn">⚠ 撞上 TOP 团回归：${ws.join('、')}（那几周拿一位会更难，The Show 和 Show Champion 不受影响）</div>` : '<div class="cb-warn ok">✓ 打歌期间没有 TOP 团回归，是好时机</div>';
+  const ms = []; for (let w = 0; w < (weeks || 3); w++) { const m = weekRivals(addDays(date, w * 7)).find(x => LABELMATES.includes(x.name)); if (m) ms.push(`第 ${w + 1} 周 ${m.name}`); }
+  return (ws.length ? `<div class="cb-warn">⚠ 撞上 TOP 团回归：${ws.join('、')}（那几周拿一位会更难，The Show 和 Show Champion 不受影响）</div>` : '<div class="cb-warn ok">✓ 打歌期间没有 TOP 团回归，是好时机</div>') + (ms.length ? `<div class="cb-warn">🏢 同公司 ${ms.join('、')} 也在活动，公司资源会被分走一些</div>` : '');
 }
 function cbHTML() {
   const c = S.cb, a = cbAlbum(), p = cbPhase();
@@ -1633,28 +1655,129 @@ function walletSpend(krw, cat, note, orig) {
   W.tx.unshift({ id: uid(), at: Date.now(), amt: -krw, cat, note, orig, auto: false });
   if (cat === '粉丝回礼') { addFans(Math.min(S.profile.followers * .004, krw / 1500), '粉丝回礼'); logAct('reply'); }
 }
-// 公开行程的通告费（到公司后再按合同分）
-const FEE = { '打歌': [150000, 400000], '综艺': [400000, 1500000], '电台': [100000, 300000], '物料': [300000, 1000000], '签售': [200000, 500000], '公演': [800000, 2500000], '校庆': [3000000, 8000000], '活动': [800000, 3000000] };
-function walletSchedFee(r) {
-  const f = S.profile.followers, sc = clamp(Math.pow(f / 15000, .6), .5, 6);
-  let gross = r.cat === '演唱会' ? f * rand(.06, .12) * 110000 * .35 : FEE[r.cat] ? rand(...FEE[r.cat]) * sc : 0;
-  if (gross > 0) walletIncome(gross, '通告费', r.title);
+// 行程的收入和成本：成本先由公司垫付，结算时从收入里扣，扣不完的部分按合同比例记进你的欠款
+// [匹配标题, 收入下限, 上限, 成本下限, 上限, 说明]
+const SCHED_ECON = {
+  '打歌': [[/彩排|事前录制/, 0, 0, 300000, 800000, '彩排 / 事前录制'], [/Showcase|showcase/, 0, 0, 5000000, 12000000, 'Showcase 场地制作'], [/./, 0, 300000, 1500000, 3000000, '服装妆造 · 舞者 · 工作人员']],
+  '综艺': [[/网综|YouTube|vlog|Vlog|采访|自制/, 300000, 1000000, 300000, 600000, '妆造 · 经纪人'], [/./, 500000, 3000000, 400000, 800000, '妆造 · 服装 · 经纪人']],
+  '电台': [[/./, 0, 300000, 100000, 300000, '妆造 · 交通']],
+  '物料': [[/MV 拍摄/, 0, 0, 30000000, 80000000, 'MV 制作'], [/封面|预告照/, 0, 0, 5000000, 15000000, '摄影棚 · 造型 · 后期'], [/Dance Practice|舞蹈挑战|Vlog/, 0, 0, 1000000, 4000000, '拍摄制作'], [/画报/, 500000, 3000000, 300000, 800000, '妆造'], [/广告/, 1000000, 10000000, 300000, 1000000, '妆造'], [/./, 0, 300000, 300000, 800000, '妆造 · 交通']],
+  '签售': [[/视频通话/, 0, 0, 300000, 800000, '平台 · 工作人员'], [/./, 0, 0, 1000000, 3000000, '场地 · 工作人员 · 小礼物']],
+  '公演': [[/路演|Busking|busking|军队|公益/, 0, 0, 300000, 800000, '音响 · 交通'], [/歌谣|KCON|Music Bank World|Dream Concert|Waterbomb|音乐节/, 0, 3000000, 1500000, 4000000, '服装妆造 · 舞者'], [/./, 1000000, 5000000, 800000, 2000000, '舞者 · 妆造 · 音响']],
+  '校庆': [[/./, 3000000, 10000000, 1000000, 2500000, '舞者 · 妆造 · 交通']],
+  '活动': [[/AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/, 0, 0, 2000000, 6000000, '颁奖礼服装 · 舞台准备'], [/机场|观演|试映|探访|Weverse|会议|生日会|见面会/, 0, 0, 100000, 400000, '妆造 · 交通'], [/品牌|代言|快闪|时装周|秀场/, 1000000, 10000000, 500000, 1500000, '妆造 · 服装'], [/公益/, 0, 0, 200000, 500000, '妆造'], [/./, 1000000, 5000000, 800000, 2000000, '妆造 · 舞者 · 工作人员']],
+  '演唱会': [[/彩排/, 0, 0, 3000000, 8000000, '彩排场地']],
+  '上课': [[/./, 0, 0, 80000, 200000, '课时费（公司垫付）']]
+};
+// 运气 + 热度 + 粉丝：0~1
+function luckQ() { const f = S.profile.followers, fq = clamp(Math.log10(Math.max(f, 1) / 5000) / Math.log10(40), 0, 1), hq = clamp((heat() - .6) / 1.2, 0, 1); return clamp(.3 * fq + .35 * hq + .35 * Math.random(), 0, 1); }
+function schedEcon(r) {
+  if (r.cat === '演唱会' && !/彩排/.test(r.title)) { const f = S.profile.followers, gross = f * rand(.05, .1) * 110000 * buzzNow(); return { gross, cost: gross * rand(.55, .8), why: '场馆 · 舞台制作 · 乐队舞者' }; }
+  const row = (SCHED_ECON[r.cat] || []).find(x => x[0].test(r.title)); if (!row) return null;
+  const q = luckQ(); return { gross: row[1] + (row[2] - row[1]) * Math.pow(q, 1.3), cost: rand(row[3], row[4]), why: row[5] };
+}
+function walletSchedFee(r, mult = 1) {
+  const e = schedEcon(r); if (!e) return; walletDeal(e.gross * mult, e.cost, r.cat === '上课' ? '课程' : '行程', r.title, e.why);
+}
+// 收入 - 成本 → 按合同分；负数就记进欠款
+function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) {
+  const W = wallet(), share = TIERS[W.tier || 'C'][kind], net = gross - cost, mine = Math.round(net * share);
+  if (mine >= 0) { const repay = W.debt > 0 ? Math.min(W.debt, Math.round(mine * W.repay)) : 0; W.debt -= repay; W.bal += mine - repay; W.tx.unshift({ id: uid(), at, amt: mine, gross: Math.round(gross), cost: Math.round(cost), why, repay, cat, note, auto: true }); }
+  else { W.debt += -mine; W.debt0 = Math.max(W.debt0, W.debt); W.tx.unshift({ id: uid(), at, amt: 0, gross: Math.round(gross), cost: Math.round(cost), why, owe: -mine, cat, note, auto: true }); }
+  if (W.tx.length > 400) W.tx.length = 400;
+}
+// 每天的「运气」：慢慢漂移，偶尔突然爆一下
+function buzzNow() {
+  const SS = salesState(), today = dkey(Date.now()); SS.bz = SS.bz || { v: 1, day: today, viral: 0 };
+  while (SS.bz.day < today) {
+    SS.bz.day = addDays(SS.bz.day, 1);
+    SS.bz.v = clamp(SS.bz.v * Math.exp((Math.random() - .5) * .3) * .9 + .1, .6, 1.8);
+    if (SS.bz.viral > 0) SS.bz.viral--; else if (Math.random() < .015) { SS.bz.viral = ri(3, 7); SS.bz.vm = rand(2, 4); pushNotif({ type: 'cb', text: '📈 你的歌突然开始被大量分享', sub: '不知道哪里来的一波热度，抓住机会！' }, true); }
+  }
+  return SS.bz.v * (SS.bz.viral > 0 ? SS.bz.vm || 2 : 1);
+}
+/* =========================================================
+   综艺 / 电台录制：行程开始后可以「上节目」，你的表现影响通告费、粉丝和切片
+   ========================================================= */
+const REC_LETTERS = ['我明天要考试了，好紧张，可以给我打打气吗？', '最近和最好的朋友吵架了，不知道要不要先道歉…', '我是上班族，每天加班好累，想听你说一句话', '我养的猫生病了，好难过', '下个月要去面试，第一次面试好怕', '我是高三学生，每天学到凌晨', '今天是我生日！可以对我说生日快乐吗'];
+const REC_SEG = {
+  电台: [
+    () => ({ q: `听众来信：「${pick(REC_LETTERS)}」\nDJ：想对这位听众说点什么？`, input: '说点什么吧…' }),
+    () => { const s = (S.profile.songs || [])[0]; return { q: 'DJ：「可以现场来一小段吗？」', opts: [[s ? `唱自己的歌《${s}》` : '唱自己的歌', .5, 1], ['清唱一段翻唱', .35, 1], ['不好意思，今天嗓子不太舒服', .1, .45]] }; },
+    () => { const [a, b] = pick([['猫', '狗'], ['早起', '熬夜'], ['夏天', '冬天'], ['甜', '咸'], ['舞台', '综艺'], ['奶茶', '咖啡']]); return { q: `快问快答：${a} vs ${b}？`, opts: [[a, .45, .85], [b, .45, .85], ['都喜欢！', .3, .9]] }; },
+    () => ({ q: 'DJ：推荐一首最近在听的歌给听众吧', input: '歌名 + 一句推荐理由' }),
+    () => ({ q: 'DJ：用一句话介绍一下你的新歌 / 你自己？', input: '一句话就好' })
+  ],
+  综艺: [
+    () => ({ q: 'MC：「请展示一下你的个人技！」', opts: [['猫咪模仿', .25, 1], ['现场跳一段', .5, .9], ['挑战高音', .15, 1], ['讲个冷笑话', 0, 1]] }),
+    () => ({ q: `游戏环节：${pick(['抢椅子', '传话游戏', '默契大考验', '你画我猜', '反应力测试', '平衡挑战'])}`, opts: [['全力以赴', .35, .95], ['装傻搞笑', .2, 1], ['默默帮队友', .4, .8]] }),
+    () => ({ q: `真心话：${pick(['练习生时期最辛苦的是什么？', '理想型是什么样的人？', '和世琳是怎么成为好朋友的？', '出道后最大的变化是什么？', '最近一次哭是因为什么？', '如果不当歌手会做什么？', '宿舍生活最不习惯的是什么？'])}`, input: '认真回答或者搞笑回答都行' }),
+    () => ({ q: `你输了！惩罚是${pick(['吃超酸柠檬', '弹额头', '跳可爱舞', '用方言撒娇', '喝苦瓜汁'])}`, opts: [['爽快接受', .45, .95], ['撒娇求饶', .2, 1], ['讨价还价', .1, .8]] }),
+    () => ({ q: 'MC：「最后给观众打个招呼，宣传一下吧！」', input: '宣传一下你的歌或者说句话' })
+  ]
+};
+const REC_ICON = { 电台: '🎙', 综艺: '🎬' };
+function perfState() { return S.schedule.perf || (S.schedule.perf = {}); }
+function recOpenable(r, k) {
+  if (!REC_SEG[r.cat] || perfState()[k + '|' + r.id]) return false;
+  const today = dkey(Date.now()), nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  return k === today && nowMin >= toMin(r.start) - 30 && nowMin <= toMin(r.end) + 180;
+}
+function recStart(key) {
+  const [k, id] = key.split('|'), r = S.schedule.rules.find(x => x.id === id); if (!r) return;
+  const segs = pickN(REC_SEG[r.cat], 3).map(f => f());
+  UI.rec = { key, title: r.title, cat: r.cat, segs, i: 0, sc: [], quotes: [] };
+  openModal(recHTML());
+}
+function recHTML() {
+  const R = UI.rec;
+  if (R.i >= R.segs.length) {
+    const p = perfState()[R.key];
+    return `<div class="row"><h3 style="flex:1">${REC_ICON[R.cat]} 录制结束</h3><button class="btn ghost sm" data-act="close">完成</button></div>
+      <div class="card" style="text-align:center"><div class="rec-grade g${p.grade}">${p.grade}</div><b>${esc(R.title)}</b><div class="muted" style="margin-top:6px">${{ S: '全场最佳！工作人员都在夸你', A: '表现很好，节目效果不错', B: '中规中矩，顺利完成', C: '有点紧张，下次会更好' }[p.grade]}</div>
+      <div class="muted" style="font-size:12.5px;margin-top:8px">通告费 ×${p.mult} · 节目播出后粉丝会有反应${p.clip ? ' · 有一段可能会被剪出来传开 👀' : ''}</div></div>`;
+  }
+  const s = R.segs[R.i];
+  return `<div class="row"><h3 style="flex:1">${REC_ICON[R.cat]} ${esc(R.title)}</h3><span class="muted">${R.i + 1} / ${R.segs.length}</span></div>
+    <div class="card"><div class="rec-q">${esc(s.q).replace(/\n/g, '<br>')}</div>
+      ${s.opts ? s.opts.map((o, j) => `<button class="hot-opt" data-act="recpick" data-j="${j}">${esc(o[0])}</button>`).join('') : `<textarea id="rec-in" placeholder="${esc(s.input)}" style="min-height:80px;margin-top:8px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="recsay">说完了</button></div>`}
+    </div>`;
+}
+function recStep(score, quote) {
+  const R = UI.rec; R.sc.push(score); if (quote) R.quotes.push(quote); R.i++;
+  if (R.i >= R.segs.length) {
+    const avg = R.sc.reduce((a, b) => a + b, 0) / R.sc.length, grade = avg >= .78 ? 'S' : avg >= .62 ? 'A' : avg >= .42 ? 'B' : 'C';
+    const mult = { S: 1.3, A: 1.1, B: 1, C: .8 }[grade], f = S.profile.followers;
+    const q = R.quotes.filter(x => x.length >= 4 && x.length <= 40);
+    const clip = q.length && Math.random() < { S: .6, A: .3, B: .08, C: 0 }[grade];
+    perfState()[R.key] = { grade, mult, at: Date.now() };
+    if (grade !== 'B') addFans(f * { S: .004, A: .0015, C: -.001 }[grade], `${R.cat}表现`);
+    if (clip) { const H = hotState(); H.forced = { id: R.cat === '电台' ? 'radioclip' : 'varietyclip', e: R.title, q: pick(q), at: Date.now() + rand(2, 8) * 3600e3 }; }
+    logAct('live'); save();
+  }
+  openModal(recHTML());
+}
+function recScoreText(t) {
+  const n = t.replace(/\s/g, '').length; if (!n) return .1;
+  let s = n < 4 ? .25 : n < 10 ? .5 : n <= 80 ? .7 : .55;
+  if (tone(t) === 'neg') s -= .35; if (tone(t) === 'pos') s += .1;
+  return clamp(s + rand(-.15, .25), 0, 1);
 }
 // 每天的目标销量 / 播放量
 function salesTargets(dk) {
-  const f = S.profile.followers, h = heat(), out = { alb: {}, trk: {}, mer: {}, mv: {}, tt: {} };
+  const f = S.profile.followers, h = heat(), bz = buzzNow(), out = { alb: {}, trk: {}, mer: {}, mv: {}, tt: {} };
   for (const a of disco()) {
     const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
     if (d < 0) continue;
     const boost = d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1;
-    a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h; });
+    a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz; });
     if (a.type === 'other' || d >= 999) continue;
     const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1);
-    out.mv[a.id] = f * 3 * h * (1 + 7 * Math.exp(-d / 4)); out.tt[a.id] = f * .008 * h * (1 + 5 * Math.exp(-d / 7));
-    out.alb[a.id] = d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25);
+    out.mv[a.id] = f * 3 * h * bz * (1 + 7 * Math.exp(-d / 4)); out.tt[a.id] = f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
+    out.alb[a.id] = (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25));
   }
-  const promo = ['promo', 'follow'].includes(cbPhase()) ? 1.8 : 1;
-  for (const m of merch()) out.mer[m.id] = f * .0004 * (m.pop || 1) * h * promo;
+  const promo = ['promo', 'follow'].includes(cbPhase()) ? 2 : 1, sign = rulesFor(dk).some(r => r.cat === '签售') ? 3 : 1;
+  for (const m of merch()) out.mer[m.id] = f * .0002 * (m.pop || 1) * h * bz * promo * sign;
   return out;
 }
 function salesAdd(map, key, dk, n) { const x = map[key] || (map[key] = { total: 0, days: {} }); x.total += n; x.days[dk] = (x.days[dk] || 0) + n; const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()]; }
@@ -1693,12 +1816,16 @@ function walletTick() {
     for (const d of W.deals) if (d.left > 0) { d.left--; walletIncome(d.fee, '代言', `${d.brand} 代言（剩 ${d.left} 个月）`); }
     W.deals = W.deals.filter(d => d.left > 0);
   }
-  // 代言：粉丝 5 万以上才会有品牌来找
+  // 小型个人代言：粉丝 1.8 万以上才偶尔会有，很看热度和运气
   const f = S.profile.followers;
-  if (f >= 50000 && !W.offer && now > (W.nextOffer || 0)) {
-    W.nextOffer = now + rand(20, 40) * 86400e3;
-    W.offer = { brand: pick(['猫粮品牌 Purrfect', '美妆品牌 Lumi', '运动品牌 Leap', '饮料品牌 Fizz', '耳机品牌 Hush']), fee: Math.round(f * rand(80, 200) / 10000) * 10000, months: pick([3, 6, 12]) };
-    pushNotif({ type: 'cb', text: `💼 ${W.offer.brand} 想找你代言`, sub: `每月 ${won(W.offer.fee)} · ${W.offer.months} 个月 · 去「我的 → 钱包」看看` }, true);
+  if (!W.nextOffer) W.nextOffer = now + rand(30, 60) * 86400e3;
+  if (f >= 18000 && !W.offer && now > W.nextOffer) {
+    W.nextOffer = now + rand(45, 90) * 86400e3;
+    if (Math.random() < clamp(heat() - .5, .15, .8)) {
+      const months = pick([3, 6, 12]), total = Math.round((3e6 + 27e6 * Math.pow(luckQ(), 1.4)) / 1e5) * 1e5;
+      W.offer = { brand: pick(['猫粮品牌', '平价美妆品牌', '运动服品牌', '饮料品牌', '耳机品牌', '手机壳品牌', '零食品牌']), fee: Math.round(total / months / 1e4) * 1e4, total, months };
+      pushNotif({ type: 'cb', text: `💼 ${W.offer.brand}想找你做小型代言`, sub: `合约 ${won(total)} · ${months} 个月 · 去「我的 → 钱包」看看` }, true);
+    }
   }
 }
 // 实时成绩：某首歌在各平台的名次
@@ -1759,12 +1886,12 @@ function walletHTML() {
   </div>
   ${Object.keys(byCat).length ? `<div class="card"><b style="font-size:14px">本月支出</b>${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="w-cat"><span>${EXP_CATS[k]?.ic || '•'} ${esc(k)}</span><div class="w-bar sm"><i style="width:${Math.round(v / mx * 100)}%"></i></div><b>${won(v)}</b></div>`).join('')}</div>` : ''}
   <div class="card"><b style="font-size:14px">📒 流水</b>
-    ${W.tx.length ? W.tx.slice(0, UI.wAll ? 200 : 25).map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>${esc(x.note || x.cat)}</div><div class="muted" style="font-size:12px">${esc(x.cat)} · ${new Date(x.at).getMonth() + 1}/${new Date(x.at).getDate()}${x.orig ? ' · ' + esc(x.orig) : ''}${x.gross ? ` · 总额 ${won(x.gross)}` : ''}${x.repay ? ` · 还欠款 ${won(x.repay)}` : ''}</div></div>
-      <div style="text-align:right"><b style="color:${x.amt > 0 ? 'var(--accent)' : 'var(--danger)'}">${x.amt > 0 ? '+' : ''}${won(x.amt - (x.repay || 0))}</b><div class="rmb">${rmb(Math.abs(x.amt - (x.repay || 0)))}</div></div>${x.auto ? '' : `<button class="link" data-act="wdel" data-id="${x.id}" style="margin-left:6px">✕</button>`}</div>`).join('') : '<div class="muted" style="padding:6px 0">还没有记录。行程结束、音源/专辑/周边每天结算、每月泡泡分成都会自动进账</div>'}
+    ${W.tx.length ? W.tx.slice(0, UI.wAll ? 200 : 25).map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>${esc(x.note || x.cat)}</div><div class="muted" style="font-size:12px">${esc(x.cat)} · ${new Date(x.at).getMonth() + 1}/${new Date(x.at).getDate()}${x.orig ? ' · ' + esc(x.orig) : ''}${x.gross ? ` · 收入 ${won(x.gross)}` : ''}${x.cost ? ` · 成本 ${won(x.cost)}（${esc(x.why || '')}）` : ''}${x.repay ? ` · 还欠款 ${won(x.repay)}` : ''}</div></div>
+      <div style="text-align:right">${x.owe ? `<b style="color:var(--danger);font-size:13px">欠款 +${won(x.owe)}</b><div class="rmb">${rmb(x.owe)}</div>` : `<b style="color:${x.amt > 0 ? 'var(--accent)' : x.amt < 0 ? 'var(--danger)' : 'var(--muted)'}">${x.amt > 0 ? '+' : ''}${won(x.amt - (x.repay || 0))}</b><div class="rmb">${rmb(Math.abs(x.amt - (x.repay || 0)))}</div>`}</div>${x.auto ? '' : `<button class="link" data-act="wdel" data-id="${x.id}" style="margin-left:6px">✕</button>`}</div>`).join('') : '<div class="muted" style="padding:6px 0">还没有记录。行程结束后按「收入 - 成本」结算，音源/专辑/周边每天结算，泡泡每月结算</div>'}
     ${W.tx.length > 25 ? `<button class="done-tg" data-act="wall">${UI.wAll ? '收起' : '查看全部'}</button>` : ''}</div>
   <div class="card"><b style="font-size:14px">💼 代言</b>
-    ${W.offer ? `<div class="hot-opt" style="margin-top:8px">${esc(W.offer.brand)} 想找你代言 · 每月 ${won(W.offer.fee)} · ${W.offer.months} 个月<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div></div>` : ''}
-    ${W.deals.length ? W.deals.map(d => `<div class="rule"><span style="flex:1">${esc(d.brand)}</span><span class="muted">每月 ${won(d.fee)} · 剩 ${d.left} 个月</span></div>`).join('') : f < 50000 ? `<div class="muted" style="margin-top:6px;font-size:13px">粉丝到 5 万后会有品牌来找你（现在 ${fmtNum(f)}）</div><div class="w-bar"><i style="width:${Math.min(100, Math.round(f / 500))}%"></i></div>` : (W.offer ? '' : '<div class="muted" style="margin-top:6px;font-size:13px">暂时没有代言，品牌会不定时来找你</div>')}
+    ${W.offer ? `<div class="hot-opt" style="margin-top:8px">${esc(W.offer.brand)}想找你做小型代言 · 合约 ${won(W.offer.total || W.offer.fee * W.offer.months)}（按月分 ${W.offer.months} 个月）<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div></div>` : ''}
+    ${W.deals.length ? W.deals.map(d => `<div class="rule"><span style="flex:1">${esc(d.brand)}</span><span class="muted">每月 ${won(d.fee)} · 剩 ${d.left} 个月</span></div>`).join('') : f < 18000 ? `<div class="muted" style="margin-top:6px;font-size:13px">粉丝到 1.8 万后偶尔会有小品牌找你（现在 ${fmtNum(f)}），热度越高机会越大</div><div class="w-bar"><i style="width:${Math.min(100, Math.round(f / 180))}%"></i></div>` : (W.offer ? '' : '<div class="muted" style="margin-top:6px;font-size:13px">暂时没有代言，品牌会不定时来找你</div>')}
   </div>
   <div class="card"><b style="font-size:14px">📄 合同</b>
     <div class="grid2" style="margin-top:8px"><div class="field"><label>合同等级</label><select id="w-tier">${Object.entries(TIERS).map(([k, v]) => `<option value="${k}" ${W.tier === k ? 'selected' : ''}>${v.name}（活动 ${v.gen * 100}% / 泡泡 ${v.bb * 100}%）</option>`).join('')}</select></div>
@@ -1787,7 +1914,8 @@ const SHOWS = [
   ['ink', '人气歌谣', 0, 16, 'SBS', { stream: .55, album: .1, sns: .2, vote: .1, broad: .05 }, 1, '音源+SNS+事前投票']
 ];
 const COMP_NAME = { stream: '音源', album: '销量', sns: 'SNS', vote: '投票', broad: '放送' };
-const RIVALS = { top: ['NOVA', 'AURORA', 'BLAZE', 'HALO'], mid: ['Lumière', 'Velvet9', 'ECHO', '徐妍', 'MOONLIT', 'Kairos', 'Pinea'], rook: ['Ziggy', 'ONEIRO', 'Petal', 'Hana', 'LUXE', 'Mint&Co', '素雅', 'ROVE', 'Yuri', 'B.O.A.T'] };
+const RIVALS = { top: ['IVE', 'aespa', 'LE SSERAFIM', 'SEVENTEEN', 'Stray Kids', 'ZEROBASEONE', 'BABYMONSTER', 'ILLIT', 'RIIZE', 'BOYNEXTDOOR', 'TWS', 'ENHYPEN', 'TXT', 'i-dle', 'TWICE'], mid: ['STAYC', 'Kep1er', 'KISS OF LIFE', 'NMIXX', 'ITZY', 'tripleS', 'fromis_9', 'QWER', 'CRAVITY', 'THE BOYZ', 'NCT WISH', 'MEOVV', 'xikers', 'Billlie', 'Hearts2Hearts'], rook: ['KiiiKiii', 'ifeye', 'AHOF', 'Baby DONT Cry', 'ALLDAY PROJECT', 'izna', 'KickFlip', 'NEWBEAT', 'Say My Name', 'BADVILLAIN', 'UNIS', 'YOUNG POSSE', 'CLOSE YOUR EYES', 'ARTMS'] };
+const LABELMATES = ['IVE', 'CRAVITY', 'KiiiKiii']; // 同公司（STARSHIP）
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function srng(seed) { let a = hashStr(seed); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const weekOf = dk => addDays(dk, -((parseD(dk).getDay() + 6) % 7));
@@ -1809,7 +1937,8 @@ function myShowComps(dk, trackKey, albumId) {
     br += rulesFor(k).filter(x => ['打歌', '电台', '综艺'].includes(x.cat)).length;
   }
   const p = S.profile, sq = (x, ref) => Math.sqrt(clamp(x / ref, 0, 1));
-  return { stream: sq(st, 1e7), album: sq(al, 4e5), sns: sq(mv + tt * 300, 3e7), vote: sq(((p.activeMin + p.activeMax) / 2) * heat(), 4e4), broad: sq(br, 6), raw: { st, al, mv, tt, br } };
+  const mate = weekRivals(dk).some(x => LABELMATES.includes(x.name)); // 同公司前后辈同期打歌，公司资源会被分走
+  return { stream: sq(st, 1e7), album: sq(al, 4e5), sns: sq(mv + tt * 300, 3e7), vote: sq(((p.activeMin + p.activeMax) / 2) * heat(), 4e4), broad: sq(br, 6) * (mate ? .85 : 1), raw: { st, al, mv, tt, br, mate } };
 }
 function showResult(sh, dk, trackKey, albumId, follow) {
   const [id, name, , , , w, ease] = sh, c = myShowComps(dk, trackKey, albumId);
@@ -3366,7 +3495,7 @@ function viewSched() {
     else if (done) st = '<span class="status" style="color:var(--accent)">已完成</span>';
     return `<div class="sched ${done ? 'done' : ''}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${CATS[r.cat] || '#999'}"></div>
       <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
-      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}</div>
+      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${recOpenable(r, k) ? `<button class="rec-go" data-act="recgo" data-k="${dk}">${REC_ICON[r.cat]} 开始${r.cat === '电台' ? '上电台' : '录制'}</button>` : (S.schedule.perf || {})[dk] ? `<span class="rec-done">${REC_ICON[r.cat] || ''} 表现 ${S.schedule.perf[dk].grade}</span>` : ''}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
   }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
 }
@@ -3455,7 +3584,7 @@ function schedReminders() {
     const key = k + '|' + r.id; const diff = toMin(r.start) - nowMin;
     if (diff > 0 && diff <= 10 && !S.schedule.reminded[key] && !S.schedule.done[key]) {
       S.schedule.reminded[key] = 1;
-      pushNotif({ type: 'sched', text: `行程提醒：${diff} 分钟后「${r.title}」`, sub: `${r.start}-${r.end}${r.loc ? ' · ' + r.loc : ''}` }, true);
+      pushNotif({ type: 'sched', text: `行程提醒：${diff} 分钟后「${r.title}」`, sub: `${r.start}-${r.end}${r.loc ? ' · ' + r.loc : ''}${REC_SEG[r.cat] ? ' · 到时间去「行程」里点开始录制' : ''}` }, true);
     }
   }
 }
@@ -3487,7 +3616,7 @@ function viewMe() {
   <div class="card">
     <div class="hero">
       <label style="cursor:pointer" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label>
-      <div style="flex:1"><h2>${esc(p.name)} <span class="artist">ARTIST</span></h2><div class="muted">${ageOf()} 岁 · 出道日 ${esc(p.debut)} · D+${dday()} · 动物塑：${esc(p.animal)}</div><div class="muted">粉丝名：${esc(p.fandom)}</div></div>
+      <div style="flex:1"><h2>${esc(p.name)} <span class="artist">ARTIST</span></h2><div class="muted">${esc(p.company || 'STARSHIP')} · ${ageOf()} 岁 · 出道日 ${esc(p.debut)} · D+${dday()} · 动物塑：${esc(p.animal)}</div><div class="muted">粉丝名：${esc(p.fandom)}</div></div>
     </div>
     <div class="kpi"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
   </div>
@@ -3516,6 +3645,7 @@ function viewMe() {
       <div class="field"><label>艺名</label><input id="p-name" value="${esc(p.name)}"></div>
       <div class="field"><label>粉丝名</label><input id="p-fandom" value="${esc(p.fandom)}"></div>
       <div class="field"><label>出道日</label><input type="date" id="p-debut" value="${esc(p.debut)}"></div>
+      <div class="field"><label>所属公司</label><input id="p-company" value="${esc(p.company || 'STARSHIP')}"></div>
       <div class="field"><label>生日</label><input type="date" id="p-birth" value="${esc(p.birth || '2007-08-29')}"></div>
       <div class="field"><label>成为练习生</label><input type="month" id="p-trainee" value="${esc(p.trainee || '2022-10')}"></div>
       <div class="field"><label>动物塑</label><input id="p-animal" value="${esc(p.animal)}"></div>
@@ -3708,6 +3838,9 @@ document.addEventListener('click', async e => {
     case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; if (t.dataset.ok === '1') { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } W.offer = null; save(); render(); break; }
     case 'wsave': { const W = wallet(); W.tier = $('#w-tier').value; W.repay = +$('#w-repay').value; save(); render(); toast('合同已保存'); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
+    case 'recgo': recStart(t.dataset.k); break;
+    case 'recpick': { const o = UI.rec.segs[UI.rec.i].opts[+t.dataset.j]; recStep(rand(o[1], o[2]), ''); break; }
+    case 'recsay': { const v = ($('#rec-in').value || '').trim(); if (!v) { toast('说点什么吧'); break; } recStep(recScoreText(v), v); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'meradd': openModal(`<div class="row"><h3 style="flex:1">🧸 新周边</h3><button class="btn ghost sm" data-act="close">取消</button></div><div class="card"><div class="field"><label>名字</label><input id="mer-n" placeholder="比如：猫猫钥匙扣"></div><div class="field"><label>价格（可以写 ¥39 / 15加币）</label><input id="mer-p" placeholder="比如：15000"></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="mersave">添加</button></div></div>`); break;
     case 'mersave': { const n = $('#mer-n').value.trim(), m = parseMoney($('#mer-p').value); if (!n || !m) { toast('请填写名字和价格'); break; } merch().push({ id: uid(), name: n, price: m.krw, pop: rand(.8, 1.4) }); save(); closeModal(); render(); break; }
@@ -3732,7 +3865,7 @@ document.addEventListener('click', async e => {
     case 'psave': {
       const p = S.profile;
       p.name = $('#p-name').value.trim() || p.name; p.fandom = $('#p-fandom').value.trim() || p.fandom;
-      p.debut = $('#p-debut').value || p.debut; p.birth = $('#p-birth').value || p.birth; p.trainee = $('#p-trainee').value || p.trainee; p.animal = $('#p-animal').value.trim() || p.animal;
+      p.debut = $('#p-debut').value || p.debut; p.birth = $('#p-birth').value || p.birth; p.company = $('#p-company').value.trim() || p.company; p.trainee = $('#p-trainee').value || p.trainee; p.animal = $('#p-animal').value.trim() || p.animal;
       p.followers = Math.max(0, +$('#p-fol').value || p.followers); p.folBase = p.followers;
       const a1 = Math.max(1, +$('#p-amin').value || p.activeMin), a2 = Math.max(a1, +$('#p-amax').value || p.activeMax); p.activeMin = a1; p.activeMax = a2;
       p.nicks = $('#p-nicks').value.split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
