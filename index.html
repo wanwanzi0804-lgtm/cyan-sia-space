@@ -188,6 +188,20 @@ body.typing .bb-tick.bb-tick2{display:block}
 .sw input:checked+i{background:#7b61ff}
 .sw input:checked+i::after{left:19px}
 .offer{display:flex;gap:8px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.mgr-card{display:flex;align-items:center;gap:10px;cursor:pointer}
+.mgr-av{width:42px;height:42px;border-radius:15px;background:#ffe24a;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.mgr-av.sm{width:34px;height:34px;border-radius:12px;font-size:18px}
+.mgr-u{background:var(--danger);color:#fff;border-radius:10px;font-size:12px;padding:1px 7px;font-weight:700}
+.kk-log{background:var(--accent-soft);border-radius:14px;padding:10px;height:min(60vh,520px);overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.kk-day{align-self:center;font-size:11.5px;color:var(--muted);background:var(--card);border-radius:10px;padding:2px 10px;margin:4px 0}
+.kk-row{display:flex;gap:6px;align-items:flex-end;max-width:88%}
+.kk-row.me{align-self:flex-end}
+.kk-n{font-size:12px;color:var(--muted);margin-bottom:2px}
+.kk-b{background:#fff;color:#1d2329;border-radius:4px 14px 14px 14px;padding:8px 11px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.kk-b.me{background:#fee500;border-radius:14px 4px 14px 14px}
+.kk-t{font-size:10.5px;color:var(--muted);flex:none}
+.kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.kk-res{margin-top:6px;font-size:12px;color:#8a939c}
 .offer-b{display:flex;flex-direction:column;gap:6px}
 .tg-row{display:flex;align-items:center;gap:8px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
 .tg-ok{color:var(--accent);font-weight:700;font-size:13px}
@@ -1653,11 +1667,12 @@ const rmb = n => `≈ ¥${Math.round(n / FX.CNY).toLocaleString('en-US')}`;
 const wonHTML = (n, sign) => `${sign && n > 0 ? '+' : ''}${won(n)} <span class="rmb">${rmb(Math.abs(n))}</span>`;
 const TIERS = { C: { name: '新人合同', gen: .2, bb: .3 }, B: { name: '中坚合同', gen: .3, bb: .4 }, A: { name: '头部合同', gen: .4, bb: .5 } };
 const EXP_CATS = {
-  日常开销: { ic: '🍜', kw: /吃|饭|餐|外卖|咖啡|奶茶|打车|出租|地铁|公交|交通|房租|水电|话费|日用|超市|便利店|早餐|午餐|晚餐|夜宵|零食/, pre: [['☕ 咖啡', 5500], ['🍜 外卖', 18000], ['🍱 便利店', 8000], ['🚕 打车', 12000], ['🚇 交通卡充值', 30000], ['📱 话费', 55000]] },
-  自己花的: { ic: '🛍', kw: /买|购物|游戏|旅行|电影|演唱会|门票|书|手机|耳机|电脑|相机|包|鞋|首饰|礼物|娃娃|周边/, pre: [['🛍 逛街', 120000], ['🎮 游戏充值', 30000], ['🎬 电影', 15000], ['📚 书', 18000], ['🎧 小电器', 89000]] },
-  粉丝回礼: { ic: '🎁', kw: /回礼|应援|签售|粉丝|小礼物|咖啡车|手写信|回赠/, pre: [['🎁 签售小礼物', 300000], ['☕ 咖啡车回礼', 500000], ['💌 手写明信片', 80000], ['🍰 生日回礼', 400000]] },
-  美容造型: { ic: '💄', kw: /美容|皮肤|医美|发型|剪发|染发|烫发|头发|化妆|妆|美甲|睫毛|服装|衣服|造型|护肤|面膜/, pre: [['🧖 皮肤管理', 120000], ['💇 剪发染发', 150000], ['💄 化妆', 80000], ['💅 美甲', 60000], ['👗 服装', 200000]] },
-  健身形体: { ic: '🏋️', kw: /健身|普拉提|瑜伽|私教|体能|形体|蛋白|代餐|跑步|游泳|减脂|拉伸/, pre: [['🏋️ 私教课', 70000], ['🧘 普拉提', 45000], ['🏃 健身房月卡', 90000], ['🥤 蛋白粉', 45000]] }
+  居住: { ic: '🏠', kw: /房租|月租|租金|月세|월세|관리비|管理费|水电|水费|电费|燃气|煤气|暖气|供暖|网费|宽带|网络|가스|전기|인터넷|물세/, pre: [] },
+  粉丝回礼: { ic: '🎁', kw: /回礼|应援|签售|粉丝|sia|小礼物|咖啡车|餐车|手写信|明信片|小卡|回赠|便当|打歌.*(零食|饮料|点心)|生日会|fan ?meeting|팬|조공|역조공/i, pre: [['🎁 签售小礼物', 300000], ['☕ 咖啡车回礼', 500000], ['🍱 打歌应援便当', 600000], ['💌 手写明信片', 80000], ['🍰 生日回礼', 400000], ['🍪 现场零食包', 250000], ['📸 签名拍立得', 120000]] },
+  美容造型: { ic: '💄', kw: /美容|皮肤|医美|水光|发型|剪发|染发|烫发|头发|理发|化妆|彩妆|口红|粉底|妆|美甲|睫毛|服装|衣服|裙|外套|造型|护肤|面膜|精华|olive ?young|올리브영|에뛰드|이니스프리|미용실|네일|피부/i, pre: [] },
+  健身形体: { ic: '🏋️', kw: /健身|普拉提|瑜伽|私教|体能|形体|蛋白|代餐|跑步|游泳|减脂|拉伸|运动|拳击|舞蹈课|헬스|필라테스|요가|pt\b/i, pre: [] },
+  日常开销: { ic: '🍜', kw: /吃|饭|餐|外卖|咖啡|奶茶|饮料|水果|打车|出租|地铁|公交|交通|话费|日用|超市|便利店|早餐|午餐|晚餐|夜宵|零食|药|看病|医院|快递|洗衣|starbucks|星巴克|uber|taxi|카페|커피|택시|버스|지하철|배민|배달|쿠팡|다이소|cu\b|gs25|이마트|편의점|병원|약국/i, pre: [] },
+  自己花的: { ic: '🛍', kw: /买|购物|游戏|旅行|旅游|酒店|机票|电影|演唱会|门票|书|手机|耳机|电脑|相机|包|鞋|首饰|礼物|娃娃|周边|专辑|猫粮|猫砂|宠物|game|netflix|youtube|订阅/i, pre: [] }
 };
 // 平台：市场份额、日播放进第 100 名 / 第 1 名大约要多少
 const PLATS = [['Melon', .36, 18000, 900000], ['Genie', .14, 4000, 250000], ['Bugs', .07, 700, 50000], ['FLO', .12, 3000, 180000], ['VIBE', .05, 900, 70000], ['Spotify', .15, 6000, 300000], ['YouTube Music', .11, 4000, 200000]];
@@ -1705,12 +1720,32 @@ function parseMoney(text, defCur = 'KRW') {
   else if (/\$/.test(t)) cur = 'CAD';
   return { n, cur, krw: Math.round(n * FX[cur]) };
 }
-function guessCat(text) { for (const k of ['粉丝回礼', '美容造型', '健身形体', '日常开销', '自己花的']) if (EXP_CATS[k].kw.test(text || '')) return k; return '自己花的'; }
+// 自动分类：看哪个分类的关键词命中得最多、最长；都没命中就按金额猜
+function guessCat(text, krw = 0) {
+  const t = text || ''; let best = null, bs = 0;
+  for (const [k, v] of Object.entries(EXP_CATS)) { const re = new RegExp(v.kw.source, 'gi'); const hits = t.match(re) || []; const sc = hits.reduce((a, h) => a + 1 + h.length * .1, 0); if (sc > bs) { bs = sc; best = k; } }
+  if (best) return best;
+  return krw && krw < 30000 ? '日常开销' : '自己花的';
+}
 function walletIncome(gross, cat, note, kind = 'gen', at = Date.now()) {
   const W = wallet(), share = cShare(kind), amt = Math.round(gross * share); if (amt <= 0) return;
   const repay = W.debt > 0 ? Math.min(W.debt, Math.round(amt * W.contract.repay)) : 0;
   W.debt -= repay; W.bal += amt - repay;
   W.tx.unshift({ id: uid(), at, amt, gross: Math.round(gross), repay, cat, note, auto: true }); if (W.tx.length > 400) W.tx.length = 400;
+}
+// 房租水电：一室一厅（江南区附近 1.5 房），每月 1 号自动扣；水电暖按季节浮动
+const RENT = 1300000, MGMT = 150000, NET = 33000;
+function utilBill(mon) {
+  const m = +mon.slice(5), r = srng('util' + mon), v = (a, b) => Math.round((a + (b - a) * r()) / 100) * 100;
+  const elec = [7, 8].includes(m) ? v(70000, 110000) : [6, 9].includes(m) ? v(45000, 65000) : [12, 1, 2].includes(m) ? v(40000, 60000) : v(28000, 42000);
+  const heatB = [12, 1, 2].includes(m) ? v(110000, 180000) : [11, 3].includes(m) ? v(55000, 95000) : [10, 4].includes(m) ? v(22000, 40000) : v(9000, 18000);
+  return { elec, heat: heatB, water: v(14000, 24000) };
+}
+function rentTick() {
+  const W = wallet(), mon = dkey(Date.now()).slice(0, 7); if (W.rentMon === mon) return; W.rentMon = mon;
+  const u = utilBill(mon), at = parseD(mon + '-01').getTime() + 9 * 3600e3, add = (amt, note) => { W.bal -= amt; W.tx.unshift({ id: uid(), at, amt: -amt, cat: '居住', note, auto: true }); };
+  add(RENT, `${+mon.slice(5)} 月房租`); add(MGMT, '管理费'); add(u.elec, '电费'); add(u.heat, '燃气暖气'); add(u.water, '水费'); add(NET, '网费');
+  W.tx.sort((a, b) => b.at - a.at); if (W.tx.length > 400) W.tx.length = 400;
 }
 function walletSpend(krw, cat, note, orig) {
   const W = wallet(); W.bal -= krw;
@@ -1910,15 +1945,17 @@ function walletTick() {
     for (const d of W.deals) if (d.left > 0) { d.left--; walletIncome(d.fee, '代言', `${d.brand} 代言（剩 ${d.left} 个月）`); }
     W.deals = W.deals.filter(d => d.left > 0);
   }
-  // 小型个人代言：粉丝 1.8 万以上才偶尔会有，很看热度和运气
-  const f = S.profile.followers;
-  if (!W.nextOffer) W.nextOffer = now + rand(30, 60) * 86400e3;
-  if (f >= 18000 && !W.offer && now > W.nextOffer) {
-    W.nextOffer = now + rand(45, 90) * 86400e3;
-    if (Math.random() < clamp(heat() - .5, .15, .8)) {
-      const months = pick([3, 6, 12]), total = Math.round((3e6 + 27e6 * Math.pow(luckQ(), 1.4)) / 1e5) * 1e5;
-      W.offer = { brand: pick(['猫粮品牌', '平价美妆品牌', '运动服品牌', '饮料品牌', '耳机品牌', '手机壳品牌', '零食品牌']), fee: Math.round(total / months / 1e4) * 1e4, total, months };
-      pushNotif({ type: 'cb', text: `💼 ${W.offer.brand}想找你做小型代言`, sub: `合约 ${won(total)} · ${months} 个月 · 去「我的 → 钱包」看看` }, true);
+  rentTick();
+  // 小型个人代言：看粉丝体量，更看近期热度；门槛不低，经纪人会来问你
+  const f = S.profile.followers, h = heat(), score = f / 40000 * Math.pow(h, 1.6);
+  if (W.offer && now > (W.offer.exp || Infinity)) { mgrResolve('deal', W.offer.id, '已过期'); W.offer = null; }
+  if (!W.nextOffer) W.nextOffer = now + rand(20, 40) * 86400e3;
+  if (!W.offer && now > W.nextOffer && new Date().getHours() >= 10) {
+    W.nextOffer = now + rand(20, 45) * 86400e3;
+    if (score >= 1 && Math.random() < clamp(.3 + (score - 1) * .5, .3, .85)) {
+      const months = pick([3, 6, 12]), total = Math.round((4e6 + 30e6 * Math.pow(luckQ(), 1.4)) * Math.min(2, score) / 1e5) * 1e5;
+      W.offer = { id: uid(), brand: pick(['猫粮品牌', '平价美妆品牌', '运动服品牌', '饮料品牌', '耳机品牌', '手机壳品牌', '零食品牌', '隐形眼镜品牌', '护肤品牌']), fee: Math.round(total / months / 1e4) * 1e4, total, months, exp: now + 3 * 86400e3 };
+      mgrSay(`有个${W.offer.brand}想找你做代言，合约 ${months} 个月，总共 ${won(total)}。条件我看过了还行，你考虑一下？三天内给我答复就好`, { type: 'deal', id: W.offer.id });
     }
   }
 }
@@ -1981,19 +2018,14 @@ function walletHTML() {
     <b style="font-size:14px">✏️ 记一笔</b>
     <div class="row" style="margin-top:8px;gap:6px"><input id="w-in" placeholder="比如：打车 15加币 / 剪发 ¥200 / 普拉提 45000" style="flex:1"><select id="w-cur" style="width:auto">${Object.keys(FX).map(k => `<option value="${k}" ${(UI.wCur || 'CAD') === k ? 'selected' : ''}>${FX_NAME[k]}</option>`).join('')}</select></div>
     <div class="muted" id="w-prev" style="font-size:12.5px;margin-top:6px">没写货币时按右边选的算</div>
-    <div class="pcats" style="margin:8px 0">${Object.entries(EXP_CATS).map(([k, v]) => `<button class="pcat ${(UI.wCat || '') === k ? 'on' : ''}" data-act="wcat" data-k="${k}">${v.ic} ${k}</button>`).join('')}</div>
-    <div class="row"><span class="muted" style="font-size:12.5px;flex:1">不选分类会自动判断</span><button class="btn primary" data-act="wadd">记下</button></div>
-    <details class="me-more"><summary>常用预设（点一下直接记）</summary><div class="w-pre">${Object.entries(EXP_CATS).map(([k, v]) => v.pre.map(([n, a]) => `<button data-act="wpre" data-c="${k}" data-n="${esc(n)}" data-a="${a}">${esc(n)}<span>${won(a)}</span></button>`).join('')).join('')}</div></details>
+    <div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="wadd">记下</button></div>
+    <details class="me-more"><summary>粉丝回礼预设（点一下直接记）</summary><div class="w-pre">${EXP_CATS.粉丝回礼.pre.map(([n, a]) => `<button data-act="wpre" data-c="粉丝回礼" data-n="${esc(n)}" data-a="${a}">${esc(n)}<span>${won(a)}</span></button>`).join('')}</div></details>
   </div>
   ${Object.keys(byCat).length ? `<div class="card"><b style="font-size:14px">本月支出</b>${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="w-cat"><span>${EXP_CATS[k]?.ic || '•'} ${esc(k)}</span><div class="w-bar sm"><i style="width:${Math.round(v / mx * 100)}%"></i></div><b>${won(v)}</b></div>`).join('')}</div>` : ''}
   <div class="card"><b style="font-size:14px">📒 流水</b>
-    ${W.tx.length ? W.tx.slice(0, UI.wAll ? 200 : 25).map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>${esc(x.note || x.cat)}</div><div class="muted" style="font-size:12px">${esc(x.cat)} · ${new Date(x.at).getMonth() + 1}/${new Date(x.at).getDate()}${x.orig ? ' · ' + esc(x.orig) : ''}${x.gross ? ` · 收入 ${won(x.gross)}` : ''}${x.cost ? ` · 成本 ${won(x.cost)}（${esc(x.why || '')}）` : ''}${x.repay ? ` · 还欠款 ${won(x.repay)}` : ''}</div></div>
+    ${W.tx.length ? W.tx.slice(0, UI.wAll ? 200 : 25).map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>${esc(x.note || x.cat)}</div><div class="muted" style="font-size:12px">${esc(x.cat)} · ${new Date(x.at).getMonth() + 1}/${new Date(x.at).getDate()}${x.orig ? ' · ' + esc(x.orig) : ''}${x.gross ? ` · 收入 ${won(x.gross)}` : ''}${x.cost ? ` · 成本 ${won(x.cost)}（${esc(x.why || '')}）` : ''}</div></div>
       <div style="text-align:right">${x.owe ? `<b style="color:var(--danger);font-size:13px">欠款 +${won(x.owe)}</b><div class="rmb">${rmb(x.owe)}</div>` : `<b style="color:${x.amt > 0 ? 'var(--accent)' : x.amt < 0 ? 'var(--danger)' : 'var(--muted)'}">${x.amt > 0 ? '+' : ''}${won(x.amt - (x.repay || 0))}</b><div class="rmb">${rmb(Math.abs(x.amt - (x.repay || 0)))}</div>`}</div>${x.auto ? '' : `<button class="link" data-act="wdel" data-id="${x.id}" style="margin-left:6px">✕</button>`}</div>`).join('') : '<div class="muted" style="padding:6px 0">还没有记录。行程结束后按「收入 - 成本」结算，音源/专辑/周边每天结算，泡泡每月结算</div>'}
     ${W.tx.length > 25 ? `<button class="done-tg" data-act="wall">${UI.wAll ? '收起' : '查看全部'}</button>` : ''}</div>
-  <div class="card"><b style="font-size:14px">💼 代言</b>
-    ${W.offer ? `<div class="hot-opt" style="margin-top:8px">${esc(W.offer.brand)}想找你做小型代言 · 合约 ${won(W.offer.total || W.offer.fee * W.offer.months)}（按月分 ${W.offer.months} 个月）<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div></div>` : ''}
-    ${W.deals.length ? W.deals.map(d => `<div class="rule"><span style="flex:1">${esc(d.brand)}</span><span class="muted">每月 ${won(d.fee)} · 剩 ${d.left} 个月</span></div>`).join('') : f < 18000 ? `<div class="muted" style="margin-top:6px;font-size:13px">粉丝到 1.8 万后偶尔会有小品牌找你（现在 ${fmtNum(f)}），热度越高机会越大</div><div class="w-bar"><i style="width:${Math.min(100, Math.round(f / 180))}%"></i></div>` : (W.offer ? '' : '<div class="muted" style="margin-top:6px;font-size:13px">暂时没有代言，品牌会不定时来找你</div>')}
-  </div>
   <div class="card"><b style="font-size:14px">📄 专属合同</b>
     <div class="wct"><div><span>合同</span><b>第 ${C.no} 份 · ${TIERS[C.tier].name}</b></div><div><span>期限</span><b>${C.start} ~ ${C.end}</b></div>
       <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
@@ -2001,7 +2033,8 @@ function walletHTML() {
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
     <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本由公司垫付，结算时先从收入里扣；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
     ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（活动 ${TIERS[C.offer.tier].gen * 100}% / 泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
-  </div>`;
+  </div>
+  ${mgrCardHTML()}`;
 }
 
 /* =========================================================
@@ -2171,9 +2204,13 @@ function awardsHTML() {
    能力 / 休息周 / 经纪人邀约 / 📋 通告（每个行程当天一张机遇卡）
    ========================================================= */
 const SKILLS = [['vocal', '声乐'], ['dance', '舞蹈'], ['rap', 'Rap'], ['face', '表情管理'], ['stamina', '体能'], ['variety', '综艺感'], ['lang', '外语']];
-function skills() { return S.skills || (S.skills = { vocal: 55, dance: 60, rap: 35, face: 50, stamina: 55, variety: 40, lang: 35, day: dkey(Date.now()) }); }
+function skills() {
+  const K = S.skills || (S.skills = { vocal: 55, dance: 60, rap: 70, face: 50, stamina: 48, variety: 40, lang: 50, day: dkey(Date.now()), v: 2 });
+  if ((K.v || 1) < 2) { K.rap = Math.max(K.rap, Math.max(K.vocal, K.dance) + 10); K.stamina = Math.max(10, K.stamina - 7); K.lang = Math.min(100, K.lang + 15); K.v = 2; } // Rap 是强项，体能稍弱，外语更好
+  return K;
+}
 function skillTick() { const K = skills(), today = dkey(Date.now()); while (K.day < today) { K.day = addDays(K.day, 1); for (const [k] of SKILLS) K[k] = Math.max(10, K[k] - .03); } } // 不练会慢慢退步
-const CAT_SKILL = { 打歌: { dance: .4, vocal: .3, face: .3 }, 综艺: { variety: .7, face: .3 }, 电台: { vocal: .4, variety: .6 }, 签售: { variety: .5, face: .5 }, 物料: { face: .7, dance: .3 }, 公演: { stamina: .4, vocal: .3, dance: .3 }, 校庆: { stamina: .4, vocal: .3, dance: .3 }, 活动: { face: .5, variety: .5 }, 演唱会: { stamina: .3, vocal: .35, dance: .35 } };
+const CAT_SKILL = { 打歌: { dance: .35, vocal: .25, rap: .15, face: .25 }, 综艺: { variety: .7, face: .3 }, 电台: { vocal: .4, variety: .6 }, 签售: { variety: .5, face: .5 }, 物料: { face: .7, dance: .3 }, 公演: { stamina: .4, vocal: .3, dance: .3 }, 校庆: { stamina: .4, vocal: .3, dance: .3 }, 活动: { face: .5, variety: .5 }, 演唱会: { stamina: .3, vocal: .35, dance: .35 } };
 function lessonSkill(title) { return /声乐|Vocal|vocal|唱/.test(title) ? 'vocal' : /舞|Dance|dance/.test(title) ? 'dance' : /Rap|rap/.test(title) ? 'rap' : /表演|表情/.test(title) ? 'face' : /体能|健身|普拉提/.test(title) ? 'stamina' : /语|英|日|中文/.test(title) ? 'lang' : /综艺/.test(title) ? 'variety' : 'vocal'; }
 function skillScore(cat) { const w = CAT_SKILL[cat]; if (!w) return .5; const K = skills(); return Object.entries(w).reduce((s, [k, v]) => s + v * K[k] / 100, 0); }
 function skillUp(k, n) { const K = skills(); K[k] = Math.min(100, K[k] + n * (1 - K[k] / 130)); }
@@ -2188,13 +2225,14 @@ const offerDayOk = dk => [0, 6].includes(parseD(dk).getDay()) || isRestWeek(dk);
 function mgr() { return S.mgr || (S.mgr = { mood: 70, offers: [], next: 0 }); }
 function mgrTick() {
   const M = mgr(), now = Date.now();
-  M.offers = M.offers.filter(o => { if (now > o.exp) { M.mood = Math.max(0, M.mood - 1); return false; } return true; });
+  M.offers = M.offers.filter(o => { if (now > o.exp) { M.mood = Math.max(0, M.mood - 1); mgrResolve('offer', o.id, '已过期'); return false; } return true; });
+  mgrChatter();
   if (!M.next) M.next = now + rand(.3, 1) * 86400e3;
   if (now < M.next || new Date().getHours() < 9) return;
   M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
   const o = mgrMakeOffer(); if (!o) return;
   M.offers.push(o);
-  pushNotif({ type: 'sched', text: `📨 经纪人：有个${o.cat}问你接不接`, sub: `${o.title} · ${o.date.slice(5).replace('-', '/')} 周${WD[parseD(o.date).getDay()]} ${o.start}` }, true);
+  mgrSay(pick(['有个通告问你接不接：', '这边来了个邀约，你看看：', '对方很有诚意，问你能不能来：']) + `${o.title}，${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`, { type: 'offer', id: o.id });
 }
 function mgrMakeOffer() {
   const f = S.profile.followers, K = skills(), mo = new Date().getMonth() + 1, today = dkey(Date.now());
@@ -2216,6 +2254,78 @@ function offersHTML() {
   return `<div class="card"><div class="row"><b style="flex:1">📨 经纪人邀约</b><span class="muted" style="font-size:12px">经纪人心情 ${M.mood >= 70 ? '😊' : M.mood >= 40 ? '😐' : '😮‍💨'}</span></div>
     ${M.offers.map(o => `<div class="offer"><span class="chip" style="background:${CATS[o.cat] || '#999'}">${o.cat}</span><div style="flex:1;min-width:0"><b>${esc(o.title)}</b><div class="muted" style="font-size:12px">${o.date.slice(5).replace('-', '/')} 周${WD[parseD(o.date).getDay()]} ${o.start}-${o.end}${o.loc ? ' · ' + esc(o.loc) : ''}</div><div class="muted" style="font-size:12px">${o.fee[1] ? `预计收入 ${won(o.fee[0])}～${won(o.fee[1])}` : '没有报酬，但能涨曝光'} · 剩 ${hotLeft(o.exp - Date.now())} 回复</div></div>
       <div class="offer-b"><button class="btn primary sm" data-act="ofok" data-id="${o.id}">接</button><button class="btn ghost sm" data-act="ofno" data-id="${o.id}">不接</button></div></div>`).join('')}</div>`;
+}
+/* ---------- 💬 经纪人（KakaoTalk 风格）：邀约、代言和日常联络都从这里来 ---------- */
+function mgrChat() { const M = mgr(); M.chat = M.chat || []; M.said = M.said || {}; return M; }
+function mgrSay(text, card, silent) {
+  const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text, card: card || null });
+  if (M.chat.length > 200) M.chat.splice(0, M.chat.length - 200);
+  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; if (!silent) pushNotif({ type: 'sched', text: '💬 经纪人', sub: text.length > 40 ? text.slice(0, 40) + '…' : text }, true); }
+  mgrRefresh();
+}
+let mgrQ = 0; // 回复排队，按顺序一条条发
+function mgrReply(text) { mgrQ = Math.max(Date.now(), mgrQ) + 1200 + Math.random() * 1500; setTimeout(() => { mgrSay(text, null, true); save(); }, mgrQ - Date.now()); }
+function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
+function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'me' && UI.meTab === 'wallet' && !UI.mgrOpen) { const c = $('#mgr-card'); if (c) c.outerHTML = mgrCardHTML(); } }
+// 日常联络：行程提醒、回归倒计时、恭喜、关心…每件事只说一次
+function mgrChatter() {
+  const M = mgrChat(), now = new Date(), hr = now.getHours(), today = dkey(Date.now()), once = (k, fn) => { if (!M.said[k]) { M.said[k] = 1; fn(); } };
+  if (hr < 9 || hr > 23) return;
+  const ks = Object.keys(M.said); if (ks.length > 300) for (const k of ks.slice(0, ks.length - 300)) delete M.said[k];
+  const tm = addDays(today, 1), big = rulesFor(tm).filter(r => r.repeat === 'once' && !['练习', '上课'].includes(r.cat));
+  if (hr >= 20 && big.length) once('tm' + tm, () => mgrSay(`明天 ${big[0].start} ${big[0].title}${big.length > 1 ? `，之后还有 ${big.length - 1} 个行程` : ''}。${big[0].start < '10:00' ? '很早，今天早点睡！' : '早点休息，明天我来接你'}`));
+  const d = cbDay();
+  if (d != null && S.cb && !S.cb.over) {
+    if (d === 7) once('cb7' + S.cb.date, () => mgrSay(`回归还有一周了，这周预告照和预告片会陆续放出去。身体最重要，别熬太晚`));
+    if (d === 1) once('cb1' + S.cb.date, () => mgrSay('明天就回归了！紧张很正常，这段时间你练得够多了 💪'));
+    if (d === 0 && hr >= 18) once('cb0' + S.cb.date, () => mgrSay('今天辛苦了！首日成绩我盯着呢，你先好好吃饭休息'));
+  }
+  const win = S.cb && (S.cb.res || []).find(x => x.rank === 1 && Date.now() - x.at < 86400e3);
+  if (win) once('win' + win.at, () => mgrSay(`一位！！恭喜恭喜 🏆 公司群里都在刷屏了`));
+  const f = S.profile.followers, step = Math.floor(f / 10000);
+  if (step >= 1 && (M.folStep || 0) < step) { if (M.folStep) mgrSay(`粉丝破 ${step} 万了！继续加油～`); M.folStep = step; }
+  const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay('练习生时期的欠款还清了！从下个月开始到手会多很多，恭喜 🎉'));
+  // 随手的关心，大约两三天一次
+  if (hr >= 11 && hr <= 21 && !M.said['c' + today] && Math.random() < .0008) {
+    M.said['c' + today] = 1;
+    const mo = now.getMonth() + 1, h = heat();
+    mgrSay(pick([
+      ...([12, 1, 2].includes(mo) ? ['最近降温了，出门多穿点，嗓子要保护好', '暖气开着睡觉记得放加湿器'] : []),
+      ...([7, 8].includes(mo) ? ['这几天太热了，练习的时候多补水', '空调别对着吹，感冒了很麻烦'] : []),
+      ...(h > 1.3 ? ['最近反应不错哦，公司那边很满意', '最近找你的人变多了，我会帮你挑着接'] : h < .85 ? ['最近有点安静，多发发帖子、开开直播吧', '有空的话多跟粉丝互动一下，最近热度有点掉'] : []),
+      '吃饭了吗？别又只吃沙拉', '下周公司安排体检，时间定了我告诉你', '练习室这周三下午维修，那天去B2的小练习室',
+      '有什么想尝试的通告类型可以跟我说，我留意着', '最近睡得怎么样？行程太满的话跟我讲', '代表今天问起你了，说你最近状态好'
+    ]));
+  }
+}
+function mgrCardHTML() {
+  const M = mgrChat(), last = M.chat[M.chat.length - 1], u = M.unread || 0;
+  return `<div class="card mgr-card" id="mgr-card" data-act="mgropen"><div class="mgr-av">🧑‍💼</div><div style="flex:1;min-width:0"><b>经纪人</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last ? esc(last.text) : '有事随时找我'}</div></div>${u ? `<span class="mgr-u">${u > 99 ? '99+' : u}</span>` : `<span class="muted" style="font-size:12px">${last ? ago(last.at) : ''}</span>`}</div>`;
+}
+function mgrCardMsg(m) {
+  if (!m.card) return '';
+  if (m.card.type === 'offer') { const o = mgr().offers.find(x => x.id === m.card.id); return o && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="ofno" data-id="${o.id}">不接</button><button class="btn primary sm" data-act="ofok" data-id="${o.id}">接</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
+  if (m.card.type === 'deal') { const o = wallet().offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
+  return '';
+}
+function mgrLogHTML() {
+  const M = mgrChat(); let lastDay = '';
+  return M.chat.map(m => { const dk = dkey(m.at), t = new Date(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
+    const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
+    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${hm}</span><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">经纪人</div><div class="kk-b">${esc(m.text)}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
+}
+function mgrChatHTML() {
+  return `<div class="row"><h3 style="flex:1">🧑‍💼 经纪人</h3><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
+    <div class="kk-log" id="mgr-log">${mgrLogHTML()}</div>
+    <div class="row" style="gap:6px;margin-top:8px"><input id="mgr-in" placeholder="发消息…" maxlength="200" style="flex:1"><button class="btn primary sm" data-act="mgrsend">发送</button></div>`;
+}
+function mgrAnswer(t) {
+  if (/累|辛苦|休息|困|不舒服|生病|疼/.test(t)) return pick(['辛苦了，这周我帮你把能推的推掉一些', '身体不舒服一定要说，别硬撑。要不要我约个医院？', '好好睡一觉，明天的事明天再说']);
+  if (/谢谢|感谢|爱你|❤|♥/.test(t)) return pick(['应该的～', '跟我客气啥', '嘿嘿 好好干就是对我最好的感谢']);
+  if (/[?？]|吗|什么时候|几点|在哪/.test(t)) return pick(['我问问公司再回你', '我确认一下，等我几分钟', '具体的我晚点发你']);
+  if (/想接|想上|想去|想做|想试/.test(t)) return pick(['好，我记下了，有合适的第一时间告诉你', '可以啊，我去打听打听']);
+  if (/好|收到|ok|嗯|知道|行/i.test(t)) return pick(['👍', '好嘞', '嗯嗯']);
+  return pick(['收到～', '好的，我知道了', '嗯嗯，有事随时找我', '👌']);
 }
 /* ---------- 📋 通告：每个行程当天的一张机遇卡 ---------- */
 const KO_W = [['고양이', '猫'], ['사랑', '爱'], ['노래', '歌'], ['친구', '朋友'], ['행복', '幸福'], ['무대', '舞台'], ['연습', '练习'], ['감사합니다', '谢谢'], ['보고 싶어요', '想你'], ['맛있어요', '好吃'], ['꿈', '梦想'], ['하늘', '天空']];
@@ -2639,7 +2749,7 @@ function tgSettle(k, r, key, today) {
 }
 const TG_NOTE = { S: ['全场最佳，工作人员都在夸你', '片段当晚就被转疯了', '粉丝说今天的你闪闪发光'], A: ['表现很好，反响不错', '粉丝很满意', '顺利又出彩'], B: ['中规中矩，顺利完成', '没什么失误，也没太大亮点'], C: ['有点紧张，发挥一般', '状态不太好，下次加油'] };
 
-function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : '没写货币时按右边选的算'; }
+function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${EXP_CATS[guessCat(v, m.krw)].ic} ${guessCat(v, m.krw)} · ${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : '没写货币时按右边选的算'; }
 let lastReal = Date.now();
 function tick() {
   const now = Date.now(); const dt = now - lastReal; lastReal = now;
@@ -4059,7 +4169,6 @@ function viewSched() {
     ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
     <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done).length || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
-  ${offersHTML()}
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
     ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
@@ -4266,7 +4375,7 @@ function viewMe() {
    模态框
    ========================================================= */
 function openModal(html) { $('#sheet').innerHTML = html; $('#modal').classList.add('on'); hydrate($('#sheet')); }
-function closeModal() { $('#modal').classList.remove('on'); $('#sheet').innerHTML = ''; }
+function closeModal() { UI.mgrOpen = false; $('#modal').classList.remove('on'); $('#sheet').innerHTML = ''; }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 
 /* =========================================================
@@ -4404,14 +4513,14 @@ document.addEventListener('click', async e => {
     case 'wcat': UI.wCat = UI.wCat === t.dataset.k ? null : t.dataset.k; $$('[data-act=wcat]').forEach(b => b.classList.toggle('on', b.dataset.k === UI.wCat)); break;
     case 'wadd': {
       const text = $('#w-in').value.trim(), m = parseMoney(text, $('#w-cur').value); if (!m || !m.krw) { toast('没识别到金额', '比如：打车 15加币'); break; }
-      const cat = UI.wCat || guessCat(text);
+      const cat = guessCat(text, m.krw);
       const note = text.replace(/\d[\d,.]*\s*(万|千|k|w)?/gi, '').replace(/加币|加元|cad|c\$|ca\$|美元|美金|usd|us\$|日元|日币|円|jpy|港币|港元|hkd|欧元|eur|€|韩元|韩币|원|krw|won|₩|人民币|rmb|cny|元|块|¥|￥|\$/gi, '').trim() || cat;
-      walletSpend(m.krw, cat, note, m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]}` : ''); UI.wCat = null; save(); render(); toast('记下了 ✏️', `${cat} · ${won(m.krw)}`); break;
+      walletSpend(m.krw, cat, note, m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]}` : ''); save(); render(); toast('记下了 ✏️', `${cat} · ${won(m.krw)}`); break;
     }
     case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
-    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; if (t.dataset.ok === '1') { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } W.offer = null; save(); render(); break; }
+    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? '好，我去跟品牌那边回复，合同下周拿给你看 👍' : '行，我去回掉。以后有更合适的再说'); W.offer = null; save(); mgrRefresh(); render(); break; }
     case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
@@ -4435,8 +4544,11 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
-    case 'ofno': { const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
+    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(pick(['好嘞，我去回复对方，行程已经加上了', '收到，帮你排进行程了 👍'])); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
+    case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(pick(['行，我帮你推掉', '好的，那这个就不接了'])); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
+    case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
+    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; mgrChat().chat.push({ id: uid(), at: Date.now(), text: v, me: true }); mgrRefresh(); mgrReply(mgrAnswer(v)); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
