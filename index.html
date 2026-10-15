@@ -198,6 +198,22 @@ body.typing .bb-tick.bb-tick2{display:block}
 .tg-res.gS{color:#e5a100}.tg-res.gA{color:var(--accent)}.tg-res.g旷{color:#e5484d}
 .tg-d{font-size:15px;line-height:1.7;white-space:pre-wrap}
 .tg-qz{margin:10px 0}
+.tg-tm{display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 0}
+.tg-tm-bar{position:relative;width:100%;height:26px;border-radius:13px;background:var(--bg);overflow:hidden}
+.tg-tm-z{position:absolute;left:44%;width:12%;top:0;bottom:0;background:color-mix(in srgb,var(--accent) 35%,transparent)}
+.tg-tm-c{position:absolute;top:2px;bottom:2px;width:6px;margin-left:-3px;border-radius:3px;background:#e5484d;left:0}
+.tg-rx{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0}
+.tg-rx-btn{width:100%;height:120px;border:0;border-radius:16px;background:var(--bg);font-size:18px;font-weight:700;color:var(--text);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.tg-rx-btn.wait{background:#fde2e2;color:#b42318}.tg-rx-btn.go{background:#22c55e;color:#fff}.tg-rx-btn.bad{background:#fff4e5;color:#b35c00}
+.tg-seq{height:80px;display:grid;place-items:center;font-size:44px}
+.tg-seq.pop{animation:tgpop .3s}
+@keyframes tgpop{from{transform:scale(.6);opacity:.3}}
+.tg-seq-pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tg-seq-pad button{height:56px;border:0;border-radius:12px;background:var(--bg);font-size:24px}
+.tg-ord{display:flex;flex-wrap:wrap;gap:8px}
+.tg-ord button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;padding:8px 12px;font-size:14px;position:relative}
+.tg-ord button.on{border-color:var(--accent);color:var(--accent)}
+.tg-ord button.on::before{content:attr(data-n);position:absolute;top:-8px;left:-8px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;display:grid;place-items:center}
 .tg-ph{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .tg-ph button{aspect-ratio:3/4;border:2px solid var(--line);border-radius:10px;background:linear-gradient(160deg,#e9edf2,#cfd6de);font-size:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#555}
 .tg-ph button span{font-size:11px}
@@ -2127,66 +2143,146 @@ function offersHTML() {
 /* ---------- 📋 通告：每个行程当天的一张机遇卡 ---------- */
 const KO_W = [['고양이', '猫'], ['사랑', '爱'], ['노래', '歌'], ['친구', '朋友'], ['행복', '幸福'], ['무대', '舞台'], ['연습', '练习'], ['감사합니다', '谢谢'], ['보고 싶어요', '想你'], ['맛있어요', '好吃'], ['꿈', '梦想'], ['하늘', '天空']];
 const EN_W = [['stage', '舞台'], ['rehearsal', '彩排'], ['lyrics', '歌词'], ['brave', '勇敢'], ['grateful', '感激'], ['schedule', '日程'], ['sincere', '真诚'], ['audience', '观众'], ['melody', '旋律'], ['effort', '努力']];
-const JA_W = [['ありがとう', '谢谢'], ['ねこ', '猫'], ['うた', '歌'], ['頑張って', '加油'], ['大好き', '最喜欢'], ['ゆめ', '梦想'], ['ともだち', '朋友'], ['そら', '天空']];
 const PHOTO = [['侧脸逆光', .9], ['大笑抓拍', .85], ['回眸', .8], ['正面标准照', .6], ['低头沉思', .7], ['眨眼瞬间', .15], ['对焦失败', .05], ['被头发挡脸', .2], ['和猫道具互动', .75]];
-// 每种行程的机遇事件：kind = choice（选）/ write（写）/ rhythm（节奏）/ memory（翻牌）/ quiz（单词）/ photo（挑照片）/ song（选歌）/ hours（时长）
+// 每种行程的机遇事件。kind：choice 选 / multi 连续选 / write 写 / rhythm 节奏 / memory 翻牌 / quiz 单词 / photo 挑照片 /
+// song 选歌 / hours 时长 / timing 停在正中 / reaction 反应力 / mash 狂点 / seq 记顺序 / hold 长按 / order 排顺序 / trivia 关于自己的问答
+const C = (d, opts) => ({ kind: 'choice', d, opts });
+const M = (steps) => ({ kind: 'multi', d: steps[0][0], steps });
+const W_ = (d, ph) => ({ kind: 'write', d, ph });
 const TG_EVENTS = {
   练习: [
-    r => ({ kind: 'choice', d: `${r.title}练到一半，你发现有一段动作总是慢半拍，镜子里的自己看起来很僵。`, opts: [['拆开慢速练一百遍', .5, .95], ['拍视频和老师的版本对比', .55, .9], ['先放一放，去练别的部分', .2, .6], ['找公司前辈请教', .35, 1]] }),
+    r => C(`${r.title}练到一半，你发现有一段动作总是慢半拍，镜子里的自己看起来很僵。`, [['拆开慢速练一百遍', .5, .95], ['拍视频和老师的版本对比', .55, .9], ['先放一放，去练别的部分', .2, .6], ['找公司前辈请教', .35, 1]]),
     r => ({ kind: 'hours', d: `今天的${r.title}，打算练多久？练得越久涨得越多，但体能不够容易受伤。` }),
-    r => ({ kind: 'rhythm', d: `跟着节拍器练卡点：看到圆圈亮起就点「拍」，一共 8 拍。` }),
-    r => ({ kind: 'write', d: '练完了，给自己写一句练习日记吧。', ph: '今天练了什么、哪里还不够…' })
+    r => ({ kind: 'rhythm', d: '跟着节拍器练卡点：看到圆圈亮起就点「拍」，一共 8 拍。' }),
+    r => W_('练完了，给自己写一句练习日记吧。', '今天练了什么、哪里还不够…'),
+    r => ({ kind: 'seq', d: '编舞老师示范了一串新动作，记住顺序再跳一遍！', n: 5 }),
+    r => C('练习室的空调坏了，热得满头大汗。', [['开门通风继续练', .4, .85], ['换去楼下小练习室', .45, .8], ['趁机练体能', .3, .9], ['今天早点收工', .1, .5]]),
+    r => ({ kind: 'hold', d: '气息练习：按住按钮，憋住一口气，正好 4 秒时松开。' }),
+    r => M([['练习结束后，同期练习生约你一起吃宵夜。', [['去，顺便放松一下', .4, .8], ['不去，再加练一小时', .45, .9], ['打包回宿舍吃', .4, .75]]], ['回宿舍路上，你发现手机里有前辈发来的消息：「最近状态不错哦」', [['认真回复道谢', .5, .9], ['发个猫猫表情包', .4, .95], ['问前辈有什么建议', .5, 1]]]]),
+    r => ({ kind: 'mash', d: '体能冲刺：5 秒内拼命点，越多越好！' })
   ],
   上课: [
-    r => /语|英|日|中文/.test(r.title) ? { kind: 'quiz', d: '课堂小测：选出单词的意思（3 题）', lang: /英/.test(r.title) ? 'en' : /日/.test(r.title) ? 'ja' : 'ko' } : { kind: 'rhythm', d: '老师让你跟着节拍打拍子，测测今天的节奏感。' },
-    r => ({ kind: 'choice', d: `${r.title}上，老师突然点名让你当着大家示范一遍。`, opts: [['大大方方上去', .45, 1], ['先说自己还没练熟', .3, .6], ['拉同学一起上', .35, .8]] }),
-    r => ({ kind: 'choice', d: '老师说你上周教的东西没有练，语气有点严厉。', opts: [['老实承认，当场重来', .5, .95], ['解释最近行程太满', .2, .65], ['默默记下，下课加练', .45, .85]] })
+    r => /韩|英/.test(r.title) ? { kind: 'quiz', d: '课堂小测：选出单词的意思（3 题）', lang: /英/.test(r.title) ? 'en' : 'ko' } : { kind: 'rhythm', d: '老师让你跟着节拍打拍子，测测今天的节奏感。' },
+    r => C(`${r.title}上，老师突然点名让你当着大家示范一遍。`, [['大大方方上去', .45, 1], ['先说自己还没练熟', .3, .6], ['拉同学一起上', .35, .8]]),
+    r => C('老师说你上周教的东西没有练，语气有点严厉。', [['老实承认，当场重来', .5, .95], ['解释最近行程太满', .2, .65], ['默默记下，下课加练', .45, .85]]),
+    r => W_('课后作业：写下今天学到的一件事。', '一两句话就好'),
+    r => ({ kind: 'seq', d: '老师让你跟着记一组新内容，按顺序重复一遍。', n: 4 }),
+    r => C('上课前你发现忘带了笔记本。', [['借同学的纸记', .45, .85], ['用手机备忘录', .4, .8], ['全靠脑子记', .2, .9]])
   ],
   打歌: [
-    r => ({ kind: 'choice', d: '造型师拿来三套今天的打歌造型，问你选哪套。', opts: [['甜酷黑色皮衣', .3, 1], ['奶白色针织 + 猫耳发夹', .45, .95], ['亮色撞色运动风', .25, .9]] }),
+    r => C('造型师拿来三套今天的打歌造型，问你选哪套。', [['甜酷黑色皮衣', .3, 1], ['奶白色针织 + 猫耳发夹', .45, .95], ['亮色撞色运动风', .25, .9]]),
     r => ({ kind: 'rhythm', d: '彩排时间！跟着节拍点「拍」，卡点越准舞台越稳。' }),
-    r => ({ kind: 'choice', d: '事前录制前嗓子有点哑，离上台还有 40 分钟。', opts: [['喝温水，安静休息', .45, .85], ['抓紧时间开嗓', .35, 1], ['和音乐导演商量降一点 key', .3, .75]] }),
-    r => ({ kind: 'choice', d: '最后的 ending pose 还没想好，镜头马上要推过来了。', opts: [['猫爪比心', .4, 1], ['眨眼 wink', .35, .95], ['安静地看镜头', .45, .9], ['即兴做个鬼脸', .1, 1]] })
+    r => C('事前录制前嗓子有点哑，离上台还有 40 分钟。', [['喝温水，安静休息', .45, .85], ['抓紧时间开嗓', .35, 1], ['和音乐导演商量降一点 key', .3, .75]]),
+    r => C('最后的 ending pose 还没想好，镜头马上要推过来了。', [['猫爪比心', .4, 1], ['眨眼 wink', .35, .95], ['安静地看镜头', .45, .9], ['即兴做个鬼脸', .1, 1]]),
+    r => ({ kind: 'timing', d: 'Ending 镜头推过来了！在光标走到正中间的瞬间点「定格」。' }),
+    r => M([['候场时，旁边的前辈团主动跟你打招呼。', [['九十度鞠躬问好', .5, .85], ['递上自己的专辑', .4, 1], ['紧张得只会笑', .2, .7]]], ['对方说很喜欢你的歌，想一起拍挑战视频。', [['马上答应', .45, 1], ['说要问经纪人', .3, .7], ['约下次打歌再拍', .35, .8]]]]),
+    r => C('彩排时耳返突然没声音了。', [['举手示意重来', .4, .85], ['凭记忆跟着节奏唱完', .3, 1], ['看伴舞的动作对拍子', .35, .8]]),
+    r => C('上班路（出勤路）上粉丝举着你的应援手幅等了很久。', [['停下来挥手打招呼', .5, .95], ['比心然后快速进场', .45, .85], ['递给粉丝暖宝宝', .4, 1]]),
+    r => ({ kind: 'reaction', d: '直拍机位找你了！镜头亮红灯的瞬间立刻点「看镜头」。' })
   ],
   综艺: [
-    r => ({ kind: 'choice', d: `${r.title}的台本发来了，PD 问你今天想走什么路线。`, opts: [['搞笑担当，放得开', .2, 1], ['反差萌，安静里突然发疯', .35, .95], ['认真观察，关键时刻接话', .4, .8]] }),
-    r => ({ kind: 'write', d: `节目组的事前问卷：「${pick(['出道后最大的变化是什么？', '宿舍生活最不习惯的是什么？', '有什么别人不知道的小习惯？', '最近一次哭是因为什么？', '理想型是什么样的？'])}」`, ph: '写下你的回答，播出时可能会被剪出来' }),
-    r => ({ kind: 'choice', d: 'MC 突然让你现场展示个人技！', opts: [['猫咪模仿', .2, 1], ['现场跳一段', .45, .9], ['挑战高音', .15, 1], ['讲冷笑话', 0, 1]] }),
-    r => ({ kind: 'memory', d: '游戏环节「默契翻牌」：翻出所有相同的卡片，步数越少越好。' })
+    r => C(`${r.title}的台本发来了，PD 问你今天想走什么路线。`, [['搞笑担当，放得开', .2, 1], ['反差萌，安静里突然发疯', .35, .95], ['认真观察，关键时刻接话', .4, .8]]),
+    r => W_(`节目组的事前问卷：「${pick(['出道后最大的变化是什么？', '宿舍生活最不习惯的是什么？', '有什么别人不知道的小习惯？', '最近一次哭是因为什么？', '理想型是什么样的？', '如果不当歌手会做什么？'])}」`, '写下你的回答，播出时可能会被剪出来'),
+    r => C('MC 突然让你现场展示个人技！', [['猫咪模仿', .2, 1], ['现场跳一段', .45, .9], ['挑战高音', .15, 1], ['讲冷笑话', 0, 1]]),
+    r => ({ kind: 'memory', d: '游戏环节「默契翻牌」：翻出所有相同的卡片，步数越少越好。' }),
+    r => ({ kind: 'reaction', d: '游戏环节「反应力测试」：灯一变绿就立刻点！' }),
+    r => ({ kind: 'trivia', d: 'MC 出题：「关于你自己的问题，答错要接受惩罚！」' }),
+    r => M([['你输了游戏，惩罚是吃超酸柠檬。', [['爽快接受', .45, .95], ['撒娇求饶', .2, 1], ['讨价还价换个惩罚', .1, .8]]], ['MC 说可以找人代替你受罚。', [['选 MC', .3, 1], ['选最安静的嘉宾', .35, .85], ['还是自己来', .5, .9]]]]),
+    r => C('录制中途，有位嘉宾开了一个让你有点尴尬的玩笑。', [['笑着接下去', .4, .9], ['认真地吐槽回去', .3, 1], ['装作没听懂', .25, .7]]),
+    r => W_('录制结束前，PD 让你对观众说一句话。', '一句话宣传或者问候')
   ],
   电台: [
     r => ({ kind: 'song', d: 'DJ 问你今天想现场唱哪首。' }),
-    r => ({ kind: 'write', d: `听众来信：「${pick(['明天要考试了，好紧张，可以给我打打气吗？', '和最好的朋友吵架了，要不要先道歉…', '每天加班好累，想听你说一句话', '下个月第一次面试，好怕'])}」`, ph: '想对这位听众说什么？' }),
-    r => ({ kind: 'write', d: 'DJ：给听众推荐一首最近在听的歌吧。', ph: '歌名 + 一句推荐理由' }),
-    r => ({ kind: 'choice', d: '直播中途，DJ 让你用三个字形容自己。', opts: [['猫、猫、猫', .3, 1], ['认真地想好再说', .4, .85], ['反问 DJ 怎么看', .25, .9]] })
+    r => W_(`听众来信：「${pick(['明天要考试了，好紧张，可以给我打打气吗？', '和最好的朋友吵架了，要不要先道歉…', '每天加班好累，想听你说一句话', '下个月第一次面试，好怕', '我养的猫生病了，好难过'])}」`, '想对这位听众说什么？'),
+    r => W_('DJ：给听众推荐一首最近在听的歌吧。', '歌名 + 一句推荐理由'),
+    r => C('直播中途，DJ 让你用三个字形容自己。', [['猫、猫、猫', .3, 1], ['认真地想好再说', .4, .85], ['反问 DJ 怎么看', .25, .9]]),
+    r => ({ kind: 'trivia', d: '听众连线问答：「这些关于你的问题，你能答对吗？」' }),
+    r => C('直播快结束时，DJ 说还剩一分钟，让你随便说点什么。', [['宣传新歌', .4, .85], ['谢谢一直陪着的粉丝', .5, .95], ['即兴哼两句', .3, 1]]),
+    r => ({ kind: 'hold', d: '现场清唱的长音！按住按钮，正好 4 秒时松开，气息越稳越好。' }),
+    r => M([['电台录音间里，DJ 播了你的歌，问你创作时的故事。', [['讲一个真实的小故事', .5, 1], ['说「秘密」吊胃口', .3, .85], ['聊录音时的趣事', .45, .9]]], ['一位听众发短信说「听这首歌熬过了考试周」。', [['认真道谢', .5, .9], ['给 TA 加油', .45, .95], ['约 TA 下次签售见', .4, 1]]]])
   ],
   签售: [
     r => ({ kind: 'memory', d: '今天来了好多老粉！翻牌记住他们的昵称，配对越快越好。' }),
-    r => ({ kind: 'choice', d: '签售前，经纪人问你要不要准备点小福利。', opts: [['每人一张手写便签', .45, 1], ['现场拍立得', .4, .95], ['戴猫耳发箍营业', .35, .9], ['不用了，专心签名', .15, .5]] }),
-    r => ({ kind: 'choice', d: '有位粉丝紧张得说不出话，只是一直看着你。', opts: [['握住 TA 的手慢慢聊', .5, .95], ['逗 TA 笑', .35, 1], ['主动问 TA 的名字写在专辑上', .45, .9]] })
+    r => C('签售前，经纪人问你要不要准备点小福利。', [['每人一张手写便签', .45, 1], ['现场拍立得', .4, .95], ['戴猫耳发箍营业', .35, .9], ['不用了，专心签名', .15, .5]]),
+    r => C('有位粉丝紧张得说不出话，只是一直看着你。', [['握住 TA 的手慢慢聊', .5, .95], ['逗 TA 笑', .35, 1], ['主动问 TA 的名字写在专辑上', .45, .9]]),
+    r => M([['一位粉丝请你在便利贴上写一句话。', [['写「要好好吃饭」', .45, .9], ['画一只小猫', .4, 1], ['写 TA 的名字加爱心', .5, .95]]], ['下一位粉丝问你可不可以戴 TA 带来的发箍。', [['开心地戴上拍照', .5, 1], ['说经纪人不让，比心代替', .3, .7], ['戴上后学猫叫', .35, 1]]]]),
+    r => ({ kind: 'mash', d: '签到手酸了！5 秒内疯狂签名（狂点），签得越多越好。' }),
+    r => W_('签售结束，你在 Bubble 草稿里先写一句想对今天来的人说的话。', '一句话'),
+    r => ({ kind: 'trivia', d: '有粉丝出题考你：「关于你自己的事，答对有奖励！」' }),
+    r => C('排队的粉丝里有一位小朋友，妈妈说 TA 是你最小的粉丝。', [['蹲下来平视 TA 聊天', .55, 1], ['送 TA 一张签名小卡', .45, .9], ['和 TA 一起比猫爪', .45, 1]])
   ],
   物料: [
     r => ({ kind: 'photo', d: `${r.title}拍完了，摄影师让你从样片里挑 2 张 A-cut。` }),
-    r => ({ kind: 'choice', d: '今天拍摄的概念，造型团队给了三张氛围图。', opts: [['梦幻粉蓝色调', .35, .95], ['黑白胶片质感', .4, 1], ['街头随拍风', .3, .85]] }),
-    r => ({ kind: 'write', d: '编辑的采访问题：「用一句话形容现在的自己？」', ph: '一句话就好' })
+    r => C('今天拍摄的概念，造型团队给了三张氛围图。', [['梦幻粉蓝色调', .35, .95], ['黑白胶片质感', .4, 1], ['街头随拍风', .3, .85]]),
+    r => W_('编辑的采访问题：「用一句话形容现在的自己？」', '一句话就好'),
+    r => ({ kind: 'timing', d: '摄影师：「最好的那一下给我！」光标到正中间时点「定格」。' }),
+    r => C('拍摄时风特别大，头发一直乱飞。', [['顺势拍一组「风中」概念', .3, 1], ['请工作人员挡风', .4, .8], ['扎起来换个造型', .35, .85]]),
+    r => ({ kind: 'seq', d: '摄影师连续喊了一串 pose 指令，记住顺序一口气摆完！', n: 5 }),
+    r => M([['休息时，造型师问你想不想试试大胆一点的妆。', [['试试！', .3, 1], ['还是保持清新', .45, .85], ['只改眼妆', .4, .9]]], ['拍完一组，摄影师说「表情还可以更放松」。', [['想点开心的事', .45, .9], ['和摄影师聊天放松', .5, .95], ['深呼吸重新来', .4, .85]]]]),
+    r => C('拍摄道具里有一只真的小猫，但它一直不配合。', [['蹲下来先跟它玩', .45, 1], ['用逗猫棒引导', .4, .9], ['让小猫自由发挥，跟着它拍', .3, 1]])
   ],
   公演: [
-    r => ({ kind: 'song', d: '今天的压轴曲放哪首？' }),
-    r => ({ kind: 'choice', d: '演出到一半音响突然出了问题，台下有点骚动。', opts: [['清唱继续', .3, 1], ['和观众聊天等修好', .4, .9], ['带大家一起打拍子', .45, .95]] }),
-    r => ({ kind: 'write', d: '想对台下观众说的一句话：', ph: '互动台词' })
+    r => ({ kind: 'order', d: '排今天的歌单：按你想唱的顺序依次点歌（最后一首是压轴）。' }),
+    r => C('演出到一半音响突然出了问题，台下有点骚动。', [['清唱继续', .3, 1], ['和观众聊天等修好', .4, .9], ['带大家一起打拍子', .45, .95]]),
+    r => W_('想对台下观众说的一句话：', '互动台词'),
+    r => ({ kind: 'mash', d: '最后一首前，带观众一起喊！5 秒内狂点，点得越多现场越嗨。' }),
+    r => C('下雨了，主办方问要不要缩短演出。', [['照常演完，和观众一起淋雨', .3, 1], ['缩短但加一首安可', .4, .85], ['听主办方安排', .35, .7]])
   ],
   活动: [
-    r => ({ kind: 'choice', d: `${r.title}，品牌方希望整体风格「自然、有亲和力」，你选哪套？`, opts: [['白衬衫牛仔裤', .45, .9], ['品牌新款全套', .4, 1], ['自己的私服', .2, .95]] }),
-    r => ({ kind: 'write', d: '主持人请你说一句宣传语：', ph: '一句话' }),
-    r => ({ kind: 'choice', d: '现场有粉丝举着你的应援手幅，但主办方说不能互动太久。', opts: [['快速比心回应', .45, .95], ['走过去打招呼', .2, 1], ['装作没看到', .05, .5]] })
+    r => C(`${r.title}，品牌方希望整体风格「自然、有亲和力」，你选哪套？`, [['白衬衫牛仔裤', .45, .9], ['品牌新款全套', .4, 1], ['自己的私服', .2, .95]]),
+    r => W_('主持人请你说一句宣传语：', '一句话'),
+    r => C('现场有粉丝举着你的应援手幅，但主办方说不能互动太久。', [['快速比心回应', .45, .95], ['走过去打招呼', .2, 1], ['装作没看到', .05, .5]]),
+    r => ({ kind: 'timing', d: '媒体拍照环节：闪光灯亮起，在光标正中时点「定格」摆好 pose。' }),
+    r => C('活动结束后，品牌方邀请你留下来吃饭。', [['留下，和品牌方好好聊聊', .45, .95], ['礼貌拒绝，说还有行程', .35, .75], ['带上经纪人一起去', .4, .85]]),
+    r => M([['现场主持人临时请你和观众玩个小游戏。', [['爽快答应', .45, 1], ['拉主持人一起', .4, .9], ['不太擅长，推辞一下', .15, .6]]], ['游戏里你赢了，奖品是品牌的新品。', [['当场送给台下粉丝', .5, 1], ['拿着拍照宣传', .45, .9], ['谢谢后收下', .3, .7]]]]),
+    r => ({ kind: 'reaction', d: '红毯快门声此起彼伏，摄影师喊你名字的瞬间（灯变绿）立刻看向他！' })
   ],
   演唱会: [
-    r => ({ kind: 'song', d: '安可曲选哪首？' }),
-    r => ({ kind: 'write', d: '演唱会最后的感言：', ph: '想对来的每一个人说的话' }),
-    r => ({ kind: 'rhythm', d: '最后一首前的彩排确认：跟着节拍点「拍」。' })
+    r => ({ kind: 'order', d: '演唱会歌单：按顺序依次点歌，最后一首是安可。' }),
+    r => W_('演唱会最后的感言：', '想对来的每一个人说的话'),
+    r => ({ kind: 'rhythm', d: '最后一首前的彩排确认：跟着节拍点「拍」。' }),
+    r => ({ kind: 'mash', d: '安可！安可！5 秒内狂点回应观众的应援声。' }),
+    r => C('演唱会中途，升降台卡住了。', [['走下来继续唱', .4, 1], ['借机和观众聊天', .45, .95], ['等工作人员修好', .2, .6]]),
+    r => M([['VCR 时间你在后台换装，只剩 90 秒。', [['先换衣服再补妆', .45, .9], ['边换边补妆', .3, 1], ['让造型师全权处理', .4, .85]]], ['回到舞台，你看到台下有人举着「第一次来看你」的手幅。', [['唱完后对 TA 比心', .5, 1], ['把这首歌送给 TA', .45, 1], ['记在心里，最后感言提到', .4, .9]]]])
   ]
 };
 TG_EVENTS.校庆 = TG_EVENTS.公演;
+// 特定行程的专属玩法（标题匹配到时优先抽）
+const TG_SPECIAL = [
+  [/Music Bank|音乐中心|人气歌谣|M Countdown|THE SHOW|Show Champion/, r => M([['一位候补公布前，你和其他候补站在台上等结果。', [['握紧双手祈祷', .4, .85], ['和旁边的候补互相打气', .5, .95], ['看向台下的粉丝', .45, 1]]], [`主持人念到了名字……${Math.random() < .5 ? '不是你。' : '是你！'}`, [['不管结果都鞠躬感谢粉丝', .55, 1], ['忍不住哭了出来', .3, 1], ['笑着给对方鼓掌', .45, .9]]]])],
+  [/事前录制/, r => C('事前录制已经录了三遍，PD 问要不要再来一遍。', [['再来！争取最完美', .4, 1], ['现在这版就很好', .35, .8], ['问粉丝们想不想再看', .5, .95]])],
+  [/Showcase|showcase/, r => W_('回归 Showcase 的记者 Q&A：「这次回归最想展现给大家什么？」', '你的回答会出现在新闻稿里')],
+  [/一位安可/, r => W_('拿到一位了！安可直拍前，写下你的一位感言。', '想感谢的人、想说的话')],
+  [/Running Man/, r => ({ kind: 'reaction', d: 'Running Man 撕名牌！有人从背后靠近，灯一变绿立刻转身！' })],
+  [/认识的哥哥/, r => ({ kind: 'trivia', d: '《认识的哥哥》转学生问答：「猜猜关于我的事！」' })],
+  [/Radio Star/, r => C('MC 追问你练习生时期的黑历史。', [['大方爆料一个糗事', .3, 1], ['巧妙转移话题', .4, .8], ['反问 MC 的黑历史', .25, 1]])],
+  [/我独自生活/, r => ({ kind: 'order', d: '《我独自生活》要拍你的一天：按真实顺序排好你的日常。', items: ['起床', '和猫打招呼', '洗漱护肤', '吃早餐', '去练习室', '回宿舍', '睡前看泡泡'] })],
+  [/周刊偶像/, r => ({ kind: 'reaction', d: '《周刊偶像》随机舞蹈！音乐一响（灯变绿）立刻接上动作！' })],
+  [/Workman/, r => C('《Workman》今天的打工体验是在咖啡店做店员。', [['认真学做拉花', .45, .95], ['和客人尬聊', .3, 1], ['偷吃店里的面包被抓', .2, 1]])],
+  [/Salon Drip/, r => W_('《Salon Drip》主持人问了一个刁钻的问题：「你觉得自己哪里最不像爱豆？」', '大胆回答吧')],
+  [/Pinggyego|짠한형/, r => C('聊天节目里，对方突然问起你最近的烦恼。', [['真诚地说出来', .45, 1], ['开玩笑带过', .3, .8], ['反问对方', .25, .85]])],
+  [/After School Club|Pops in Seoul/, r => ({ kind: 'quiz', d: '全英文节目！看懂这些英文单词吗？', lang: 'en' })],
+  [/Idol Radio/, r => C('《Idol Radio》粉丝连线点歌，点的是你最难唱的那首。', [['硬着头皮唱', .3, 1], ['改成抒情版本', .4, .9], ['拜托 DJ 一起合唱', .45, .85]])],
+  [/可视直播|NOW/, r => ({ kind: 'timing', d: '可视电台的镜头一直对着你！光标正中时点一下，对镜头比心。' })],
+  [/视频通话/, r => M([['视频签售第一位粉丝：「可以叫我老婆吗？」', [['叫！', .4, 1], ['笑着说「老公～」反击', .35, 1], ['害羞地捂脸', .45, .9]]], ['第二位粉丝：「可以学猫叫吗？」', [['喵～', .5, 1], ['用韩语喵', .4, .95], ['让家里的猫代替', .3, .9]]], ['第三位粉丝哭了：「今天是我的生日」', [['唱生日快乐歌', .55, 1], ['让 TA 许愿', .45, .9], ['约定明年还要一起过', .5, .95]]]])],
+  [/粉丝见面会|生日见面会/, r => ({ kind: 'order', d: '安排见面会的流程顺序：依次点选。', items: ['开场舞台', '游戏环节', '粉丝问答', '惊喜视频', '合唱', '结尾感言'] })],
+  [/MV 拍摄/, r => ({ kind: 'timing', d: 'MV 一镜到底的关键镜头！光标到正中间时点「定格」，错过就要重拍。' })],
+  [/封面|预告照/, r => C('专辑封面要选一个主视觉道具。', [['一只真的小猫', .3, 1], ['旧式电台收音机', .4, .9], ['满地的星星灯', .45, .95]])],
+  [/Dance Practice|舞蹈挑战|Relay Dance|Studio Choom/, r => ({ kind: 'seq', d: '一镜到底的舞蹈！记住动作顺序，一次跳完。', n: 6 })],
+  [/Killing Voice|It's Live/, r => ({ kind: 'order', d: '排《Killing Voice》式的歌单：依次点歌，顺序越顺耳越好。' })],
+  [/广告/, r => W_('广告拍摄：导演让你自己想一句产品台词。', '一句广告词')],
+  [/Vlog/, r => W_('Vlog 的结尾需要你说一段旁白。', '对镜头说的话')],
+  [/采访/, r => W_('采访问题：「出道一年，最想对一年前的自己说什么？」', '你的回答')],
+  [/校庆|AKARAKA|入实典|大东祭|庆典/, r => ({ kind: 'mash', d: '校庆的学生们太热情了！5 秒内狂点，跟着全场一起嗨！' })],
+  [/KCON|海外|巡演/, r => ({ kind: 'quiz', d: '海外舞台的开场问候，看懂这些英文吗？', lang: 'en' })],
+  [/Busking|路演/, r => C('路演时围观的人越来越多，有个小朋友想跟你一起跳。', [['拉 TA 上来一起跳', .45, 1], ['送 TA 一张小卡', .4, .85], ['跳完再合照', .4, .9]])],
+  [/Waterbomb/, r => ({ kind: 'mash', d: 'Waterbomb！5 秒内狂点水枪，向全场开火！' })],
+  [/开球/, r => ({ kind: 'timing', d: '棒球开球仪式！光标到正中间时点「投球」，投得越准越好。' })],
+  [/机场/, r => C('机场里突然涌来好多粉丝和站姐。', [['边走边挥手', .45, .9], ['停下来合照几张', .3, .95], ['戴好口罩低调通过', .3, .7]])],
+  [/时装周|秀场/, r => ({ kind: 'timing', d: '时装周红毯！走到定点时光标正中点「定格」摆 pose。' })],
+  [/试映|观演/, r => W_('试映会后，记者请你说一句观后感。', '一句话')],
+  [/公益/, r => C('公益活动现场，有位老人家拉着你的手聊了很久。', [['耐心陪着聊完', .55, 1], ['拍张合照留念', .4, .85], ['留下联系方式下次再来', .45, .9]])]
+];
 const TG_PEN_FREE = ['上课', '打歌']; // 这两种旷掉不罚款，只是没效果
 // 旷工罚款按活动重要性：[匹配标题, 罚款, 掉粉倍数]
 const TG_FINE = {
@@ -2201,14 +2297,30 @@ const TG_FINE = {
 };
 function tgFine(r) { const row = (TG_FINE[r.cat] || []).find(x => x[0].test(r.title)) || [null, 500000, 1]; return { fine: row[1], fm: row[2] }; }
 function tgState() { return S.tg || (S.tg = { start: dkey(Date.now()), cards: {} }); }
+function tgTrivia() {
+  const p = S.profile, deb = p.debut || '2025-09-01', bd = p.birth || '2007-08-29', first = disco().slice().sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
+  const qs = [
+    { w: '我的出道日是哪天？', m: deb, opts: pickN([deb, addDays(deb, 14), addDays(deb, -30), addDays(deb, 61)], 4) },
+    { w: '我的粉丝名是？', m: p.fandom, opts: pickN([p.fandom, 'Cyanie', 'Meowmate', '小猫团'].filter((x, i, a) => a.indexOf(x) === i), 4) },
+    { w: '我的生日是几月几号？', m: bd.slice(5).replace('-', '月') + '日', opts: pickN([bd.slice(5), addDays(bd, 3).slice(5), addDays(bd, -40).slice(5), addDays(bd, 100).slice(5)].map(x => x.replace('-', '月') + '日'), 4) },
+    { w: '我的动物塑是？', m: p.animal, opts: pickN([p.animal, '狐狸', '兔子', '小狗'].filter((x, i, a) => a.indexOf(x) === i), 4) },
+    { w: '我所属的公司是？', m: p.company || 'STARSHIP', opts: pickN([p.company || 'STARSHIP', 'JYP', 'SM', 'HYBE'], 4) }
+  ];
+  if (first) qs.push({ w: '我的第一首歌是？', m: albTitle(first), opts: pickN([albTitle(first), '星期五晚上', 'Blue Hour', '橘子汽水'], 4) });
+  return pickN(qs, 3);
+}
 function tgCard(k, r) {
   const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
   const evs = TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
-  const rr = srng('tg' + key), ev = evs[Math.floor(rr() * evs.length)](r);
+  const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
+  const ev = sp.length && rr() < .7 ? sp[Math.floor(rr() * sp.length)][1](r) : evs[Math.floor(rr() * evs.length)](r);
   if (ev.kind === 'photo') ev.photos = pickN(PHOTO, 6);
-  if (ev.kind === 'quiz') { const W = { ko: KO_W, en: EN_W, ja: JA_W }[ev.lang]; ev.qs = pickN(W, 3).map(([w, m]) => ({ w, m, opts: pickN([m, ...pickN(W.filter(x => x[1] !== m), 3).map(x => x[1])], 4) })); }
+  if (ev.kind === 'quiz') { const W = ev.lang === 'en' ? EN_W : KO_W; ev.qs = pickN(W, 3).map(([w, m]) => ({ w, m, opts: pickN([m, ...pickN(W.filter(x => x[1] !== m), 3).map(x => x[1])], 4) })); }
+  if (ev.kind === 'trivia') ev.qs = tgTrivia();
   if (ev.kind === 'memory') { const syms = pickN(['🐱', '💙', '🌙', '🍓', '⭐', '🎧'], 3); ev.deck = pickN([...syms, ...syms], 6); }
   if (ev.kind === 'song') { const tk = []; for (const a of disco()) for (const t of a.tracks) tk.push([t.name, t.title]); ev.songs = tk.length ? pickN(tk, Math.min(4, tk.length)) : [['翻唱一首别人的歌', false]]; }
+  if (ev.kind === 'order' && !ev.items) { const T2 = salesTargets(k).trk, tk = Object.entries(T2).sort((a, b) => b[1] - a[1]).map(x => x[0].split('|').slice(1).join('|')); ev.items = pickN(tk.slice(0, 6), Math.min(5, tk.length)); ev.top = tk.slice(0, 2); ev.songsOrder = true; if (ev.items.length < 2) ev.items = ['开场曲（翻唱）', '你的歌', '互动环节', '安可']; }
+  if (ev.kind === 'seq') ev.seqv = Array.from({ length: ev.n || 5 }, () => pick(['⬆️', '⬇️', '⬅️', '➡️']));
   return T.cards[key] = { key, cat: r.cat, title: r.title, ...ev, done: false };
 }
 function tgToday() { const k = dkey(Date.now()); return rulesFor(k).map(r => tgCard(k, r)).filter(Boolean); }
@@ -2226,7 +2338,14 @@ function tgCardHTML(key) {
   else if (c.kind === 'write') body = `<textarea id="tg-in" placeholder="${esc(c.ph || '')}" style="min-height:90px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgwrite">完成</button></div>`;
   else if (c.kind === 'hours') body = [[1, '1 小时'], [2, '2 小时'], [3, '3 小时（体能不够可能受伤）']].map(([h, t]) => `<button class="hot-opt" data-act="tghours" data-h="${h}">${t}</button>`).join('');
   else if (c.kind === 'song') body = c.songs.map(([n, t], j) => `<button class="hot-opt" data-act="tgsong" data-j="${j}">${esc(n)}${t ? ' <span class="alb-star">主打</span>' : ''}</button>`).join('');
-  else if (c.kind === 'quiz') body = `<div id="tg-quiz">${c.qs.map((q, i) => `<div class="tg-qz"><b>${i + 1}. ${esc(q.w)}</b><div class="pcats" style="margin-top:6px">${q.opts.map(o => `<button class="pcat" data-act="tgq" data-i="${i}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`).join('')}</div><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgqdone">交卷</button></div>`;
+  else if (c.kind === 'multi') { const st = c.steps[c.si || 0]; body = `${c.si ? `<div class="tg-d" style="margin-bottom:8px">${esc(st[0])}</div>` : ''}${st[1].map((o, j) => `<button class="hot-opt" data-act="tgmulti" data-j="${j}">${esc(o[0])}</button>`).join('')}<div class="muted" style="font-size:12px">${(c.si || 0) + 1} / ${c.steps.length}</div>`; }
+  else if (c.kind === 'timing') body = `<div class="tg-tm"><div class="tg-tm-bar"><i class="tg-tm-z"></i><i class="tg-tm-c" id="tg-tm-c"></i></div><button class="btn primary" id="tg-tm-btn" data-act="tgtime" style="min-width:140px">开始</button></div>`;
+  else if (c.kind === 'reaction') body = `<div class="tg-rx"><button id="tg-rx" class="tg-rx-btn" data-act="tgreact">点这里开始</button><div class="muted" style="font-size:12.5px;text-align:center" id="tg-rx-s">一共 3 次，灯变绿再点，太早会扣分</div></div>`;
+  else if (c.kind === 'mash') body = `<div class="tg-rx"><button id="tg-mash" class="tg-rx-btn" data-act="tgmash">开始</button><div class="muted" style="font-size:12.5px;text-align:center" id="tg-mash-s">点一下开始，5 秒内越多越好</div></div>`;
+  else if (c.kind === 'hold') body = `<div class="tg-rx"><button id="tg-hold" class="tg-rx-btn">按住</button><div class="muted" style="font-size:12.5px;text-align:center" id="tg-hold-s">按住，心里数 4 秒再松开</div></div>`;
+  else if (c.kind === 'seq') body = `<div class="tg-seq" id="tg-seq-show">准备…</div><div class="tg-seq-pad">${['⬆️', '⬅️', '➡️', '⬇️'].map(a => `<button data-act="tgseq" data-a="${a}" disabled>${a}</button>`).join('')}</div><div class="row" style="margin-top:8px"><span class="muted" id="tg-seq-s" style="flex:1;font-size:12.5px"></span><button class="btn primary sm" data-act="tgseqgo">开始看</button></div>`;
+  else if (c.kind === 'order') body = `<div class="tg-ord">${c.items.map((x, j) => `<button data-act="tgord" data-j="${j}">${esc(x)}</button>`).join('')}</div><div class="muted" id="tg-ord-s" style="margin-top:8px;font-size:13px">按顺序依次点</div><div class="row" style="margin-top:6px"><button class="link" data-act="tgordreset">重排</button><span class="sp"></span></div>`;
+  else if (c.kind === 'quiz' || c.kind === 'trivia') body = `<div id="tg-quiz">${c.qs.map((q, i) => `<div class="tg-qz"><b>${i + 1}. ${esc(q.w)}</b><div class="pcats" style="margin-top:6px">${q.opts.map(o => `<button class="pcat" data-act="tgq" data-i="${i}" data-o="${esc(o)}">${esc(o)}</button>`).join('')}</div></div>`).join('')}</div><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgqdone">交卷</button></div>`;
   else if (c.kind === 'photo') body = `<div class="tg-ph">${c.photos.map(([n], j) => `<button data-act="tgph" data-j="${j}">📷<span>${esc(n)}</span></button>`).join('')}</div><div class="row" style="margin-top:8px"><span class="muted" style="flex:1;font-size:12.5px">选 2 张</span><button class="btn primary" data-act="tgphdone">就这两张</button></div>`;
   else if (c.kind === 'memory') body = `<div class="tg-mem">${c.deck.map((s, j) => `<button data-act="tgmem" data-j="${j}"></button>`).join('')}</div><div class="muted" style="font-size:12.5px;margin-top:6px" id="tg-mem-s">步数 0</div>`;
   else if (c.kind === 'rhythm') body = `<div class="tg-rh"><div id="tg-beat" class="tg-beat"></div><button class="btn primary" id="tg-rh-btn" data-act="tgrh">开始</button></div><div class="muted" style="font-size:12.5px;text-align:center" id="tg-rh-s">点开始后，圆圈亮起时点「拍」</div>`;
@@ -2262,6 +2381,55 @@ function tgMem(j) {
     else setTimeout(() => { els[a].textContent = ''; els[b].textContent = ''; els[a].classList.remove('on'); els[b].classList.remove('on'); G.open = []; }, 650);
   }
 }
+
+// —— 更多小游戏 ——
+function tgTiming() {
+  const btn = $('#tg-tm-btn'), cur = $('#tg-tm-c');
+  if (TGG && TGG.kind === 'tm') { const pos = TGG.pos; TGG.stop = true; TGG = null; const sc = clamp(1 - Math.abs(pos - .5) * 2.2, 0, 1); btn.disabled = true; setTimeout(() => tgFinish(sc, `定格位置偏差 ${Math.round(Math.abs(pos - .5) * 200)}%`), 300); return; }
+  const G = TGG = { kind: 'tm', t0: performance.now(), pos: 0 }; btn.textContent = '定格';
+  const per = 1300 - skills().face * 4;
+  const step = () => { if (G.stop || TGG !== G) return; const t = (performance.now() - G.t0) % (per * 2) / per; G.pos = t < 1 ? t : 2 - t; cur.style.left = (G.pos * 100) + '%'; requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function tgReact() {
+  const b = $('#tg-rx'), st = $('#tg-rx-s');
+  if (!TGG || TGG.kind !== 'rx') TGG = { kind: 'rx', round: 0, times: [], state: 'idle' };
+  const G = TGG;
+  if (G.state === 'wait') { clearTimeout(G.to); G.times.push(900); G.state = 'idle'; b.className = 'tg-rx-btn bad'; b.textContent = '太早了！点一下继续'; return; }
+  if (G.state === 'go') { G.times.push(performance.now() - G.t); G.state = 'idle'; b.className = 'tg-rx-btn'; b.textContent = `${Math.round(G.times[G.times.length - 1])} ms · 点一下继续`; if (G.times.length >= 3) { const avg = G.times.reduce((a, x) => a + x, 0) / 3, sc = clamp(1 - (avg - 260) / 450, 0, 1); TGG = null; setTimeout(() => tgFinish(sc, `平均反应 ${Math.round(avg)} ms`), 500); } return; }
+  G.state = 'wait'; b.className = 'tg-rx-btn wait'; b.textContent = '等灯变绿…'; st.textContent = `第 ${G.times.length + 1} / 3 次`;
+  G.to = setTimeout(() => { G.state = 'go'; G.t = performance.now(); b.className = 'tg-rx-btn go'; b.textContent = '点！'; }, rand(900, 2600));
+}
+function tgMash() {
+  const b = $('#tg-mash'), st = $('#tg-mash-s');
+  if (TGG && TGG.kind === 'mash') { if (TGG.on) { TGG.n++; b.textContent = TGG.n; } return; }
+  const G = TGG = { kind: 'mash', n: 0, on: true }; b.textContent = '0'; b.classList.add('go');
+  let left = 5; st.textContent = `剩 ${left} 秒`;
+  const iv = setInterval(() => { left--; st.textContent = `剩 ${left} 秒`; if (left <= 0) { clearInterval(iv); G.on = false; const sc = clamp(G.n / (28 + skills().stamina / 5), 0, 1); TGG = null; b.classList.remove('go'); setTimeout(() => tgFinish(sc, `5 秒点了 ${G.n} 下`), 300); } }, 1000);
+}
+function tgSeqGo() {
+  const c = tgState().cards[UI.tgKey], show = $('#tg-seq-show'); TGG = { kind: 'seq', i: 0, ok: 0, input: false };
+  let i = 0; $$('.tg-seq-pad button').forEach(b => b.disabled = true);
+  const iv = setInterval(() => { if (i < c.seqv.length) { show.textContent = c.seqv[i]; show.classList.remove('pop'); void show.offsetWidth; show.classList.add('pop'); i++; } else { clearInterval(iv); show.textContent = '轮到你了！'; TGG.input = true; $$('.tg-seq-pad button').forEach(b => b.disabled = false); $('#tg-seq-s').textContent = `0 / ${c.seqv.length}`; } }, 700 - skills().dance * 2);
+}
+function tgSeq(a) {
+  const c = tgState().cards[UI.tgKey], G = TGG; if (!G || G.kind !== 'seq' || !G.input) return;
+  if (c.seqv[G.i] === a) G.ok++; G.i++; $('#tg-seq-s').textContent = `${G.i} / ${c.seqv.length}`;
+  if (G.i >= c.seqv.length) { const sc = G.ok / c.seqv.length; TGG = null; setTimeout(() => tgFinish(sc, `记对 ${G.ok} / ${c.seqv.length} 个动作`), 300); }
+}
+function tgOrd(j) {
+  const c = tgState().cards[UI.tgKey], O = UI.tgOrd || (UI.tgOrd = []); if (O.includes(j)) return;
+  O.push(j); const btns = $$('.tg-ord button'); btns[j].classList.add('on'); btns[j].dataset.n = O.length;
+  $('#tg-ord-s').textContent = O.map(i => c.items[i]).join(' → ');
+  if (O.length === c.items.length) {
+    let sc;
+    if (c.songsOrder) { const seq = O.map(i => c.items[i]); sc = .3 + (seq[seq.length - 1] === c.top[0] ? .45 : c.top.includes(seq[seq.length - 1]) ? .25 : 0) + (c.top.includes(seq[0]) ? .25 : 0) + rand(-.1, .1); }
+    else { let good = 0, tot = 0; for (let a = 0; a < O.length; a++) for (let b = a + 1; b < O.length; b++) { tot++; if (O[a] < O[b]) good++; } sc = good / tot; }
+    UI.tgOrd = []; setTimeout(() => tgFinish(sc, O.map(i => c.items[i]).join(' → ')), 400);
+  }
+}
+document.addEventListener('pointerdown', e => { if (e.target.id === 'tg-hold') { e.preventDefault(); TGG = { kind: 'hold', t: performance.now() }; e.target.classList.add('go'); e.target.textContent = '数到 4…'; } });
+document.addEventListener('pointerup', e => { if (TGG && TGG.kind === 'hold') { const d = performance.now() - TGG.t, b = $('#tg-hold'); TGG = null; if (b) { b.classList.remove('go'); b.textContent = (d / 1000).toFixed(2) + ' 秒'; } const sc = clamp(1 - Math.abs(d - 4000) / 2000, 0, 1); setTimeout(() => tgFinish(sc, `按了 ${(d / 1000).toFixed(2)} 秒`), 500); } });
 function updTgBadge() { const n = tgToday().filter(c => !c.done).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
 // 结算：行程结束 + 通告完成 → 结果卡片；当天没做完 → 旷工
 function tgSettle(k, r, key, today) {
@@ -4074,7 +4242,7 @@ document.addEventListener('click', async e => {
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
     case 'tglist': UI.tgKey = null; TGG = null; openModal(tgListHTML()); break;
-    case 'tgopen': UI.tgKey = t.dataset.k; UI.tgPh = []; TGG = null; openModal(tgCardHTML(t.dataset.k)); break;
+    case 'tgopen': UI.tgKey = t.dataset.k; UI.tgPh = []; UI.tgOrd = []; TGG = null; openModal(tgCardHTML(t.dataset.k)); break;
     case 'tgpick': { const c = tgState().cards[UI.tgKey], o = c.opts[+t.dataset.j]; tgFinish(rand(o[1], o[2]), o[0]); break; }
     case 'tgwrite': { const v = ($('#tg-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .25 : n < 10 ? .5 : n <= 100 ? .75 : .6; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; tgFinish(sc + rand(-.15, .2), v); break; }
     case 'tghours': { const c = tgState().cards[UI.tgKey], h = +t.dataset.h; c.hours = h; c.hurt = h === 3 && skills().stamina < 55 && Math.random() < .3; tgFinish({ 1: .5, 2: .7, 3: .9 }[h], `练 ${h} 小时`); break; }
@@ -4084,6 +4252,14 @@ document.addEventListener('click', async e => {
     case 'tgph': { const j = +t.dataset.j, P = UI.tgPh || (UI.tgPh = []); if (P.includes(j)) P.splice(P.indexOf(j), 1); else { if (P.length >= 2) P.shift(); P.push(j); } $$('.tg-ph button').forEach((b, i) => b.classList.toggle('on', P.includes(i))); break; }
     case 'tgphdone': { const c = tgState().cards[UI.tgKey], P = UI.tgPh || []; if (P.length < 2) { toast('选 2 张'); break; } const ps = P.map(i => c.photos[i]); tgFinish(ps.reduce((a, x) => a + x[1], 0) / 2, ps.map(x => x[0]).join(' + ')); break; }
     case 'tgmem': tgMem(+t.dataset.j); break;
+    case 'tgmulti': { const c = tgState().cards[UI.tgKey], si = c.si || 0, o = c.steps[si][1][+t.dataset.j]; (c.ms || (c.ms = [])).push(rand(o[1], o[2])); (c.mp || (c.mp = [])).push(o[0]); if (si + 1 < c.steps.length) { c.si = si + 1; openModal(tgCardHTML(c.key)); } else tgFinish(c.ms.reduce((a, b) => a + b, 0) / c.ms.length, c.mp.join(' / ')); break; }
+    case 'tgtime': tgTiming(); break;
+    case 'tgreact': tgReact(); break;
+    case 'tgmash': tgMash(); break;
+    case 'tgseqgo': t.disabled = true; tgSeqGo(); break;
+    case 'tgseq': tgSeq(t.dataset.a); break;
+    case 'tgord': tgOrd(+t.dataset.j); break;
+    case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
     case 'ofok': { const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
