@@ -172,11 +172,6 @@ body.typing .bb-tick.bb-tick2{display:block}
 .mv-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 .mv-bars i{display:block;width:70%;background:#e5484d;border-radius:3px 3px 0 0;opacity:.8}
 .mv-bars span{font-size:10.5px;color:var(--muted);margin-top:2px}
-.rec-go{display:block;width:fit-content;margin-top:6px;border:0;background:var(--accent);color:#fff;border-radius:10px;padding:6px 12px;font-size:13px;font-weight:600}
-.rec-done{display:block;margin-top:4px;font-size:12px;color:var(--accent)}
-.rec-q{font-size:15.5px;line-height:1.6;margin-bottom:10px}
-.rec-grade{font-size:56px;font-weight:900;line-height:1.1;margin-bottom:4px}
-.rec-grade.gS{color:#e5a100}.rec-grade.gA{color:var(--accent)}.rec-grade.gB{color:#6b7280}.rec-grade.gC{color:#9ca3af}
 .m-tabs{margin:8px 0 4px;flex-wrap:wrap}
 .ch-top{display:flex;align-items:center;gap:8px;padding:8px 6px;border-top:1px solid var(--line);font-size:14px;cursor:pointer;border-radius:8px}
 .ch-top.on{background:var(--bg)}
@@ -812,6 +807,7 @@ function aiNews() {
 function aiSystem() {
   const p = S.profile;
   return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
+在这个世界里，她的歌和专辑都是她自己的原创作品：就算歌名或专辑名和现实中其他歌手的作品一样，也当作那些作品不存在，不要提到原唱或其他歌手。
 偶像资料：艺名 ${p.name}，${p.company || 'STARSHIP'}（星船娱乐）旗下 solo 女歌手（同公司有 IVE、CRAVITY、KiiiKiii），${ageOf()} 岁（生日 ${p.birth || '2007-08-29'}），${(p.trainee || '2022-10').replace('-', ' 年 ')} 月成为练习生，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
 粉丝群体设定：${p.fanRules || '（无）'}
 世琳（韩文 세림）是她的好朋友（对外对内都是朋友关系）：她一提到世琳，粉丝反应热烈：一部分嗑两人的友情（羡慕、守护友谊、想看同框、问候世琳），一部分开玩笑嗑 CP（起哄、发糖），少数提醒别乱捆绑。不要说她们在恋爱。
@@ -1048,9 +1044,8 @@ function schedFans() {
     const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
     if (r.createdAt && endAt < r.createdAt) continue; // 事后补录的行程不算
     if (!g) { walletSchedFee(r); continue; } // 上课：只有课时费
-    const perf = (S.schedule.perf || {})[key], pm = perf ? { S: 1.5, A: 1.2, B: 1, C: .8 }[perf.grade] : 1;
-    const n = Math.round(rand(g[0], g[1]) * folRatio() * heat() * pm);
-    addFans(n, '行程：' + r.title); walletSchedFee(r, perf ? perf.mult : 1);
+    const n = Math.round(rand(g[0], g[1]) * folRatio() * heat());
+    addFans(n, '行程：' + r.title); walletSchedFee(r);
     F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
     pushNotif({ type: 'sched', text: `「${r.title}」结束，涨粉 +${n}`, sub: pick(['路人被圈粉了！', '直拍在网上小火了一把', '新粉丝涌进社区打招呼', '有人剪了你的高光片段']) }, false);
   }
@@ -1265,18 +1260,6 @@ const HOT_EVENTS = [
       { t: '和粉丝聊聊这首歌', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这首歌' }, r: [[.6, .004, .012, '粉丝更喜欢这首了'], [.4, 0, .004, '没什么后续']] },
       { t: '继续打歌', r: [[.5, .003, .01, '舞台自己慢慢火了'], [.5, 0, .004, '热度平平']] }] }
 ];
-HOT_EVENTS.push(
-  { id: 'radioclip', min: 0, w: 0, au: ['电台切片站', '切片博主'], title: '{name} {e}', body: '「{e}」里 {name} 说的「{q}」被切了出来，听众都在转 [视频]',
-    talk: ['「{q}」这句好戳', '电台的{n}好温柔', '这段我循环了', '去听完整版了'],
-    opts: [{ t: '在泡泡里聊聊那天', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊那天的电台' }, r: [[.6, .005, .015, '粉丝把切片又转了一轮'], [.4, .001, .006, '粉丝很开心']] },
-      { t: '发帖谢谢 DJ 和听众', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .006, .018, '电台官方也转发了'], [.4, .001, .006, '热度平稳']] },
-      { t: '不回应', r: [[1, .002, .01, '切片自己慢慢传开']] }] },
-  { id: 'varietyclip', min: 0, w: 0, big: 1, au: ['综艺切片bot', '综艺博主'], title: '{name} {e}', body: '「{e}」里 {name} 说「{q}」那一段被单独剪了出来，评论区笑疯了 [视频]',
-    talk: ['「{q}」哈哈哈哈', '这段我能看一百遍', '综艺感好强', '去补全集了'],
-    opts: [{ t: '发帖接这个梗', task: { where: 'post', need: 'any', hint: '在社区发帖' }, r: [[.6, .012, .03, '粉丝和路人一起玩梗'], [.4, .003, .01, '老粉狂喜']] },
-      { t: '在泡泡里聊聊录制', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊录制' }, r: [[.6, .005, .015, '泡泡截图被转出去了'], [.4, 0, .005, '粉丝很开心']] },
-      { t: '不回应', r: [[.6, .003, .012, '片段自己还在传'], [.4, 0, .004, '话题很快就过去了']] }] }
-);
 const HOT_NONE = [[.5, -.004, .004, '你没有回应，话题慢慢过去了'], [.5, 0, .006, '热度自然消散了']];
 const HOT_PASSER = ['路过，这是谁？', '第一次知道这个人', '有点好看', '关注了', '什么时候出道的', '求介绍', '刷到好几次了', '这个人我有印象', '首页一直推', '感觉挺可爱的'];
 const HOT_HATER = ['也就那样吧', '粉丝别控评了', '这也能上热门？', '买的吧', '没感觉', '新人还是低调点'];
@@ -1355,6 +1338,7 @@ function hotTick() {
   if (!S.profile || !S.posts) return;
   if (!H.next) H.next = now + hotGap() * rand(.3, .7);
   const hr = new Date().getHours();
+  if (H.forced && !HOT_EVENTS.some(e => e.id === H.forced.id)) H.forced = null;
   const forced = H.forced && now >= H.forced.at && !H.cur ? H.forced : null;
   if (!H.cur && ((now >= H.next && hr >= 9) || forced)) {
     if (forced) H.forced = null; else H.next = now + hotGap();
@@ -1723,73 +1707,6 @@ function buzzNow() {
     if (SS.bz.viral > 0) SS.bz.viral--; else if (Math.random() < .015) { SS.bz.viral = ri(3, 7); SS.bz.vm = rand(2, 4); pushNotif({ type: 'cb', text: '📈 你的歌突然开始被大量分享', sub: '不知道哪里来的一波热度，抓住机会！' }, true); }
   }
   return SS.bz.v * (SS.bz.viral > 0 ? SS.bz.vm || 2 : 1);
-}
-/* =========================================================
-   综艺 / 电台录制：行程开始后可以「上节目」，你的表现影响通告费、粉丝和切片
-   ========================================================= */
-const REC_LETTERS = ['我明天要考试了，好紧张，可以给我打打气吗？', '最近和最好的朋友吵架了，不知道要不要先道歉…', '我是上班族，每天加班好累，想听你说一句话', '我养的猫生病了，好难过', '下个月要去面试，第一次面试好怕', '我是高三学生，每天学到凌晨', '今天是我生日！可以对我说生日快乐吗'];
-const REC_SEG = {
-  电台: [
-    () => ({ q: `听众来信：「${pick(REC_LETTERS)}」\nDJ：想对这位听众说点什么？`, input: '说点什么吧…' }),
-    () => { const s = (S.profile.songs || [])[0]; return { q: 'DJ：「可以现场来一小段吗？」', opts: [[s ? `唱自己的歌《${s}》` : '唱自己的歌', .5, 1], ['清唱一段翻唱', .35, 1], ['不好意思，今天嗓子不太舒服', .1, .45]] }; },
-    () => { const [a, b] = pick([['猫', '狗'], ['早起', '熬夜'], ['夏天', '冬天'], ['甜', '咸'], ['舞台', '综艺'], ['奶茶', '咖啡']]); return { q: `快问快答：${a} vs ${b}？`, opts: [[a, .45, .85], [b, .45, .85], ['都喜欢！', .3, .9]] }; },
-    () => ({ q: 'DJ：推荐一首最近在听的歌给听众吧', input: '歌名 + 一句推荐理由' }),
-    () => ({ q: 'DJ：用一句话介绍一下你的新歌 / 你自己？', input: '一句话就好' })
-  ],
-  综艺: [
-    () => ({ q: 'MC：「请展示一下你的个人技！」', opts: [['猫咪模仿', .25, 1], ['现场跳一段', .5, .9], ['挑战高音', .15, 1], ['讲个冷笑话', 0, 1]] }),
-    () => ({ q: `游戏环节：${pick(['抢椅子', '传话游戏', '默契大考验', '你画我猜', '反应力测试', '平衡挑战'])}`, opts: [['全力以赴', .35, .95], ['装傻搞笑', .2, 1], ['默默帮队友', .4, .8]] }),
-    () => ({ q: `真心话：${pick(['练习生时期最辛苦的是什么？', '理想型是什么样的人？', '和世琳是怎么成为好朋友的？', '出道后最大的变化是什么？', '最近一次哭是因为什么？', '如果不当歌手会做什么？', '宿舍生活最不习惯的是什么？'])}`, input: '认真回答或者搞笑回答都行' }),
-    () => ({ q: `你输了！惩罚是${pick(['吃超酸柠檬', '弹额头', '跳可爱舞', '用方言撒娇', '喝苦瓜汁'])}`, opts: [['爽快接受', .45, .95], ['撒娇求饶', .2, 1], ['讨价还价', .1, .8]] }),
-    () => ({ q: 'MC：「最后给观众打个招呼，宣传一下吧！」', input: '宣传一下你的歌或者说句话' })
-  ]
-};
-const REC_ICON = { 电台: '🎙', 综艺: '🎬' };
-function perfState() { return S.schedule.perf || (S.schedule.perf = {}); }
-function recOpenable(r, k) {
-  if (!REC_SEG[r.cat] || perfState()[k + '|' + r.id]) return false;
-  const today = dkey(Date.now()), nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-  return k === today && nowMin >= toMin(r.start) - 30 && nowMin <= toMin(r.end) + 180;
-}
-function recStart(key) {
-  const [k, id] = key.split('|'), r = S.schedule.rules.find(x => x.id === id); if (!r) return;
-  const segs = pickN(REC_SEG[r.cat], 3).map(f => f());
-  UI.rec = { key, title: r.title, cat: r.cat, segs, i: 0, sc: [], quotes: [] };
-  openModal(recHTML());
-}
-function recHTML() {
-  const R = UI.rec;
-  if (R.i >= R.segs.length) {
-    const p = perfState()[R.key];
-    return `<div class="row"><h3 style="flex:1">${REC_ICON[R.cat]} 录制结束</h3><button class="btn ghost sm" data-act="close">完成</button></div>
-      <div class="card" style="text-align:center"><div class="rec-grade g${p.grade}">${p.grade}</div><b>${esc(R.title)}</b><div class="muted" style="margin-top:6px">${{ S: '全场最佳！工作人员都在夸你', A: '表现很好，节目效果不错', B: '中规中矩，顺利完成', C: '有点紧张，下次会更好' }[p.grade]}</div>
-      <div class="muted" style="font-size:12.5px;margin-top:8px">通告费 ×${p.mult} · 节目播出后粉丝会有反应${p.clip ? ' · 有一段可能会被剪出来传开 👀' : ''}</div></div>`;
-  }
-  const s = R.segs[R.i];
-  return `<div class="row"><h3 style="flex:1">${REC_ICON[R.cat]} ${esc(R.title)}</h3><span class="muted">${R.i + 1} / ${R.segs.length}</span></div>
-    <div class="card"><div class="rec-q">${esc(s.q).replace(/\n/g, '<br>')}</div>
-      ${s.opts ? s.opts.map((o, j) => `<button class="hot-opt" data-act="recpick" data-j="${j}">${esc(o[0])}</button>`).join('') : `<textarea id="rec-in" placeholder="${esc(s.input)}" style="min-height:80px;margin-top:8px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="recsay">说完了</button></div>`}
-    </div>`;
-}
-function recStep(score, quote) {
-  const R = UI.rec; R.sc.push(score); if (quote) R.quotes.push(quote); R.i++;
-  if (R.i >= R.segs.length) {
-    const avg = R.sc.reduce((a, b) => a + b, 0) / R.sc.length, grade = avg >= .78 ? 'S' : avg >= .62 ? 'A' : avg >= .42 ? 'B' : 'C';
-    const mult = { S: 1.3, A: 1.1, B: 1, C: .8 }[grade], f = S.profile.followers;
-    const q = R.quotes.filter(x => x.length >= 4 && x.length <= 40);
-    const clip = q.length && Math.random() < { S: .6, A: .3, B: .08, C: 0 }[grade];
-    perfState()[R.key] = { grade, mult, at: Date.now() };
-    if (grade !== 'B') addFans(f * { S: .004, A: .0015, C: -.001 }[grade], `${R.cat}表现`);
-    if (clip) { const H = hotState(); H.forced = { id: R.cat === '电台' ? 'radioclip' : 'varietyclip', e: R.title, q: pick(q), at: Date.now() + rand(2, 8) * 3600e3 }; }
-    logAct('live'); save();
-  }
-  openModal(recHTML());
-}
-function recScoreText(t) {
-  const n = t.replace(/\s/g, '').length; if (!n) return .1;
-  let s = n < 4 ? .25 : n < 10 ? .5 : n <= 80 ? .7 : .55;
-  if (tone(t) === 'neg') s -= .35; if (tone(t) === 'pos') s += .1;
-  return clamp(s + rand(-.15, .25), 0, 1);
 }
 // 每天的目标销量 / 播放量
 function albumDay(a, dk, f, h, bz, out) {
@@ -3556,7 +3473,7 @@ function viewSched() {
     else if (done) st = '<span class="status" style="color:var(--accent)">已完成</span>';
     return `<div class="sched ${done ? 'done' : ''}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${CATS[r.cat] || '#999'}"></div>
       <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
-      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${recOpenable(r, k) ? `<button class="rec-go" data-act="recgo" data-k="${dk}">${REC_ICON[r.cat]} 开始${r.cat === '电台' ? '上电台' : '录制'}</button>` : (S.schedule.perf || {})[dk] ? `<span class="rec-done">${REC_ICON[r.cat] || ''} 表现 ${S.schedule.perf[dk].grade}</span>` : ''}</div>
+      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
   }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
 }
@@ -3645,7 +3562,7 @@ function schedReminders() {
     const key = k + '|' + r.id; const diff = toMin(r.start) - nowMin;
     if (diff > 0 && diff <= 10 && !S.schedule.reminded[key] && !S.schedule.done[key]) {
       S.schedule.reminded[key] = 1;
-      pushNotif({ type: 'sched', text: `行程提醒：${diff} 分钟后「${r.title}」`, sub: `${r.start}-${r.end}${r.loc ? ' · ' + r.loc : ''}${REC_SEG[r.cat] ? ' · 到时间去「行程」里点开始录制' : ''}` }, true);
+      pushNotif({ type: 'sched', text: `行程提醒：${diff} 分钟后「${r.title}」`, sub: `${r.start}-${r.end}${r.loc ? ' · ' + r.loc : ''}` }, true);
     }
   }
 }
@@ -3897,9 +3814,6 @@ document.addEventListener('click', async e => {
     case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
-    case 'recgo': recStart(t.dataset.k); break;
-    case 'recpick': { const o = UI.rec.segs[UI.rec.i].opts[+t.dataset.j]; recStep(rand(o[1], o[2]), ''); break; }
-    case 'recsay': { const v = ($('#rec-in').value || '').trim(); if (!v) { toast('说点什么吧'); break; } recStep(recScoreText(v), v); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
