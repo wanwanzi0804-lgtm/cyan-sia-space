@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>SIA SPACE · Cyan</title>
 <style>
+.rmb{display:none!important}
 :root{
   --bg:#f4f6f8; --card:#ffffff; --text:#1d2329; --muted:#8a939c; --line:#e7ebef;
   --accent:#16c2c8; --accent2:#7b6cff; --accent-soft:#e3f8f9; --danger:#ff4d6d;
@@ -1668,7 +1669,7 @@ const FX = { KRW: 1, CNY: 190, CAD: 1000, USD: 1380, JPY: 9.3, HKD: 177, EUR: 15
 const FX_NAME = { KRW: '韩元', CNY: '人民币', CAD: '加币', USD: '美元', JPY: '日元', HKD: '港币', EUR: '欧元' };
 const BB_PRICE = 5300; // 泡泡约 28 元/月
 const won = n => (n < 0 ? '-' : '') + '₩' + Math.abs(Math.round(n)).toLocaleString('en-US');
-const rmb = n => `≈ ¥${Math.round(n / FX.CNY).toLocaleString('en-US')}`;
+const rmb = n => ''; // 不再显示人民币换算
 const wonHTML = (n, sign) => `${sign && n > 0 ? '+' : ''}${won(n)} <span class="rmb">${rmb(Math.abs(n))}</span>`;
 const TIERS = { C: { name: '新人合同', gen: .2, bb: .3 }, B: { name: '中坚合同', gen: .3, bb: .4 }, A: { name: '头部合同', gen: .4, bb: .5 } };
 const EXP_CATS = {
@@ -2146,7 +2147,7 @@ function walletHTML() {
       <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
       <div><span>活动分成</span><b>你 ${Math.round(T.gen * 100)}% · 公司 ${100 - Math.round(T.gen * 100)}%</b></div><div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
-    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本和活动经费由公司垫付，结算时从收入里扣；每月 15 日结算已到账收入并提供明细（到账后 45 日内支付）；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
+    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本和活动经费由公司垫付，结算时从收入里扣；每月 15 日结算已到账收入并提供明细（到账后 45 日内支付）；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
     ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（活动 ${TIERS[C.offer.tier].gen * 100}% / 泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
   </div>`;
 }
