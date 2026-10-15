@@ -2392,7 +2392,7 @@ const kd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}(${WDK[parseD(dk).getDay()]}
 const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
-  if ((M.chatV || 1) < 3) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.chatV = 3; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
+  if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
   return M;
 }
 // t：韩语字符串，或 [韩语, 中文]
