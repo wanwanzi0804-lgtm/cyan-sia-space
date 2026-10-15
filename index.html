@@ -2188,6 +2188,18 @@ const TG_EVENTS = {
 };
 TG_EVENTS.校庆 = TG_EVENTS.公演;
 const TG_PEN_FREE = ['上课', '打歌']; // 这两种旷掉不罚款，只是没效果
+// 旷工罚款按活动重要性：[匹配标题, 罚款, 掉粉倍数]
+const TG_FINE = {
+  练习: [[/./, 100000, .3]], 电台: [[/./, 300000, .6]],
+  综艺: [[/网综|YouTube|vlog|Vlog|采访|自制/, 800000, 1], [/./, 2000000, 1.5]],
+  物料: [[/MV 拍摄|封面|预告照/, 5000000, 1.2], [/画报|广告/, 1500000, 1], [/./, 500000, .6]],
+  签售: [[/视频通话|线上/, 1500000, 1.5], [/./, 3000000, 2.5]],
+  公演: [[/路演|Busking|busking|公益/, 500000, .8], [/./, 2000000, 1.5]],
+  校庆: [[/./, 5000000, 1.5]],
+  活动: [[/品牌|代言|快闪|时装周|秀场|广告/, 3000000, 1.2], [/机场|探访|观演|试映/, 200000, .5], [/./, 1000000, 1]],
+  演唱会: [[/./, 20000000, 4]]
+};
+function tgFine(r) { const row = (TG_FINE[r.cat] || []).find(x => x[0].test(r.title)) || [null, 500000, 1]; return { fine: row[1], fm: row[2] }; }
 function tgState() { return S.tg || (S.tg = { start: dkey(Date.now()), cards: {} }); }
 function tgCard(k, r) {
   const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
@@ -2203,7 +2215,6 @@ function tgToday() { const k = dkey(Date.now()); return rulesFor(k).map(r => tgC
 function tgListHTML() {
   const cs = tgToday();
   return `<div class="row"><h3 style="flex:1">📋 今天的通告</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="muted" style="font-size:12.5px;margin-bottom:8px">今天 23:59 前做完。没做完算旷工：会掉粉、没收入，公司还要罚钱（上课和打歌不罚，但没效果）。</div>
     ${cs.length ? cs.map(c => `<div class="tg-row" data-act="tgopen" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : '<span class="tg-todo">去完成 ›</span>'}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
 }
 function tgCardHTML(key) {
@@ -2259,8 +2270,8 @@ function tgSettle(k, r, key, today) {
   const f = S.profile.followers, R = S.schedule.res || (S.schedule.res = {});
   if (!c.done) {
     if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没准备好就上台了，表现很一般', at: Date.now() }; if (r.cat === '打歌') { walletSchedFee(r, .6); addFans(f * .0005, '行程：' + r.title); } return 'done'; }
-    const e = schedEcon(r) || { cost: 0 }, lose = Math.round(f * rand(.002, .005));
-    addFans(-lose, '旷工：' + r.title); walletDeal(0, e.cost + 500000, '旷工罚款', r.title, '成本 + 罚款 ₩500,000');
+    const e = schedEcon(r) || { cost: 0 }, { fine, fm } = tgFine(r), lose = Math.round(f * rand(.002, .004) * fm);
+    addFans(-lose, '旷工：' + r.title); walletDeal(0, e.cost + fine, '旷工罚款', r.title, `成本 + 罚款 ${won(fine)}`);
     R[key] = { grade: '旷', note: `旷工了。掉粉 ${fmtNum(lose)}，公司按成本加罚款扣钱`, fans: -lose, at: Date.now() };
     pushNotif({ type: 'sched', text: `⚠️ 「${r.title}」旷工了`, sub: `掉粉 ${fmtNum(lose)} · 公司罚款计入欠款` }, true);
     return 'done';
