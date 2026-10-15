@@ -159,6 +159,19 @@ body.typing .bb-tick.bb-tick2{display:block}
 .ch-row i.dn{color:#3b82f6}
 .ch-s{margin-left:auto;font-size:12px}
 .me-tabs button{font-size:13px}
+.sh-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.sh-row[data-act]{cursor:pointer}
+.sh-win{color:#e5a100}
+.sh-cand{color:var(--accent)}
+.cb-warn{margin-top:8px;font-size:12.5px;color:#b35c00;background:#fff4e5;border-radius:10px;padding:6px 10px}
+.cb-warn.ok{color:var(--accent);background:var(--bg)}
+.mv{border-top:1px solid var(--line);padding:10px 0}
+.mv-h{display:flex;gap:10px;align-items:flex-start}
+.mv-th{width:64px;height:40px;border-radius:8px;background:#e5484d;color:#fff;display:grid;place-items:center;flex:none;font-size:16px}
+.mv-bars{display:flex;gap:6px;height:56px;margin-top:8px;align-items:stretch}
+.mv-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.mv-bars i{display:block;width:70%;background:#e5484d;border-radius:3px 3px 0 0;opacity:.8}
+.mv-bars span{font-size:10.5px;color:var(--muted);margin-top:2px}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -1464,16 +1477,6 @@ function cbLine() {
   if (a.intro && !won && ['tease', 'promo'].includes(p) && Math.random() < .2) return fill(pick(['专辑简介看哭了', '这次的概念好特别', '简介里那句好戳我', '读完简介更期待了', '《{album}》的故事好好']).replace(/\{album\}/g, a.name));
   return fill(pick(won ? CB_TALK.win : CB_TALK[p])).replace(/\{song\}/g, cbSong() || a.name).replace(/\{album\}/g, a.name).replace(/\{type\}/g, ALB_TYPE[a.type] || '新歌');
 }
-// 每个打歌周：固定星期几出音乐节目结果
-function cbShows() {
-  const c = S.cb, P = cbPlan(), out = [];
-  const week = (start, label, song, follow) => {
-    for (let i = 0; i < 7; i++) { const k = addDays(c.date, start + i); if (parseD(k).getDay() === (c.day ?? 0)) { out.push({ key: k, from: addDays(c.date, start), label, song, follow }); return; } }
-  };
-  for (let w = 0; w < (c.weeks || 3); w++) week(w * 7, `主打第 ${w + 1} 周`, albTitle(cbAlbum()), false);
-  if (c.follow) week(P.followStart, '后续打歌', c.follow, true);
-  return out;
-}
 function cbTick() {
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return;
   const d = cbDay(), f = S.profile.followers, today = dkey(Date.now()), done = c.done || (c.done = {}), P = cbPlan(), s = -d, title = albTitle(a);
@@ -1489,25 +1492,13 @@ function cbTick() {
   });
   if (c.rest && s >= P.promoEnd && s < P.followStart) once('rest', () => pushNotif({ type: 'cb', text: `💿 《${title}》主打活动结束`, sub: '这周是休息周，好好休息一下吧' }, true));
   if (c.follow && s >= P.followStart && s < P.followEnd) once('follow', () => pushNotif({ type: 'cb', text: `💿 后续打歌《${c.follow}》开始`, sub: '粉丝们很期待收录曲的舞台' }, true));
-  // 音乐节目结果：这周你行程里排了几次「打歌」会影响结果
-  const hr = new Date().getHours();
-  for (const sh of cbShows()) {
-    if (today < sh.key || (today === sh.key && hr < 19)) continue;
-    once('show' + sh.key, () => {
-      let gigs = 0; for (let k = addDays(sh.key, -6); k <= sh.key; k = addDays(k, 1)) if (k >= c.date) gigs += rulesFor(k).filter(r => r.cat === '打歌').length; // 结果日前 7 天里排的打歌
-      const F = fanState(), cut = parseD(sh.key).getTime() - 7 * 86400e3; let act = 0;
-      for (const x of F.act) if (x.t > cut) act += x.type === 'post' ? .03 : x.type === 'live' ? .05 : x.type === 'bubble' ? .01 : 0;
-      let p = (f < 15000 ? .08 : f < 30000 ? .15 : f < 60000 ? .27 : .42) + (heat() - 1) * .3 + Math.min(act, .2) + Math.min(gigs, 4) * .04;
-      if (!gigs) p *= .4; if (sh.follow) p *= .6;
-      p = clamp(p, .02, .8);
-      const win = Math.random() < p, rank = win ? 1 : pick(gigs ? [2, 2, 3, 3, 4, 5, 6] : [5, 6, 8, 9, 11]);
-      const n = Math.round(f * (win ? rand(.04, .08) : rand(.003, .012) * (gigs ? 1 : .5)));
-      addFans(n, sh.label);
-      (c.res || (c.res = [])).push({ label: sh.label, song: sh.song, rank, gigs, at: Date.now() });
-      pushNotif({ type: 'cb', text: win ? `🏆 《${sh.song}》拿下音乐节目一位！` : `💿 ${sh.label} · 《${sh.song}》第 ${rank} 位`, sub: (win ? '粉丝们哭成一片' : !gigs ? '这周没排打歌，曝光少了一些' : rank <= 3 ? '离一位只差一点点' : '粉丝说下周继续冲') + ` · 涨粉 +${fmtNum(n)}` }, true);
-    });
-  }
+  showsTick(); // 六大打歌节目每周各自出结果
   if (cbPhase() === 'end') once('end', () => { c.over = true; pushNotif({ type: 'cb', text: `💿 《${a.name}》活动期结束`, sub: '辛苦了！空窗期热度会慢慢回落' }, true); });
+}
+function cbRivalWarn(date, weeks) {
+  if (!date) return '';
+  const ws = []; for (let w = 0; w < (weeks || 3); w++) { const t = weekRivals(addDays(date, w * 7)).find(x => x.tier === 'top'); if (t) ws.push(`第 ${w + 1} 周 ${t.name}`); }
+  return ws.length ? `<div class="cb-warn">⚠ 撞上 TOP 团回归：${ws.join('、')}（那几周拿一位会更难，The Show 和 Show Champion 不受影响）</div>` : '<div class="cb-warn ok">✓ 打歌期间没有 TOP 团回归，是好时机</div>';
 }
 function cbHTML() {
   const c = S.cb, a = cbAlbum(), p = cbPhase();
@@ -1522,7 +1513,8 @@ function cbHTML() {
     top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${esc(c.date)} 回归 · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
       ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
-      <div class="muted" style="font-size:12.5px;margin-top:6px">每周${WD[c.day ?? 0]}晚上 7 点出音乐节目结果 · 打歌日请加到行程里（类别选「打歌」），排得越多机会越大</div>
+      ${cbRivalWarn(c.date, c.weeks)}
+      <div class="muted" style="font-size:12.5px;margin-top:6px">六个音乐节目每周各自出结果（看「🏆 打歌节目」）· 打歌、电台、综艺请加到行程里，放送曝光越多分越高</div>
       ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">${esc(x.label || '第' + x.w + '周')} · 《${esc(x.song || albTitle(a))}》${x.gigs != null ? `<span class="muted" style="font-size:12px"> · 打歌 ${x.gigs} 次</span>` : ''}</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
   }
   return top;
@@ -1550,7 +1542,7 @@ function albHTML() {
     </div>
     ${cb ? `<div class="card">
       <div class="grid2"><div class="field"><label>主打打歌几周</label><select id="al-weeks">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option ${A.weeks === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
-        <div class="field"><label>每周结果日（晚 7 点）</label><select id="al-day">${[1, 2, 3, 4, 5, 6, 0].map(n => `<option value="${n}" ${A.day === n ? 'selected' : ''}>周${WD[n]}</option>`).join('')}</select></div></div>
+        <div class="field"><label>&nbsp;</label><div id="al-warn">${cbRivalWarn(A.date, A.weeks)}</div></div></div>
       <div class="switch"><span>主打活动结束后休息一周</span><input type="checkbox" id="al-rest" ${A.rest ? 'checked' : ''}></div>
       <div class="field"><label>休息周后，后续打歌一首收录曲（一周）</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
       <div class="muted" style="font-size:12.5px">打歌日不固定：把你的打歌安排加到「行程」里（类别选「打歌」），每周排得越多，拿一位的机会越大。</div>
@@ -1561,13 +1553,13 @@ function albCollect() {
   const A = UI.alb; if (!$('#al-name')) return A;
   A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value; A.intro = $('#al-intro').value.trim();
   $$('.al-t').forEach((el, i) => { if (A.tracks[i]) A.tracks[i].name = el.value.trim(); });
-  if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.day = +$('#al-day').value; A.rest = $('#al-rest').checked; A.follow = $('#al-follow').value; }
+  if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.rest = $('#al-rest').checked; A.follow = $('#al-follow').value; }
   return A;
 }
 function albOpen(mode, a) {
   const c = S.cb && !S.cb.over && mode === 'cb' && a ? S.cb : null;
   UI.alb = a ? { ...JSON.parse(JSON.stringify(a)), mode } : { mode, name: '', type: mode === 'cb' ? 'mini' : 'single', date: mode === 'cb' ? addDays(dkey(Date.now()), 14) : '', tracks: [{ name: '', title: true }] };
-  if (mode === 'cb') Object.assign(UI.alb, c ? { date: c.date, weeks: c.weeks, day: c.day, rest: c.rest, follow: c.follow || '' } : { weeks: 3, day: 0, rest: true, follow: '' });
+  if (mode === 'cb') Object.assign(UI.alb, c ? { date: c.date, weeks: c.weeks, rest: c.rest, follow: c.follow || '' } : { weeks: 3, rest: true, follow: '' });
   openModal(albHTML());
 }
 function albSave() {
@@ -1580,7 +1572,7 @@ function albSave() {
   const i = disco().findIndex(x => x.id === alb.id); if (i >= 0) disco()[i] = alb; else disco().push(alb);
   if (A.mode === 'cb') {
     const keep = S.cb && !S.cb.over && S.cb.albumId === alb.id && S.cb.date === A.date ? S.cb : null;
-    S.cb = { albumId: alb.id, date: A.date, weeks: A.weeks, day: A.day, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [] };
+    S.cb = { albumId: alb.id, date: A.date, weeks: A.weeks, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [] };
   }
   syncSongs(); save(); closeModal(); render();
   toast(A.mode === 'cb' ? '回归定下了 💿' : '已保存到歌单', `《${alb.name}》`);
@@ -1650,7 +1642,7 @@ function walletSchedFee(r) {
 }
 // 每天的目标销量 / 播放量
 function salesTargets(dk) {
-  const f = S.profile.followers, h = heat(), out = { alb: {}, trk: {}, mer: {} };
+  const f = S.profile.followers, h = heat(), out = { alb: {}, trk: {}, mer: {}, mv: {}, tt: {} };
   for (const a of disco()) {
     const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
     if (d < 0) continue;
@@ -1658,6 +1650,7 @@ function salesTargets(dk) {
     a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h; });
     if (a.type === 'other' || d >= 999) continue;
     const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1);
+    out.mv[a.id] = f * 3 * h * (1 + 7 * Math.exp(-d / 4)); out.tt[a.id] = f * .008 * h * (1 + 5 * Math.exp(-d / 7));
     out.alb[a.id] = d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25);
   }
   const promo = ['promo', 'follow'].includes(cbPhase()) ? 1.8 : 1;
@@ -1673,6 +1666,9 @@ function salesAdvance() {
     const T = salesTargets(dk), P = W.pend[dk] || (W.pend[dk] = { 音源: 0, 专辑: 0, 周边: 0 });
     for (const [k, v] of Object.entries(T.trk)) { salesAdd(SS.trk, k, dk, v * fr); P.音源 += v * fr * 4; }
     for (const [k, v] of Object.entries(T.alb)) { salesAdd(SS.alb, k, dk, v * fr); P.专辑 += v * fr * 9000; }
+    for (const [k, v] of Object.entries(T.mv)) salesAdd(SS.mv || (SS.mv = {}), k, dk, v * fr);
+    for (const [k, v] of Object.entries(T.tt)) salesAdd(SS.tt || (SS.tt = {}), k, dk, v * fr);
+    { const y = (SS.yr || (SS.yr = {}))[dk.slice(0, 4)] || (SS.yr[dk.slice(0, 4)] = { alb: 0, strm: 0 }); y.alb += Object.values(T.alb).reduce((a, b) => a + b, 0) * fr; y.strm += Object.values(T.trk).reduce((a, b) => a + b, 0) * fr; }
     for (const m of merch()) { const v = (T.mer[m.id] || 0) * fr; salesAdd(SS.mer, m.id, dk, v); P.周边 += v * m.price * .45; }
     t += seg;
   }
@@ -1778,6 +1774,167 @@ function walletHTML() {
   </div>`;
 }
 
+/* =========================================================
+   六大打歌节目：每个节目每周按自己的计分方式出一位 / 候补
+   ========================================================= */
+// [id, 名字, 星期, 几点出结果, 电视台, 计分权重, 竞争强度（越小越容易）, 说明]
+const SHOWS = [
+  ['theshow', 'The Show', 2, 20, 'SBS M', { stream: .4, album: .2, sns: .1, vote: .3, broad: 0 }, .6, '事前投票+音源+销量 · 新人最容易拿一位'],
+  ['champ', 'Show Champion', 3, 19, 'MBC M', { stream: .4, album: .3, sns: 0, vote: .1, broad: .2 }, .75, '音源+销量+放送'],
+  ['mcd', 'M Countdown', 4, 19, 'Mnet', { stream: .45, album: .15, sns: .1, vote: .2, broad: .1 }, 1, '全球粉丝投票+音源'],
+  ['mb', '音乐银行', 5, 18, 'KBS', { stream: .4, album: .35, sns: 0, vote: .05, broad: .2 }, 1, '销量占比最高'],
+  ['mc', '音乐中心', 6, 16, 'MBC', { stream: .55, album: .1, sns: .1, vote: .15, broad: .1 }, 1, '音源+观众委员会投票'],
+  ['ink', '人气歌谣', 0, 16, 'SBS', { stream: .55, album: .1, sns: .2, vote: .1, broad: .05 }, 1, '音源+SNS+事前投票']
+];
+const COMP_NAME = { stream: '音源', album: '销量', sns: 'SNS', vote: '投票', broad: '放送' };
+const RIVALS = { top: ['NOVA', 'AURORA', 'BLAZE', 'HALO'], mid: ['Lumière', 'Velvet9', 'ECHO', '徐妍', 'MOONLIT', 'Kairos', 'Pinea'], rook: ['Ziggy', 'ONEIRO', 'Petal', 'Hana', 'LUXE', 'Mint&Co', '素雅', 'ROVE', 'Yuri', 'B.O.A.T'] };
+function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function srng(seed) { let a = hashStr(seed); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const weekOf = dk => addDays(dk, -((parseD(dk).getDay() + 6) % 7));
+// 这一周一起打歌的对手（同一周固定，可以提前看到）
+function weekRivals(dk) {
+  const r = srng('rivals' + weekOf(dk)), out = [], used = new Set();
+  const take = (arr, tier, lo, hi) => { let n; do n = arr[Math.floor(r() * arr.length)]; while (used.has(n)); used.add(n); out.push({ name: n, tier, sc: lo + (hi - lo) * r() }); };
+  if (r() < .3) take(RIVALS.top, 'top', .72, .95);
+  for (let i = 0, k = 2 + Math.floor(r() * 2); i < k; i++) take(RIVALS.mid, 'mid', .3, .58);
+  for (let i = 0, k = 4 + Math.floor(r() * 3); i < k; i++) take(RIVALS.rook, 'rook', .06, .32);
+  return out;
+}
+// 你这一周（结果日前 7 天）的各项成绩 → 0~1 分
+function myShowComps(dk, trackKey, albumId) {
+  const SS = salesState(); let st = 0, al = 0, mv = 0, tt = 0, br = 0;
+  for (let i = 0; i < 7; i++) {
+    const k = addDays(dk, -i);
+    st += SS.trk[trackKey]?.days[k] || 0; al += SS.alb[albumId]?.days[k] || 0; mv += SS.mv?.[albumId]?.days[k] || 0; tt += SS.tt?.[albumId]?.days[k] || 0;
+    br += rulesFor(k).filter(x => ['打歌', '电台', '综艺'].includes(x.cat)).length;
+  }
+  const p = S.profile, sq = (x, ref) => Math.sqrt(clamp(x / ref, 0, 1));
+  return { stream: sq(st, 1e7), album: sq(al, 4e5), sns: sq(mv + tt * 300, 3e7), vote: sq(((p.activeMin + p.activeMax) / 2) * heat(), 4e4), broad: sq(br, 6), raw: { st, al, mv, tt, br } };
+}
+function showResult(sh, dk, trackKey, albumId, follow) {
+  const [id, name, , , , w, ease] = sh, c = myShowComps(dk, trackKey, albumId);
+  let me = Object.keys(w).reduce((s, k) => s + w[k] * c[k], 0); if (follow) me *= .9;
+  const r = srng(id + dk), field = weekRivals(dk).filter(x => !(x.tier === 'top' && ['theshow', 'champ'].includes(id))).map(x => ({ name: x.name, tier: x.tier, sc: x.sc * ease * (.9 + .2 * r()) }));
+  const all = field.concat([{ name: S.profile.name, me: true, sc: me }]).sort((a, b) => b.sc - a.sc);
+  return { show: id, dk, rank: all.findIndex(x => x.me) + 1, top: all.slice(0, 5).map(x => ({ name: x.name, me: !!x.me, sc: +x.sc.toFixed(3), tier: x.tier })), comps: Object.fromEntries(Object.keys(w).map(k => [k, +c[k].toFixed(3)])), raw: c.raw, song: trackKey.split('|').slice(1).join('|'), at: Date.now() };
+}
+function showsState() { return S.shows || (S.shows = { res: {} }); }
+// 回归期里每天检查：今天有没有节目出结果
+function showsTick() {
+  const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return;
+  const d = cbDay(); if (d > 0) return;
+  const P = cbPlan(), now = new Date(), today = dkey(now), R = showsState().res, f = S.profile.followers;
+  for (let k = c.date; k <= today; k = addDays(k, 1)) {
+    const s = Math.round((parseD(k).getTime() - parseD(c.date).getTime()) / 86400e3);
+    const follow = c.follow && s >= P.followStart && s < P.followEnd;
+    if (!(s < P.promoEnd || follow)) continue;
+    const song = follow ? c.follow : albTitle(a);
+    for (const sh of SHOWS) {
+      if (parseD(k).getDay() !== sh[2] || (k === today && now.getHours() < sh[3])) continue;
+      const key = k + '|' + sh[0]; if (R[key]) continue;
+      const res = R[key] = showResult(sh, k, a.id + '|' + song, a.id, follow);
+      if (res.rank === 1) {
+        const n = Math.round(f * rand(.03, .06)); addFans(n, sh[1] + ' 一位');
+        const first = !Object.values(R).some(x => x !== res && x.rank === 1);
+        pushNotif({ type: 'cb', text: `🏆 《${song}》拿下 ${sh[1]} 一位！${first ? '（人生第一个一位）' : ''}`, sub: `粉丝们哭成一片 · 涨粉 +${fmtNum(n)}` }, true);
+      } else if (res.rank <= 3) {
+        const n = Math.round(f * rand(.004, .01)); addFans(n, sh[1] + ' 一位候补');
+        pushNotif({ type: 'cb', text: `💿 ${sh[1]} 一位候补！`, sub: `《${song}》最终第 ${res.rank}，一位是 ${res.top[0].name} · 涨粉 +${fmtNum(n)}` }, true);
+      }
+    }
+  }
+}
+function showsCardHTML() {
+  const R = showsState().res, c = S.cb, a = cbAlbum(), today = dkey(Date.now());
+  const ph = cbPhase(), active = a && ['promo', 'rest', 'follow'].includes(ph);
+  const keys = Object.keys(R).sort();
+  if (!active && !keys.length) return '<div class="muted" style="font-size:13px">回归打歌期间，六个音乐节目每周各自出一位结果。新人一般要 2~5 次回归才能拿到初一位，The Show 最容易。</div>';
+  const base = active ? today : keys[keys.length - 1].split('|')[0], mon = weekOf(base);
+  const rivals = weekRivals(base), top = rivals.find(x => x.tier === 'top');
+  const wins = Object.values(R).filter(x => x.rank === 1).length, cands = Object.values(R).filter(x => x.rank <= 3).length;
+  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${mon.slice(5).replace('-', '/')} 这周${top ? ` · ⚠ TOP 团 <b>${top.name}</b> 也在打歌` : ' · 这周没有 TOP 团'} · 累计一位 ${wins} 次 / 候补 ${cands} 次</div>
+    ${SHOWS.map(sh => { let k; for (let i = 0; i < 7; i++) { const x = addDays(mon, i); if (parseD(x).getDay() === sh[2]) k = x; }
+      const r = R[k + '|' + sh[0]];
+      const st = r ? (r.rank === 1 ? '<b class="sh-win">🏆 一位</b>' : r.rank <= 3 ? `<b class="sh-cand">候补 · 第 ${r.rank}</b>` : `<span class="muted">第 ${r.rank} 位</span>`) : `<span class="muted">${k < today || !active ? '—' : `${WD[sh[2]] === '日' ? '周日' : '周' + WD[sh[2]]} ${sh[3]}:00 公布`}</span>`;
+      return `<div class="sh-row" ${r ? `data-act="showres" data-k="${k}|${sh[0]}"` : ''}><div style="flex:1;min-width:0"><b>${sh[1]}</b> <span class="muted" style="font-size:11.5px">${sh[4]}</span><div class="muted" style="font-size:11.5px">${sh[7]}</div></div>${st}</div>`; }).join('')}`;
+}
+function showResHTML(key) {
+  const r = showsState().res[key], sh = SHOWS.find(x => x[0] === r.show);
+  return `<div class="row"><h3 style="flex:1">${sh[1]} · ${r.dk.slice(5).replace('-', '/')}</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card"><b>《${esc(r.song)}》${r.rank === 1 ? '🏆 一位' : `第 ${r.rank} 位`}</b><div class="muted" style="font-size:12.5px;margin-top:2px">${sh[7]}</div>
+      <div style="margin-top:10px">${Object.entries(r.comps).filter(([k]) => sh[5][k]).map(([k, v]) => `<div class="w-cat"><span>${COMP_NAME[k]} <i class="muted" style="font-style:normal;font-size:11px">${Math.round(sh[5][k] * 100)}%</i></span><div class="w-bar sm"><i style="width:${Math.round(v * 100)}%"></i></div><b>${Math.round(v * 100)}</b></div>`).join('')}</div>
+      <div class="muted" style="font-size:12px;margin-top:8px">这周：音源 ${fmtNum(Math.round(r.raw.st))} 次 · 专辑 ${fmtNum(Math.round(r.raw.al))} 张 · MV ${fmtNum(Math.round(r.raw.mv))} 次 · 放送曝光 ${r.raw.br} 次</div></div>
+    <div class="card"><b style="font-size:14px">这周排名</b>${r.top.map((x, i) => `<div class="rule"><span style="width:26px">${i + 1}</span><span style="flex:1">${esc(x.name)}${x.tier === 'top' ? ' <span class="alb-star" style="background:#e5484d">TOP</span>' : ''}${x.me ? ' <span class="alb-star">你</span>' : ''}</span><b>${Math.round(x.sc * 1000)}</b></div>`).join('')}${r.rank > 5 ? `<div class="rule"><span style="width:26px">${r.rank}</span><span style="flex:1">${esc(S.profile.name)} <span class="alb-star">你</span></span></div>` : ''}</div>`;
+}
+/* ---------- YouTube MV / TikTok ---------- */
+function mvHTML() {
+  const SS = salesState(), today = dkey(Date.now());
+  const albs = disco().filter(a => SS.mv && SS.mv[a.id] && SS.mv[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || '')).slice(0, 3);
+  if (!albs.length) return '';
+  return `<div style="margin-top:14px"><b style="font-size:14px">▶️ YouTube MV</b>${albs.map(a => {
+    const x = SS.mv[a.id], r = srng('mv' + a.id), lr = .03 + .02 * r(), cr = .0015 + .002 * r(), days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)), mx = Math.max(1, ...days.map(k => x.days[k] || 0));
+    const tt = SS.tt?.[a.id]?.total || 0;
+    return `<div class="mv"><div class="mv-h"><div class="mv-th">▶</div><div style="flex:1;min-width:0"><b>${esc(S.profile.name)} - ${esc(albTitle(a))} MV</b><div class="muted" style="font-size:12px">观看 ${fmtNum(Math.round(x.total))} · 👍 ${fmtNum(Math.round(x.total * lr))} · 💬 ${fmtNum(Math.round(x.total * cr))}</div><div class="muted" style="font-size:12px">24 小时 +${fmtNum(Math.round(x.days[today] || 0))} · TikTok #${esc(albTitle(a))}挑战 ${fmtNum(Math.round(tt))} 个视频</div></div></div>
+      <div class="mv-bars">${days.map(k => `<div><i style="height:${Math.max(2, Math.round((x.days[k] || 0) / mx * 100))}%"></i><span>${k === today ? '今' : WD[parseD(k).getDay()]}</span></div>`).join('')}</div></div>`; }).join('')}</div>`;
+}
+/* =========================================================
+   年末颁奖典礼：受不受邀请看你这一年的成绩和粉丝量
+   ========================================================= */
+// [id, 名字, 月-日, 影响力, 看什么, 门槛, 新人门槛, 可能的奖]
+const AWARDS = [
+  ['mama', 'MAMA', '11-28', '全球直播，最具话题性', 'fol', 80000, 40000, ['年度新人奖', '人气奖', '最佳舞蹈表演']],
+  ['aaa', 'AAA', '12-12', '人气奖为主，阵容庞大', 'fol', 30000, 20000, ['新人奖', '人气奖', 'Hot Trend']],
+  ['kbs', 'KBS 歌谣祭', '12-19', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, []],
+  ['mma', 'MMA', '12-20', '以音源成绩为主，权威性高', 'strm', 2e7, 8e6, ['年度新人奖', '本赏']],
+  ['sbs', 'SBS 歌谣大战', '12-25', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, []],
+  ['mbc', 'MBC 歌谣大祭典', '12-31', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, []],
+  ['gda', '金唱片', '01-10', '历史最悠久 · 音源大赏/唱片大赏', 'alb', 50000, 15000, ['新人奖', '唱片本赏', '音源本赏']],
+  ['sma', '首尔歌谣大赏', '01-24', '综合性强 · 大赏/本赏', 'fol', 50000, 30000, ['新人奖', '本赏', '人气奖']]
+];
+function awardDate(aw) { const n = new Date(), season = n.getMonth() + 1 >= 2 ? n.getFullYear() : n.getFullYear() - 1; const y = aw[2] < '06' ? season + 1 : season; return `${y}-${aw[2]}`; }
+function yearStats() {
+  const SS = salesState(), y = String(new Date().getFullYear()), Y = (SS.yr || {})[y] || { alb: 0, strm: 0 };
+  const wins = Object.values(showsState().res).filter(x => x.rank === 1 && x.dk.startsWith(y)).length;
+  return { fol: S.profile.followers, alb: Y.alb, strm: Y.strm, wins };
+}
+function awardRatio(aw, date) {
+  const st = yearStats(), months = (parseD(date).getTime() - parseD(S.profile.debut).getTime()) / (30.4 * 86400e3), rookie = months <= 15;
+  const need = rookie ? aw[6] : aw[5];
+  let r = aw[4] === 'stage' ? (st.fol / need) * (st.wins ? 1.15 : .85) : (st[aw[4]] || 0) / need;
+  return { r, rookie, need, have: aw[4] === 'stage' ? st.fol : st[aw[4]] || 0 };
+}
+function awardsState() { return S.awardsSt || (S.awardsSt = {}); }
+function awardsTick() {
+  const A = awardsState(), now = new Date(), today = dkey(now), f = S.profile.followers;
+  for (const aw of AWARDS) {
+    const date = awardDate(aw), key = aw[0] + date, inv = addDays(date, -25), st = A[key];
+    if (!st && today >= inv && today <= date) {
+      const { r, rookie } = awardRatio(aw, date), p = clamp((r - .6) / .6, 0, .95), ok = Math.random() < p;
+      if (ok) {
+        const noms = aw[7].filter(n => (/新人/.test(n) ? rookie : true) && (/本赏/.test(n) ? r > 1.2 : true));
+        A[key] = { status: 'inv', noms, r };
+        S.schedule.rules.push({ id: uid(), title: `${aw[1]} ${date.slice(0, 4)}`, cat: '活动', start: '18:00', end: '23:00', loc: '', repeat: 'once', days: [], date, note: noms.length ? '提名：' + noms.join('、') : '年末舞台', createdAt: Date.now() });
+        pushNotif({ type: 'cb', text: `🏅 收到 ${aw[1]} 的邀请！`, sub: `${date.slice(5).replace('-', '/')} ${noms.length ? '· 提名：' + noms.join('、') : '· 年末特别舞台'} · 已加到行程` }, true);
+      } else { A[key] = { status: 'no', r }; pushNotif({ type: 'cb', text: `🏅 今年 ${aw[1]} 没有邀请你`, sub: '多积累成绩和粉丝，明年再冲！' }, false); }
+    }
+    if (st && st.status === 'inv' && (today > date || (today === date && now.getHours() >= 22))) {
+      const won = st.noms.filter(n => Math.random() < clamp((/人气/.test(n) ? st.r - .5 : st.r - .7) * .9, .05, .85));
+      st.status = 'done'; st.won = won;
+      if (won.length) { const n = Math.round(f * rand(.03, .06) * won.length); addFans(n, aw[1] + ' 获奖'); pushNotif({ type: 'cb', text: `🏆 ${aw[1]} 获得 ${won.join('、')}！`, sub: `粉丝们疯了 · 涨粉 +${fmtNum(n)}` }, true); }
+      else { const n = Math.round(f * rand(.005, .015)); addFans(n, aw[1] + ' 舞台'); pushNotif({ type: 'cb', text: `🏅 ${aw[1]} 结束`, sub: `${st.noms.length ? '这次没有拿奖，' : ''}舞台反响不错 · 涨粉 +${fmtNum(n)}` }, false); }
+    }
+  }
+}
+function awardsHTML() {
+  const A = awardsState(), today = dkey(Date.now());
+  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">邀不邀请看你这一年的粉丝、音源、销量和一位次数；出道 15 个月内按新人门槛算</div>${AWARDS.map(aw => {
+    const date = awardDate(aw), st = A[aw[0] + date], { r, rookie, need, have } = awardRatio(aw, date), what = { fol: '粉丝', strm: '年度音源', alb: '年度销量', stage: '粉丝' }[aw[4]];
+    const s = st ? (st.status === 'inv' ? `<b class="sh-cand">✅ 受邀${st.noms.length ? ' · 提名 ' + st.noms.join('、') : ''}</b>` : st.status === 'done' ? (st.won.length ? `<b class="sh-win">🏆 ${st.won.join('、')}</b>` : '<span class="muted">已出席</span>') : '<span class="muted">未受邀</span>')
+      : `<span class="muted" style="font-size:12px">${addDays(date, -25) > today ? `${addDays(date, -25).slice(5).replace('-', '/')} 决定邀请` : ''}</span>`;
+    return `<div class="sh-row" style="align-items:flex-start"><div style="flex:1;min-width:0"><b>${aw[1]}</b> <span class="muted" style="font-size:11.5px">${date.slice(5).replace('-', '/')}</span><div class="muted" style="font-size:11.5px">${aw[3]}</div>
+      ${!st ? `<div class="w-bar sm" style="margin:6px 0 0;max-width:180px"><i style="width:${Math.min(100, Math.round(r * 100))}%"></i></div><div class="muted" style="font-size:11px">${what} ${fmtNum(Math.round(have))} / ${fmtNum(need)}${rookie ? '（新人）' : ''}</div>` : ''}</div><div style="text-align:right;max-width:45%">${s}</div></div>`; }).join('')}`;
+}
+
 function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : '没写货币时按右边选的算'; }
 let lastReal = Date.now();
 function tick() {
@@ -1785,7 +1942,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); walletTick(); bubbleTick(dt, false);
+  dailyFans(); schedFans(); hotTick(); cbTick(); walletTick(); awardsTick(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -3343,7 +3500,11 @@ function viewMe() {
   wallet: () => walletHTML(),
   music: () => `
   <div class="sec-title">📊 实时成绩</div>
-  <div class="card">${chartsHTML()}</div>
+  <div class="card">${chartsHTML()}${mvHTML()}</div>
+  <div class="sec-title">🏆 打歌节目</div>
+  <div class="card">${showsCardHTML()}</div>
+  <div class="sec-title">🏅 年末颁奖</div>
+  <div class="card">${awardsHTML()}</div>
   <div class="sec-title">💿 回归</div>
   <div class="card">${cbHTML()}</div>
   <div class="sec-title">🎵 我的歌单</div>
@@ -3546,6 +3707,7 @@ document.addEventListener('click', async e => {
     case 'wall': UI.wAll = !UI.wAll; render(); break;
     case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; if (t.dataset.ok === '1') { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } W.offer = null; save(); render(); break; }
     case 'wsave': { const W = wallet(); W.tier = $('#w-tier').value; W.repay = +$('#w-repay').value; save(); render(); toast('合同已保存'); break; }
+    case 'showres': openModal(showResHTML(t.dataset.k)); break;
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'meradd': openModal(`<div class="row"><h3 style="flex:1">🧸 新周边</h3><button class="btn ghost sm" data-act="close">取消</button></div><div class="card"><div class="field"><label>名字</label><input id="mer-n" placeholder="比如：猫猫钥匙扣"></div><div class="field"><label>价格（可以写 ¥39 / 15加币）</label><input id="mer-p" placeholder="比如：15000"></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="mersave">添加</button></div></div>`); break;
     case 'mersave': { const n = $('#mer-n').value.trim(), m = parseMoney($('#mer-p').value); if (!n || !m) { toast('请填写名字和价格'); break; } merch().push({ id: uid(), name: n, price: m.krw, pop: rand(.8, 1.4) }); save(); closeModal(); render(); break; }
@@ -3633,6 +3795,7 @@ document.addEventListener('change', async e => {
 document.addEventListener('input', e => {
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
   if (e.target.id === 'w-in' || e.target.id === 'w-cur') walletPreview();
+  if ((e.target.id === 'al-date' || e.target.id === 'al-weeks') && $('#al-warn')) $('#al-warn').innerHTML = cbRivalWarn($('#al-date').value, +$('#al-weeks').value);
   if (e.target.id === 'cmp-text') draft = e.target.value;
   if (e.target.id === 'cmp-desc') draftDesc = e.target.value;
   if (e.target.id === 'bb-in') { UI.bbDraft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }
