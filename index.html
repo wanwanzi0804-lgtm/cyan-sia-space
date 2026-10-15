@@ -2348,7 +2348,7 @@ function mgrMakeOffer() {
   pool = pool.filter(([t]) => (f >= 80000 || !big.test(t) || Math.random() < .05) && !Object.values(POPUPS).some(p => p.re.test(t)));
   if (!pool.length) return null;
   let [title, loc] = pick(pool), pop = null;
-  if (cat === '活动' && f < 100000 && Math.random() < .6) { pop = popupOffer(); title = pop.title; loc = pop.loc; }
+  if (cat === '活动' && f < POP_MAX && Math.random() < .6) { pop = popupOffer(); title = pop.title; loc = pop.loc; }
   else if (/品牌/.test(title)) { const b = brandPick(uid(), /时装|秀场/.test(title) ? ['fashion'] : null)[0]; title = title.replace('品牌门店开业活动', `${b} 门店开业活动`).replace('品牌活动 / 快闪店', `${b} 快闪店活动`).replace('海外时装周 · 品牌秀场', `海外时装周 · ${b} 秀场`).replace(/品牌/, b); }
   const date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
   const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
@@ -3051,7 +3051,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); skillTick(); mgrTick(); walletTick(); contractTick(); awardsTick(); bubbleTick(dt, false);
+  dailyFans(); schedFans(); hotTick(); cbTick(); skillTick(); mgrTick(); popTick(); walletTick(); contractTick(); awardsTick(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -4515,11 +4515,15 @@ function workSumHTML(k, items, today, nowMin) {
   const h = Math.floor(tot / 60), m = tot % 60, d = k === today ? '今日' : '当日';
   return `<div class="worksum"><span>${d}工作时长</span><b>${h ? h + 'h ' : ''}${m || !h ? m + 'min' : ''}</b></div>`;
 }
+const POP_MAX = 100000; // 粉丝到 10 万后不再用小型快闪
+const popSmall = t => S.profile.followers >= POP_MAX && Object.values(POPUPS).some(p => p.re.test(t));
 function presetMatches() {
   const q = (UI.presetQ || '').trim().toLowerCase();
-  return q ? Object.entries(PRESETS).flatMap(([c, xs]) => xs.map(x => [c, ...x])).filter(([c, t, l]) => (c + t + l).toLowerCase().includes(q))
-    : (PRESETS[UI.presetCat] || []).map(x => [UI.presetCat, ...x]);
+  return (q ? Object.entries(PRESETS).flatMap(([c, xs]) => xs.map(x => [c, ...x])).filter(([c, t, l]) => (c + t + l).toLowerCase().includes(q))
+    : (PRESETS[UI.presetCat] || []).map(x => [UI.presetCat, ...x])).filter(([c, t]) => !popSmall(t));
 }
+// 粉丝破 10 万时提醒一次：小型快闪已经停了，该找 Claude 设计更大的活动
+function popTick() { if (S.profile.followers >= POP_MAX && !S.popWarned) { S.popWarned = 1; pushNotif({ type: 'system', text: '📌 粉丝破 10 万了：小型快闪活动已停用', sub: '经纪人不会再发、行程预设也隐藏了。记得找 Claude 一起定更大的品牌活动 / 代言 / 粉丝见面会' }, true); } }
 function presetListHTML() {
   const list = presetMatches();
   const dice = list.length > 1 ? `<button class="preset dice" data-act="prand">🎲 随机一个${UI.presetQ ? '搜索结果' : `「${esc(UI.presetCat)}」行程`}<span class="muted">点一次换一个，时间在下面填</span></button>` : '';
