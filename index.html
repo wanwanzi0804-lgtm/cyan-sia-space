@@ -2662,12 +2662,12 @@ const TG_EVENTS = {
     r => C('下雨了，主办方问要不要缩短演出。', [['照常演完，和观众一起淋雨', .3, 1], ['缩短但加一首安可', .4, .85], ['听主办方安排', .35, .7]])
   ],
   活动: [
-    r => C(`${r.title}，品牌方希望整体风格「自然、有亲和力」，你选哪套？`, [['白衬衫牛仔裤', .45, .9], ['品牌新款全套', .4, 1], ['自己的私服', .2, .95]]),
-    r => C('现场有粉丝举着你的应援手幅，但主办方说不能互动太久。', [['快速比心回应', .45, .95], ['走过去打招呼', .2, 1], ['装作没看到', .05, .5]]),
-    r => ({ kind: 'timing', d: '媒体拍照环节：闪光灯亮起，在光标正中时点「定格」摆好 pose。' }),
-    r => C('活动结束后，品牌方邀请你留下来吃饭。', [['留下，和品牌方好好聊聊', .45, .95], ['礼貌拒绝，说还有行程', .35, .75], ['带上经纪人一起去', .4, .85]]),
-    r => M([['现场主持人临时请你和观众玩个小游戏。', [['爽快答应', .45, 1], ['拉主持人一起', .4, .9], ['不太擅长，推辞一下', .15, .6]]], ['游戏里你赢了，奖品是品牌的新品。', [['当场送给台下粉丝', .5, 1], ['拿着拍照宣传', .45, .9], ['谢谢后收下', .3, .7]]]]),
-    r => ({ kind: 'reaction', d: '红毯快门声此起彼伏，摄影师喊你名字的瞬间（灯变绿）立刻看向他！' })
+    r => tgStyleEv(r),
+    r => /会议|直播|Live|LIVE/.test(r.title) ? null : C('现场有粉丝举着你的应援手幅，但主办方说不能互动太久。', [['快速比心回应', .45, .95], ['走过去打招呼', .2, 1], ['装作没看到', .05, .5]]),
+    r => /会议|直播|Live|LIVE/.test(r.title) ? null : ({ kind: 'timing', d: '媒体拍照环节：闪光灯亮起，在光标正中时点「定格」摆好 pose。' }),
+    r => { const B = tgBrand(r); return B && !/唱片|商场|咖啡|文化空间/.test(B.type) ? C(`活动结束后，${B.b} 方面邀请你留下来吃饭。`, [['留下，和品牌方好好聊聊', .45, .95], ['礼貌拒绝，说还有行程', .35, .75], ['带上经纪人一起去', .4, .85]]) : null; },
+    r => { const B = tgBrand(r); return B ? M([['现场主持人临时请你和观众玩个小游戏。', [['爽快答应', .45, 1], ['拉主持人一起', .4, .9], ['不太擅长，推辞一下', .15, .6]]], [`游戏里你赢了，奖品是${tgPrize(B)}。`, [['当场送给台下粉丝', .5, 1], ['拿着拍照宣传', .45, .9], ['谢谢后收下', .3, .7]]]]) : null; },
+    r => /颁奖|AWARDS|Awards|大赏|MAMA|AAA|MMA|SMA|金唱片|时装周|秀场|试映|首映|红毯/.test(r.title) ? ({ kind: 'reaction', d: '红毯快门声此起彼伏，摄影师喊你名字的瞬间（灯变绿）立刻看向他！' }) : null
   ],
   演唱会: [
     r => ({ kind: 'order', d: '演唱会歌单：按顺序依次点歌，最后一首是安可。' }),
@@ -2826,7 +2826,8 @@ const TG_FINE = {
 };
 function tgFine(r) { const row = (TG_FINE[r.cat] || []).find(x => x[0].test(r.title)) || [null, 500000, 1]; return { fine: row[1], fm: row[2] }; }
 function tgState() {
-  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 3 });
+  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 4 });
+  if ((T.v || 1) < 4) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /品牌新款全套|品牌方希望|奖品是品牌|红毯快门|宣传语/.test(JSON.stringify(c))) delete T.cards[k]; T.v = 4; }
   if ((T.v || 1) < 3) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /宣传语/.test(c.d || '')) delete T.cards[k]; T.v = 3; }
   if ((T.v || 1) < 2) { const today = dkey(Date.now()); for (const [k, c] of Object.entries(T.cards)) if (!c.done && k >= today) delete T.cards[k]; T.v = 3; } // 事件库更新后，今天没做的通告重新抽
   return T;
@@ -2848,7 +2849,7 @@ function tgCard(k, r) {
   const evs = TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
   // 剧情事件为主，小游戏偶尔出现
-  const cands = evs.map(f => f(r)), wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
+  const cands = evs.map(f => f(r)).filter(Boolean), wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
   let ev; if (sp.length && (popupOf(r) || rr() < .45)) ev = sp[Math.floor(rr() * sp.length)][1](r);
   else { let x = rr() * wts.reduce((a, b) => a + b, 0); ev = cands[cands.length - 1]; for (let i = 0; i < cands.length; i++) { x -= wts[i]; if (x <= 0) { ev = cands[i]; break; } } }
   if (TG_GAME_KINDS.includes(ev.kind) && sp.length && rr() < .5) { const alt = cands.filter(e => !TG_GAME_KINDS.includes(e.kind)); if (alt.length) ev = alt[Math.floor(rr() * alt.length)]; }
@@ -2898,6 +2899,17 @@ function popupOffer() {
   let x = Math.random() * w.reduce((a, b) => a + b[1], 0), k = 'beauty'; for (const [kk, v] of w) { x -= v; if (x <= 0) { k = kk; break; } }
   const P = POPUPS[k], pt = pick(P.partners), dur = ri(P.dur[0], P.dur[1]);
   return { popup: k, partner: pt.slice(0, 2), title: `${pt[0]} ${k === 'mall' && pt[1] !== '商场' ? '新店开幕嘉宾' : P.name}`, loc: pt[2] || pick(P.locs), dur };
+}
+// 品牌类活动的合作方和类型（不是品牌活动就返回 null）
+function tgBrand(r) { const pp = popPartner(r); if (pp) return { b: pp[0], type: pp[1] }; if (/品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title)) { const bd = brandOf(r); return { b: bd[0], type: bd[1] }; } return null; }
+function tgPrize(B) { const t = B.type; return /彩妆/.test(t) ? `${B.b} 的新品口红` : /护肤/.test(t) ? `${B.b} 的新品精华` : /美妆店/.test(t) ? `${B.b} 的新品礼盒` : /隐形眼镜/.test(t) ? `${B.b} 的新款美瞳` : /包包/.test(t) ? `${B.b} 的新款小包` : /配饰/.test(t) ? `${B.b} 的新款配饰` : /服饰|设计师/.test(t) ? `${B.b} 的新款单品` : /饮料|零食|烘焙/.test(t) ? `${B.b} 的新品礼盒` : /耳机/.test(t) ? `${B.b} 的新款耳机` : /猫粮/.test(t) ? `${B.b} 的猫粮礼包` : /手机壳/.test(t) ? `${B.b} 的定制手机壳` : /咖啡/.test(t) ? `${B.b} 的咖啡券` : /商场/.test(t) ? `${B.b} 的购物礼券` : /唱片/.test(t) ? `${B.b} 的礼品卡` : `${B.b} 的小礼物`; }
+// 造型选择：按品牌类型给合理的选项
+function tgStyleEv(r) {
+  const B = tgBrand(r); if (!B) return null; const b = B.b, t = B.type;
+  if (/服饰|设计师|配饰|包包/.test(t)) return C(`${r.title}，${b} 方面希望整体风格「自然、有亲和力」，你怎么穿？`, [[`${b} 新款全套`, .45, 1], [`${b} 的单品配自己的衣服`, .5, .95], ['自己的私服', .2, .8]]);
+  if (/彩妆|护肤|美妆店/.test(t)) return C(`${r.title}，${b} 方面希望妆容「自然、有亲和力」，你选哪种？`, /护肤/.test(t) ? [[`用 ${b} 的产品打底，突出皮肤状态的淡妆`, .5, 1], ['按平时的舞台妆来', .15, .65], ['几乎素颜，只涂润唇', .35, .9]] : [[`用 ${b} 的产品化清透妆`, .5, 1], ['按平时的舞台妆来', .15, .65], [`用 ${b} 的新品色号点一下唇`, .45, .95]]);
+  if (/隐形眼镜/.test(t)) return C(`${r.title}，${b} 方面希望整体感觉「自然、有亲和力」，你怎么准备？`, [[`戴 ${b} 新款自然色美瞳配淡妆`, .5, 1], ['戴平时习惯的款式', .25, .75], ['妆化浓一点，让眼睛更显', .3, .8]]);
+  return C(`${r.title}，${b} 方面希望整体风格「自然、有亲和力」，你穿什么？`, [['白衬衫牛仔裤', .45, .9], ['和活动主题色呼应的休闲装', .45, 1], ['自己的私服', .3, .85]]);
 }
 // 通告卡的背景信息：这是什么活动、在哪、现在处于什么阶段、要宣传哪首歌
 function tgKind(r) {
