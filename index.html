@@ -3010,7 +3010,13 @@ function bbLine(msg, chatting) {
   const sad = chatting && msg && BB_SAD.test(msg.text || '');
   const serim = chatting && msg && CAT_KW.serim.test(msg.text || '');
   if (lang !== 'zh' && serim && !leaving && Math.random() < .7) { const it = pick(TPL.serim[lang]); return { lang, text: fill(it[0]), zh: fill(it[1]) }; }
-  const checkin = chatting && msg && msg.type === 'sticker' && !msg.text;
+  // 表情包分两种：单独丢一个（前面 15 分钟没说话）＝冒泡；聊着聊着插一个＝接着刚才的话题
+  let checkin = false;
+  if (chatting && msg && msg.type === 'sticker' && !msg.text) {
+    const ms = (S.bubble && S.bubble.msgs) || [], i = ms.indexOf(msg), prev = i > 0 ? ms.slice(0, i).reverse().find(x => x.type !== 'sticker' || x.text) : null;
+    if (prev && msg.at - prev.at < 15 * 60e3) { if (Math.random() < .6) return bbLine(prev, true); } // 还在聊刚才的事
+    else checkin = true;
+  }
   if (lang !== 'zh' && checkin && Math.random() < .6) { const it = pick(BB_CHECKIN_F[lang] || BB_CHECKIN_F.en); return { lang, text: it[0], zh: it[1] }; }
   if (lang !== 'zh') { const it = pick(leaving ? BB_BYE_F[lang] : sad ? BB_FOREIGN_CARE[lang] : chatting && Math.random() < .4 ? BB_SAFE_F[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
   const t = (msg && msg.text) || '', r = Math.random();
