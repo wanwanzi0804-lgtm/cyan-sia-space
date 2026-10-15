@@ -2402,7 +2402,14 @@ function mgrSay(t, card, silent) {
   mgrRefresh();
 }
 let mgrQ = 0; // 回复排队，按顺序一条条发
-function mgrReply(t) { mgrQ = Math.max(Date.now(), mgrQ) + 1200 + Math.random() * 1500; setTimeout(() => { mgrSay(t, null, true); save(); }, mgrQ - Date.now()); }
+function mgrSplit(t) {
+  if (Array.isArray(t) && Array.isArray(t[0])) return t;
+  const [ko, zh] = Array.isArray(t) ? t : [t, ''];
+  const ks = ko.split(/(?<=[.!?~ㅠㅎ])\s+(?=\S)/).filter(Boolean), zs = (zh || '').split(/(?<=[。！？～])/).map(x => x.trim()).filter(Boolean);
+  if (ks.length >= 2 && ks.length === zs.length && !ko.includes('\n') && Math.random() < .7) return ks.map((k, i) => [k, zs[i]]);
+  return [[ko, zh]];
+}
+function mgrReply(t) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 700 + Math.random() * 1300 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
 function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
 function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'kkt' && !UI.mgrOpen) render(); }
 // 日常联络：行程提醒、回归、恭喜、关心…每件事只说一次
@@ -2498,7 +2505,7 @@ function mgrFacts(t) {
     const dd = +today.slice(8), st = (W.stmts || [])[0], doneToday = st && st.mon === mon && dkey(st.at) === today, nm = +next.slice(5);
     // 问「今天是不是结算日 / 什么时候结算」
     if (/정산일|정산 날|정산하는 날|언제 정산|오늘.*정산|结算日|几号结算|什么时候结算|今天.*结算/.test(t)) {
-      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [`네 오늘이에요! ${+st.period.slice(5)}월분 정산 들어갔어요. 실수령 ${krw(st.pay)}이고, 명세서는 지갑에서 보실 수 있어요.`, `对，就是今天！${+st.period.slice(5)} 月的结算已经发了，实际到手 ${krw(st.pay)}，明细在钱包里能看到。`] : ['네 오늘인데, 이번엔 정산할 게 없더라고요. 아직 입금 안 된 건들은 다음 달에 같이 들어가요.', '对是今天，不过这次没有可结算的。还没到账的会在下个月一起结。'];
+      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [['네 오늘이에요!', '对，就是今天！'], [`${+st.period.slice(5)}월분 들어갔을 거예요. ${krw(st.pay)}이요`, `${+st.period.slice(5)} 月的应该到了，${krw(st.pay)}`]] : [['네 오늘이긴 한데', '是今天倒是'], ['이번엔 들어갈 게 없더라고요ㅠ 입금 아직 안 된 건 다음 달에 같이 들어가요', '这次没有能结的ㅠ 还没到账的下个月一起']];
       const left = dd < SETTLE_DAY ? SETTLE_DAY - dd : null;
       return left ? [`이번 달 ${SETTLE_DAY}일이에요. ${left === 1 ? '내일이네요!' : `${left}일 남았어요.`}`, `这个月 ${SETTLE_DAY} 号，${left === 1 ? '就是明天！' : `还有 ${left} 天。`}`] : [`이번 달 정산은 끝났고, 다음은 ${nm}월 ${SETTLE_DAY}일이에요.`, `这个月已经结算过了，下次是 ${nm} 月 ${SETTLE_DAY} 日。`];
     }
@@ -2569,11 +2576,12 @@ async function mgrAi(text) {
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
   const r = await client.messages.create({ model: S.ai.model, max_tokens: 200, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。用韩语回复，像真人发 KakaoTalk：口语、自然、有点人情味（会用 ~、ㅎㅎ、ㅠㅠ 这类语气），先直接回答对方问的，再顺口补半句就够了；一般 1~2 句，不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
-输出格式严格为两行：第一行 KO: 韩语回复；第二行 ZH: 对应的中文翻译。
+可以像真人一样分成 1~3 条短消息发。每条消息输出两行：KO: 韩语；ZH: 中文翻译。多条就重复这两行。不要提到 App 界面（比如「在钱包里能看到」）。
 ${mgrContext()}`, messages: msgs });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
-  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(), ko = (out.match(/KO:\s*([\s\S]*?)(?:\n\s*ZH:|$)/) || [])[1], zh = (out.match(/ZH:\s*([\s\S]*)$/) || [])[1];
-  return ko ? [ko.trim(), (zh || '').trim()] : null;
+  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(), msgs2 = [];
+  for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]);
+  return msgs2.length ? msgs2 : null;
 }
 async function mgrRespond(text) {
   const fact = mgrFacts(text);
