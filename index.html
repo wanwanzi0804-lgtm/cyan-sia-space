@@ -1049,7 +1049,7 @@ function heat() {
   const F = fanState(), cut = Date.now() - 7 * 86400e3; let s = 0;
   for (const a of F.act) if (a.t > cut) s += a.type === 'post' ? 1 : a.type === 'live' ? 1.5 : a.type === 'reply' ? .15 : a.type === 'bubble' ? .3 : 0;
   const idle = (Date.now() - lastActive()) / 86400e3;
-  return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04 + hotBoost() + cbBoost(), .6, 1.8);
+  return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04 + hotBoost() + cbBoost() + viralHeat(), .6, 1.8);
 }
 function heatLabel(h = heat()) { return h < .75 ? '🥶 低迷' : h < .95 ? '🙂 平稳' : h < 1.2 ? '📈 上升中' : '🔥 火热'; }
 function lastActive() { const F = fanState(); return F.act.length ? Math.max(...F.act.map(a => a.t)) : (S.posts[0]?.createdAt || F.since || (F.since = Date.now())); }
@@ -1762,16 +1762,47 @@ function albMult(a) {
 }
 // 有回归打歌期的作品曝光多，卖得更好；没打歌的就靠粉丝自己
 function albPromo(a) { return !!(a.promo || (S.cb && S.cb.albumId === a.id)); }
+// 逆袭：发行后某天因为外部因素突然小火，运气成分很大
+const VIRAL_CAUSES = [
+  ['打歌直拍在 YouTube Shorts 上突然爆了', '算法把一条打歌直拍推上了热门，评论区全是「这是谁？」'],
+  ['被人气主播在直播里循环播放', '一位人气主播连着几天在直播里放这首歌，弹幕都在问歌名'],
+  ['副歌舞蹈挑战在 TikTok 上传开了', '好几个舞蹈博主跳了副歌部分，挑战视频越来越多'],
+  ['被一条爆款短视频用作 BGM', '一条和你无关的爆款视频用了这首歌当背景音乐，搜索量暴涨'],
+  ['音乐评论号写了长文安利', '一个有名的音乐评论号发了「今年被低估的歌」，这首排在第一个'],
+  ['百万粉翻唱博主 cover 了这首', '翻唱视频火了之后，原曲也被大家翻出来听'],
+  ['路人在 theqoo 发帖「这首歌怎么没人听」', '帖子上了热门，回帖都在说「听了之后出不去了」']
+];
+function viralCurve(a, dk) {
+  const v = (S.sales && S.sales.viral || {})[a.id]; if (!v) return 0;
+  const t = Math.round((parseD(dk).getTime() - parseD(v.dk).getTime()) / 86400e3);
+  return t < 0 ? 0 : t < 3 ? (t + 1) / 3 : Math.exp(-(t - 2) / 7);
+}
+function viralMult(a, dk) { const v = (S.sales && S.sales.viral || {})[a.id]; return v ? 1 + v.peak * viralCurve(a, dk) : 1; }
+function viralHeat() { const today = dkey(Date.now()); return Math.max(0, ...disco().map(a => .35 * viralCurve(a, today))); }
+// 每天给发行 3~120 天的作品摇一次骰子，每张作品最多逆袭一次
+function viralTick() {
+  const SS = salesState(), today = dkey(Date.now()), V = SS.viral || (SS.viral = {}), chk = SS.vchk || (SS.vchk = {});
+  for (const a of disco()) {
+    if (!a.date || a.type === 'other' || V[a.id] || chk[a.id] === today) continue;
+    chk[a.id] = today;
+    const d = Math.round((parseD(today).getTime() - parseD(a.date).getTime()) / 86400e3);
+    if (d < 3 || d > 120 || Math.random() > .004 * (.5 + luckQ())) continue;
+    const big = Math.random() < .1, peak = big ? rand(8, 12) : rand(2, 5), [cause, sub] = pick(albMult(a) > 1 ? VIRAL_CAUSES : VIRAL_CAUSES.slice(1)); // 没打歌的作品不会有打歌直拍
+    V[a.id] = { dk: today, peak, cause, big };
+    addFans(S.profile.followers * .004 * peak, '逆袭：' + albTitle(a));
+    pushNotif({ type: 'system', text: `🔥 《${albTitle(a)}》突然${big ? '火' : '小火'}了！${cause}`, sub: sub + '。接下来一两周音源、MV 和专辑都会明显上涨' }, true);
+  }
+}
 // 每天的目标销量 / 播放量
 function albumDay(a, dk, f, h, bz, out) {
   const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
   if (d < 0) return;
-  const boost = d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1;
+  const boost = (d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1) * viralMult(a, dk);
   a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz; });
   if (a.type === 'other' || d >= 999) return;
   const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1) * albMult(a);
-  out.mv[a.id] = f * h * bz * (2 * Math.exp(-d / 5) + .15 * Math.exp(-d / 60) + .012) * (albMult(a) >= 2.5 ? 3 : albPromo(a) ? 1.5 : 1); // 出道 MV 一年约 50~100 万，之后的单曲 10~50 万 out.tt[a.id] = f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
-  out.alb[a.id] = (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * (.006 * Math.exp(-(d - 7) / 25) + .0008));
+  out.mv[a.id] = viralMult(a, dk) * f * h * bz * (2 * Math.exp(-d / 5) + .15 * Math.exp(-d / 60) + .012) * (albMult(a) >= 2.5 ? 3 : albPromo(a) ? 1.5 : 1); // 出道 MV 一年约 50~100 万，之后的单曲 10~50 万 out.tt[a.id] = viralMult(a, dk) * f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
+  out.alb[a.id] = Math.sqrt(viralMult(a, dk)) * (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * (.006 * Math.exp(-(d - 7) / 25) + .0008));
 }
 function salesTargets(dk) {
   const f = S.profile.followers, h = heat(), bz = buzzNow(), out = { alb: {}, trk: {}, mer: {}, mv: {}, tt: {} };
@@ -1826,7 +1857,7 @@ function salesRebuildAlb() {
   SS.albV = 4; // 之后照常从 SS.last 往后累计
 }
 function salesAdvance() {
-  salesBackfill(); salesRebuildAlb();
+  salesBackfill(); salesRebuildAlb(); viralTick();
   const SS = salesState(), W = wallet(), now = Date.now();
   let t = Math.max(SS.last || now, now - 14 * 86400e3);
   for (let guard = 0; t < now && guard < 20; guard++) {
@@ -1906,7 +1937,7 @@ function albumSalesHTML() {
   const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   if (!albs.length) return '<div class="muted" style="font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>';
   return albs.map(a => { const x = SS.alb[a.id];
-    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张${albMult(a) >= 2.5 ? ' · 出道红利' : ''}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张${albMult(a) >= 2.5 ? ' · 出道红利' : ''}${viralCurve(a, today) > .15 ? ' · 🔥 逆袭中' : ''}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
 }
 function walletHTML() {
   const W = wallet(), mon = dkey(Date.now()).slice(0, 7), C = W.contract, T = { gen: cShare('gen'), bb: cShare('bb') };
