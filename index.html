@@ -1975,7 +1975,7 @@ function walletHTML() {
     <div class="kpi"><div><b style="color:var(--accent)">${won(inc)}</b><span>本月到手</span></div><div><b style="color:var(--danger)">${won(out)}</b><span>本月支出</span></div></div>
     <div style="margin-top:12px"><div class="row"><b style="font-size:14px;flex:1">练习生欠款</b><span class="muted" style="font-size:12.5px">已还 ${pct}%</span></div>
       <div class="w-bar"><i style="width:${pct}%"></i></div>
-      <div class="muted" style="font-size:12.5px;margin-top:4px">${W.debt > 0 ? `还欠 ${won(W.debt)} <span class="rmb">${rmb(W.debt)}</span> · 按合同每笔到手收入先拿 ${Math.round(C.repay * 100)}% 还给公司` : '🎉 欠款已经还清了！'}</div></div>
+      <div class="muted" style="font-size:12.5px;margin-top:4px">${W.debt > 0 ? `还欠 ${won(W.debt)} <span class="rmb">${rmb(W.debt)}</span>` : '🎉 欠款已经还清了！'}</div></div>
   </div>
   <div class="card">
     <b style="font-size:14px">✏️ 记一笔</b>
