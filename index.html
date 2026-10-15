@@ -213,6 +213,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .tg-res{margin-top:6px;font-size:12.5px;padding:4px 8px;border-radius:8px;background:var(--bg);display:inline-block}
 .tg-res.gS{color:#e5a100}.tg-res.gA{color:var(--accent)}.tg-res.g旷{color:#e5484d}
 .tg-d{font-size:15px;line-height:1.7;white-space:pre-wrap}
+.tg-ctx{background:var(--bg);border-radius:12px;padding:8px 12px;margin:4px 0 10px;font-size:13px;line-height:1.75;color:var(--muted)}
 .tg-qz{margin:10px 0}
 .tg-tm{display:flex;flex-direction:column;align-items:center;gap:16px;padding:8px 0}
 .tg-tm-bar{position:relative;width:100%;height:26px;border-radius:13px;background:var(--bg);overflow:hidden}
@@ -2825,19 +2826,44 @@ function tgListHTML() {
   return `<div class="row"><h3 style="flex:1">📋 今天的通告</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     ${cs.length ? cs.map(c => `<div class="tg-row${!c.done && !tgOpen(c) ? ' lock' : ''}" data-act="${!c.done && !tgOpen(c) ? '' : 'tgopen'}" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : tgOpen(c) ? '<span class="tg-todo">去完成 ›</span>' : `<span class="muted" style="font-size:12px">${c._start} 开始</span>`}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
 }
+// 通告卡的背景信息：这是什么活动、在哪、现在处于什么阶段、要宣传哪首歌
+function tgKind(r) {
+  const t = r.title;
+  if (r.cat === '活动') return /机场|出境|入境|出国|回国/.test(t) ? '机场行程（出入境，站姐和粉丝会拍照）' : /AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/.test(t) ? '颁奖典礼（红毯 + 典礼）' : /品牌|代言|快闪|pop-?up|开幕|店/i.test(t) ? '品牌活动（拍照、简短采访）' : /见面会|生日会|粉丝/.test(t) ? '粉丝见面会' : /直播|Weverse|Live|LIVE/.test(t) ? '线上直播' : /观演|试映|VIP|首映/.test(t) ? '受邀观看演出 / 试映' : /探班|探访/.test(t) ? '探班' : /会议|开会/.test(t) ? '公司内部会议' : /采访|interview/i.test(t) ? '媒体采访' : /Showcase|showcase/.test(t) ? '回归 Showcase' : '其他活动';
+  return { 打歌: /彩排/.test(t) ? '音乐节目彩排' : /事前录制/.test(t) ? '音乐节目事前录制（不是直播）' : '音乐节目打歌', 综艺: /网综|YouTube|vlog|Vlog/.test(t) ? '网络综艺录制' : '电视综艺录制', 电台: '电台节目', 物料: /MV/.test(t) ? 'MV 拍摄' : /画报/.test(t) ? '杂志画报拍摄' : /预告|封面/.test(t) ? '回归预告照 / 封面拍摄' : '内容拍摄', 签售: /视频/.test(t) ? '视频签售' : '线下签售会', 公演: '演出', 校庆: '大学庆典演出', 演唱会: '演唱会', 上课: '课程', 练习: '练习', 个人: '个人日程' }[r.cat] || r.cat;
+}
+function tgStage(dk) {
+  const c = S.cb, a = cbAlbum(), ph = cbPhase(), tp = a ? ALB_TYPE[a.type] || '' : '';
+  if (a && c && !c.over) {
+    const d = Math.round((parseD(c.date).getTime() - parseD(dk).getTime()) / 86400e3);
+    if (d > 0) return `《${a.name}》${tp}回归预热 · D-${d}（主打《${albTitle(a)}》）`;
+    const s = -d, P = cbPlan();
+    if (s < P.promoEnd) return `《${a.name}》${tp}主打《${albTitle(a)}》打歌期 · 第 ${Math.floor(s / 7) + 1} 周`;
+    if (c.follow && s >= P.followStart && s < P.followEnd) return `《${a.name}》后续打歌《${c.follow}》`;
+  }
+  const l = relList().filter(x => x.date <= dk).slice(-1)[0];
+  return l ? `非回归期 · 最新作品《${l.name}》（主打《${albTitle(l)}》，${l.date.slice(0, 7)} 发行）` : '还没有发行作品';
+}
+function tgSong(dk) { const ph = cbPhase(); if (ph && ph !== 'plan' && ph !== 'end' && cbAlbum()) return cbSong(); const l = relList().filter(x => x.date <= dk).slice(-1)[0]; return l ? albTitle(l) : ''; }
+function tgCtxHTML(c) {
+  const [dk, rid] = c.key.split('|'), r = S.schedule.rules.find(x => x.id === rid) || { title: c.title, cat: c.cat, start: c._start || '', end: '' };
+  return `<div class="tg-ctx"><div>📍 ${esc(tgKind(r))}</div><div>🕒 ${r.start}${r.end ? '–' + r.end : ''}${r.loc ? ' · ' + esc(r.loc) : ''}</div>${r.note ? `<div>📝 ${esc(r.note)}</div>` : ''}${['练习', '上课', '个人'].includes(r.cat) ? '' : `<div>💿 ${esc(tgStage(dk))}</div>`}</div>`;
+}
+// 事件文字里「新歌 / 宣传语」换成具体的歌
+function tgFill(t, dk, r) { if (r && r.cat === '活动' && /品牌/.test(tgKind(r))) t = t.replace(/说一句宣传语/g, '为这次品牌活动说一句宣传语'); const song = tgSong(dk); if (!song) return t; return t.replace(/宣传新歌/g, `宣传《${song}》`).replace(/说一句宣传语/g, `说一句《${song}》的宣传语`).replace(/你的新歌/g, `《${song}》`).replace(/播了你的歌/g, `播了《${song}》`); }
 // 选项之外，自己写怎么回应
 function tgCustomHTML() { return `<details class="tg-cus"><summary>✏️ 自己回应…</summary><textarea id="tg-cus" placeholder="写下你会怎么做 / 怎么说" style="min-height:70px;margin-top:6px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="tgcustom">就这样</button></div></details>`; }
 function tgCustomScore(v) { const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .3 : n < 10 ? .55 : n <= 120 ? .75 : .65; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; if (/粉丝|大家|sia|谢谢|感谢|努力|认真|配合|道歉|抱歉|练习|准备/.test(v)) sc += .08; return clamp(sc + rand(-.1, .1), .05, 1); }
 function tgCardHTML(key) {
-  const c = tgState().cards[key]; if (!c) return '';
-  const head = `<div class="row"><button class="link" data-act="tglist">‹ 返回</button><span class="sp"></span><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span></div><h3 style="margin:8px 0 4px">${esc(c.title)}</h3>`;
-  if (c.done) return head + `<div class="card"><div class="tg-d">${esc(c.d)}</div><div style="margin-top:10px">你的选择：<b>${esc(c.pickText || '')}</b></div><div class="muted" style="margin-top:6px">完成度 ${Math.round(c.score * 100)}%，行程结束后出结果。</div></div>`;
+  const c = tgState().cards[key]; if (!c) return ''; const R0 = S.schedule.rules.find(x => x.id === key.split('|')[1]), F = x => tgFill(x, key.split('|')[0], R0);
+  const head = `<div class="row"><button class="link" data-act="tglist">‹ 返回</button><span class="sp"></span><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span></div><h3 style="margin:8px 0 4px">${esc(c.title)}</h3>${tgCtxHTML(c)}`;
+  if (c.done) return head + `<div class="card"><div class="tg-d">${esc(F(c.d))}</div><div style="margin-top:10px">你的选择：<b>${esc(c.pickText || '')}</b></div><div class="muted" style="margin-top:6px">完成度 ${Math.round(c.score * 100)}%，行程结束后出结果。</div></div>`;
   let body = '';
-  if (c.kind === 'choice') body = c.opts.map((o, j) => `<button class="hot-opt" data-act="tgpick" data-j="${j}">${esc(o[0])}</button>`).join('') + tgCustomHTML();
+  if (c.kind === 'choice') body = c.opts.map((o, j) => `<button class="hot-opt" data-act="tgpick" data-j="${j}">${esc(F(o[0]))}</button>`).join('') + tgCustomHTML();
   else if (c.kind === 'write') body = `<textarea id="tg-in" placeholder="${esc(c.ph || '')}" style="min-height:90px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgwrite">完成</button></div>`;
   else if (c.kind === 'hours') body = [[1, '1 小时'], [2, '2 小时'], [3, '3 小时（体能不够可能受伤）']].map(([h, t]) => `<button class="hot-opt" data-act="tghours" data-h="${h}">${t}</button>`).join('');
   else if (c.kind === 'song') body = c.songs.map(([n, t], j) => `<button class="hot-opt" data-act="tgsong" data-j="${j}">${esc(n)}${t ? ' <span class="alb-star">主打</span>' : ''}</button>`).join('');
-  else if (c.kind === 'multi') { const st = c.steps[c.si || 0]; body = `${c.si ? `<div class="tg-d" style="margin-bottom:8px">${esc(st[0])}</div>` : ''}${st[1].map((o, j) => `<button class="hot-opt" data-act="tgmulti" data-j="${j}">${esc(o[0])}</button>`).join('')}${tgCustomHTML()}<div class="muted" style="font-size:12px">${(c.si || 0) + 1} / ${c.steps.length}</div>`; }
+  else if (c.kind === 'multi') { const st = c.steps[c.si || 0]; body = `${c.si ? `<div class="tg-d" style="margin-bottom:8px">${esc(F(st[0]))}</div>` : ''}${st[1].map((o, j) => `<button class="hot-opt" data-act="tgmulti" data-j="${j}">${esc(F(o[0]))}</button>`).join('')}${tgCustomHTML()}<div class="muted" style="font-size:12px">${(c.si || 0) + 1} / ${c.steps.length}</div>`; }
   else if (c.kind === 'timing') body = `<div class="tg-tm"><div class="tg-tm-bar"><i class="tg-tm-z"></i><i class="tg-tm-c" id="tg-tm-c"></i></div><button class="btn primary" id="tg-tm-btn" data-act="tgtime" style="min-width:140px">开始</button></div>`;
   else if (c.kind === 'reaction') body = `<div class="tg-rx"><button id="tg-rx" class="tg-rx-btn" data-act="tgreact">点这里开始</button><div class="muted" style="font-size:12.5px;text-align:center" id="tg-rx-s">一共 3 次，灯变绿再点，太早会扣分</div></div>`;
   else if (c.kind === 'mash') body = `<div class="tg-rx"><button id="tg-mash" class="tg-rx-btn" data-act="tgmash">开始</button><div class="muted" style="font-size:12.5px;text-align:center" id="tg-mash-s">点一下开始，5 秒内越多越好</div></div>`;
@@ -2848,7 +2874,7 @@ function tgCardHTML(key) {
   else if (c.kind === 'photo') body = `<div class="tg-ph">${c.photos.map(([n], j) => `<button data-act="tgph" data-j="${j}">📷<span>${esc(n)}</span></button>`).join('')}</div><div class="row" style="margin-top:8px"><span class="muted" style="flex:1;font-size:12.5px">选 2 张</span><button class="btn primary" data-act="tgphdone">就这两张</button></div>`;
   else if (c.kind === 'memory') body = `<div class="tg-mem">${c.deck.map((s, j) => `<button data-act="tgmem" data-j="${j}"></button>`).join('')}</div><div class="muted" style="font-size:12.5px;margin-top:6px" id="tg-mem-s">步数 0</div>`;
   else if (c.kind === 'rhythm') body = `<div class="tg-rh"><div id="tg-beat" class="tg-beat"></div><button class="btn primary" id="tg-rh-btn" data-act="tgrh">开始</button></div><div class="muted" style="font-size:12.5px;text-align:center" id="tg-rh-s">点开始后，圆圈亮起时点「拍」</div>`;
-  return head + `<div class="card"><div class="tg-d">${esc(c.d)}</div><div style="margin-top:10px">${body}</div></div>`;
+  return head + `<div class="card"><div class="tg-d">${esc(F(c.d))}</div><div style="margin-top:10px">${body}</div></div>`;
 }
 function tgFinish(score, pickText) {
   const c = tgState().cards[UI.tgKey]; if (!c || c.done) return;
