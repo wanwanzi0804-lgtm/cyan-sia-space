@@ -2283,10 +2283,10 @@ const TG_SPECIAL = [
   [/试映|观演/, r => W_('试映会后，记者请你说一句观后感。', '一句话')],
   [/公益/, r => C('公益活动现场，有位老人家拉着你的手聊了很久。', [['耐心陪着聊完', .55, 1], ['拍张合照留念', .4, .85], ['留下联系方式下次再来', .45, .9]])]
 ];
-const TG_PEN_FREE = ['上课', '打歌']; // 这两种旷掉不罚款，只是没效果
+const TG_PEN_FREE = ['上课', '练习']; // 这两种旷掉不罚款，只是能力不涨
 // 旷工罚款按活动重要性：[匹配标题, 罚款, 掉粉倍数]
 const TG_FINE = {
-  练习: [[/./, 100000, .3]], 电台: [[/./, 300000, .6]],
+  打歌: [[/彩排|事前录制/, 500000, 1], [/./, 1000000, 1.5]], 电台: [[/./, 300000, .6]],
   综艺: [[/网综|YouTube|vlog|Vlog|采访|自制/, 800000, 1], [/./, 2000000, 1.5]],
   物料: [[/MV 拍摄|封面|预告照/, 5000000, 1.2], [/画报|广告/, 1500000, 1], [/./, 500000, .6]],
   签售: [[/视频通话|线上/, 1500000, 1.5], [/./, 3000000, 2.5]],
@@ -2437,7 +2437,7 @@ function tgSettle(k, r, key, today) {
   if (!c.done && k >= today) return 'wait';
   const f = S.profile.followers, R = S.schedule.res || (S.schedule.res = {});
   if (!c.done) {
-    if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没准备好就上台了，表现很一般', at: Date.now() }; if (r.cat === '打歌') { walletSchedFee(r, .6); addFans(f * .0005, '行程：' + r.title); } return 'done'; }
+    if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没去练习，能力没有提升', at: Date.now() }; return 'done'; }
     const e = schedEcon(r) || { cost: 0 }, { fine, fm } = tgFine(r), lose = Math.round(f * rand(.002, .004) * fm);
     addFans(-lose, '旷工：' + r.title); walletDeal(0, e.cost + fine, '旷工罚款', r.title, `成本 + 罚款 ${won(fine)}`);
     R[key] = { grade: '旷', note: `旷工了。掉粉 ${fmtNum(lose)}，公司按成本加罚款扣钱`, fans: -lose, at: Date.now() };
