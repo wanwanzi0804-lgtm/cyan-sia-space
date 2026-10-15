@@ -2330,13 +2330,72 @@ function mgrChatHTML() {
     <div class="kk-log" id="mgr-log">${mgrLogHTML()}</div>
     <div class="row" style="gap:6px;margin-top:8px"><input id="mgr-in" placeholder="发消息…" maxlength="200" style="flex:1"><button class="btn primary sm" data-act="mgrsend">发送</button></div>`;
 }
+// 经纪人回答：能用真实数据回答的直接答；其他的开了 AI 就让 AI 按经纪人身份回，没开就简短回应
+const hm = r => `${r.start}${r.end ? '-' + r.end : ''}`;
+function mgrFacts(t) {
+  const W = wallet(), today = dkey(Date.now()), tm = addDays(today, 1), f = S.profile.followers;
+  const day = /明天|明日/.test(t) ? tm : /后天/.test(t) ? addDays(today, 2) : today, dname = day === today ? '今天' : day === tm ? '明天' : '后天';
+  if (/收入|赚|挣|到手|分成|多少钱|有钱|给钱|报酬|酬劳|出场费/.test(t) && !/欠|余额/.test(t)) {
+    if (day === today) {
+      const tx = W.tx.filter(x => dkey(x.at) === today && ['行程', '课程'].includes(x.cat));
+      const now = new Date(), hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const left = rulesFor(today).filter(r => r.end > hhmm && !tx.some(x => x.note === r.title) && schedEcon(r));
+      const lines = tx.map(x => x.owe ? `${x.note}：收入 ${won(x.gross)}，成本 ${won(x.cost)}，成本比收入高，你那份 ${won(x.owe)} 记到欠款里了` : `${x.note}：收入 ${won(x.gross)}${x.cost ? `，扣掉成本 ${won(x.cost)}` : ''}，你到手 ${won(x.amt - (x.repay || 0))}${x.repay ? `（另外 ${won(x.repay)} 还了欠款）` : ''}`);
+      if (!lines.length && !left.length) return '今天的行程都是练习和上课，没有收入哦';
+      return (lines.length ? '今天结算的：\n' + lines.join('\n') : '今天还没有结算的行程') + (left.length ? `\n${left.map(r => r.title).join('、')}还没结束，结束后会结算` : '');
+    }
+    const rs = rulesFor(day).filter(r => schedEcon(r));
+    return rs.length ? `${dname}有收入的是${rs.map(r => r.title).join('、')}，具体多少要看结算，扣完成本才知道` : `${dname}没有有收入的行程`;
+  }
+  if (/行程|安排|几点|通告|干嘛|做什么/.test(t)) {
+    const rs = rulesFor(day).filter(r => !['练习', '上课'].includes(r.cat) || /几点|行程/.test(t));
+    return rs.length ? `${dname}的安排：\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' · ' + r.loc : ''}`).join('\n')}` : `${dname}没有别的行程，好好练习/休息`;
+  }
+  if (/欠|还清/.test(t)) return W.debt > 0 ? `还欠公司 ${won(W.debt)}（${rmb(W.debt)}），已经还了 ${Math.round((W.debt0 - W.debt) / W.debt0 * 100)}%。照现在这样慢慢来，别着急` : '欠款早就还清啦';
+  if (/余额|存款|还有多少钱|卡里/.test(t)) return `你账上现在 ${won(W.bal)}（${rmb(W.bal)}）`;
+  if (/粉丝|涨粉|掉粉/.test(t)) { const F = fanState(), n = (F.days[today] || { net: 0 }).net; return `现在 ${fmtNum(f)} 粉丝，今天${n >= 0 ? '涨了' : '掉了'} ${fmtNum(Math.abs(Math.round(n)))}。整体热度：${heatLabel().replace(/^\S+\s/, '')}`; }
+  if (/成绩|销量|音源|排名|榜|播放|mv/i.test(t)) {
+    const SS = salesState(), T = salesTargets(today), top = Object.entries(T.trk).sort((a, b) => b[1] - a[1])[0], a = relList().slice(-1)[0];
+    if (!top) return '还没有作品成绩';
+    const best = PLATS.map(p => [p[0], chartRank(p, T.trk[top[0]] * p[1])]).filter(x => x[1]).sort((x, y) => x[1] - y[1])[0];
+    return `今天最好的是《${top[0].split('|').slice(1).join('|')}》，全平台大概 ${fmtNum(Math.round(top[1]))} 次${best ? `，${best[0]} ${best[1]} 位` : '，还没进榜'}。${a && SS.alb[a.id] ? `《${a.name}》专辑累计 ${fmtNum(Math.round(SS.alb[a.id].total))} 张` : ''}`;
+  }
+  if (/回归|新专|新歌|打歌/.test(t)) { const c = S.cb, a = cbAlbum(), d = cbDay(); return c && a && !c.over ? (d > 0 ? `《${a.name}》${c.date} 回归，还有 ${d} 天` : `现在是《${a.name}》的活动期，打歌安排看行程`) : '下次回归公司还在讨论，有消息第一时间告诉你'; }
+  if (/代言|广告/.test(t)) return W.deals.length ? `现在有 ${W.deals.map(d => `${d.brand}（每月 ${won(d.fee)}，剩 ${d.left} 个月）`).join('、')}` : W.offer ? `${W.offer.brand}那个还在等你回复呢` : '暂时没有代言，有品牌来问我会马上告诉你';
+  if (/合同|合约|续约/.test(t)) { const C = W.contract; return `现在是第 ${C.no} 份合同，到 ${C.end}，快到期前三个月公司会找你谈`; }
+  return null;
+}
 function mgrAnswer(t) {
+  const fact = mgrFacts(t); if (fact) return fact;
   if (/累|辛苦|休息|困|不舒服|生病|疼/.test(t)) return pick(['辛苦了，这周我帮你把能推的推掉一些', '身体不舒服一定要说，别硬撑。要不要我约个医院？', '好好睡一觉，明天的事明天再说']);
   if (/谢谢|感谢|爱你|❤|♥/.test(t)) return pick(['应该的～', '跟我客气啥', '嘿嘿 好好干就是对我最好的感谢']);
-  if (/[?？]|吗|什么时候|几点|在哪/.test(t)) return pick(['我问问公司再回你', '我确认一下，等我几分钟', '具体的我晚点发你']);
   if (/想接|想上|想去|想做|想试/.test(t)) return pick(['好，我记下了，有合适的第一时间告诉你', '可以啊，我去打听打听']);
   if (/好|收到|ok|嗯|知道|行/i.test(t)) return pick(['👍', '好嘞', '嗯嗯']);
+  if (/[?？]|吗/.test(t)) return pick(['这个我也不太清楚，要不你当面问问代表？', '嗯…这个我说不好', '这个不归我管哈哈，我帮你留意一下']);
   return pick(['收到～', '好的，我知道了', '嗯嗯，有事随时找我', '👌']);
+}
+function mgrContext() {
+  const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum();
+  const sch = d => rulesFor(d).map(r => `${hm(r)} ${r.title}（${r.cat}）`).join('；') || '无';
+  return `今天 ${today}。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${fmtNum(p.followers)}，热度${heatLabel()}。
+今天行程：${sch(today)}。明天行程：${sch(addDays(today, 1))}。
+账户余额 ${won(W.bal)}，练习生欠款 ${won(W.debt)}。${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}
+作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。`;
+}
+async function mgrAi(text) {
+  const client = await aiClient(), M = mgrChat();
+  const hist = M.chat.slice(-14).filter(m => m.text).map(m => ({ role: m.me ? 'user' : 'assistant', content: m.text }));
+  while (hist.length && hist[0].role !== 'user') hist.shift();
+  const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
+  if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
+  const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是韩国娱乐公司 STARSHIP 里负责这位 solo 艺人的经纪人，正在 KakaoTalk 上和她私聊。像真实的经纪人那样说话：简短、口语、亲切但职业，偶尔用表情，不要长篇大论，一般 1~3 句。只能根据下面的资料回答具体数据，资料里没有的不要编数字，可以说去确认或者不清楚。不要提到你是 AI。\n${mgrContext()}`, messages: msgs });
+  const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
+  return r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+}
+async function mgrRespond(text) {
+  const fact = mgrFacts(text);
+  if (!fact && aiOn()) { try { const r = await mgrAi(text); if (r) { mgrReply(r); return; } } catch (e) { } }
+  mgrReply(fact || mgrAnswer(text));
 }
 /* ---------- 📋 通告：每个行程当天的一张机遇卡 ---------- */
 const KO_W = [['고양이', '猫'], ['사랑', '爱'], ['노래', '歌'], ['친구', '朋友'], ['행복', '幸福'], ['무대', '舞台'], ['연습', '练习'], ['감사합니다', '谢谢'], ['보고 싶어요', '想你'], ['맛있어요', '好吃'], ['꿈', '梦想'], ['하늘', '天空']];
@@ -4582,7 +4641,7 @@ document.addEventListener('click', async e => {
     case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(pick(['行，我帮你推掉', '好的，那这个就不接了'])); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
-    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; mgrChat().chat.push({ id: uid(), at: Date.now(), text: v, me: true }); mgrRefresh(); mgrReply(mgrAnswer(v)); save(); break; }
+    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; mgrChat().chat.push({ id: uid(), at: Date.now(), text: v, me: true }); mgrRefresh(); mgrRespond(v); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
