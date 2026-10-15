@@ -1673,6 +1673,7 @@ const wonHTML = (n, sign) => `${sign && n > 0 ? '+' : ''}${won(n)} <span class="
 const TIERS = { C: { name: '新人合同', gen: .2, bb: .3 }, B: { name: '中坚合同', gen: .3, bb: .4 }, A: { name: '头部合同', gen: .4, bb: .5 } };
 const EXP_CATS = {
   个人消费: { ic: '🧾', kw: /(?!)/, pre: [] },
+  奢侈品: { ic: '👜', kw: /名牌|奢侈|卡包|名片夹|首饰|项链|耳环|戒指|手链|手镯|prada|miu ?miu|celine|chanel|dior|gucci|loewe|louis|lv\b|hermes|ysl|bottega|margiela|vivienne|coach|marc jacobs|tiffany|cartier|명품/i, pre: [] },
   居住: { ic: '🏠', kw: /房租|月租|租金|月세|월세|관리비|管理费|水电|水费|电费|燃气|煤气|暖气|供暖|网费|宽带|网络|가스|전기|인터넷|물세/, pre: [] },
   粉丝回礼: { ic: '🎁', kw: /回礼|应援|签售|粉丝|sia|小礼物|咖啡车|餐车|手写信|明信片|小卡|回赠|便当|打歌.*(零食|饮料|点心)|生日会|fan ?meeting|팬|조공|역조공/i, pre: [['🎁 签售小礼物', 300000], ['☕ 咖啡车回礼', 500000], ['🍱 打歌应援便当', 600000], ['💌 手写明信片', 80000], ['🍰 生日回礼', 400000], ['🍪 现场零食包', 250000], ['📸 签名拍立得', 120000]] },
   美容造型: { ic: '💄', kw: /美容|皮肤|医美|水光|发型|剪发|染发|烫发|头发|理发|化妆|彩妆|口红|粉底|妆|美甲|睫毛|服装|衣服|裙|外套|造型|护肤|面膜|精华|olive ?young|올리브영|에뛰드|이니스프리|미용실|네일|피부/i, pre: [] },
@@ -1741,6 +1742,23 @@ function utilBill(mon) {
   const elec = [7, 8].includes(m) ? v(70000, 110000) : [6, 9].includes(m) ? v(45000, 65000) : [12, 1, 2].includes(m) ? v(40000, 60000) : v(28000, 42000);
   const heatB = [12, 1, 2].includes(m) ? v(110000, 180000) : [11, 3].includes(m) ? v(55000, 95000) : [10, 4].includes(m) ? v(22000, 40000) : v(9000, 18000);
   return { elec, heat: heatB, water: v(14000, 24000) };
+}
+// 奢侈品：小件（卡包 / 首饰 / 设计师配件）1～2 个月一次，大件（名牌包）6～12 个月一次；看结算稳不稳、手头宽不宽
+const LUX_S = ['Miu Miu 卡包', 'Prada 卡包', 'Maison Margiela 卡包', 'Vivienne Westwood 项链', 'Vivienne Westwood 耳环', 'Mondayedition 戒指', 'Jemma 手链', 'Saint Laurent 名片夹', 'Marc Jacobs 零钱包'];
+const LUX_B = ['Prada Re-Edition 尼龙包', 'Miu Miu 小号手提包', 'Marc Jacobs The Tote Bag', 'Coach Tabby 包', 'Prada 尼龙双肩包', 'Miu Miu Wander 包'];
+function luxTick() {
+  const W = wallet(), now = Date.now(), D = 86400e3, today = dkey(now);
+  if (!W.luxS) W.luxS = now + rand(30, 60) * D; if (!W.luxB) W.luxB = now + rand(180, 365) * D;
+  const st = (W.stmts || [])[0], paidRecently = st && st.pay > 0 && now - st.at < 60 * D, bday = today.slice(5, 7) === (S.profile.birth || '2007-08-29').slice(5, 7);
+  const buy = (amt, note) => { W.bal -= amt; W.tx.unshift({ id: uid(), at: now, amt: -amt, cat: '奢侈品', note, auto: true }); };
+  if (now >= W.luxS) {
+    const amt = Math.round(rand(200000, 600000) / 1000) * 1000;
+    if (W.bal - amt >= 500000) { buy(amt, pick(LUX_S)); W.luxS = now + rand(30, 60) * D; } else W.luxS = now + rand(10, 20) * D; // 手头紧就先忍忍
+  }
+  if (now >= W.luxB) {
+    const amt = Math.round(rand(1500000, 3000000) / 10000) * 10000;
+    if ((paidRecently || bday) && W.bal - amt >= 800000) { buy(amt, pick(LUX_B) + (bday ? '（生日礼物送自己）' : '')); W.luxB = now + rand(180, 365) * D; } else W.luxB = now + rand(15, 30) * D; // 等一笔像样的结算或生日
+  }
 }
 // 不手动记的零碎个人消费：每月 10 日固定扣一笔，60～130 万韩元
 const MISC_DAY = 10;
@@ -2039,7 +2057,7 @@ function walletTick() {
     for (const d of W.deals) if (d.left > 0) { d.left--; recvAdd('代言', `${d.brand} 광고 계약금`, dkey(now), d.fee, 0, '', 'gen', ri(10, 30)); }
     W.deals = W.deals.filter(d => d.left > 0);
   }
-  rentTick(); miscTick(); financeTick();
+  rentTick(); miscTick(); financeTick(); luxTick();
   // 一次性校正：10 月零碎消费扣款前，卡里是 1,810,684 韩元
   if (!W.balFix) { const m = W.tx.find(x => x.cat === '个人消费' && x.note.startsWith('10 月')); if (m) { W.balFix = 1; W.bal = 1810684 + W.tx.filter(x => x.at >= m.at).reduce((a, x) => a + (x.amt || 0) - (x.repay || 0), 0); } }
   // 小型个人代言：看粉丝体量，更看近期热度；门槛不低，经纪人会来问你
