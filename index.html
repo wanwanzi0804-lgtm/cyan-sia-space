@@ -2040,6 +2040,8 @@ function walletTick() {
     W.deals = W.deals.filter(d => d.left > 0);
   }
   rentTick(); miscTick(); financeTick();
+  // 一次性校正：10 月零碎消费扣款前，卡里是 1,810,684 韩元
+  if (!W.balFix) { const m = W.tx.find(x => x.cat === '个人消费' && x.note.startsWith('10 月')); if (m) { W.balFix = 1; W.bal = 1810684 + W.tx.filter(x => x.at >= m.at).reduce((a, x) => a + (x.amt || 0) - (x.repay || 0), 0); } }
   // 小型个人代言：看粉丝体量，更看近期热度；门槛不低，经纪人会来问你
   const f = S.profile.followers, h = heat(), score = f / 40000 * Math.pow(h, 1.6);
   if (W.offer && now > (W.offer.exp || Infinity)) { mgrResolve('deal', W.offer.id, '已过期'); W.offer = null; }
