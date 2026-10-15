@@ -176,10 +176,10 @@ body.typing .bb-tick.bb-tick2{display:block}
 .ch-top{display:flex;align-items:center;gap:8px;padding:8px 6px;border-top:1px solid var(--line);font-size:14px;cursor:pointer;border-radius:8px}
 .ch-top.on{background:var(--bg)}
 .ch-n{width:18px;font-weight:800;color:var(--accent)}
-.ct{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.ct div{background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}
-.ct span{font-size:11.5px;color:var(--muted)}
-.ct b{font-size:13px}
+.wct{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.wct div{background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}
+.wct span{font-size:11.5px;color:var(--muted)}
+.wct b{font-size:13px}
 .rest-tg{display:flex;align-items:center;justify-content:space-between;margin:-4px 4px 10px;font-size:13px;color:var(--muted)}
 .sw{position:relative;width:40px;height:24px;flex:none}
 .sw input{opacity:0;width:0;height:0;position:absolute}
@@ -1986,7 +1986,7 @@ function walletHTML() {
     ${W.deals.length ? W.deals.map(d => `<div class="rule"><span style="flex:1">${esc(d.brand)}</span><span class="muted">每月 ${won(d.fee)} · 剩 ${d.left} 个月</span></div>`).join('') : f < 18000 ? `<div class="muted" style="margin-top:6px;font-size:13px">粉丝到 1.8 万后偶尔会有小品牌找你（现在 ${fmtNum(f)}），热度越高机会越大</div><div class="w-bar"><i style="width:${Math.min(100, Math.round(f / 180))}%"></i></div>` : (W.offer ? '' : '<div class="muted" style="margin-top:6px;font-size:13px">暂时没有代言，品牌会不定时来找你</div>')}
   </div>
   <div class="card"><b style="font-size:14px">📄 专属合同</b>
-    <div class="ct"><div><span>合同</span><b>第 ${C.no} 份 · ${TIERS[C.tier].name}</b></div><div><span>期限</span><b>${C.start} ~ ${C.end}</b></div>
+    <div class="wct"><div><span>合同</span><b>第 ${C.no} 份 · ${TIERS[C.tier].name}</b></div><div><span>期限</span><b>${C.start} ~ ${C.end}</b></div>
       <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
       <div><span>活动分成</span><b>你 ${Math.round(T.gen * 100)}% · 公司 ${100 - Math.round(T.gen * 100)}%</b></div><div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
