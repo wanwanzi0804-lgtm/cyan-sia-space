@@ -2347,7 +2347,11 @@ function offersHTML() {
 const WDK = ['일', '월', '화', '수', '목', '금', '토'];
 const kd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}(${WDK[parseD(dk).getDay()]})`, zd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}（周${WD[parseD(dk).getDay()]}）`;
 const krw = n => Math.round(n).toLocaleString('en-US') + '원';
-function mgrChat() { const M = mgr(); M.chat = M.chat || []; M.said = M.said || {}; return M; }
+function mgrChat() {
+  const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
+  if ((M.chatV || 1) < 2) { M.chat = M.chat.filter(m => m.card && !m.res); M.unread = 0; M.chatV = 2; } // 旧的聊天记录清掉，只留还没处理的邀约
+  return M;
+}
 // t：韩语字符串，或 [韩语, 中文]
 function mgrSay(t, card, silent) {
   const [ko, zh] = Array.isArray(t) ? t : [t, ''], M = mgrChat();
@@ -2457,6 +2461,7 @@ function mgrChatHTML() {
 // 回答：能用真实数据回答的直接答（韩语 + 中文）；其他的开了 AI 就让 AI 回，没开就简短回应
 const hm = r => `${r.start}${r.end ? '~' + r.end : ''}`;
 function mgrFacts(t) {
+  if (/谢谢|感谢|辛苦|고마|감사|수고/.test(t) && !/[?？吗]/.test(t)) return null; // 道谢不是在问事情
   const W = wallet(), today = dkey(Date.now()), tm = addDays(today, 1), f = S.profile.followers;
   const day = /明天|明日|내일/.test(t) ? tm : /后天|모레/.test(t) ? addDays(today, 2) : today;
   const [dk, dz] = day === today ? ['오늘', '今天'] : day === tm ? ['내일', '明天'] : ['모레', '后天'];
@@ -2483,19 +2488,42 @@ function mgrFacts(t) {
   if (/合同|合约|续约|계약/.test(t)) { const C = W.contract; return [`현재 ${C.no}차 계약이고 ${C.end}까지예요. 만료 3개월 전에 회사에서 재계약 얘기할 거예요.`, `现在是第 ${C.no} 份合同，到 ${C.end}。到期前三个月公司会谈续约。`]; }
   return null;
 }
+// 现在这一天进行到哪了：还没开始 / 进行中 / 都结束了 / 今天没行程
+function dayState() {
+  const now = new Date(), m = now.getHours() * 60 + now.getMinutes(), rs = rulesFor(dkey(Date.now()));
+  const ext = rs.filter(r => !['练习', '上课'].includes(r.cat)), all = rs;
+  if (!all.length) return { st: 'none', h: now.getHours() };
+  const first = all[0], next = all.find(r => toMin(r.start) > m), cur = all.find(r => toMin(r.start) <= m && toMin(r.end) > m);
+  const st = m < toMin(first.start) ? 'before' : all.every(r => toMin(r.end) <= m) ? 'done' : 'during';
+  return { st, h: now.getHours(), first, next, cur, ext };
+}
 function mgrAnswer(t) {
   const fact = mgrFacts(t); if (fact) return fact;
-  if (/累|辛苦|休息|困|不舒服|生病|疼|힘들|피곤|아파/.test(t)) return pick([['고생 많았어요. 이번 주 조정 가능한 일정 있는지 볼게요.', '辛苦了。我看看这周有没有能调整的行程。'], ['몸 안 좋으면 꼭 말해줘요. 병원 예약 잡아줄까요?', '身体不舒服一定要说。要帮你约医院吗？'], ['오늘은 푹 쉬어요.', '今天好好休息。']]);
-  if (/谢谢|感谢|爱你|고마|감사/.test(t)) return pick([['별말씀을요.', '哪里的话。'], ['당연히 해야죠.', '应该的。']]);
+  const D = dayState(), pu = r => { const p = Math.max(0, toMin(r.start) - 60); return `${String(Math.floor(p / 60)).padStart(2, '0')}:${String(p % 60).padStart(2, '0')}`; };
+  // 跟经纪人说谢谢 / 辛苦了：看现在一天进行到哪了再回
+  if (/谢谢|感谢|辛苦了|辛苦啦|辛苦你|고마|감사|수고/.test(t)) {
+    if (D.st === 'before') return [`별말씀을요. 오늘 첫 일정 ${D.first.start} ${D.first.title}이에요.${D.ext && D.ext[0] ? ` ${pu(D.ext[0])}에 숙소 앞으로 갈게요.` : ''} 오늘도 잘 부탁드려요!`, `哪里的话。今天第一个日程是 ${D.first.start} ${D.first.title}。${D.ext && D.ext[0] ? `${pu(D.ext[0])} 我到宿舍楼下。` : ''}今天也拜托啦！`];
+    if (D.st === 'during') return pick([[`아니에요, 같이 하는 건데요. ${D.next ? `다음은 ${D.next.start} ${D.next.title}이에요. ` : ''}조금만 더 힘내요!`, `不会，一起的嘛。${D.next ? `下一个是 ${D.next.start} ${D.next.title}。` : ''}再加把劲！`], ['별말씀을요. 남은 일정도 화이팅이에요!', '哪里的话。剩下的也加油！']]);
+    if (D.st === 'done') return pick([['오늘 고생 많으셨어요. 푹 쉬세요!', '今天辛苦了，好好休息！'], ['오히려 제가 감사하죠. 오늘 정말 수고했어요.', '应该我谢谢你。今天真的辛苦了。']]);
+    return D.h < 12 ? ['별말씀을요. 오늘은 일정 없으니까 편하게 쉬어요.', '哪里的话。今天没日程，好好休息。'] : pick([['별말씀을요~', '哪里的话～'], ['당연히 해야죠.', '应该的。']]);
+  }
+  if (/早上好|早安|早啊|^早|좋은 아침|안녕/.test(t)) return D.st === 'before' ? [`좋은 아침이에요! 오늘 첫 일정 ${D.first.start} ${D.first.title}이에요.${D.ext && D.ext[0] ? ` 픽업은 ${pu(D.ext[0])}이에요.` : ''}`, `早上好！今天第一个日程是 ${D.first.start} ${D.first.title}。${D.ext && D.ext[0] ? `${pu(D.ext[0])} 接你。` : ''}`] : ['안녕하세요~', '你好～'];
+  if (/晚安|睡了|잘자|잘 자/.test(t)) return ['네, 잘 자요. 내일 연락할게요.', '好，晚安。明天联系。'];
+  // 自己累 / 不舒服
+  if (/(好|很|太|有点|超)累|累死|^累|累了|困|不舒服|生病|疼|发烧|嗓子|힘들|피곤|아파/.test(t)) {
+    if (D.st === 'before' || D.st === 'during') return pick([['많이 힘들어요? 일정 중간에 쉴 수 있게 조정해볼게요. 몸 안 좋으면 바로 말해줘요.', '很累吗？我看看行程中间能不能让你休息一下。身体不舒服马上告诉我。'], ['컨디션 어때요? 필요한 거 있으면 사갈게요.', '状态怎么样？需要什么我买过去。']]);
+    return pick([['오늘 고생 많았어요. 일찍 쉬어요.', '今天辛苦了，早点休息。'], ['몸 안 좋으면 꼭 말해줘요. 병원 예약 잡아줄게요.', '不舒服一定要说，我帮你约医院。']]);
+  }
   if (/想接|想上|想去|想做|想试|하고 싶/.test(t)) return pick([['네, 메모해둘게요. 맞는 거 들어오면 바로 말씀드릴게요.', '好，我记下了，有合适的马上告诉你。'], ['좋아요. 한번 알아볼게요.', '好啊，我去打听一下。']]);
-  if (/好|收到|ok|嗯|知道|行|네|알겠|ㅇㅋ/i.test(t)) return pick([['👍', '👍'], ['네~', '好~'], ['넵', '嗯']]);
+  if (/^(好|好的|收到|ok|嗯+|知道了|行|네|넵|알겠어요|ㅇㅋ)[!！~～。.]*$/i.test(t.trim())) return pick([['👍', '👍'], ['네~', '好~']]);
   if (/[?？]|吗|까|요\?/.test(t)) return pick([['그건 제가 확인해보고 말씀드릴게요.', '这个我确认一下再告诉你。'], ['그 부분은 실장님께 여쭤볼게요.', '这部分我问问室长。']]);
-  return pick([['네, 알겠어요.', '好的，知道了。'], ['확인했어요.', '收到。'], ['무슨 일 있으면 언제든 연락 주세요.', '有事随时联系我。']]);
+  return pick([['네, 알겠어요.', '好的，知道了。'], ['확인했어요.', '收到。']]);
 }
 function mgrContext() {
   const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum(), R = W.recv || [];
   const sch = d => rulesFor(d).map(r => `${hm(r)} ${r.title}（${r.cat}）`).join('；') || '无';
-  return `今天 ${today}。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
+  const D = dayState(), now = new Date();
+  return `现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
 今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
 结算：每月 ${SETTLE_DAY} 日结算上月已到账收入；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。艺人账户余额 ${won(W.bal)}，未回收的公司前期投入 ${won(W.debt)}。
 ${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。`;
