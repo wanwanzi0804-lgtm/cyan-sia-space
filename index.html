@@ -1577,7 +1577,6 @@ function cbHTML() {
       ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
       ${cbRivalWarn(c.date, c.weeks)}
-      <div class="muted" style="font-size:12.5px;margin-top:6px">六个音乐节目每周各自出结果（看「🏆 打歌节目」）· 打歌、电台、综艺请加到行程里，放送曝光越多分越高</div>
       ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">${esc(x.label || '第' + x.w + '周')} · 《${esc(x.song || albTitle(a))}》${x.gigs != null ? `<span class="muted" style="font-size:12px"> · 打歌 ${x.gigs} 次</span>` : ''}</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
   }
   return top;
