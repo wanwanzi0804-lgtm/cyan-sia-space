@@ -202,6 +202,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-t{font-size:10.5px;color:var(--muted);flex:none}
 .kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
 .kk-res{margin-top:6px;font-size:12px;color:#8a939c}
+.kk-zh{margin-top:6px;padding-top:6px;border-top:1px dashed #d5dbe0;font-size:12.5px;color:#6b7680}
 .offer-b{display:flex;flex-direction:column;gap:6px}
 .tg-row{display:flex;align-items:center;gap:8px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
 .tg-ok{color:var(--accent);font-weight:700;font-size:13px}
@@ -1727,12 +1728,7 @@ function guessCat(text, krw = 0) {
   if (best) return best;
   return krw && krw < 30000 ? '日常开销' : '自己花的';
 }
-function walletIncome(gross, cat, note, kind = 'gen', at = Date.now()) {
-  const W = wallet(), share = cShare(kind), amt = Math.round(gross * share); if (amt <= 0) return;
-  const repay = W.debt > 0 ? Math.min(W.debt, Math.round(amt * W.contract.repay)) : 0;
-  W.debt -= repay; W.bal += amt - repay;
-  W.tx.unshift({ id: uid(), at, amt, gross: Math.round(gross), repay, cat, note, auto: true }); if (W.tx.length > 400) W.tx.length = 400;
-}
+function walletIncome(gross, cat, note, kind = 'gen', at = Date.now()) { if (gross > 0) recvAdd(cat, note, dkey(at), gross, 0, '', kind, ri(10, 30)); }
 // 房租水电：一室一厅（江南区附近 1.5 房），每月 1 号自动扣；水电暖按季节浮动
 const RENT = 1300000, MGMT = 150000, NET = 33000;
 function utilBill(mon) {
@@ -1780,11 +1776,70 @@ function walletSchedFee(r, mult = 1) {
   const e = schedEcon(r); if (!e) return; walletDeal(e.gross * mult, e.cost, r.cat === '上课' ? '课程' : '行程', r.title, e.why);
 }
 // 收入 - 成本 → 按合同分；负数就记进欠款
-function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) {
-  const W = wallet(), share = cShare(kind), net = gross - cost, mine = Math.round(net * share);
-  if (mine >= 0) { const repay = W.debt > 0 ? Math.min(W.debt, Math.round(mine * W.contract.repay)) : 0; W.debt -= repay; W.bal += mine - repay; W.tx.unshift({ id: uid(), at, amt: mine, gross: Math.round(gross), cost: Math.round(cost), why, repay, cat, note, auto: true }); }
-  else { W.debt += -mine; W.debt0 = Math.max(W.debt0, W.debt); W.tx.unshift({ id: uid(), at, amt: 0, gross: Math.round(gross), cost: Math.round(cost), why, owe: -mine, cat, note, auto: true }); }
-  if (W.tx.length > 400) W.tx.length = 400;
+// 不再当天到手：通告费等主办方付款，成本先记着，每月结算时一起算
+function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) { recvAdd(cat, note, dkey(at), gross, cost, why, kind, gross > 0 ? ri(10, 40) : 0); }
+function recvAdd(src, title, date, gross, cost, why, kind = 'gen', payDays = 0) {
+  const W = wallet(); (W.recv || (W.recv = [])).push({ id: uid(), src, title, date, gross: Math.round(gross), cost: Math.round(cost), why: why || '', kind, payAt: addDays(date, payDays), st: 'pend' });
+}
+// 经纪人当天的活动经费（法人卡）：油费停车、餐费、临时采购。之后作为活动费用在结算里扣
+function mgrExpenses(dk) {
+  const ext = rulesFor(dk).filter(r => !['练习', '上课'].includes(r.cat)); if (!ext.length) return null;
+  const r = srng('mexp' + dk), v = (a, b) => Math.round((a + (b - a) * r()) / 1000) * 1000, mo = +dk.slice(5, 7);
+  const car = ext.reduce(a => a + v(18000, 42000) + [0, 5000, 10000, 15000][Math.floor(r() * 4)], 0), meal = v(28000, 45000) * Math.min(3, ext.length);
+  const etc = r() < .4 ? v(8000, 35000) : 0, etcN = [12, 1, 2].includes(mo) ? '핫팩·음료' : [7, 8].includes(mo) ? '얼음물·음료' : '음료·간식';
+  return { car, meal, etc, etcN, etcZh: { '핫팩·음료': '暖宝宝·饮料', '얼음물·음료': '冰水·饮料', '음료·간식': '饮料·零食' }[etcN], total: car + meal + etc };
+}
+// 每月 15 日结算：上个月底前已到账的收入，扣掉相关费用，按合同分成，并附明细（标准专属合约：到账后 45 日内支付）
+const SETTLE_DAY = 15;
+function lastDay(mon) { return addDays(addMonths(mon, 1) + '-01', -1); }
+function addMonths(mon, n) { const [y, m] = mon.split('-').map(Number), t = y * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; }
+function financeTick() {
+  const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
+  if (W.pend) { for (const k of Object.keys(W.pend)) if (k < today) { const P = W.pend[k], M = (W.salesM || (W.salesM = {}))[k.slice(0, 7)] || (W.salesM[k.slice(0, 7)] = { 音源: 0, 专辑: 0 }); M.音源 += P.音源 || 0; M.专辑 += (P.专辑 || 0) + (P.周边 || 0); delete W.pend[k]; } }
+  // 音源 / 专辑：月底统计，平台下个月底付款
+  for (const m of Object.keys(W.salesM || {})) if (m < mon) { const M = W.salesM[m], end = lastDay(m); if (M.音源 >= 1) recvAdd('音源', `${+m.slice(5)}월 음원 수익`, end, M.音源, 0, '', 'gen', 30); if (M.专辑 >= 1) recvAdd('专辑', `${+m.slice(5)}월 음반 판매`, end, M.专辑, 0, '', 'gen', 30); delete W.salesM[m]; }
+  // 经纪人经费：前几天的补记
+  const done = W.mexpDone || (W.mexpDone = {});
+  for (let i = 1; i <= 5; i++) { const dk = addDays(today, -i); if (done[dk]) continue; done[dk] = 1; const e = mgrExpenses(dk); if (e) recvAdd('活动经费', `${+dk.slice(5, 7)}/${+dk.slice(8)} 활동 경비`, dk, 0, e.total, '차량·식대·기타', 'gen', 0); }
+  for (const k of Object.keys(done)) if (k < addDays(today, -10)) delete done[k];
+  // 主办方 / 平台付款
+  for (const x of W.recv || []) if (x.st === 'pend' && x.payAt <= today) { x.st = 'paid'; x.paidOn = today; }
+  // 结算
+  if (+today.slice(8) >= SETTLE_DAY && W.setMon !== mon) {
+    W.setMon = mon;
+    const cut = lastDay(addMonths(mon, -1)), items = (W.recv || []).filter(x => x.st === 'paid' && x.payAt <= cut);
+    if (!items.length) return;
+    const gen = items.filter(x => x.kind !== 'bb'), bb = items.filter(x => x.kind === 'bb');
+    const gG = gen.reduce((a, x) => a + x.gross, 0), gC = gen.reduce((a, x) => a + x.cost, 0), bG = bb.reduce((a, x) => a + x.gross, 0);
+    const sg = cShare('gen'), sb = cShare('bb'), net = gG - gC, part = Math.round(Math.max(0, net) * sg + bG * sb), loss = net < 0 ? Math.round(-net * sg) : 0;
+    if (loss) { W.debt += loss; W.debt0 = Math.max(W.debt0, W.debt); }
+    const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0; W.debt -= repay; W.bal += part - repay;
+    const pm = addMonths(mon, -1), st = { id: uid(), mon, period: pm, at: Date.now(), gG, gC, bG, sg, sb, part, loss, repay, pay: part - repay, items: items.map(x => ({ src: x.src, title: x.title, gross: x.gross, cost: x.cost })) };
+    (W.stmts || (W.stmts = [])).unshift(st); if (W.stmts.length > 24) W.stmts.length = 24;
+    for (const x of items) x.st = 'done';
+    W.recv = W.recv.filter(x => x.st !== 'done');
+    W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算${loss ? `（亏损 ${won(loss)} 计入欠款）` : ''}`, auto: true });
+    pushNotif({ type: 'system', text: `📑 ${+pm.slice(5)} 月结算明细已发放`, sub: `实际入账 ${won(part - repay)}${repay ? ` · 还欠款 ${won(repay)}` : ''}${loss ? ` · 亏损 ${won(loss)} 计入欠款` : ''}` }, true);
+  }
+}
+function settleHTML() {
+  const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
+  const next = (W.setMon === mon || +today.slice(8) >= SETTLE_DAY ? addMonths(mon, 1) : mon) + '-' + SETTLE_DAY;
+  const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), st = (W.stmts || [])[0];
+  const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
+  return `<div class="card"><b style="font-size:14px">📑 结算</b>
+    <div class="muted" style="font-size:12.5px;margin-top:4px">每月 ${SETTLE_DAY} 日结算上月底前已到账的收入，扣除相关费用后按合同分成，并附明细。下次：${+next.slice(5, 7)}/${+next.slice(8)}</div>
+    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R, 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${+st.period.slice(5)} 月 · ${won(st.pay)}` : '还没有'}</b></div></div>
+    ${pend.length ? `<details class="me-more"><summary>待付款明细</summary>${pend.slice().sort((a, b) => a.payAt.localeCompare(b.payAt)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · 预计 ${x.payAt.slice(5).replace('-', '/')} 前付款</div></span><b>${won(x.gross)}</b></div>`).join('')}</details>` : ''}
+    ${st ? `<details class="me-more"><summary>${+st.period.slice(5)} 月结算明细</summary>
+      <div class="rule"><span style="flex:1">活动收入</span><b>${won(st.gG)}</b></div><div class="rule"><span style="flex:1">扣除费用</span><b>-${won(st.gC)}</b></div>
+      <div class="rule"><span style="flex:1">活动分成（你 ${Math.round(st.sg * 100)}%）</span><b>${won(Math.max(0, Math.round((st.gG - st.gC) * st.sg)))}</b></div>
+      ${st.bG ? `<div class="rule"><span style="flex:1">泡泡 ${won(st.bG)} × ${Math.round(st.sb * 100)}%</span><b>${won(Math.round(st.bG * st.sb))}</b></div>` : ''}
+      ${st.loss ? `<div class="rule"><span style="flex:1">活动亏损计入欠款</span><b style="color:var(--danger)">${won(st.loss)}</b></div>` : ''}
+      ${st.repay ? `<div class="rule"><span style="flex:1">还练习生欠款</span><b>-${won(st.repay)}</b></div>` : ''}
+      <div class="rule"><span style="flex:1"><b>实际支付</b></span><b style="color:var(--accent)">${won(st.pay)}</b></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">${st.items.map(x => `${esc(x.title)}${x.gross ? ' +' + won(x.gross) : ''}${x.cost ? ' -' + won(x.cost) : ''}`).join(' · ')}</div></details>` : ''}
+  </div>`;
 }
 // 每天的「运气」：慢慢漂移，偶尔突然爆一下
 function buzzNow() {
@@ -1931,10 +1986,8 @@ function salesAdvance() {
   // 过了零点：把前一天的分成结算进钱包
   for (const dk of Object.keys(W.pend).sort()) {
     if (dk >= dkey(now)) continue;
-    const P = W.pend[dk], at = parseD(addDays(dk, 1)).getTime();
-    if (P.音源 >= 1) walletIncome(P.音源, '音源分成', `${dk.slice(5)} 音源`, 'gen', at);
-    if (P.专辑 >= 1) walletIncome(P.专辑, '专辑分成', `${dk.slice(5)} 专辑销量`, 'gen', at);
-    if (P.周边 >= 1) walletIncome(P.周边, '周边分成', `${dk.slice(5)} 周边销量`, 'gen', at);
+    const P = W.pend[dk], M = (W.salesM || (W.salesM = {}))[dk.slice(0, 7)] || (W.salesM[dk.slice(0, 7)] = { 音源: 0, 专辑: 0 });
+    M.音源 += P.音源 || 0; M.专辑 += (P.专辑 || 0) + (P.周边 || 0); // 平台按月统计，之后随结算周期付款
     delete W.pend[dk];
   }
 }
@@ -1944,11 +1997,11 @@ function walletTick() {
   if (W.month !== mon) {
     const prev = W.month; W.month = mon;
     const subs = S.bubble && S.bubble.welcome ? bbSubs() : 0;
-    if (subs) walletIncome(subs * BB_PRICE, '泡泡分成', `${+prev.slice(5)} 月泡泡订阅（${fmtNum(subs)} 人 × ${won(BB_PRICE)}）`, 'bb');
-    for (const d of W.deals) if (d.left > 0) { d.left--; walletIncome(d.fee, '代言', `${d.brand} 代言（剩 ${d.left} 个月）`); }
+    if (subs) recvAdd('泡泡', `${+prev.slice(5)}월 버블 구독 (${fmtNum(subs)}명)`, lastDay(prev), subs * BB_PRICE, 0, '', 'bb', 10);
+    for (const d of W.deals) if (d.left > 0) { d.left--; recvAdd('代言', `${d.brand} 광고 계약금`, dkey(now), d.fee, 0, '', 'gen', ri(10, 30)); }
     W.deals = W.deals.filter(d => d.left > 0);
   }
-  rentTick();
+  rentTick(); financeTick();
   // 小型个人代言：看粉丝体量，更看近期热度；门槛不低，经纪人会来问你
   const f = S.profile.followers, h = heat(), score = f / 40000 * Math.pow(h, 1.6);
   if (W.offer && now > (W.offer.exp || Infinity)) { mgrResolve('deal', W.offer.id, '已过期'); W.offer = null; }
@@ -1958,7 +2011,7 @@ function walletTick() {
     if (score >= 1 && Math.random() < clamp(.3 + (score - 1) * .5, .3, .85)) {
       const months = pick([3, 6, 12]), total = Math.round((4e6 + 30e6 * Math.pow(luckQ(), 1.4)) * Math.min(2, score) / 1e5) * 1e5;
       W.offer = { id: uid(), brand: pick(['猫粮品牌', '平价美妆品牌', '运动服品牌', '饮料品牌', '耳机品牌', '手机壳品牌', '零食品牌', '隐形眼镜品牌', '护肤品牌']), fee: Math.round(total / months / 1e4) * 1e4, total, months, exp: now + 3 * 86400e3 };
-      mgrSay(`有个${W.offer.brand}想找你做代言，合约 ${months} 个月，总共 ${won(total)}。条件我看过了还行，你考虑一下？三天内给我答复就好`, { type: 'deal', id: W.offer.id });
+      mgrSay([`${W.offer.brand} 쪽에서 광고 모델 제안이 왔어요. 계약 기간 ${months}개월, 총 ${krw(total)}입니다. 조건은 괜찮은 편이에요. 3일 안에 답 주시면 돼요.`, `${W.offer.brand}那边来了代言邀约。合约 ${months} 个月，总共 ${krw(total)}。条件还不错，三天内给答复就行。`], { type: 'deal', id: W.offer.id });
     }
   }
 }
@@ -2025,6 +2078,7 @@ function walletHTML() {
     <details class="me-more"><summary>粉丝回礼预设（点一下直接记）</summary><div class="w-pre">${EXP_CATS.粉丝回礼.pre.map(([n, a]) => `<button data-act="wpre" data-c="粉丝回礼" data-n="${esc(n)}" data-a="${a}">${esc(n)}<span>${won(a)}</span></button>`).join('')}</div></details>
   </div>
   ${Object.keys(byCat).length ? `<div class="card"><b style="font-size:14px">本月支出</b>${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="w-cat"><span>${EXP_CATS[k]?.ic || '•'} ${esc(k)}</span><div class="w-bar sm"><i style="width:${Math.round(v / mx * 100)}%"></i></div><b>${won(v)}</b></div>`).join('')}</div>` : ''}
+  ${settleHTML()}
   <div class="card"><b style="font-size:14px">📒 流水</b>
     ${W.tx.length ? W.tx.slice(0, UI.wAll ? 200 : 25).map(x => `<div class="rule"><div style="flex:1;min-width:0"><div>${esc(x.note || x.cat)}</div><div class="muted" style="font-size:12px">${esc(x.cat)} · ${new Date(x.at).getMonth() + 1}/${new Date(x.at).getDate()}${x.orig ? ' · ' + esc(x.orig) : ''}${x.gross ? ` · 收入 ${won(x.gross)}` : ''}${x.cost ? ` · 成本 ${won(x.cost)}（${esc(x.why || '')}）` : ''}</div></div>
       <div style="text-align:right">${x.owe ? `<b style="color:var(--danger);font-size:13px">欠款 +${won(x.owe)}</b><div class="rmb">${rmb(x.owe)}</div>` : `<b style="color:${x.amt > 0 ? 'var(--accent)' : x.amt < 0 ? 'var(--danger)' : 'var(--muted)'}">${x.amt > 0 ? '+' : ''}${won(x.amt - (x.repay || 0))}</b><div class="rmb">${rmb(Math.abs(x.amt - (x.repay || 0)))}</div>`}</div>${x.auto ? '' : `<button class="link" data-act="wdel" data-id="${x.id}" style="margin-left:6px">✕</button>`}</div>`).join('') : '<div class="muted" style="padding:6px 0">还没有记录。行程结束后按「收入 - 成本」结算，音源/专辑/周边每天结算，泡泡每月结算</div>'}
@@ -2034,7 +2088,7 @@ function walletHTML() {
       <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
       <div><span>活动分成</span><b>你 ${Math.round(T.gen * 100)}% · 公司 ${100 - Math.round(T.gen * 100)}%</b></div><div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
-    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本由公司垫付，结算时先从收入里扣；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
+    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本和活动经费由公司垫付，结算时从收入里扣；每月 15 日结算已到账收入并提供明细（到账后 45 日内支付）；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
     ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（活动 ${TIERS[C.offer.tier].gen * 100}% / 泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
   </div>`;
 }
@@ -2242,7 +2296,7 @@ function mgrTick() {
   M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
   const o = mgrMakeOffer(); if (!o) return;
   M.offers.push(o);
-  mgrSay(pick(['有个通告问你接不接：', '这边来了个邀约，你看看：', '对方很有诚意，问你能不能来：']) + `${o.title}，${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`, { type: 'offer', id: o.id });
+  { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; mgrSay(pick([[`섭외 문의 들어왔어요. ${o.title}, ${md}입니다. 진행할까요?`, `有邀约进来了：${o.title}，${mz}。要接吗？`], [`${o.title} 측에서 ${md} 출연 가능한지 문의 왔어요. 어떻게 할까요?`, `${o.title}那边问 ${mz} 能不能出演，怎么办？`]]), { type: 'offer', id: o.id }); }
 }
 function mgrMakeOffer() {
   const f = S.profile.followers, K = skills(), mo = new Date().getMonth() + 1, today = dkey(Date.now());
@@ -2265,102 +2319,99 @@ function offersHTML() {
     ${M.offers.map(o => `<div class="offer"><span class="chip" style="background:${CATS[o.cat] || '#999'}">${o.cat}</span><div style="flex:1;min-width:0"><b>${esc(o.title)}</b><div class="muted" style="font-size:12px">${o.date.slice(5).replace('-', '/')} 周${WD[parseD(o.date).getDay()]} ${o.start}-${o.end}${o.loc ? ' · ' + esc(o.loc) : ''}</div><div class="muted" style="font-size:12px">${o.fee[1] ? `预计收入 ${won(o.fee[0])}～${won(o.fee[1])}` : '没有报酬，但能涨曝光'} · 剩 ${hotLeft(o.exp - Date.now())} 回复</div></div>
       <div class="offer-b"><button class="btn primary sm" data-act="ofok" data-id="${o.id}">接</button><button class="btn ghost sm" data-act="ofno" data-id="${o.id}">不接</button></div></div>`).join('')}</div>`;
 }
-/* ---------- 💬 经纪人（KakaoTalk 风格）：邀约、代言和日常联络都从这里来 ---------- */
+/* ---------- 💬 经纪人（KakaoTalk）：用韩语沟通，附中文翻译。邀约、代言、日常联络、每日日程报告 ---------- */
+const WDK = ['일', '월', '화', '수', '목', '금', '토'];
+const kd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}(${WDK[parseD(dk).getDay()]})`, zd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}（周${WD[parseD(dk).getDay()]}）`;
+const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() { const M = mgr(); M.chat = M.chat || []; M.said = M.said || {}; return M; }
-function mgrSay(text, card, silent) {
-  const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text, card: card || null });
+// t：韩语字符串，或 [韩语, 中文]
+function mgrSay(t, card, silent) {
+  const [ko, zh] = Array.isArray(t) ? t : [t, ''], M = mgrChat();
+  M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, card: card || null });
   if (M.chat.length > 200) M.chat.splice(0, M.chat.length - 200);
-  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; updBadges(); if (!silent) pushNotif({ type: 'sched', text: '💬 经纪人', sub: text.length > 40 ? text.slice(0, 40) + '…' : text }, true); }
+  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; updBadges(); if (!silent) { const s = zh || ko; pushNotif({ type: 'sched', text: '💬 经纪人', sub: s.length > 40 ? s.slice(0, 40) + '…' : s }, true); } }
   mgrRefresh();
 }
 let mgrQ = 0; // 回复排队，按顺序一条条发
-function mgrReply(text) { mgrQ = Math.max(Date.now(), mgrQ) + 1200 + Math.random() * 1500; setTimeout(() => { mgrSay(text, null, true); save(); }, mgrQ - Date.now()); }
+function mgrReply(t) { mgrQ = Math.max(Date.now(), mgrQ) + 1200 + Math.random() * 1500; setTimeout(() => { mgrSay(t, null, true); save(); }, mgrQ - Date.now()); }
 function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
 function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'kkt' && !UI.mgrOpen) render(); }
-// 日常联络：行程提醒、回归倒计时、恭喜、关心…每件事只说一次
+// 日常联络：行程提醒、回归、恭喜、关心…每件事只说一次
 function mgrChatter() {
   const M = mgrChat(), now = new Date(), hr = now.getHours(), today = dkey(Date.now()), once = (k, fn) => { if (!M.said[k]) { M.said[k] = 1; fn(); } };
-  if (hr < 9 || hr > 23) return;
   const ks = Object.keys(M.said); if (ks.length > 300) for (const k of ks.slice(0, ks.length - 300)) delete M.said[k];
-  const tm = addDays(today, 1), big = rulesFor(tm).filter(r => r.repeat === 'once' && !['练习', '上课'].includes(r.cat));
-  if (hr >= 20 && big.length) once('tm' + tm, () => mgrSay(`明天 ${big[0].start} ${big[0].title}${big.length > 1 ? `，之后还有 ${big.length - 1} 个行程` : ''}。${big[0].start < '10:00' ? '很早，今天早点睡！' : '早点休息，明天我来接你'}`));
+  if (hr < 9 || hr > 23) return;
   const d = cbDay();
   if (d != null && S.cb && !S.cb.over) {
-    if (d === 7) once('cb7' + S.cb.date, () => mgrSay(`回归还有一周了，这周预告照和预告片会陆续放出去。身体最重要，别熬太晚`));
-    if (d === 1) once('cb1' + S.cb.date, () => mgrSay('明天就回归了！紧张很正常，这段时间你练得够多了 💪'));
-    if (d === 0 && hr >= 18) once('cb0' + S.cb.date, () => mgrSay('今天辛苦了！首日成绩我盯着呢，你先好好吃饭休息'));
+    if (d === 7) once('cb7' + S.cb.date, () => mgrSay(['컴백 일주일 남았어요. 이번 주부터 티저 순차적으로 공개됩니다. 컨디션 관리 잘 해주세요.', '回归还剩一周。这周开始预告会陆续公开，请注意身体状态。']));
+    if (d === 1) once('cb1' + S.cb.date, () => mgrSay(['내일 컴백이에요. 그동안 준비 많이 했으니까 너무 긴장하지 말고요. 오늘은 일찍 쉬세요.', '明天回归。这段时间准备得很充分了，别太紧张。今天早点休息。']));
   }
   const win = S.cb && (S.cb.res || []).find(x => x.rank === 1 && Date.now() - x.at < 86400e3);
-  if (win) once('win' + win.at, () => mgrSay(`一位！！恭喜恭喜 🏆 公司群里都在刷屏了`));
-  const f = S.profile.followers, step = Math.floor(f / 10000);
-  if (step >= 1 && (M.folStep || 0) < step) { if (M.folStep) mgrSay(`粉丝破 ${step} 万了！继续加油～`); M.folStep = step; }
-  const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay('练习生时期的欠款还清了！从下个月开始到手会多很多，恭喜 🎉'));
-  // 随手的关心，大约两三天一次
+  if (win) once('win' + win.at, () => mgrSay(['1위 축하드려요!! 회사에서도 다들 축하하고 있어요 🎉', '恭喜拿到一位！！公司里大家都在祝贺 🎉']));
+  const step = Math.floor(S.profile.followers / 10000);
+  if (step >= 1 && (M.folStep || 0) < step) { if (M.folStep) mgrSay([`팬 ${step}만 명 넘었어요. 축하해요!`, `粉丝突破 ${step} 万了，恭喜！`]); M.folStep = step; }
+  const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay(['연습생 때 비용 다 정산됐어요. 다음 정산부터는 금액 그대로 들어갈 거예요. 고생 많았어요.', '练习生时期的费用都结清了。从下次结算开始会全额入账。辛苦了。']));
+  // 随手的联络，两三天一次
   if (hr >= 11 && hr <= 21 && !M.said['c' + today] && Math.random() < .0008) {
     M.said['c' + today] = 1;
     const mo = now.getMonth() + 1, h = heat();
     mgrSay(pick([
-      ...([12, 1, 2].includes(mo) ? ['最近降温了，出门多穿点，嗓子要保护好', '暖气开着睡觉记得放加湿器'] : []),
-      ...([7, 8].includes(mo) ? ['这几天太热了，练习的时候多补水', '空调别对着吹，感冒了很麻烦'] : []),
-      ...(h > 1.3 ? ['最近反应不错哦，公司那边很满意', '最近找你的人变多了，我会帮你挑着接'] : h < .85 ? ['最近有点安静，多发发帖子、开开直播吧', '有空的话多跟粉丝互动一下，最近热度有点掉'] : []),
-      '吃饭了吗？别又只吃沙拉', '下周公司安排体检，时间定了我告诉你', '练习室这周三下午维修，那天去B2的小练习室',
-      '有什么想尝试的通告类型可以跟我说，我留意着', '最近睡得怎么样？行程太满的话跟我讲', '代表今天问起你了，说你最近状态好'
+      ...([12, 1, 2].includes(mo) ? [['요즘 많이 추워요. 목 관리 신경 써주세요.', '最近很冷，注意保护嗓子。'], ['자기 전에 가습기 꼭 켜고 자요.', '睡前记得开加湿器。']] : []),
+      ...([7, 8].includes(mo) ? [['요즘 너무 더우니까 연습할 때 물 자주 마셔요.', '最近太热了，练习时多喝水。']] : []),
+      ...(h > 1.3 ? [['요즘 반응 좋아서 회사에서도 만족하고 있어요.', '最近反应不错，公司也很满意。'], ['섭외 문의가 늘었어요. 괜찮은 걸로 골라서 말씀드릴게요.', '邀约多起来了，我挑合适的跟你说。']] : h < .85 ? [['요즘 조금 조용한 편이라 SNS나 라이브 한 번씩 해주면 좋을 것 같아요.', '最近有点安静，发发 SNS 或开个直播会比较好。']] : []),
+      ['밥은 챙겨 먹었어요?', '饭吃了吗？'], ['다음 주에 회사 건강검진 있어요. 날짜 나오면 공유할게요.', '下周公司体检，定了日期告诉你。'], ['이번 주 수요일 오후에 연습실 보수 공사 있어요. 그날은 B2 연습실 쓰면 돼요.', '这周三下午练习室维修，那天用 B2 练习室。'],
+      ['해보고 싶은 예능이나 콘텐츠 있으면 말해줘요. 참고할게요.', '有想尝试的综艺或内容跟我说，我参考一下。'], ['요즘 잠은 잘 자요? 스케줄 힘들면 말해줘요.', '最近睡得好吗？行程太累的话跟我说。']
     ]));
   }
 }
-function viewKkt() {
-  return `<div class="sec-title">💬 KKT</div>${mgrCardHTML()}`;
-}
-// 每晚 21:00~次日 03:00 之间随机一个时间，经纪人发当天的工作日报
+function viewKkt() { return `<div class="sec-title">💬 KKT</div>${mgrCardHTML()}`; }
+// 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
 function mgrReportAt(dk) { return parseD(dk).getTime() + (21 + 6 * srng('rep' + dk)()) * 3600e3; }
 function mgrReport() {
   const M = mgrChat(), now = Date.now(), today = dkey(now);
   for (const dk of [addDays(today, -1), today]) {
     const at = mgrReportAt(dk); if (M.said['rep' + dk] || now < at || now > at + 10 * 3600e3) continue;
-    M.said['rep' + dk] = 1;
-    mgrSay(mgrReportText(dk));
+    M.said['rep' + dk] = 1; mgrSay(mgrReportText(dk));
   }
 }
-// 韩国经纪人风格的日报：日程逐条打勾 → 特别事项 → 今日数据 → 结算 → 明天接送和日程
 function mgrReportText(dk) {
-  const W = wallet(), d0 = parseD(dk), R = S.schedule.res || {}, F = fanState(), rs = rulesFor(dk);
-  const ext = rs.filter(r => !['练习', '上课'].includes(r.cat)), inn = rs.filter(r => ['练习', '上课'].includes(r.cat));
-  const out = [`[${+dk.slice(5, 7)}/${+dk.slice(8)}（周${WD[d0.getDay()]}）日程报告]`, ''];
-  if (!rs.length) out.push('今天没有排日程，休息日 🛌');
-  for (const r of ext) { const x = R[dk + '|' + r.id]; out.push(`${!x ? '⏳' : x.grade === '旷' ? '⚠️' : '✅'} ${r.start} ${r.title}${r.loc ? `（${r.loc}）` : ''}${!x ? (Date.now() < d0.getTime() + toMin(r.start) * 60e3 ? ' — 待进行' : ' — 进行中') : x.grade === '旷' ? ' — 未到场' : ` — 表现 ${x.grade}`}`); }
-  if (inn.length) { const ok = inn.filter(r => R[dk + '|' + r.id] && !['缺'].includes(R[dk + '|' + r.id].grade)); out.push(`${ok.length === inn.length ? '✅' : '☑️'} 练习/上课 ${ok.length}/${inn.length} 项${ok.length ? '（' + ok.map(r => R[dk + '|' + r.id].note.split(' ·')[0]).slice(0, 3).join('、') + '）' : ''}`); }
-  // 特别事项
-  const notes = [], grades = ext.map(r => R[dk + '|' + r.id]).filter(Boolean);
-  if (grades.some(x => x.grade === 'S')) notes.push(pick(['现场反应特别好，PD 也夸了', '今天状态超好，现场工作人员都在夸', '直拍反应不错，晚点可能会有剪辑出来']));
-  else if (grades.some(x => x.grade === 'C')) notes.push(pick(['今天有点没发挥好，没关系，下次调整', '状态一般，回去好好休息别多想']));
-  if (grades.some(x => x.grade === '旷')) notes.push('没到场的行程公司那边按规定扣了罚款，下次有情况一定提前跟我说');
-  for (const [k, v] of Object.entries(showsState().res)) if (k.startsWith(dk + '|') && v.rank <= 3) { const sh = SHOWS.find(x => x[0] === k.split('|')[1]); notes.push(v.rank === 1 ? `🏆 ${sh ? sh[1] : ''} 一位！！恭喜` : `${sh ? sh[1] : ''} 一位候补，最终第 ${v.rank}`); }
-  const c = S.cb, cd = c && !c.over ? Math.round((parseD(c.date).getTime() - d0.getTime()) / 86400e3) : null;
-  if (cd != null && cd > 0 && cd <= 7) notes.push(`回归 D-${cd}，接下来几天预告陆续放出`);
-  const sk = skills(); if (sk.stamina < 40 && ext.length >= 2) notes.push('最近行程多，体能有点跟不上，注意休息');
-  if (notes.length) out.push('', '📌 特别事项', ...notes.map(n => '- ' + n));
-  // 今日数据
-  const day = F.days[dk] || { net: 0 }, T = salesTargets(dk), top = Object.entries(T.trk).sort((a, b) => b[1] - a[1])[0];
-  const data = [`粉丝 ${day.net >= 0 ? '+' : ''}${fmtNum(Math.round(day.net))}（现在 ${fmtNum(S.profile.followers)}）`];
-  if (top) { const r = chartRank(PLATS[0], top[1] * PLATS[0][1]); data.push(`《${top[0].split('|').slice(1).join('|')}》${r ? `Melon ${r} 位` : 'Melon 未进榜'} · 全平台约 ${fmtNum(Math.round(top[1]))} 次`); }
-  out.push('', '📊 今日数据', ...data.map(n => '- ' + n));
-  // 结算
-  const tx = W.tx.filter(x => dkey(x.at) === dk && ['行程', '课程', '旷工罚款'].includes(x.cat));
-  if (tx.length) {
-    const g = tx.reduce((a, x) => a + (x.gross || 0), 0), cost = tx.reduce((a, x) => a + (x.cost || 0), 0), mine = tx.reduce((a, x) => a + x.amt - (x.repay || 0), 0), owe = tx.reduce((a, x) => a + (x.owe || 0), 0);
-    out.push('', '💰 结算', `- 收入 ${won(g)} / 成本 ${won(cost)}`, `- ${mine > 0 ? `本人到手 ${won(mine)}` : owe ? `亏损 ${won(owe)} 计入欠款` : '本人到手 ₩0'}`);
+  const R = S.schedule.res || {}, rs = rulesFor(dk), d0 = parseD(dk), ko = [], zh = [], both = (k, z) => { ko.push(k); zh.push(z === undefined ? k : z); };
+  both(`[${kd(dk)} 일정 보고]`, `[${zd(dk)}日程报告]`); both('');
+  if (!rs.length) both('금일 일정 없음', '今日无日程');
+  else {
+    both('■ 일정 수행', '■ 日程执行');
+    rs.forEach((r, i) => {
+      const x = R[dk + '|' + r.id], future = Date.now() < d0.getTime() + toMin(r.start) * 60e3;
+      const [sk, sz] = !x ? (future ? ['예정', '待进行'] : ['진행 중', '进行中']) : ['旷', '缺'].includes(x.grade) ? ['불참', '未参加'] : ['완료', '完成'];
+      both(`${i + 1}. ${r.start}~${r.end} ${r.title}${r.loc ? ' / ' + r.loc : ''} - ${sk}`, `${i + 1}. ${r.start}~${r.end} ${r.title}${r.loc ? ' / ' + r.loc : ''} - ${sz}`);
+    });
   }
-  // 明天
+  const e = mgrExpenses(dk);
+  if (e) {
+    both(''); both('■ 활동 경비 (법인카드)', '■ 活动经费（公司卡）');
+    both(`- 차량 유류비·주차비: ${krw(e.car)}`, `- 车辆油费·停车费：${krw(e.car)}`);
+    both(`- 식대: ${krw(e.meal)}`, `- 餐费：${krw(e.meal)}`);
+    if (e.etc) both(`- 기타 구매(${e.etcN}): ${krw(e.etc)}`, `- 其他采购（${e.etcZh}）：${krw(e.etc)}`);
+    both(`합계 ${krw(e.total)} / 영수증 제출 완료`, `合计 ${krw(e.total)} / 收据已提交`);
+  }
+  // 特이사항：不到场、音乐节目结果、主办方付款
+  const notes = [];
+  for (const r of rs) { const x = R[dk + '|' + r.id]; if (x && x.grade === '旷') notes.push([`${r.title} 불참 건은 회사 규정에 따라 처리 예정입니다.`, `${r.title} 未参加的情况会按公司规定处理。`]); }
+  for (const [k, v] of Object.entries(showsState().res)) if (k.startsWith(dk + '|') && v.rank <= 3) { const sh = SHOWS.find(x => x[0] === k.split('|')[1]), n = sh ? sh[1] : ''; notes.push(v.rank === 1 ? [`${n} 1위`, `${n} 一位`] : [`${n} 1위 후보 (최종 ${v.rank}위)`, `${n} 一位候补（最终第 ${v.rank}）`]); }
+  const paid = (wallet().recv || []).filter(x => x.paidOn === dk && x.gross > 0 && ['行程', '课程'].includes(x.src));
+  if (paid.length) notes.push([`주최 측 입금 확인: ${paid.map(x => x.title).join(', ')} (정산일에 반영)`, `主办方已付款：${paid.map(x => x.title).join('、')}（结算日计入）`]);
+  both(''); both('■ 특이사항', '■ 特别事项');
+  if (notes.length) notes.forEach(n => both('- ' + n[0], '- ' + n[1])); else both('- 없음', '- 无');
   const tm = addDays(dk, 1), tr = rulesFor(tm), te = tr.filter(r => !['练习', '上课'].includes(r.cat));
-  out.push('', `📅 明天（${+tm.slice(5, 7)}/${+tm.slice(8)}）`);
-  if (te.length) { const pu = Math.max(0, toMin(te[0].start) - 60); out.push(`- ${String(Math.floor(pu / 60)).padStart(2, '0')}:${String(pu % 60).padStart(2, '0')} 宿舍楼下接你`, ...te.map(r => `- ${r.start} ${r.title}${r.loc ? `（${r.loc}）` : ''}`)); }
-  else out.push(tr.length ? `- 没有对外行程，${tr.map(r => r.title).slice(0, 2).join('、')}` : '- 没有日程，好好休息');
-  out.push('', pick(['今天辛苦了，早点睡 🙏', '辛苦啦～好好休息', '수고했어요 푹 쉬어요 🙏', '今天也辛苦了，晚安']));
-  return out.join('\n');
+  both(''); both(`■ 내일 일정 ${kd(tm)}`, `■ 明日日程 ${zd(tm)}`);
+  if (te.length) { const pu = Math.max(0, toMin(te[0].start) - 60), p = `${String(Math.floor(pu / 60)).padStart(2, '0')}:${String(pu % 60).padStart(2, '0')}`; both(`- ${p} 숙소 픽업`, `- ${p} 宿舍接送`); }
+  if (tr.length) tr.forEach(r => both(`- ${r.start}~${r.end} ${r.title}${r.loc ? ' / ' + r.loc : ''}`)); else both('- 일정 없음', '- 无日程');
+  both(''); both('이상입니다. 오늘도 수고 많으셨습니다.', '以上。今天也辛苦了。');
+  return [ko.join('\n'), zh.join('\n')];
 }
 function mgrCardHTML() {
   const M = mgrChat(), last = M.chat[M.chat.length - 1], u = M.unread || 0;
-  return `<div class="card mgr-card" id="mgr-card" data-act="mgropen"><div class="mgr-av">🧑‍💼</div><div style="flex:1;min-width:0"><b>经纪人</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last ? esc(last.text) : '有事随时找我'}</div></div>${u ? `<span class="mgr-u">${u > 99 ? '99+' : u}</span>` : `<span class="muted" style="font-size:12px">${last ? ago(last.at) : ''}</span>`}</div>`;
+  return `<div class="card mgr-card" id="mgr-card" data-act="mgropen"><div class="mgr-av">🧑‍💼</div><div style="flex:1;min-width:0"><b>매니저 · 经纪人</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last ? esc(last.text.split('\n')[0]) : '有事随时找我'}</div></div>${u ? `<span class="mgr-u">${u > 99 ? '99+' : u}</span>` : `<span class="muted" style="font-size:12px">${last ? ago(last.at) : ''}</span>`}</div>`;
 }
 function mgrCardMsg(m) {
   if (!m.card) return '';
@@ -2369,67 +2420,61 @@ function mgrCardMsg(m) {
   return '';
 }
 function mgrLogHTML() {
-  const M = mgrChat(); let lastDay = '';
+  const M = mgrChat(), tr = UI.mgrTr !== false; let lastDay = '';
   return M.chat.map(m => { const dk = dkey(m.at), t = new Date(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
     const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
-    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${hm}</span><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">经纪人</div><div class="kk-b">${esc(m.text)}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
+    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${hm}</span><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">매니저</div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
 }
 function mgrChatHTML() {
-  return `<div class="row"><h3 style="flex:1">🧑‍💼 经纪人</h3><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
+  return `<div class="row"><h3 style="flex:1">🧑‍💼 매니저</h3><button class="btn ghost sm" data-act="mgrtr">${UI.mgrTr !== false ? '隐藏翻译' : '显示翻译'}</button><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
     <div class="kk-log" id="mgr-log">${mgrLogHTML()}</div>
-    <div class="row" style="gap:6px;margin-top:8px"><input id="mgr-in" placeholder="发消息…" maxlength="200" style="flex:1"><button class="btn primary sm" data-act="mgrsend">发送</button></div>`;
+    <div class="row" style="gap:6px;margin-top:8px"><input id="mgr-in" placeholder="메시지 입력…" maxlength="200" style="flex:1"><button class="btn primary sm" data-act="mgrsend">发送</button></div>`;
 }
-// 经纪人回答：能用真实数据回答的直接答；其他的开了 AI 就让 AI 按经纪人身份回，没开就简短回应
-const hm = r => `${r.start}${r.end ? '-' + r.end : ''}`;
+// 回答：能用真实数据回答的直接答（韩语 + 中文）；其他的开了 AI 就让 AI 回，没开就简短回应
+const hm = r => `${r.start}${r.end ? '~' + r.end : ''}`;
 function mgrFacts(t) {
   const W = wallet(), today = dkey(Date.now()), tm = addDays(today, 1), f = S.profile.followers;
-  const day = /明天|明日/.test(t) ? tm : /后天/.test(t) ? addDays(today, 2) : today, dname = day === today ? '今天' : day === tm ? '明天' : '后天';
-  if (/收入|赚|挣|到手|分成|多少钱|有钱|给钱|报酬|酬劳|出场费/.test(t) && !/欠|余额/.test(t)) {
-    if (day === today) {
-      const tx = W.tx.filter(x => dkey(x.at) === today && ['行程', '课程'].includes(x.cat));
-      const now = new Date(), hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const left = rulesFor(today).filter(r => r.end > hhmm && !tx.some(x => x.note === r.title) && schedEcon(r));
-      const lines = tx.map(x => x.owe ? `${x.note}：收入 ${won(x.gross)}，成本 ${won(x.cost)}，成本比收入高，你那份 ${won(x.owe)} 记到欠款里了` : `${x.note}：收入 ${won(x.gross)}${x.cost ? `，扣掉成本 ${won(x.cost)}` : ''}，你到手 ${won(x.amt - (x.repay || 0))}${x.repay ? `（另外 ${won(x.repay)} 还了欠款）` : ''}`);
-      if (!lines.length && !left.length) return '今天的行程都是练习和上课，没有收入哦';
-      return (lines.length ? '今天结算的：\n' + lines.join('\n') : '今天还没有结算的行程') + (left.length ? `\n${left.map(r => r.title).join('、')}还没结束，结束后会结算` : '');
-    }
-    const rs = rulesFor(day).filter(r => schedEcon(r));
-    return rs.length ? `${dname}有收入的是${rs.map(r => r.title).join('、')}，具体多少要看结算，扣完成本才知道` : `${dname}没有有收入的行程`;
+  const day = /明天|明日|내일/.test(t) ? tm : /后天|모레/.test(t) ? addDays(today, 2) : today;
+  const [dk, dz] = day === today ? ['오늘', '今天'] : day === tm ? ['내일', '明天'] : ['모레', '后天'];
+  if (/收入|赚|挣|到手|分成|多少钱|报酬|酬劳|出场费|通告费|结算|정산|출연료|수입|입금/.test(t) && !/欠|余额|빚|잔액/.test(t)) {
+    const R = W.recv || [], pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid' && x.gross > 0);
+    const mon = today.slice(0, 7), next = (W.setMon === mon || +today.slice(8) >= SETTLE_DAY ? addMonths(mon, 1) : mon);
+    return [`출연료는 당일 지급이 아니라 주최 측 입금 확인 후 매월 ${SETTLE_DAY}일 정산 때 반영돼요. 현재 입금 대기 ${pend.length}건, 입금 완료(정산 대기) ${paid.length}건이고, 다음 정산일은 ${+next.slice(5)}월 ${SETTLE_DAY}일이에요. 정산서 나오면 비용 내역까지 같이 보실 수 있어요.`,
+      `通告费不是当天发，主办方付款确认后在每月 ${SETTLE_DAY} 日结算时计入。现在待付款 ${pend.length} 笔，已到账待结算 ${paid.length} 笔，下次结算是 ${+next.slice(5)} 月 ${SETTLE_DAY} 日。结算单出来后可以连费用明细一起看。`];
   }
-  if (/行程|安排|几点|通告|干嘛|做什么/.test(t)) {
-    const rs = rulesFor(day).filter(r => !['练习', '上课'].includes(r.cat) || /几点|行程/.test(t));
-    return rs.length ? `${dname}的安排：\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' · ' + r.loc : ''}`).join('\n')}` : `${dname}没有别的行程，好好练习/休息`;
+  if (/行程|安排|几点|通告|干嘛|做什么|일정|스케줄|몇 시/.test(t)) {
+    const rs = rulesFor(day);
+    return rs.length ? [`${dk} 일정이에요.\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`, `${dz}的日程：\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`] : [`${dk}은 일정 없어요.`, `${dz}没有日程。`];
   }
-  if (/欠|还清/.test(t)) return W.debt > 0 ? `还欠公司 ${won(W.debt)}（${rmb(W.debt)}），已经还了 ${Math.round((W.debt0 - W.debt) / W.debt0 * 100)}%。照现在这样慢慢来，别着急` : '欠款早就还清啦';
-  if (/余额|存款|还有多少钱|卡里/.test(t)) return `你账上现在 ${won(W.bal)}（${rmb(W.bal)}）`;
-  if (/粉丝|涨粉|掉粉/.test(t)) { const F = fanState(), n = (F.days[today] || { net: 0 }).net; return `现在 ${fmtNum(f)} 粉丝，今天${n >= 0 ? '涨了' : '掉了'} ${fmtNum(Math.abs(Math.round(n)))}。整体热度：${heatLabel().replace(/^\S+\s/, '')}`; }
-  if (/成绩|销量|音源|排名|榜|播放|mv/i.test(t)) {
+  if (/欠|还清|빚|채무/.test(t)) return W.debt > 0 ? [`정산 시 차감되는 회사 투자비 잔액은 ${krw(W.debt)}이에요. 지금까지 ${Math.round((W.debt0 - W.debt) / W.debt0 * 100)}% 정산됐어요.`, `结算时扣除的公司前期投入余额是 ${krw(W.debt)}，目前已结清 ${Math.round((W.debt0 - W.debt) / W.debt0 * 100)}%。`] : ['남은 금액 없어요. 다 정산됐어요.', '没有剩余了，都结清了。'];
+  if (/粉丝|涨粉|掉粉|팬/.test(t)) { const n = Math.round((fanState().days[today] || { net: 0 }).net); return [`현재 팬 ${f.toLocaleString()}명이고, 오늘 ${n >= 0 ? '+' : ''}${n.toLocaleString()}명이에요.`, `现在粉丝 ${fmtNum(f)}，今天 ${n >= 0 ? '+' : ''}${n}。`]; }
+  if (/成绩|销量|音源|排名|榜|播放|mv|성적|음원|차트|판매/i.test(t)) {
     const SS = salesState(), T = salesTargets(today), top = Object.entries(T.trk).sort((a, b) => b[1] - a[1])[0], a = relList().slice(-1)[0];
-    if (!top) return '还没有作品成绩';
-    const best = PLATS.map(p => [p[0], chartRank(p, T.trk[top[0]] * p[1])]).filter(x => x[1]).sort((x, y) => x[1] - y[1])[0];
-    return `今天最好的是《${top[0].split('|').slice(1).join('|')}》，全平台大概 ${fmtNum(Math.round(top[1]))} 次${best ? `，${best[0]} ${best[1]} 位` : '，还没进榜'}。${a && SS.alb[a.id] ? `《${a.name}》专辑累计 ${fmtNum(Math.round(SS.alb[a.id].total))} 张` : ''}`;
+    if (!top) return ['아직 집계된 성적이 없어요.', '还没有统计到的成绩。'];
+    const nm = top[0].split('|').slice(1).join('|'), best = PLATS.map(p => [p[0], chartRank(p, T.trk[top[0]] * p[1])]).filter(x => x[1]).sort((x, y) => x[1] - y[1])[0], al = a && SS.alb[a.id] ? Math.round(SS.alb[a.id].total) : 0;
+    return [`오늘 기준 「${nm}」 전체 플랫폼 약 ${Math.round(top[1]).toLocaleString()}회${best ? `, ${best[0]} ${best[1]}위` : ', 차트인 전'}입니다.${al ? ` 「${a.name}」 음반 누적 ${al.toLocaleString()}장이에요.` : ''}`, `今天《${nm}》全平台约 ${fmtNum(Math.round(top[1]))} 次${best ? `，${best[0]} ${best[1]} 位` : '，还没进榜'}。${al ? `《${a.name}》专辑累计 ${fmtNum(al)} 张。` : ''}`];
   }
-  if (/回归|新专|新歌|打歌/.test(t)) { const c = S.cb, a = cbAlbum(), d = cbDay(); return c && a && !c.over ? (d > 0 ? `《${a.name}》${c.date} 回归，还有 ${d} 天` : `现在是《${a.name}》的活动期，打歌安排看行程`) : '下次回归公司还在讨论，有消息第一时间告诉你'; }
-  if (/代言|广告/.test(t)) return W.deals.length ? `现在有 ${W.deals.map(d => `${d.brand}（每月 ${won(d.fee)}，剩 ${d.left} 个月）`).join('、')}` : W.offer ? `${W.offer.brand}那个还在等你回复呢` : '暂时没有代言，有品牌来问我会马上告诉你';
-  if (/合同|合约|续约/.test(t)) { const C = W.contract; return `现在是第 ${C.no} 份合同，到 ${C.end}，快到期前三个月公司会找你谈`; }
+  if (/回归|新专|新歌|컴백/.test(t)) { const c = S.cb, a = cbAlbum(), d = cbDay(); return c && a && !c.over ? (d > 0 ? [`「${a.name}」 ${c.date} 컴백이고, ${d}일 남았어요.`, `《${a.name}》${c.date} 回归，还有 ${d} 天。`] : [`지금 「${a.name}」 활동 기간이에요. 음방 일정은 스케줄표 참고해주세요.`, `现在是《${a.name}》活动期，打歌安排看行程表。`]) : ['다음 컴백은 아직 회사에서 논의 중이에요. 정해지면 바로 말씀드릴게요.', '下次回归公司还在讨论，定了马上告诉你。']; }
+  if (/代言|广告|광고/.test(t)) return W.deals.length ? [`진행 중인 광고: ${W.deals.map(d => `${d.brand} (잔여 ${d.left}개월)`).join(', ')}`, `进行中的代言：${W.deals.map(d => `${d.brand}（剩 ${d.left} 个月）`).join('、')}`] : W.offer ? [`${W.offer.brand} 건 답변 기다리고 있어요.`, `${W.offer.brand}那个还在等你回复。`] : ['지금은 광고 문의 없어요. 들어오면 바로 공유할게요.', '现在没有代言邀约，有的话马上告诉你。'];
+  if (/合同|合约|续约|계약/.test(t)) { const C = W.contract; return [`현재 ${C.no}차 계약이고 ${C.end}까지예요. 만료 3개월 전에 회사에서 재계약 얘기할 거예요.`, `现在是第 ${C.no} 份合同，到 ${C.end}。到期前三个月公司会谈续约。`]; }
   return null;
 }
 function mgrAnswer(t) {
   const fact = mgrFacts(t); if (fact) return fact;
-  if (/累|辛苦|休息|困|不舒服|生病|疼/.test(t)) return pick(['辛苦了，这周我帮你把能推的推掉一些', '身体不舒服一定要说，别硬撑。要不要我约个医院？', '好好睡一觉，明天的事明天再说']);
-  if (/谢谢|感谢|爱你|❤|♥/.test(t)) return pick(['应该的～', '跟我客气啥', '嘿嘿 好好干就是对我最好的感谢']);
-  if (/想接|想上|想去|想做|想试/.test(t)) return pick(['好，我记下了，有合适的第一时间告诉你', '可以啊，我去打听打听']);
-  if (/好|收到|ok|嗯|知道|行/i.test(t)) return pick(['👍', '好嘞', '嗯嗯']);
-  if (/[?？]|吗/.test(t)) return pick(['这个我也不太清楚，要不你当面问问代表？', '嗯…这个我说不好', '这个不归我管哈哈，我帮你留意一下']);
-  return pick(['收到～', '好的，我知道了', '嗯嗯，有事随时找我', '👌']);
+  if (/累|辛苦|休息|困|不舒服|生病|疼|힘들|피곤|아파/.test(t)) return pick([['고생 많았어요. 이번 주 조정 가능한 일정 있는지 볼게요.', '辛苦了。我看看这周有没有能调整的行程。'], ['몸 안 좋으면 꼭 말해줘요. 병원 예약 잡아줄까요?', '身体不舒服一定要说。要帮你约医院吗？'], ['오늘은 푹 쉬어요.', '今天好好休息。']]);
+  if (/谢谢|感谢|爱你|고마|감사/.test(t)) return pick([['별말씀을요.', '哪里的话。'], ['당연히 해야죠.', '应该的。']]);
+  if (/想接|想上|想去|想做|想试|하고 싶/.test(t)) return pick([['네, 메모해둘게요. 맞는 거 들어오면 바로 말씀드릴게요.', '好，我记下了，有合适的马上告诉你。'], ['좋아요. 한번 알아볼게요.', '好啊，我去打听一下。']]);
+  if (/好|收到|ok|嗯|知道|行|네|알겠|ㅇㅋ/i.test(t)) return pick([['👍', '👍'], ['네~', '好~'], ['넵', '嗯']]);
+  if (/[?？]|吗|까|요\?/.test(t)) return pick([['그건 제가 확인해보고 말씀드릴게요.', '这个我确认一下再告诉你。'], ['그 부분은 실장님께 여쭤볼게요.', '这部分我问问室长。']]);
+  return pick([['네, 알겠어요.', '好的，知道了。'], ['확인했어요.', '收到。'], ['무슨 일 있으면 언제든 연락 주세요.', '有事随时联系我。']]);
 }
 function mgrContext() {
-  const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum();
+  const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum(), R = W.recv || [];
   const sch = d => rulesFor(d).map(r => `${hm(r)} ${r.title}（${r.cat}）`).join('；') || '无';
-  return `今天 ${today}。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${fmtNum(p.followers)}，热度${heatLabel()}。
-今天行程：${sch(today)}。明天行程：${sch(addDays(today, 1))}。
-账户余额 ${won(W.bal)}，练习生欠款 ${won(W.debt)}。${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}
-作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。`;
+  return `今天 ${today}。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
+今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
+结算：每月 ${SETTLE_DAY} 日结算上月已到账收入；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。艺人账户余额 ${won(W.bal)}，未回收的公司前期投入 ${won(W.debt)}。
+${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。`;
 }
 async function mgrAi(text) {
   const client = await aiClient(), M = mgrChat();
@@ -2437,9 +2482,12 @@ async function mgrAi(text) {
   while (hist.length && hist[0].role !== 'user') hist.shift();
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
-  const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是韩国娱乐公司 STARSHIP 里负责这位 solo 艺人的经纪人，正在 KakaoTalk 上和她私聊。像真实的经纪人那样说话：简短、口语、亲切但职业，偶尔用表情，不要长篇大论，一般 1~3 句。只能根据下面的资料回答具体数据，资料里没有的不要编数字，可以说去确认或者不清楚。不要提到你是 AI。\n${mgrContext()}`, messages: msgs });
+  const r = await client.messages.create({ model: S.ai.model, max_tokens: 500, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。用韩语回复，语气礼貌、简洁、职业（对艺人用 -요 体），一般 1~3 句，像真人发消息，不要列表、不要长篇。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
+输出格式严格为两行：第一行 KO: 韩语回复；第二行 ZH: 对应的中文翻译。
+${mgrContext()}`, messages: msgs });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
-  return r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
+  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(), ko = (out.match(/KO:\s*([\s\S]*?)(?:\n\s*ZH:|$)/) || [])[1], zh = (out.match(/ZH:\s*([\s\S]*)$/) || [])[1];
+  return ko ? [ko.trim(), (zh || '').trim()] : null;
 }
 async function mgrRespond(text) {
   const fact = mgrFacts(text);
@@ -4663,7 +4711,7 @@ document.addEventListener('click', async e => {
     case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
-    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? '好，我去跟品牌那边回复，合同下周拿给你看 👍' : '行，我去回掉。以后有更合适的再说'); W.offer = null; save(); mgrRefresh(); render(); break; }
+    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? ['네, 브랜드 측에 회신할게요. 계약서는 다음 주에 전달드릴게요.', '好，我回复品牌方。合同下周给你。'] : ['네, 정중하게 거절할게요.', '好，我礼貌地回绝掉。']); W.offer = null; save(); mgrRefresh(); render(); break; }
     case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
@@ -4687,9 +4735,10 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(pick(['好嘞，我去回复对方，行程已经加上了', '收到，帮你排进行程了 👍'])); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
-    case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(pick(['行，我帮你推掉', '好的，那这个就不接了'])); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
+    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(pick([['네, 진행하는 걸로 회신할게요. 스케줄표에 추가했어요.', '好，我回复对方说接了。已经加到行程表。'], ['확인했어요. 일정 잡아둘게요.', '收到，行程排上了。']])); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
+    case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(pick([['네, 이번 건은 정중히 거절할게요.', '好，这次礼貌地回绝。'], ['알겠어요. 다음 기회에 하는 걸로 할게요.', '知道了，下次有机会再说。']])); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
     case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; mgrChat().chat.push({ id: uid(), at: Date.now(), text: v, me: true }); mgrRefresh(); mgrRespond(v); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
