@@ -2386,7 +2386,11 @@ const TG_FINE = {
   演唱会: [[/./, 20000000, 4]]
 };
 function tgFine(r) { const row = (TG_FINE[r.cat] || []).find(x => x[0].test(r.title)) || [null, 500000, 1]; return { fine: row[1], fm: row[2] }; }
-function tgState() { return S.tg || (S.tg = { start: dkey(Date.now()), cards: {} }); }
+function tgState() {
+  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 2 });
+  if ((T.v || 1) < 2) { const today = dkey(Date.now()); for (const [k, c] of Object.entries(T.cards)) if (!c.done && k >= today) delete T.cards[k]; T.v = 2; } // 事件库更新后，今天没做的通告重新抽
+  return T;
+}
 function tgTrivia() {
   const p = S.profile, deb = p.debut || '2025-09-01', bd = p.birth || '2007-08-29', first = disco().slice().sort((a, b) => (a.date || '9').localeCompare(b.date || '9'))[0];
   const qs = [
