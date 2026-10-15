@@ -177,6 +177,14 @@ body.typing .bb-tick.bb-tick2{display:block}
 .rec-q{font-size:15.5px;line-height:1.6;margin-bottom:10px}
 .rec-grade{font-size:56px;font-weight:900;line-height:1.1;margin-bottom:4px}
 .rec-grade.gS{color:#e5a100}.rec-grade.gA{color:var(--accent)}.rec-grade.gB{color:#6b7280}.rec-grade.gC{color:#9ca3af}
+.m-tabs{margin:8px 0 4px;flex-wrap:wrap}
+.ch-top{display:flex;align-items:center;gap:8px;padding:8px 6px;border-top:1px solid var(--line);font-size:14px;cursor:pointer;border-radius:8px}
+.ch-top.on{background:var(--bg)}
+.ch-n{width:18px;font-weight:800;color:var(--accent)}
+.ct{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ct div{background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}
+.ct span{font-size:11.5px;color:var(--muted)}
+.ct b{font-size:13px}
 .cb-steps{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:10px;font-size:12.5px}
 .cb-steps span{background:var(--bg);border-radius:10px;padding:3px 9px}
 .cb-steps i{font-style:normal;color:var(--muted)}
@@ -1622,7 +1630,27 @@ const PLATS = [['Melon', .36, 18000, 900000], ['Genie', .14, 4000, 250000], ['Bu
 const MERCH_PRESET = [['官方应援棒', 45000, 1], ['猫耳发箍', 18000, 1.4], ['小卡套装', 12000, 2], ['应援手幅', 15000, 1.2], ['猫猫玩偶', 29000, .9]];
 function wallet() {
   const W = S.wallet || (S.wallet = { bal: 800000, debt: 87500000, debt0: 87500000, tier: 'C', repay: .7, tx: [], pend: {}, day: dkey(Date.now()), month: dkey(Date.now()).slice(0, 7), deals: [], offer: null, nextOffer: 0 });
+  // 专属合同：出道那天签的标准 7 年约，到期前公司会来谈续约
+  if (!W.contract) { const st = S.profile.debut || dkey(Date.now()); W.contract = { no: 1, start: st, end: addDays(addDays(st, 0).replace(/^\d{4}/, y => String(+y + 7)), -1), tier: 'C', repay: .7, stepUp: true }; }
   return W;
+}
+// 合同分成：欠款还清后活动分成 +10%（合同条款）
+function cShare(kind) { const W = wallet(), c = W.contract; let v = TIERS[c.tier][kind]; if (kind === 'gen' && c.stepUp && W.debt <= 0) v += .1; return v; }
+function contractTick() {
+  const W = wallet(), c = W.contract, today = dkey(Date.now());
+  if (!c.offer && today >= addDays(c.end, -90) && today <= c.end) c.offer = renewOffer();
+  if (today > c.end) { // 没处理就按原条件续 1 年
+    const o = c.offer || { tier: c.tier, years: 1 };
+    W.contract = { no: c.no + 1, start: addDays(c.end, 1), end: addDays(addDays(c.end, 1).replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp };
+    pushNotif({ type: 'cb', text: '📄 合同自动续约了', sub: `新合同 ${TIERS[o.tier].name} · ${o.years} 年` }, true);
+  }
+}
+function renewOffer(again) {
+  const f = S.profile.followers, wins = Object.values(showsState().res).filter(x => x.rank === 1).length, aw = Object.values(awardsState()).filter(x => x.won && x.won.length).length;
+  let sc = Math.log10(Math.max(f, 1000) / 10000) + wins * .15 + aw * .3 + (again ? rand(-.3, .3) : rand(-.1, .1));
+  const tier = sc > 1.1 ? 'A' : sc > .5 ? 'B' : 'C', years = tier === 'A' ? pick([2, 3]) : pick([3, 5]);
+  pushNotif({ type: 'cb', text: '📄 公司来谈续约了', sub: `${TIERS[tier].name} · ${years} 年 · 去「我的 → 钱包」看看` }, true);
+  return { tier, years, again: !!again };
 }
 function salesState() { return S.sales || (S.sales = { last: Date.now(), alb: {}, trk: {}, mer: {} }); }
 function merch() { return S.merch || (S.merch = MERCH_PRESET.map(([n, p, pop]) => ({ id: uid(), name: n, price: p, pop }))); }
@@ -1645,8 +1673,8 @@ function parseMoney(text, defCur = 'KRW') {
 }
 function guessCat(text) { for (const k of ['粉丝回礼', '美容造型', '健身形体', '日常开销', '自己花的']) if (EXP_CATS[k].kw.test(text || '')) return k; return '自己花的'; }
 function walletIncome(gross, cat, note, kind = 'gen', at = Date.now()) {
-  const W = wallet(), share = TIERS[W.tier || 'C'][kind], amt = Math.round(gross * share); if (amt <= 0) return;
-  const repay = W.debt > 0 ? Math.min(W.debt, Math.round(amt * W.repay)) : 0;
+  const W = wallet(), share = cShare(kind), amt = Math.round(gross * share); if (amt <= 0) return;
+  const repay = W.debt > 0 ? Math.min(W.debt, Math.round(amt * W.contract.repay)) : 0;
   W.debt -= repay; W.bal += amt - repay;
   W.tx.unshift({ id: uid(), at, amt, gross: Math.round(gross), repay, cat, note, auto: true }); if (W.tx.length > 400) W.tx.length = 400;
 }
@@ -1681,8 +1709,8 @@ function walletSchedFee(r, mult = 1) {
 }
 // 收入 - 成本 → 按合同分；负数就记进欠款
 function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) {
-  const W = wallet(), share = TIERS[W.tier || 'C'][kind], net = gross - cost, mine = Math.round(net * share);
-  if (mine >= 0) { const repay = W.debt > 0 ? Math.min(W.debt, Math.round(mine * W.repay)) : 0; W.debt -= repay; W.bal += mine - repay; W.tx.unshift({ id: uid(), at, amt: mine, gross: Math.round(gross), cost: Math.round(cost), why, repay, cat, note, auto: true }); }
+  const W = wallet(), share = cShare(kind), net = gross - cost, mine = Math.round(net * share);
+  if (mine >= 0) { const repay = W.debt > 0 ? Math.min(W.debt, Math.round(mine * W.contract.repay)) : 0; W.debt -= repay; W.bal += mine - repay; W.tx.unshift({ id: uid(), at, amt: mine, gross: Math.round(gross), cost: Math.round(cost), why, repay, cat, note, auto: true }); }
   else { W.debt += -mine; W.debt0 = Math.max(W.debt0, W.debt); W.tx.unshift({ id: uid(), at, amt: 0, gross: Math.round(gross), cost: Math.round(cost), why, owe: -mine, cat, note, auto: true }); }
   if (W.tx.length > 400) W.tx.length = 400;
 }
@@ -1764,31 +1792,56 @@ function recScoreText(t) {
   return clamp(s + rand(-.15, .25), 0, 1);
 }
 // 每天的目标销量 / 播放量
+function albumDay(a, dk, f, h, bz, out) {
+  const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
+  if (d < 0) return;
+  const boost = d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1;
+  a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz; });
+  if (a.type === 'other' || d >= 999) return;
+  const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1);
+  out.mv[a.id] = f * 3 * h * bz * (1 + 7 * Math.exp(-d / 4)); out.tt[a.id] = f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
+  out.alb[a.id] = (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25));
+}
 function salesTargets(dk) {
   const f = S.profile.followers, h = heat(), bz = buzzNow(), out = { alb: {}, trk: {}, mer: {}, mv: {}, tt: {} };
-  for (const a of disco()) {
-    const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
-    if (d < 0) continue;
-    const boost = d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1;
-    a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz; });
-    if (a.type === 'other' || d >= 999) continue;
-    const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1);
-    out.mv[a.id] = f * 3 * h * bz * (1 + 7 * Math.exp(-d / 4)); out.tt[a.id] = f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
-    out.alb[a.id] = (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25));
-  }
+  for (const a of disco()) albumDay(a, dk, f, h, bz, out);
+  // 官方周边：后台默默卖，回归期和签售当天卖得多
   const promo = ['promo', 'follow'].includes(cbPhase()) ? 2 : 1, sign = rulesFor(dk).some(r => r.cat === '签售') ? 3 : 1;
   for (const m of merch()) out.mer[m.id] = f * .0002 * (m.pop || 1) * h * bz * promo * sign;
   return out;
 }
+// 补上开始统计之前的历史数据（按当时大概的粉丝数估算，不计入钱包）
+function salesBackfill() {
+  const SS = salesState(), today = dkey(Date.now()), bf = SS.bf || (SS.bf = {}), f = S.profile.followers;
+  const debutT = parseD(S.profile.debut || today).getTime(), span = Math.max(1, Date.now() - debutT);
+  for (const a of disco()) {
+    if (!a.date || a.date >= today || bf[a.id] === a.date) continue;
+    const seen = [SS.alb[a.id], SS.mv?.[a.id], ...a.tracks.map(t => SS.trk[a.id + '|' + t.name])].filter(Boolean).flatMap(x => Object.keys(x.days));
+    const stop = seen.length ? seen.sort()[0] : today;
+    let first = 0;
+    for (let k = a.date, n = 0; k < stop && n < 1200; k = addDays(k, 1), n++) {
+      const fa = f * clamp(.55 + .45 * (parseD(k).getTime() - debutT) / span, .3, 1), out = { alb: {}, trk: {}, mv: {}, tt: {} };
+      albumDay(a, k, fa, 1, rand(.85, 1.15), out);
+      for (const [x, v] of Object.entries(out.trk)) salesAdd(SS.trk, x, k, v);
+      for (const [x, v] of Object.entries(out.alb)) { salesAdd(SS.alb, x, k, v); if (n < 7) first += v; }
+      for (const [x, v] of Object.entries(out.mv)) salesAdd(SS.mv || (SS.mv = {}), x, k, v);
+      for (const [x, v] of Object.entries(out.tt)) salesAdd(SS.tt || (SS.tt = {}), x, k, v);
+      const y = (SS.yr || (SS.yr = {}))[k.slice(0, 4)] || (SS.yr[k.slice(0, 4)] = { alb: 0, strm: 0 }); y.alb += Object.values(out.alb).reduce((s, v) => s + v, 0); y.strm += Object.values(out.trk).reduce((s, v) => s + v, 0);
+    }
+    if (SS.alb[a.id] && first) SS.alb[a.id].first = (SS.alb[a.id].first || 0) + first;
+    bf[a.id] = a.date;
+  }
+}
 function salesAdd(map, key, dk, n) { const x = map[key] || (map[key] = { total: 0, days: {} }); x.total += n; x.days[dk] = (x.days[dk] || 0) + n; const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()]; }
 function salesAdvance() {
+  salesBackfill();
   const SS = salesState(), W = wallet(), now = Date.now();
   let t = Math.max(SS.last || now, now - 14 * 86400e3);
   for (let guard = 0; t < now && guard < 20; guard++) {
     const dk = dkey(t), dayEnd = parseD(addDays(dk, 1)).getTime(), seg = Math.min(now, dayEnd) - t, fr = seg / 86400e3;
     const T = salesTargets(dk), P = W.pend[dk] || (W.pend[dk] = { 音源: 0, 专辑: 0, 周边: 0 });
     for (const [k, v] of Object.entries(T.trk)) { salesAdd(SS.trk, k, dk, v * fr); P.音源 += v * fr * 4; }
-    for (const [k, v] of Object.entries(T.alb)) { salesAdd(SS.alb, k, dk, v * fr); P.专辑 += v * fr * 9000; }
+    for (const [k, v] of Object.entries(T.alb)) { salesAdd(SS.alb, k, dk, v * fr); P.专辑 += v * fr * 9000; const a = disco().find(x => x.id === k); if (a && dk < addDays(a.date, 7)) SS.alb[k].first = (SS.alb[k].first || 0) + v * fr; }
     for (const [k, v] of Object.entries(T.mv)) salesAdd(SS.mv || (SS.mv = {}), k, dk, v * fr);
     for (const [k, v] of Object.entries(T.tt)) salesAdd(SS.tt || (SS.tt = {}), k, dk, v * fr);
     { const y = (SS.yr || (SS.yr = {}))[dk.slice(0, 4)] || (SS.yr[dk.slice(0, 4)] = { alb: 0, strm: 0 }); y.alb += Object.values(T.alb).reduce((a, b) => a + b, 0) * fr; y.strm += Object.values(T.trk).reduce((a, b) => a + b, 0) * fr; }
@@ -1840,25 +1893,31 @@ function chartFocus() {
 function chartsHTML() {
   const SS = salesState(), today = dkey(Date.now()), yest = addDays(today, -1), T = salesTargets(today), TY = salesTargets(yest);
   const keys = Object.keys(T.trk);
-  if (!keys.length) return '<div class="muted" style="padding:4px 0">先在「我的歌单」里添加作品，就能看到音源、专辑和周边成绩</div>';
+  if (!keys.length) return '<div class="muted" style="padding:4px 0">先在「歌单」里添加作品，就能看到音源、专辑和 MV 成绩</div>';
   const focus = chartFocus(), name = focus.split('|').slice(1).join('|');
   const hr = new Date().getHours(), jit = .85 + .3 * ((hr * 7919) % 100) / 100;
+  const best = k => { let b = null; for (const p of PLATS) { const r = chartRank(p, T.trk[k] * p[1] * jit); if (r && (!b || r < b[1])) b = [p[0], r]; } return b; };
   const rows = PLATS.map(p => { const d = T.trk[focus] * p[1] * jit, r = chartRank(p, d), ry = chartRank(p, (TY.trk[focus] || 0) * p[1]);
     const mv = r && ry ? (ry > r ? `<i class="up">▲${ry - r}</i>` : ry < r ? `<i class="dn">▼${r - ry}</i>` : '<i>-</i>') : r ? '<i class="up">NEW</i>' : '';
     return `<div class="ch-row"><span class="ch-p">${p[0]}</span><b>${r ? r + ' 位' : '<span class="muted">未进榜</span>'}</b>${mv}<span class="muted ch-s">今日约 ${fmtNum(Math.round(d))} 次</span></div>`; }).join('');
-  const tchips = keys.slice(0, 12).map(k => `<button class="pcat ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}">${esc(k.split('|').slice(1).join('|'))}</button>`).join('');
-  const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || '')).slice(0, 4);
-  const albHTML = albs.map(a => { const x = SS.alb[a.id], first = Array.from({ length: 7 }, (_, i) => x.days[addDays(a.date, i)] || 0).reduce((s, n) => s + n, 0);
-    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · 初动 ${fmtNum(Math.round(first))} 张</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
-  const mer = merch().map(m => { const x = SS.mer[m.id] || { total: 0, days: {} };
-    return `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(m.name)}</b><div class="muted" style="font-size:12px">${won(m.price)}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 件</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div><button class="link" data-act="merdel" data-id="${m.id}" style="margin-left:8px">✕</button></div>`; }).join('');
-  return `<b style="font-size:14px">🎧 音源 · 实时榜单</b><div class="pcats" style="margin:8px 0">${tchips}</div>
-    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》在各平台的名次（每小时更新）</div>${rows}
-    <div style="margin-top:14px"><b style="font-size:14px">💿 专辑销量</b>${albHTML || '<div class="muted" style="padding:6px 0;font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>'}</div>
-    <div style="margin-top:14px"><div class="row"><b style="font-size:14px;flex:1">🧸 周边销量</b><button class="link" data-act="meradd">＋ 新周边</button></div>${mer || '<div class="muted" style="padding:6px 0">还没有周边</div>'}</div>`;
+  // 选歌：按作品分组的下拉框，歌再多也好找
+  const albs = disco().slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+  const sel = `<select id="ch-sel">${albs.map(a => `<optgroup label="${esc(a.name)}${a.date ? ' · ' + a.date.slice(0, 7) : ''}">${a.tracks.map(t => { const k = a.id + '|' + t.name; return `<option value="${esc(k)}" ${k === focus ? 'selected' : ''}>${esc(t.name)}${t.title ? '（主打）' : ''}</option>`; }).join('')}</optgroup>`).join('')}</select>`;
+  const top = keys.sort((a, b) => T.trk[b] - T.trk[a]).slice(0, 5);
+  return `<b style="font-size:14px">🎧 今日播放 Top 5</b>
+    ${top.map((k, i) => { const b = best(k); return `<div class="ch-top ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}"><span class="ch-n">${i + 1}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.split('|').slice(1).join('|'))}</span><span class="muted" style="font-size:12px">${b ? `${b[0]} ${b[1]} 位` : '未进榜'} · ${fmtNum(Math.round(T.trk[k]))} 次</span></div>`; }).join('')}
+    <div style="margin-top:14px"><b style="font-size:14px">📊 各平台名次</b><div style="margin:8px 0">${sel}</div>
+    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》（每小时更新）</div>${rows}</div>`;
+}
+function albumSalesHTML() {
+  const SS = salesState(), today = dkey(Date.now());
+  const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+  if (!albs.length) return '<div class="muted" style="font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>';
+  return albs.map(a => { const x = SS.alb[a.id];
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
 }
 function walletHTML() {
-  const W = wallet(), mon = dkey(Date.now()).slice(0, 7), T = TIERS[W.tier || 'C'];
+  const W = wallet(), mon = dkey(Date.now()).slice(0, 7), C = W.contract, T = { gen: cShare('gen'), bb: cShare('bb') };
   const mtx = W.tx.filter(x => dkey(x.at).slice(0, 7) === mon);
   const inc = mtx.filter(x => x.amt > 0).reduce((s, x) => s + x.amt - (x.repay || 0), 0), out = -mtx.filter(x => x.amt < 0).reduce((s, x) => s + x.amt, 0);
   const byCat = {}; mtx.filter(x => x.amt < 0).forEach(x => byCat[x.cat] = (byCat[x.cat] || 0) - x.amt);
@@ -1874,7 +1933,7 @@ function walletHTML() {
     <div class="kpi"><div><b style="color:var(--accent)">${won(inc)}</b><span>本月到手</span></div><div><b style="color:var(--danger)">${won(out)}</b><span>本月支出</span></div></div>
     <div style="margin-top:12px"><div class="row"><b style="font-size:14px;flex:1">练习生欠款</b><span class="muted" style="font-size:12.5px">已还 ${pct}%</span></div>
       <div class="w-bar"><i style="width:${pct}%"></i></div>
-      <div class="muted" style="font-size:12.5px;margin-top:4px">${W.debt > 0 ? `还欠 ${won(W.debt)} <span class="rmb">${rmb(W.debt)}</span> · 每笔到手收入先拿 ${Math.round(W.repay * 100)}% 还给公司` : '🎉 欠款已经还清了！'}</div></div>
+      <div class="muted" style="font-size:12.5px;margin-top:4px">${W.debt > 0 ? `还欠 ${won(W.debt)} <span class="rmb">${rmb(W.debt)}</span> · 按合同每笔到手收入先拿 ${Math.round(C.repay * 100)}% 还给公司` : '🎉 欠款已经还清了！'}</div></div>
   </div>
   <div class="card">
     <b style="font-size:14px">✏️ 记一笔</b>
@@ -1893,11 +1952,13 @@ function walletHTML() {
     ${W.offer ? `<div class="hot-opt" style="margin-top:8px">${esc(W.offer.brand)}想找你做小型代言 · 合约 ${won(W.offer.total || W.offer.fee * W.offer.months)}（按月分 ${W.offer.months} 个月）<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div></div>` : ''}
     ${W.deals.length ? W.deals.map(d => `<div class="rule"><span style="flex:1">${esc(d.brand)}</span><span class="muted">每月 ${won(d.fee)} · 剩 ${d.left} 个月</span></div>`).join('') : f < 18000 ? `<div class="muted" style="margin-top:6px;font-size:13px">粉丝到 1.8 万后偶尔会有小品牌找你（现在 ${fmtNum(f)}），热度越高机会越大</div><div class="w-bar"><i style="width:${Math.min(100, Math.round(f / 180))}%"></i></div>` : (W.offer ? '' : '<div class="muted" style="margin-top:6px;font-size:13px">暂时没有代言，品牌会不定时来找你</div>')}
   </div>
-  <div class="card"><b style="font-size:14px">📄 合同</b>
-    <div class="grid2" style="margin-top:8px"><div class="field"><label>合同等级</label><select id="w-tier">${Object.entries(TIERS).map(([k, v]) => `<option value="${k}" ${W.tier === k ? 'selected' : ''}>${v.name}（活动 ${v.gen * 100}% / 泡泡 ${v.bb * 100}%）</option>`).join('')}</select></div>
-      <div class="field"><label>到手收入拿多少还欠款</label><select id="w-repay">${[.5, .6, .7, .8, .9, 1].map(v => `<option value="${v}" ${W.repay === v ? 'selected' : ''}>${v * 100}%</option>`).join('')}</select></div></div>
-    <div class="muted" style="font-size:12.5px;line-height:1.7">通告费、音源、专辑、周边按「活动分成」，你拿 ${T.gen * 100}%；泡泡按「泡泡分成」，你拿 ${T.bb * 100}%（泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月预计 ${won(subs * BB_PRICE * T.bb)}）。<br>汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
-    <div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn ghost sm" data-act="wsave">保存合同</button></div>
+  <div class="card"><b style="font-size:14px">📄 专属合同</b>
+    <div class="ct"><div><span>合同</span><b>第 ${C.no} 份 · ${TIERS[C.tier].name}</b></div><div><span>期限</span><b>${C.start} ~ ${C.end}</b></div>
+      <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
+      <div><span>活动分成</span><b>你 ${Math.round(T.gen * 100)}% · 公司 ${100 - Math.round(T.gen * 100)}%</b></div><div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
+      <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
+    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本由公司垫付，结算时先从收入里扣；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月 ≈ ¥28，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
+    ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（活动 ${TIERS[C.offer.tier].gen * 100}% / 泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
   </div>`;
 }
 
@@ -1998,9 +2059,9 @@ function showResHTML(key) {
 /* ---------- YouTube MV / TikTok ---------- */
 function mvHTML() {
   const SS = salesState(), today = dkey(Date.now());
-  const albs = disco().filter(a => SS.mv && SS.mv[a.id] && SS.mv[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || '')).slice(0, 3);
-  if (!albs.length) return '';
-  return `<div style="margin-top:14px"><b style="font-size:14px">▶️ YouTube MV</b>${albs.map(a => {
+  const albs = disco().filter(a => SS.mv && SS.mv[a.id] && SS.mv[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+  if (!albs.length) return '<div class="muted" style="font-size:13px">有发行日期的作品才会有 MV 数据</div>';
+  return `<div>${albs.map(a => {
     const x = SS.mv[a.id], r = srng('mv' + a.id), lr = .03 + .02 * r(), cr = .0015 + .002 * r(), days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)), mx = Math.max(1, ...days.map(k => x.days[k] || 0));
     const tt = SS.tt?.[a.id]?.total || 0;
     return `<div class="mv"><div class="mv-h"><div class="mv-th">▶</div><div style="flex:1;min-width:0"><b>${esc(S.profile.name)} - ${esc(albTitle(a))} MV</b><div class="muted" style="font-size:12px">观看 ${fmtNum(Math.round(x.total))} · 👍 ${fmtNum(Math.round(x.total * lr))} · 💬 ${fmtNum(Math.round(x.total * cr))}</div><div class="muted" style="font-size:12px">24 小时 +${fmtNum(Math.round(x.days[today] || 0))} · TikTok #${esc(albTitle(a))}挑战 ${fmtNum(Math.round(tt))} 个视频</div></div></div>
@@ -2071,7 +2132,7 @@ function tick() {
   const sp = S.prefs.speed || 1;
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
-  dailyFans(); schedFans(); hotTick(); cbTick(); walletTick(); awardsTick(); bubbleTick(dt, false);
+  dailyFans(); schedFans(); hotTick(); cbTick(); walletTick(); contractTick(); awardsTick(); bubbleTick(dt, false);
   updCounters();
   schedReminders();
   save();
@@ -3628,16 +3689,13 @@ function viewMe() {
   <div class="card">${hotPanelHTML()}</div>`,
   wallet: () => walletHTML(),
   music: () => `
-  <div class="sec-title">📊 实时成绩</div>
-  <div class="card">${chartsHTML()}${mvHTML()}</div>
-  <div class="sec-title">🏆 打歌节目</div>
-  <div class="card">${showsCardHTML()}</div>
-  <div class="sec-title">🏅 年末颁奖</div>
-  <div class="card">${awardsHTML()}</div>
-  <div class="sec-title">💿 回归</div>
-  <div class="card">${cbHTML()}</div>
-  <div class="sec-title">🎵 我的歌单</div>
-  <div class="card">${discoHTML()}</div>`,
+  <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['cb', '📅 回归'], ['disco', '🎵 歌单']].map(([k, v]) => `<button class="pcat ${(UI.musicTab || 'chart') === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
+  ${{ chart: () => `<div class="card">${chartsHTML()}</div>`,
+    sales: () => `<div class="sec-title">💿 专辑销量</div><div class="card">${albumSalesHTML()}</div><div class="sec-title">▶️ YouTube MV</div><div class="card">${mvHTML()}</div>`,
+    shows: () => `<div class="card">${showsCardHTML()}</div>`,
+    awards: () => `<div class="card">${awardsHTML()}</div>`,
+    cb: () => `<div class="card">${cbHTML()}</div>`,
+    disco: () => `<div class="card">${discoHTML()}</div>` }[UI.musicTab || 'chart']()}`,
   persona: () => `
   <div class="sec-title">🐱 人设</div>
   <div class="card">
@@ -3836,15 +3894,14 @@ document.addEventListener('click', async e => {
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
     case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; if (t.dataset.ok === '1') { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } W.offer = null; save(); render(); break; }
-    case 'wsave': { const W = wallet(); W.tier = $('#w-tier').value; W.repay = +$('#w-repay').value; save(); render(); toast('合同已保存'); break; }
+    case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
+    case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
     case 'recgo': recStart(t.dataset.k); break;
     case 'recpick': { const o = UI.rec.segs[UI.rec.i].opts[+t.dataset.j]; recStep(rand(o[1], o[2]), ''); break; }
     case 'recsay': { const v = ($('#rec-in').value || '').trim(); if (!v) { toast('说点什么吧'); break; } recStep(recScoreText(v), v); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
-    case 'meradd': openModal(`<div class="row"><h3 style="flex:1">🧸 新周边</h3><button class="btn ghost sm" data-act="close">取消</button></div><div class="card"><div class="field"><label>名字</label><input id="mer-n" placeholder="比如：猫猫钥匙扣"></div><div class="field"><label>价格（可以写 ¥39 / 15加币）</label><input id="mer-p" placeholder="比如：15000"></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="mersave">添加</button></div></div>`); break;
-    case 'mersave': { const n = $('#mer-n').value.trim(), m = parseMoney($('#mer-p').value); if (!n || !m) { toast('请填写名字和价格'); break; } merch().push({ id: uid(), name: n, price: m.krw, pop: rand(.8, 1.4) }); save(); closeModal(); render(); break; }
-    case 'merdel': bbConfirm('删除这个周边？', '销量记录也会一起删掉', () => { S.merch = merch().filter(x => x.id !== t.dataset.id); save(); render(); }); break;
+    case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
@@ -3918,6 +3975,7 @@ document.addEventListener('change', async e => {
     else { if (S.bubble.wallImg) idbDel(S.bubble.wallImg); S.bubble.wallImg = id; S.bubble.wall = 'custom'; bbWallpaper(); }
     save(); openModal(bbSettingsHTML());
   } else if (t.id === 'r-rep') syncRepFields();
+  else if (t.id === 'ch-sel') { UI.chartTrk = t.value; render(); }
   else if (t.id === 'pf-tr') { S.prefs.autoTr = t.checked; save(); }
   else if (t.id === 'pf-speed') { S.prefs.speed = +t.value; save(); toast(`时间流速 ${t.value}×`); }
   else if (t.id === 'pf-sys') {
