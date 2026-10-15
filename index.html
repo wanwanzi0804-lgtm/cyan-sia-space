@@ -2554,11 +2554,15 @@ function mgrParseDay(t) {
   return null;
 }
 function mgrCancel(t) {
-  if (!/退掉|推掉|取消|不去|去不了|不想去|빼|취소|못 가|안 갈|빠질/.test(t) || /[?？吗]|까\??$/.test(t.trim())) return null;
+  if (!/退掉|推掉|取消|不去|去不了|不想去|请假|빼|취소|못 가|안 갈|빠질|쉬고 싶|쉬어도/.test(t) || /취소(됐|된|되었)|取消了吗|有没有取消/.test(t)) return null;
   const today = dkey(Date.now()), day = mgrParseDay(t);
-  const pool = S.schedule.rules.filter(r => r.repeat === 'once' && r.date >= today && (!day || r.date === day));
+  // 说的是哪类行程、哪个时段（中韩都认）
+  const CAT_HINT = [[/签售|팬싸|팬사인|사인회|영통/, '签售'], [/打歌|音乐节目|음방|뮤뱅|인가|엠카|쇼챔|더쇼|음중/, '打歌'], [/电台|라디오/, '电台'], [/综艺|예능/, '综艺'], [/拍摄|画报|촬영|화보|광고/, '物料'], [/演出|公演|庆典|공연|축제|버스킹/, '公演'], [/演唱会|콘서트/, '演唱会'], [/课|수업|레슨/, '上课'], [/练习|연습/, '练习'], [/活动|快闪|见面会|행사|팝업|팬미팅/, '活动']];
+  const ch = (CAT_HINT.find(([re]) => re.test(t)) || [])[1], tm = /晚上|傍晚|저녁|밤/.test(t) ? r => toMin(r.start) >= 17 * 60 : /上午|早上|아침|오전/.test(t) ? r => toMin(r.start) < 12 * 60 : /下午|오후/.test(t) ? r => toMin(r.start) >= 12 * 60 : null;
+  let pool = S.schedule.rules.filter(r => r.repeat === 'once' && r.date >= today && (!day || r.date === day));
+  if (ch) pool = pool.filter(r => r.cat === ch); if (tm) pool = pool.filter(tm);
   const kw = t.replace(/帮我|麻烦|把|那个|这个|的|行程|日程|通告|活动|退掉|推掉|取消|不去了?|去不了|不想去|今天|明天|后天|下周.|周.|星期.|吧|一下|了|呢|啊|일정|스케줄|빼\S*|취소\S*|못 가\S*|안 갈\S*|빠질\S*|오늘|내일|모레|다음 ?주|[월화수목금토일]요일|\d{1,2}\s*[月/.월]\s*\d{1,2}\s*[日号일]?|[，。,.!！~\s]/g, '');
-  let hit = kw.length >= 2 ? pool.filter(r => r.title.includes(kw) || [...new Set(kw.match(/.{2}/g) || [])].some(p => r.title.toLowerCase().includes(p.toLowerCase()))) : [];
+  let hit = (ch || tm) && pool.length === 1 ? pool : kw.length >= 2 ? pool.filter(r => r.title.includes(kw) || [...new Set(kw.match(/.{2}/g) || [])].some(p => r.title.toLowerCase().includes(p.toLowerCase()))) : [];
   if (!hit.length && day) { const ext = pool.filter(r => !['练习', '上课'].includes(r.cat)); if (ext.length === 1) hit = ext; }
   if (!hit.length) { const c = pool.filter(r => !['练习', '上课'].includes(r.cat)).slice(0, 4); return c.length ? [[`어떤 거요? ${c.map(r => `${+r.date.slice(5, 7)}/${+r.date.slice(8)} ${r.title}`).join(', ')} 중에요?`, `哪个？${c.map(r => `${+r.date.slice(5, 7)}/${+r.date.slice(8)} ${r.title}`).join('、')}？`]] : [['빼야 할 일정이 안 보이는데요?', '没看到要推的行程哎？']]; }
   if (hit.length > 2) hit = hit.slice(0, 2);
@@ -2575,10 +2579,11 @@ function mgrCancel(t) {
   }
   (mgrChat().memos || (mgrChat().memos = [])).push({ dk: today, at: Date.now(), text: `取消：${notes.join('、')}` });
   save(); if (UI.tab === 'sched') render();
-  const names = hit.map(r => r.title).join(', ');
-  return soon ? [['네 알겠어요', '好，知道了'], [`${names} 쪽에는 제가 연락해둘게요. 일정표에서도 뺐어요`, `${names}那边我去联系，行程表里也拿掉了`]]
+  const names = hit.map(r => r.title).join(', '), sick = /아파|아프|몸이|컨디션|열이|감기|不舒服|生病|发烧|感冒|难受|疼/.test(t), care = sick ? [['헐 괜찮아요?ㅠ', '啊你还好吗？ㅠ']] : [];
+  const tail = sick ? [['오늘은 푹 쉬어요. 필요한 거 있으면 말하고요', '今天好好休息，需要什么跟我说']] : [];
+  return [...care, ...(soon ? [['네 알겠어요', '好，知道了'], [`${names} 쪽에는 제가 연락해둘게요. 일정표에서도 뺐어요`, `${names}那边我去联系，行程表里也拿掉了`]]
     : big ? [[`네, ${names}은 회사랑 조율해볼게요`, `好，${names}我去跟公司协调`], ['일정표에서는 일단 빼둘게요', '行程表里先拿掉了']]
-    : [[`네 ${names} 뺐어요~`, `好，${names}拿掉了～`]];
+    : [[`네 ${names} 뺐어요~`, `好，${names}拿掉了～`]]), ...tail];
 }
 // 闲聊：道歉、笑、「知道了」这类不用记，像人一样随口回，或者干脆不回
 function mgrSmall(t) {
