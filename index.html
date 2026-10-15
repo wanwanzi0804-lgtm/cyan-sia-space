@@ -4103,8 +4103,7 @@ function fanPanelHTML() {
   const idle = Math.floor((Date.now() - lastActive()) / 86400e3);
   return `<div class="kpi" style="margin-top:0"><div><b>${heatLabel()}</b><span>人气</span></div><div>${fanSign(net(today))}<span>今日</span></div><div>${fanSign(week)}<span>近 7 天</span></div><div><b>${idle ? idle + ' 天' : '今天'}</b><span>上次营业</span></div></div>
     <div class="fbars">${days.map(k => { const n = net(k), h = Math.round(Math.abs(n) / mx * 100); return `<div class="fb" title="${k}：${n}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${k === today ? '今天' : WD[parseD(k).getDay()]}</span></div>`; }).join('')}</div>
-    <details class="me-more"><summary>今日变化来源${src.length ? ` · ${src.length} 项` : ''}</summary>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${fanSign(n)}</div>`).join('') : '<div class="muted" style="padding:6px 0">今天还没有变化</div>'}</details>
-    <details class="me-more"><summary>人气是怎么变的？</summary><p class="muted" style="margin:6px 0 0">常发帖、回复粉丝、开直播会升温；超过 3 天不营业会掉粉；公开行程（打歌、综艺、演出等）结束后会涨粉；负面言论会掉粉，恋爱话题会让少部分粉丝离开；不定时会有热搜事件，你的回应会影响后续；回归打歌期热度更高。</p></details>`;
+    <details class="me-more"><summary>今日变化来源${src.length ? ` · ${src.length} 项` : ''}</summary>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${fanSign(n)}</div>`).join('') : '<div class="muted" style="padding:6px 0">今天还没有变化</div>'}</details>`;
 }
 function hotPanelHTML() {
   const H = hotState(), c = H.cur;
