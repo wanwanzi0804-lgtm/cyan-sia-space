@@ -1792,7 +1792,7 @@ const SCHED_ECON = {
   '电台': [[/./, 0, 300000, 100000, 300000, '妆造 · 交通']],
   '物料': [[/MV 拍摄/, 0, 0, 30000000, 80000000, 'MV 制作'], [/封面|预告照/, 0, 0, 5000000, 15000000, '摄影棚 · 造型 · 后期'], [/Dance Practice|舞蹈挑战|Vlog/, 0, 0, 1000000, 4000000, '拍摄制作'], [/画报/, 500000, 3000000, 300000, 800000, '妆造'], [/广告/, 1000000, 10000000, 300000, 1000000, '妆造'], [/./, 0, 300000, 300000, 800000, '妆造 · 交通']],
   '签售': [[/视频通话/, 0, 0, 300000, 800000, '平台 · 工作人员'], [/./, 0, 0, 1000000, 3000000, '场地 · 工作人员 · 小礼物']],
-  '公演': [[/路演|Busking|busking|军队|公益/, 0, 0, 300000, 800000, '音响 · 交通'], [/歌谣|KCON|Music Bank World|Dream Concert|Waterbomb|音乐节/, 0, 3000000, 1500000, 4000000, '服装妆造 · 舞者'], [/./, 1000000, 5000000, 800000, 2000000, '舞者 · 妆造 · 音响']],
+  '公演': [[/大学(?!路)|大东祭|入实典|AKARAKA|LUCAUS/, 3000000, 10000000, 1000000, 2500000, '舞者 · 妆造 · 交通'], [/路演|Busking|busking|军队|公益/, 0, 0, 300000, 800000, '音响 · 交通'], [/歌谣|KCON|Music Bank World|Dream Concert|Waterbomb|音乐节/, 0, 3000000, 1500000, 4000000, '服装妆造 · 舞者'], [/./, 1000000, 5000000, 800000, 2000000, '舞者 · 妆造 · 音响']],
   '校庆': [[/./, 3000000, 10000000, 1000000, 2500000, '舞者 · 妆造 · 交通']],
   '活动': [[/新歌宣传快闪/, 0, 0, 100000, 300000, '妆造 · 交通'], [/快闪店嘉宾|品牌快闪/, 800000, 2500000, 200000, 500000, '妆造 · 造型'], [/粉丝见面会/, 300000, 1200000, 200000, 500000, '妆造 · 场地布置'], [/开幕嘉宾/, 1000000, 3000000, 200000, 500000, '妆造'], [/AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/, 0, 0, 2000000, 6000000, '颁奖礼服装 · 舞台准备'], [/机场|观演|试映|探访|Weverse|会议|生日会|见面会/, 0, 0, 100000, 400000, '妆造 · 交通'], [/品牌|代言|快闪|时装周|秀场/, 1000000, 10000000, 500000, 1500000, '妆造 · 服装'], [/公益/, 0, 0, 200000, 500000, '妆造'], [/./, 1000000, 5000000, 800000, 2000000, '妆造 · 舞者 · 工作人员']],
   '演唱会': [[/彩排/, 0, 0, 3000000, 8000000, '彩排场地']],
@@ -2365,7 +2365,7 @@ function mgrMakeOffer() {
   if ([3, 4, 5, 9, 10, 11].includes(mo)) w.push(['校庆', 2 + K.stamina / 50]);
   let x = Math.random() * w.reduce((s, a) => s + a[1], 0), cat = w[0][0]; for (const [c, v] of w) { x -= v; if (x <= 0) { cat = c; break; } }
   const big = /认识的哥哥|Running Man|Radio Star|惊人的星期六|我独自生活|你好|玩什么好呢|VOGUE|ELLE|W Korea|Dazed|延世|高丽|KCON|Dream Concert|Waterbomb|Music Bank World/;
-  let pool = (PRESETS[cat] || []).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
+  let pool = (cat === '校庆' ? UNIV_FEST : [...(PRESETS[cat] || []), ...(MGR_ONLY[cat] || [])]).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
   pool = pool.filter(([t]) => (f >= 80000 || !big.test(t) || Math.random() < .05) && !Object.values(POPUPS).some(p => p.re.test(t)));
   if (!pool.length) return null;
   let [title, loc] = pick(pool), pop = null;
@@ -2374,7 +2374,7 @@ function mgrMakeOffer() {
   const date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
   const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
   const end = pop ? hhmm(sh * 60 + pop.dur) : `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`;
-  return { id: uid(), cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3, popup: pop ? pop.popup : undefined, partner: pop ? pop.partner : undefined };
+  return { id: uid(), cat: cat === '校庆' ? '公演' : cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3, popup: pop ? pop.popup : undefined, partner: pop ? pop.partner : undefined };
 }
 function hhmm(m) { return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
@@ -2945,7 +2945,7 @@ const TG_FINE = {
   综艺: [[/网综|YouTube|vlog|Vlog|采访|自制/, 800000, 1], [/./, 2000000, 1.5]],
   物料: [[/MV 拍摄|封面|预告照/, 5000000, 1.2], [/画报|广告/, 1500000, 1], [/./, 500000, .6]],
   签售: [[/视频通话|线上/, 1500000, 1.5], [/./, 3000000, 2.5]],
-  公演: [[/路演|Busking|busking|公益/, 500000, .8], [/./, 2000000, 1.5]],
+  公演: [[/大学(?!路)|大东祭|入实典|AKARAKA|LUCAUS/, 5000000, 1.5], [/路演|Busking|busking|公益/, 500000, .8], [/./, 2000000, 1.5]],
   校庆: [[/./, 5000000, 1.5]],
   活动: [[/品牌|代言|快闪|时装周|秀场|广告/, 3000000, 1.2], [/机场|探访|观演|试映/, 200000, .5], [/./, 1000000, 1]],
   演唱会: [[/./, 20000000, 4]]
@@ -2973,7 +2973,7 @@ function tgTrivia() {
 }
 function tgCard(k, r) {
   const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
-  const evs = TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
+  const evs = r.cat === '公演' && UNIV_RE.test(r.title) ? TG_EVENTS['校庆'] : TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
   // 剧情事件为主，小游戏偶尔出现
   const cands = evs.map(f => f(r)).filter(Boolean), wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
@@ -3053,7 +3053,7 @@ function tgKind(r) {
   const t = r.title;
   const pk = popupOf(r); if (pk) return POPUPS[pk].kind;
   if (r.cat === '活动') return /机场|出境|入境|出国|回国/.test(t) ? '机场行程（出入境，站姐和粉丝会拍照）' : /AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/.test(t) ? '颁奖典礼（红毯 + 典礼）' : /品牌|代言|快闪|pop-?up|开幕|店/i.test(t) ? '品牌活动（拍照、简短采访）' : /见面会|生日会|粉丝/.test(t) ? '粉丝见面会' : /直播|Weverse|Live|LIVE/.test(t) ? '线上直播' : /观演|试映|VIP|首映/.test(t) ? '受邀观看演出 / 试映' : /探班|探访/.test(t) ? '探班' : /会议|开会/.test(t) ? '公司内部会议' : /采访|interview/i.test(t) ? '媒体采访' : /Showcase|showcase/.test(t) ? '回归 Showcase' : '其他活动';
-  return { 打歌: /彩排/.test(t) ? '音乐节目彩排' : /事前录制/.test(t) ? '音乐节目事前录制（不是直播）' : '音乐节目打歌', 综艺: /网综|YouTube|vlog|Vlog/.test(t) ? '网络综艺录制' : '电视综艺录制', 电台: '电台节目', 物料: /MV/.test(t) ? 'MV 拍摄' : /画报/.test(t) ? '杂志画报拍摄' : /预告|封面/.test(t) ? '回归预告照 / 封面拍摄' : '内容拍摄', 签售: /视频/.test(t) ? '视频签售' : '线下签售会', 公演: '演出', 校庆: '大学庆典演出', 演唱会: '演唱会', 上课: '课程', 练习: '练习', 个人: '个人日程' }[r.cat] || r.cat;
+  return { 打歌: /彩排/.test(t) ? '音乐节目彩排' : /事前录制/.test(t) ? '音乐节目事前录制（不是直播）' : '音乐节目打歌', 综艺: /网综|YouTube|vlog|Vlog/.test(t) ? '网络综艺录制' : '电视综艺录制', 电台: '电台节目', 物料: /MV/.test(t) ? 'MV 拍摄' : /画报/.test(t) ? '杂志画报拍摄' : /预告|封面/.test(t) ? '回归预告照 / 封面拍摄' : '内容拍摄', 签售: /视频/.test(t) ? '视频签售' : '线下签售会', 公演: UNIV_RE.test(t) ? '大学庆典演出' : '演出', 校庆: '大学庆典演出', 演唱会: '演唱会', 上课: '课程', 练习: '练习', 个人: '个人日程' }[r.cat] || r.cat;
 }
 function tgStage(dk) {
   const c = S.cb, a = cbAlbum(), ph = cbPhase(), tp = a ? ALB_TYPE[a.type] || '' : '';
@@ -4641,6 +4641,15 @@ const PRESETS = {
   ],
   '其他': [['公司会议', '公司 会议室'], ['行程简报', '公司'], ['体检', '医院'], ['休息日', '']]
 };
+// 后台预设：校庆并进公演、去掉年末舞台；广告 / 画报只由经纪人接（不在后台手动加）；类别顺序按习惯排
+const UNIV_FEST = PRESETS['校庆'], UNIV_RE = /大学(?!路)|大东祭|入实典|AKARAKA|LUCAUS/;
+const MGR_ONLY = { 物料: PRESETS['物料'].filter(([t]) => /画报|广告/.test(t)) };
+PRESETS['物料'] = PRESETS['物料'].filter(([t]) => !/画报|广告/.test(t));
+PRESETS['公演'] = [...UNIV_FEST, ...PRESETS['公演'].filter(([t]) => !/歌谣大祝祭|歌谣大战|歌谣大祭典/.test(t))];
+const CAT_ORDER = ['练习', '签售', '上课', '电台', '公演', '综艺', '活动', '物料', '打歌', '演唱会'];
+{ const P = { ...PRESETS }; for (const k of Object.keys(PRESETS)) delete PRESETS[k]; for (const c of CAT_ORDER) PRESETS[c] = P[c]; }
+// 经纪人接下来的行程：后台只能看，不能改 / 删
+const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
 function rulesFor(k) {
   const dow = parseD(k).getDay();
   return S.schedule.rules.filter(r => r.repeat === 'daily' || (r.repeat === 'weekly' && (r.days || []).includes(dow)) || (r.repeat === 'once' && r.date === k))
@@ -4718,7 +4727,7 @@ function adminHTML(edit) {
     <input type="hidden" id="r-id" value="${edit ? edit.id : ''}">
     <div class="field" style="margin-top:8px"><label>标题</label><input id="r-title" value="${esc(r.title)}" placeholder="选择预设或直接输入"></div>
     <div class="grid2">
-      <div class="field"><label>类别</label><select id="r-cat">${Object.keys(CATS).map(c => `<option ${c === r.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+      <div class="field"><label>类别</label><select id="r-cat">${CAT_ORDER.map(c => `<option ${c === r.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
       <div class="field"><label>地点</label><input id="r-loc" value="${esc(r.loc)}"></div>
       <div class="field"><label>开始时间</label><input type="time" id="r-start" value="${r.start}"></div>
       <div class="field"><label>结束时间</label><input type="time" id="r-end" value="${r.end}"></div>
@@ -4735,10 +4744,10 @@ function adminHTML(edit) {
   <div class="card">
     <b>已添加的行程（${list.length}）</b>
     ${list.length ? list.map(x => `<div class="rule"><span class="chip" style="background:${CATS[x.cat] || '#999'}">${esc(x.cat)}</span><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><div class="muted">${rep(x)} · ${x.start}-${x.end}${x.loc ? ' · ' + esc(x.loc) : ''}</div></div>
-      <button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button></div>`).join('') : '<div class="muted" style="padding:8px 0">还没有行程</div>'}
+      ${mgrLocked(x) ? '<span class="muted" style="font-size:12px;white-space:nowrap">经纪人安排</span>' : `<button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button>`}</div>`).join('') : '<div class="muted" style="padding:8px 0">还没有行程</div>'}
     ${doneList.length ? `<button class="done-tg" data-act="rshowdone">${UI.showDone ? '收起' : '查看'}已完成的行程（${doneList.length}）<span>${UI.showDone ? '▴' : '▾'}</span></button>
     ${UI.showDone ? doneList.map(x => `<div class="rule done"><span class="chip" style="background:${CATS[x.cat] || '#999'}">${esc(x.cat)}</span><div style="flex:1;min-width:0"><b>${esc(x.title)}</b><div class="muted">${rep(x)} · ${x.start}-${x.end}${x.loc ? ' · ' + esc(x.loc) : ''}</div></div>
-      <button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button></div>`).join('') : ''}` : ''}
+      ${mgrLocked(x) ? '<span class="muted" style="font-size:12px;white-space:nowrap">经纪人安排</span>' : `<button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button>`}</div>`).join('') : ''}` : ''}
   </div>`;
 }
 function syncRepFields() {
@@ -4999,8 +5008,8 @@ document.addEventListener('click', async e => {
     }
     case 'admin': openModal(adminHTML()); syncRepFields(); break;
     case 'rshowdone': UI.showDone = !UI.showDone; { const sc = $('#sheet').scrollTop; openModal(adminHTML()); syncRepFields(); $('#sheet').scrollTop = sc; } break;
-    case 'redit': openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); $('#sheet').scrollTop = 0; break;
-    case 'rdel': if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
+    case 'redit': if (mgrLocked(S.schedule.rules.find(x => x.id === t.dataset.id) || {})) break; openModal(adminHTML(S.schedule.rules.find(x => x.id === t.dataset.id))); syncRepFields(); $('#sheet').scrollTop = 0; break;
+    case 'rdel': if (mgrLocked(S.schedule.rules.find(x => x.id === t.dataset.id) || {})) break; if (confirm('删除这条行程规则？')) { S.schedule.rules = S.schedule.rules.filter(x => x.id !== t.dataset.id); save(); openModal(adminHTML()); syncRepFields(); render(); } break;
     case 'rsave': saveRule(); break;
     case 'wcat': UI.wCat = UI.wCat === t.dataset.k ? null : t.dataset.k; $$('[data-act=wcat]').forEach(b => b.classList.toggle('on', b.dataset.k === UI.wCat)); break;
     case 'wadd': {
@@ -5044,7 +5053,7 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
+    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
@@ -5171,6 +5180,7 @@ function migrate() {
     // 「上课/练习」拆成「上课」和「练习」
     S.schedule.rules.forEach(r => { if (r.cat === '上课/练习') r.cat = /课/.test(r.title) ? '上课' : '练习'; });
   }
+  S.schedule.rules.forEach(r => { if (r.cat === '校庆') r.cat = '公演'; }); // 校庆并进公演
   if ((S.v || 1) >= 2) { S.v = Math.max(S.v || 1, 3); return; }
   const oldPosts = /^(今天的舞蹈练习终于结束啦！腿已经不是自己的了|下周就是签售会了！好想快点见到)/;
   S.posts = S.posts.filter(p => !oldPosts.test(p.text));
