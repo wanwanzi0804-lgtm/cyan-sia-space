@@ -1049,7 +1049,7 @@ function heat() {
   const F = fanState(), cut = Date.now() - 7 * 86400e3; let s = 0;
   for (const a of F.act) if (a.t > cut) s += a.type === 'post' ? 1 : a.type === 'live' ? 1.5 : a.type === 'reply' ? .15 : a.type === 'bubble' ? .3 : 0;
   const idle = (Date.now() - lastActive()) / 86400e3;
-  return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04 + hotBoost() + cbBoost() + viralHeat(), .6, 1.8);
+  return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04 + hotBoost() + cbBoost() + viralHeat() + relBoost(), .6, 1.8);
 }
 function heatLabel(h = heat()) { return h < .75 ? '🥶 低迷' : h < .95 ? '🙂 平稳' : h < 1.2 ? '📈 上升中' : '🔥 火热'; }
 function lastActive() { const F = fanState(); return F.act.length ? Math.max(...F.act.map(a => a.t)) : (S.posts[0]?.createdAt || F.since || (F.since = Date.now())); }
@@ -1596,7 +1596,9 @@ function albHTML() {
     <div class="card">
       <div class="grid2"><div class="field"><label>${cb ? '专辑 / 单曲名' : '作品名'}</label><input id="al-name" value="${esc(A.name)}" placeholder="比如：9.1Hz"></div>
         <div class="field"><label>类型</label><select id="al-type">${Object.entries(ALB_TYPE).map(([k, v]) => `<option value="${k}" ${A.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
-      <div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}"></div>
+      <div class="grid2"><div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}"></div>
+        <div class="field"><label>曲风</label><select id="al-mood">${Object.entries(MOODS).map(([k, v]) => `<option value="${k}" ${(A.mood || 'dance') === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></div></div>
+      ${cb ? '' : `<label class="row" style="gap:6px;margin:-2px 0 10px;font-size:14px"><input type="checkbox" id="al-promo" ${A.promo ? 'checked' : ''} style="width:auto">有打歌期</label>`}
       <div class="field"><label>专辑简介 <span class="muted">（概念、故事、想对粉丝说的话，可不填）</span></label><textarea id="al-intro" style="min-height:80px" placeholder="比如：这张专辑讲的是一只猫在城市里迷路又找到家的故事…">${esc(A.intro || '')}</textarea></div>
       <div class="field"><label>收录曲 <span class="muted">（点 ★ 设为主打）</span></label>
         ${A.tracks.map((t, i) => `<div class="trk"><button class="trk-star ${t.title ? 'on' : ''}" data-act="alstar" data-i="${i}" title="设为主打">★</button><input class="al-t" value="${esc(t.name)}" placeholder="第 ${i + 1} 首">${A.tracks.length > 1 ? `<button class="link" data-act="aldel" data-i="${i}">✕</button>` : ''}</div>`).join('')}
@@ -1612,7 +1614,7 @@ function albHTML() {
 }
 function albCollect() {
   const A = UI.alb; if (!$('#al-name')) return A;
-  A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value; A.intro = $('#al-intro').value.trim();
+  A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value; A.intro = $('#al-intro').value.trim(); A.mood = $('#al-mood').value; if ($('#al-promo')) A.promo = $('#al-promo').checked;
   $$('.al-t').forEach((el, i) => { if (A.tracks[i]) A.tracks[i].name = el.value.trim(); });
   if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.follow = $('#al-follow').value; }
   return A;
@@ -1629,12 +1631,13 @@ function albSave() {
   if (!A.name || !tracks.length) return toast('请填写作品名和至少一首歌');
   if (!tracks.some(t => t.title)) tracks[0].title = true;
   if (A.mode === 'cb' && !A.date) return toast('请选择回归日期');
-  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title })) };
+  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', mood: A.mood || 'dance', promo: !!A.promo, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title })) };
   const i = disco().findIndex(x => x.id === alb.id); if (i >= 0) disco()[i] = alb; else disco().push(alb);
   if (A.mode === 'cb') {
     const keep = S.cb && !S.cb.over && S.cb.albumId === alb.id && S.cb.date === A.date ? S.cb : null;
     alb.promo = true; S.cb = { albumId: alb.id, date: A.date, weeks: A.weeks, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [] };
   }
+  salesState().albV = 0; // 作品信息变了，成绩按新热度重算
   syncSongs(); save(); closeModal(); render();
   toast(A.mode === 'cb' ? '回归定下了 💿' : '已保存到歌单', `《${alb.name}》`);
 }
@@ -1755,11 +1758,24 @@ function buzzNow() {
   }
   return SS.bz.v * (SS.bz.viral > 0 ? SS.bz.vm || 2 : 1);
 }
-// 出道专辑：大公司新人的出道红利，实体卖得明显更好
-function albMult(a) {
-  const first = disco().filter(x => x.date && x.type !== 'other').sort((x, y) => x.date.localeCompare(y.date))[0];
-  return first && first.id === a.id ? 2.5 : albPromo(a) ? 1.6 : 1;
+// 作品热度：音源、MV、专辑都从这一个数出发，所以三者对得上
+// 出道红利 / 有没有打歌 / 曲风 / 单曲·迷你·正规 / 上一张的余热 / 运气
+const ALB_PHYS = { single: .15, mini: .26, full: .34 }, ALB_HYPE = { single: 1, mini: 1.2, full: 1.4 };
+const MOODS = { dance: ['舞曲', 1], ballad: ['抒情', .75], other: ['其他', .9] };
+function relList() { return disco().filter(x => x.date && x.type !== 'other').sort((x, y) => x.date.localeCompare(y.date)); }
+function relHeat(a, list = relList(), depth = 0) {
+  const i = list.findIndex(x => x.id === a.id); if (i < 0) return { H: 1, tags: [] };
+  const tags = []; let H = ALB_HYPE[a.type] || 1;
+  if (i === 0) { H *= 1.6; tags.push('出道红利'); }
+  else if (albPromo(a)) { H *= 1.35; tags.push('打歌'); } else { H *= .6; tags.push('没打歌'); }
+  const m = MOODS[a.mood] || MOODS.dance; H *= m[1]; if (a.mood === 'ballad') tags.push('抒情');
+  if (i > 0 && depth < 6) { const c = .7 + .3 * relHeat(list[i - 1], list, depth + 1).H; H *= c; if (c > 1.08) tags.push('上张余热'); else if (c < .92) tags.push('上张偏冷'); }
+  H *= .8 + .45 * srng('rl' + a.id)();
+  return { H, tags };
 }
+const heatWord = H => H < .6 ? '偏冷' : H < .9 ? '一般' : H < 1.3 ? '不错' : H < 1.8 ? '很高' : '爆';
+// 最近一张作品的成绩反过来影响你整体的热度
+function relBoost() { const l = relList(), a = l[l.length - 1]; if (!a) return 0; const d = (Date.now() - parseD(a.date).getTime()) / 86400e3; return d < 0 ? 0 : clamp(.25 * (relHeat(a, l).H - 1), -.15, .25) * Math.exp(-d / 30); }
 // 有回归打歌期的作品曝光多，卖得更好；没打歌的就靠粉丝自己
 function albPromo(a) { return !!(a.promo || (S.cb && S.cb.albumId === a.id)); }
 // 逆袭：发行后某天因为外部因素突然小火，运气成分很大
@@ -1787,7 +1803,7 @@ function viralTick() {
     chk[a.id] = today;
     const d = Math.round((parseD(today).getTime() - parseD(a.date).getTime()) / 86400e3);
     if (d < 3 || d > 120 || Math.random() > .004 * (.5 + luckQ())) continue;
-    const big = Math.random() < .1, peak = big ? rand(8, 12) : rand(2, 5), [cause, sub] = pick(albMult(a) > 1 ? VIRAL_CAUSES : VIRAL_CAUSES.slice(1)); // 没打歌的作品不会有打歌直拍
+    const big = Math.random() < .1, peak = big ? rand(8, 12) : rand(2, 5), [cause, sub] = pick(albPromo(a) || relList()[0] === a ? VIRAL_CAUSES : VIRAL_CAUSES.slice(1)); // 没打歌的作品不会有打歌直拍
     V[a.id] = { dk: today, peak, cause, big };
     addFans(S.profile.followers * .004 * peak, '逆袭：' + albTitle(a));
     pushNotif({ type: 'system', text: `🔥 《${albTitle(a)}》突然${big ? '火' : '小火'}了！${cause}`, sub: sub + '。接下来一两周音源、MV 和专辑都会明显上涨' }, true);
@@ -1798,10 +1814,11 @@ function albumDay(a, dk, f, h, bz, out) {
   const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
   if (d < 0) return;
   const boost = (d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1) * viralMult(a, dk);
-  a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz; });
+  const R = relHeat(a).H;
+  a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz * R; });
   if (a.type === 'other' || d >= 999) return;
-  const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1) * albMult(a);
-  out.mv[a.id] = viralMult(a, dk) * f * h * bz * (2 * Math.exp(-d / 5) + .15 * Math.exp(-d / 60) + .012) * (albMult(a) >= 2.5 ? 3 : albPromo(a) ? 1.5 : 1); // 出道 MV 一年约 50~100 万，之后的单曲 10~50 万 out.tt[a.id] = viralMult(a, dk) * f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
+  const T = f * (ALB_PHYS[a.type] || .1) * Math.pow(R, .6); // 实体主要靠粉丝买，受热度影响小一点
+  out.mv[a.id] = viralMult(a, dk) * f * h * bz * R * 2.1 * (2 * Math.exp(-d / 5) + .15 * Math.exp(-d / 60) + .012); out.tt[a.id] = viralMult(a, dk) * R * f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
   out.alb[a.id] = Math.sqrt(viralMult(a, dk)) * (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * (.006 * Math.exp(-(d - 7) / 25) + .0008));
 }
 function salesTargets(dk) {
@@ -1837,11 +1854,12 @@ function salesBackfill() {
 function salesAdd(map, key, dk, n) { const x = map[key] || (map[key] = { total: 0, days: {} }); x.total += n; x.days[dk] = (x.days[dk] || 0) + n; const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()]; }
 // 专辑销量按现在的规则整体重算一遍（出道红利、首周和之后的数据前后对得上）
 function salesRebuildAlb() {
-  const SS = salesState(); if (SS.albV === 4) return;
+  const SS = salesState(); if (SS.albV === 5) return;
   const now = Math.min(Date.now(), SS.last || Date.now()), today = dkey(now), f = S.profile.followers;
   const debutT = parseD(S.profile.debut || today).getTime(), span = Math.max(1, now - debutT), dayFr = (now - parseD(today).getTime()) / 86400e3;
-  for (const y of Object.values(SS.yr || {})) y.alb = 0;
+  for (const y of Object.values(SS.yr || {})) { y.alb = 0; y.strm = 0; }
   for (const a of disco()) {
+    if (a.date && a.date <= today) for (const t of a.tracks) SS.trk[a.id + '|' + t.name] = { total: 0, days: {} };
     if (!a.date || a.type === 'other' || a.date > today) { delete SS.alb[a.id]; if (SS.mv) delete SS.mv[a.id]; continue; }
     const x = SS.alb[a.id] = { total: 0, days: {}, first: 0 }, m = (SS.mv || (SS.mv = {}))[a.id] = { total: 0, days: {} }, r = srng('alb' + a.id);
     for (let k = a.date, n = 0; k <= today && n < 1200; k = addDays(k, 1), n++) {
@@ -1849,12 +1867,13 @@ function salesRebuildAlb() {
       albumDay(a, k, fa, 1, .85 + .3 * r(), out);
       const v = (out.alb[a.id] || 0) * (k === today ? dayFr : 1);
       x.total += v; x.days[k] = v; if (n < 7) x.first += v;
+      let st = 0; for (const [tk, tv] of Object.entries(out.trk)) { const q = tv * (k === today ? dayFr : 1), o = SS.trk[tk]; o.total += q; o.days[k] = q; st += q; }
       const mv = (out.mv[a.id] || 0) * (k === today ? dayFr : 1); m.total += mv; m.days[k] = mv;
-      const y = (SS.yr || (SS.yr = {}))[k.slice(0, 4)] || (SS.yr[k.slice(0, 4)] = { alb: 0, strm: 0 }); y.alb += v;
+      const y = (SS.yr || (SS.yr = {}))[k.slice(0, 4)] || (SS.yr[k.slice(0, 4)] = { alb: 0, strm: 0 }); y.alb += v; y.strm += st;
     }
-    for (const o of [x, m]) { const ks = Object.keys(o.days).sort(); while (ks.length > 40) delete o.days[ks.shift()]; }
+    for (const o of [x, m, ...a.tracks.map(t => SS.trk[a.id + '|' + t.name])]) { const ks = Object.keys(o.days).sort(); while (ks.length > 40) delete o.days[ks.shift()]; }
   }
-  SS.albV = 4; // 之后照常从 SS.last 往后累计
+  SS.albV = 5; // 之后照常从 SS.last 往后累计
 }
 function salesAdvance() {
   salesBackfill(); salesRebuildAlb(); viralTick();
@@ -1937,7 +1956,7 @@ function albumSalesHTML() {
   const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   if (!albs.length) return '<div class="muted" style="font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>';
   return albs.map(a => { const x = SS.alb[a.id];
-    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张${albMult(a) >= 2.5 ? ' · 出道红利' : ''}${viralCurve(a, today) > .15 ? ' · 🔥 逆袭中' : ''}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张${(() => { const R = relHeat(a); return ` · 热度${heatWord(R.H)}${R.tags.length ? '（' + R.tags.join('、') + '）' : ''}`; })()}${viralCurve(a, today) > .15 ? ' · 🔥 逆袭中' : ''}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
 }
 function walletHTML() {
   const W = wallet(), mon = dkey(Date.now()).slice(0, 7), C = W.contract, T = { gen: cShare('gen'), bb: cShare('bb') };
