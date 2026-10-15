@@ -2627,7 +2627,6 @@ const TG_EVENTS = {
   ],
   活动: [
     r => C(`${r.title}，品牌方希望整体风格「自然、有亲和力」，你选哪套？`, [['白衬衫牛仔裤', .45, .9], ['品牌新款全套', .4, 1], ['自己的私服', .2, .95]]),
-    r => W_('主持人请你说一句宣传语：', '一句话'),
     r => C('现场有粉丝举着你的应援手幅，但主办方说不能互动太久。', [['快速比心回应', .45, .95], ['走过去打招呼', .2, 1], ['装作没看到', .05, .5]]),
     r => ({ kind: 'timing', d: '媒体拍照环节：闪光灯亮起，在光标正中时点「定格」摆好 pose。' }),
     r => C('活动结束后，品牌方邀请你留下来吃饭。', [['留下，和品牌方好好聊聊', .45, .95], ['礼貌拒绝，说还有行程', .35, .75], ['带上经纪人一起去', .4, .85]]),
@@ -2784,8 +2783,9 @@ const TG_FINE = {
 };
 function tgFine(r) { const row = (TG_FINE[r.cat] || []).find(x => x[0].test(r.title)) || [null, 500000, 1]; return { fine: row[1], fm: row[2] }; }
 function tgState() {
-  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 2 });
-  if ((T.v || 1) < 2) { const today = dkey(Date.now()); for (const [k, c] of Object.entries(T.cards)) if (!c.done && k >= today) delete T.cards[k]; T.v = 2; } // 事件库更新后，今天没做的通告重新抽
+  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 3 });
+  if ((T.v || 1) < 3) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /宣传语/.test(c.d || '')) delete T.cards[k]; T.v = 3; }
+  if ((T.v || 1) < 2) { const today = dkey(Date.now()); for (const [k, c] of Object.entries(T.cards)) if (!c.done && k >= today) delete T.cards[k]; T.v = 3; } // 事件库更新后，今天没做的通告重新抽
   return T;
 }
 function tgTrivia() {
