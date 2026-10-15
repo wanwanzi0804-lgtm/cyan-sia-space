@@ -1756,6 +1756,11 @@ function buzzNow() {
   }
   return SS.bz.v * (SS.bz.viral > 0 ? SS.bz.vm || 2 : 1);
 }
+// 出道专辑：大公司新人的出道红利，实体卖得明显更好
+function albMult(a) {
+  const first = disco().filter(x => x.date && x.type !== 'other').sort((x, y) => x.date.localeCompare(y.date))[0];
+  return first && first.id === a.id ? 2.5 : 1;
+}
 // 每天的目标销量 / 播放量
 function albumDay(a, dk, f, h, bz, out) {
   const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
@@ -1763,9 +1768,9 @@ function albumDay(a, dk, f, h, bz, out) {
   const boost = d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1;
   a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz; });
   if (a.type === 'other' || d >= 999) return;
-  const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1);
+  const T = f * ({ single: .08, mini: .22, full: .3 }[a.type] || .1) * albMult(a);
   out.mv[a.id] = f * 3 * h * bz * (1 + 7 * Math.exp(-d / 4)); out.tt[a.id] = f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
-  out.alb[a.id] = (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * .006 * Math.exp(-(d - 7) / 25));
+  out.alb[a.id] = (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * (.006 * Math.exp(-(d - 7) / 25) + .0008));
 }
 function salesTargets(dk) {
   const f = S.profile.followers, h = heat(), bz = buzzNow(), out = { alb: {}, trk: {}, mer: {}, mv: {}, tt: {} };
@@ -1798,8 +1803,28 @@ function salesBackfill() {
   }
 }
 function salesAdd(map, key, dk, n) { const x = map[key] || (map[key] = { total: 0, days: {} }); x.total += n; x.days[dk] = (x.days[dk] || 0) + n; const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()]; }
+// 专辑销量按现在的规则整体重算一遍（出道红利、首周和之后的数据前后对得上）
+function salesRebuildAlb() {
+  const SS = salesState(); if (SS.albV === 2) return;
+  const now = Math.min(Date.now(), SS.last || Date.now()), today = dkey(now), f = S.profile.followers;
+  const debutT = parseD(S.profile.debut || today).getTime(), span = Math.max(1, now - debutT), dayFr = (now - parseD(today).getTime()) / 86400e3;
+  for (const y of Object.values(SS.yr || {})) y.alb = 0;
+  for (const a of disco()) {
+    if (!a.date || a.type === 'other' || a.date > today) { delete SS.alb[a.id]; continue; }
+    const x = SS.alb[a.id] = { total: 0, days: {}, first: 0 }, r = srng('alb' + a.id);
+    for (let k = a.date, n = 0; k <= today && n < 1200; k = addDays(k, 1), n++) {
+      const fa = f * clamp(.55 + .45 * (parseD(k).getTime() - debutT) / span, .3, 1), out = { alb: {}, trk: {}, mv: {}, tt: {} };
+      albumDay(a, k, fa, 1, .85 + .3 * r(), out);
+      const v = (out.alb[a.id] || 0) * (k === today ? dayFr : 1);
+      x.total += v; x.days[k] = v; if (n < 7) x.first += v;
+      const y = (SS.yr || (SS.yr = {}))[k.slice(0, 4)] || (SS.yr[k.slice(0, 4)] = { alb: 0, strm: 0 }); y.alb += v;
+    }
+    const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()];
+  }
+  SS.albV = 2; // 之后照常从 SS.last 往后累计
+}
 function salesAdvance() {
-  salesBackfill();
+  salesBackfill(); salesRebuildAlb();
   const SS = salesState(), W = wallet(), now = Date.now();
   let t = Math.max(SS.last || now, now - 14 * 86400e3);
   for (let guard = 0; t < now && guard < 20; guard++) {
@@ -1879,7 +1904,7 @@ function albumSalesHTML() {
   const albs = disco().filter(a => SS.alb[a.id] && SS.alb[a.id].total >= 1).sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   if (!albs.length) return '<div class="muted" style="font-size:13px">有发行日期的单曲 / 专辑才会统计实体销量</div>';
   return albs.map(a => { const x = SS.alb[a.id];
-    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · 初动 ${fmtNum(Math.round(x.first || 0))} 张</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
+    return `<div class="rule"><div style="flex:1;min-width:0"><b>《${esc(a.name)}》</b><div class="muted" style="font-size:12px">${ALB_TYPE[a.type] || ''} · ${a.date} · ${(() => { const d = Math.round((parseD(today).getTime() - parseD(a.date).getTime()) / 86400e3); return d < 7 ? `初动统计中（第 ${d + 1}/7 天）${fmtNum(Math.round(x.first || 0))} 张` : `初动 ${fmtNum(Math.round(x.first || 0))} 张`; })()}${albMult(a) > 1 ? ' · 出道红利' : ''}</div></div><div style="text-align:right"><b>${fmtNum(Math.round(x.total))} 张</b><div class="muted" style="font-size:12px">今日 +${fmtNum(Math.round(x.days[today] || 0))}</div></div></div>`; }).join('');
 }
 function walletHTML() {
   const W = wallet(), mon = dkey(Date.now()).slice(0, 7), C = W.contract, T = { gen: cShare('gen'), bb: cShare('bb') };
