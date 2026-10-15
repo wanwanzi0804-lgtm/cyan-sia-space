@@ -1742,7 +1742,10 @@ function utilBill(mon) {
   return { elec, heat: heatB, water: v(14000, 24000) };
 }
 function rentTick() {
-  const W = wallet(), mon = dkey(Date.now()).slice(0, 7); if (W.rentMon === mon) return; W.rentMon = mon;
+  const W = wallet(), mon = dkey(Date.now()).slice(0, 7);
+  if (!W.dormV) { W.dormV = 1; W.dorm = true; W.tx = W.tx.filter(x => { if (x.auto && x.cat === '居住') { W.bal -= x.amt; return false; } return true; }); } // 住公司宿舍：房租水电公司出，已经扣的退回
+  if (W.dorm) return; // 宿舍不用自己交房租水电
+  if (W.rentMon === mon) return; W.rentMon = mon;
   const u = utilBill(mon), at = parseD(mon + '-01').getTime() + 9 * 3600e3, add = (amt, note) => { W.bal -= amt; W.tx.unshift({ id: uid(), at, amt: -amt, cat: '居住', note, auto: true }); };
   add(RENT, `${+mon.slice(5)} 月房租`); add(MGMT, '管理费'); add(u.elec, '电费'); add(u.heat, '燃气暖气'); add(u.water, '水费'); add(NET, '网费');
   W.tx.sort((a, b) => b.at - a.at); if (W.tx.length > 400) W.tx.length = 400;
