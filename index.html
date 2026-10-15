@@ -2857,8 +2857,9 @@ const TG_FINE = {
 };
 function tgFine(r) { const row = (TG_FINE[r.cat] || []).find(x => x[0].test(r.title)) || [null, 500000, 1]; return { fine: row[1], fm: row[2] }; }
 function tgState() {
-  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 4 });
-  if ((T.v || 1) < 4) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /品牌新款全套|品牌方希望|奖品是品牌|红毯快门|宣传语/.test(JSON.stringify(c))) delete T.cards[k]; T.v = 4; }
+  const T = S.tg || (S.tg = { start: dkey(Date.now()), cards: {}, v: 5 });
+  if ((T.v || 1) < 5) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /方面希望(妆容|整体)|品牌新款全套|品牌方希望|奖品是品牌|红毯快门|宣传语/.test(JSON.stringify(c))) delete T.cards[k]; T.v = Math.max(T.v || 1, 5); }
+  if ((T.v || 1) < 4) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /品牌新款全套|品牌方希望|奖品是品牌|红毯快门|宣传语/.test(JSON.stringify(c))) delete T.cards[k]; T.v = Math.max(T.v || 1, 4); }
   if ((T.v || 1) < 3) { for (const [k, c] of Object.entries(T.cards)) if (!c.done && /宣传语/.test(c.d || '')) delete T.cards[k]; T.v = 3; }
   if ((T.v || 1) < 2) { const today = dkey(Date.now()); for (const [k, c] of Object.entries(T.cards)) if (!c.done && k >= today) delete T.cards[k]; T.v = 3; } // 事件库更新后，今天没做的通告重新抽
   return T;
@@ -2934,13 +2935,23 @@ function popupOffer() {
 // 品牌类活动的合作方和类型（不是品牌活动就返回 null）
 function tgBrand(r) { const pp = popPartner(r); if (pp) return { b: pp[0], type: pp[1] }; if (/品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title)) { const bd = brandOf(r); return { b: bd[0], type: bd[1] }; } return null; }
 function tgPrize(B) { const t = B.type; return /彩妆/.test(t) ? `${B.b} 的新品口红` : /护肤/.test(t) ? `${B.b} 的新品精华` : /美妆店/.test(t) ? `${B.b} 的新品礼盒` : /隐形眼镜/.test(t) ? `${B.b} 的新款美瞳` : /包包/.test(t) ? `${B.b} 的新款小包` : /配饰/.test(t) ? `${B.b} 的新款配饰` : /服饰|设计师/.test(t) ? `${B.b} 的新款单品` : /饮料|零食|烘焙/.test(t) ? `${B.b} 的新品礼盒` : /耳机/.test(t) ? `${B.b} 的新款耳机` : /猫粮/.test(t) ? `${B.b} 的猫粮礼包` : /手机壳/.test(t) ? `${B.b} 的定制手机壳` : /咖啡/.test(t) ? `${B.b} 的咖啡券` : /商场/.test(t) ? `${B.b} 的购物礼券` : /唱片/.test(t) ? `${B.b} 的礼品卡` : `${B.b} 的小礼物`; }
-// 造型选择：按品牌类型给合理的选项
+// 造型选择：活动方提一个风格要求，你挑穿什么。选项从衣橱里随机配，和风格搭不搭决定好坏
+const STYLE_REQ = [
+  ['自然、有亲和力', ['白衬衫配直筒牛仔裤', '浅色针织开衫配半裙', '奶油色卫衣配宽松长裤'], ['小香风套装', '简单的条纹 T 恤'], ['全黑皮衣配马丁靴', '亮片短裙']],
+  ['清爽干净', ['白 T 配浅蓝牛仔裤', '天蓝衬衫配白色短裤', '白色连衣裙'], ['灰色卫衣套装', '针织背心配衬衫'], ['厚重的复古印花外套', '全黑皮衣配马丁靴']],
+  ['甜美一点', ['粉色针织开衫配百褶裙', '泡泡袖连衣裙', '奶油色针织配蝴蝶结发夹'], ['白衬衫配直筒牛仔裤', '学院风背心裙'], ['宽大的工装裤配球鞋', '全黑皮衣配马丁靴']],
+  ['帅气、有态度', ['西装外套配宽松西裤', '皮衣配直筒裤和短靴', '黑色工装套装'], ['白 T 配牛仔外套', '简单的黑色连衣裙'], ['泡泡袖连衣裙', '粉色针织开衫配百褶裙']],
+  ['有点复古', ['复古格纹西装配乐福鞋', '碎花长裙配针织开衫', '高腰牛仔裤配复古衬衫'], ['白衬衫配直筒牛仔裤', '针织背心配衬衫'], ['运动套装', '亮片短裙']],
+  ['休闲、舒服', ['oversize 卫衣配运动裤', '针织开衫配宽松牛仔裤', '棒球帽配简单 T 恤'], ['白衬衫配直筒牛仔裤', '学院风背心裙'], ['西装套裙配高跟鞋', '亮片短裙']]
+];
 function tgStyleEv(r) {
-  const B = tgBrand(r); if (!B) return null; const b = B.b, t = B.type;
-  if (/服饰|设计师|配饰|包包/.test(t)) return C(`${r.title}，${b} 方面希望整体风格「自然、有亲和力」，你怎么穿？`, [[`${b} 新款全套`, .45, 1], [`${b} 的单品配自己的衣服`, .5, .95], ['自己的私服', .2, .8]]);
-  if (/彩妆|护肤|美妆店/.test(t)) return C(`${r.title}，${b} 方面希望妆容「自然、有亲和力」，你选哪种？`, /护肤/.test(t) ? [[`用 ${b} 的产品打底，突出皮肤状态的淡妆`, .5, 1], ['按平时的舞台妆来', .15, .65], ['几乎素颜，只涂润唇', .35, .9]] : [[`用 ${b} 的产品化清透妆`, .5, 1], ['按平时的舞台妆来', .15, .65], [`用 ${b} 的新品色号点一下唇`, .45, .95]]);
-  if (/隐形眼镜/.test(t)) return C(`${r.title}，${b} 方面希望整体感觉「自然、有亲和力」，你怎么准备？`, [[`戴 ${b} 新款自然色美瞳配淡妆`, .5, 1], ['戴平时习惯的款式', .25, .75], ['妆化浓一点，让眼睛更显', .3, .8]]);
-  return C(`${r.title}，${b} 方面希望整体风格「自然、有亲和力」，你穿什么？`, [['白衬衫牛仔裤', .45, .9], ['和活动主题色呼应的休闲装', .45, 1], ['自己的私服', .3, .85]]);
+  const B = tgBrand(r); if (!B) return null;
+  const rr = srng('sty' + r.id + r.date), req = STYLE_REQ[Math.floor(rr() * STYLE_REQ.length)], pk = l => l[Math.floor(rr() * l.length)];
+  const opts = [[pk(req[1]), .5, 1], [pk(req[2]), .3, .85], [pk(req[3]), .05, .5]];
+  if (/服饰|设计师|配饰|包包/.test(B.type) && rr() < .6) opts[1] = ['品牌准备的衣服，再加一件自己的配饰', .45, .95];
+  if (/彩妆|护肤|美妆店|隐形眼镜/.test(B.type) && rr() < .5) opts.push(['衣服简单一点，把重点放在妆容和皮肤状态上', .45, .95]);
+  for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(rr() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+  return C(`${r.title}，${B.b} 方面希望整体风格「${req[0]}」，你穿什么？`, opts);
 }
 // 通告卡的背景信息：这是什么活动、在哪、现在处于什么阶段、要宣传哪首歌
 function tgKind(r) {
