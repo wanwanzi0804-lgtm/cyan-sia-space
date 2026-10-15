@@ -1793,7 +1793,32 @@ function mgrExpenses(dk) {
 const SETTLE_DAY = 15;
 function lastDay(mon) { return addDays(addMonths(mon, 1) + '-01', -1); }
 function addMonths(mon, n) { const [y, m] = mon.split('-').map(Number), t = y * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; }
+// 流水重整：以前当天直接入账的收入和成本全部撤回，改成应收款，按新的结算流程重新走
+function ledgerMigrate() {
+  const W = wallet(); if (W.ledV === 2) return; W.ledV = 2;
+  const keep = [], salesBy = {}, R = W.recv || (W.recv = []);
+  for (const st of W.stmts || []) for (const it of st.items) R.push({ id: uid(), src: it.src, title: it.title, date: lastDay(st.period), gross: it.gross, cost: it.cost, why: '', kind: it.src === '泡泡' ? 'bb' : 'gen', payAt: lastDay(st.period), st: 'pend' });
+  for (const x of W.tx) {
+    const legacy = x.auto && (x.gross != null || x.owe || ['月度结算', '代言', '泡泡分成', '音源分成', '专辑分成', '周边分成'].includes(x.cat)) && x.cat !== '居住';
+    if (!legacy) { keep.push(x); continue; }
+    W.bal -= (x.amt || 0) - (x.repay || 0); W.debt += (x.repay || 0) - (x.owe || 0);
+    if (x.cat === '月度结算') continue;
+    const dk = dkey(x.at), g = x.gross != null ? x.gross : x.amt || 0, c = x.cost || 0;
+    if (/音源|专辑分成|周边/.test(x.cat)) { const m = dk.slice(0, 7), o = salesBy[m] || (salesBy[m] = { 音源: 0, 专辑: 0 }); o[x.cat === '音源分成' ? '音源' : '专辑'] += g; continue; }
+    const kind = x.cat === '泡泡分成' ? 'bb' : 'gen', src = { 泡泡分成: '泡泡' }[x.cat] || x.cat;
+    recvAdd(src, x.note || x.cat, dk, g, c, x.why || '', kind, g > 0 ? 10 + Math.floor(srng('pay' + x.id)() * 31) : 0);
+  }
+  const today = dkey(Date.now()), mon = today.slice(0, 7);
+  for (const [m, o] of Object.entries(salesBy)) {
+    if (m === mon) { const M = (W.salesM || (W.salesM = {}))[m] || (W.salesM[m] = { 音源: 0, 专辑: 0 }); M.音源 += o.音源; M.专辑 += o.专辑; continue; }
+    if (o.音源 >= 1) recvAdd('音源', `${+m.slice(5)}월 음원 수익`, lastDay(m), o.音源, 0, '', 'gen', 30);
+    if (o.专辑 >= 1) recvAdd('专辑', `${+m.slice(5)}월 음반 판매`, lastDay(m), o.专辑, 0, '', 'gen', 30);
+  }
+  W.debt = Math.max(0, Math.round(W.debt)); W.debt0 = Math.max(W.debt0, W.debt); W.bal = Math.round(W.bal);
+  W.tx = keep; W.stmts = []; W.setMon = null;
+}
 function financeTick() {
+  ledgerMigrate();
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
   if (W.pend) { for (const k of Object.keys(W.pend)) if (k < today) { const P = W.pend[k], M = (W.salesM || (W.salesM = {}))[k.slice(0, 7)] || (W.salesM[k.slice(0, 7)] = { 音源: 0, 专辑: 0 }); M.音源 += P.音源 || 0; M.专辑 += (P.专辑 || 0) + (P.周边 || 0); delete W.pend[k]; } }
   // 音源 / 专辑：月底统计，平台下个月底付款
@@ -1828,7 +1853,6 @@ function settleHTML() {
   const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), st = (W.stmts || [])[0];
   const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
   return `<div class="card"><b style="font-size:14px">📑 结算</b>
-    <div class="muted" style="font-size:12.5px;margin-top:4px">每月 ${SETTLE_DAY} 日结算上月底前已到账的收入，扣除相关费用后按合同分成，并附明细。下次：${+next.slice(5, 7)}/${+next.slice(8)}</div>
     <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R, 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${+st.period.slice(5)} 月 · ${won(st.pay)}` : '还没有'}</b></div></div>
     ${pend.length ? `<details class="me-more"><summary>待付款明细</summary>${pend.slice().sort((a, b) => a.payAt.localeCompare(b.payAt)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · 预计 ${x.payAt.slice(5).replace('-', '/')} 前付款</div></span><b>${won(x.gross)}</b></div>`).join('')}</details>` : ''}
     ${st ? `<details class="me-more"><summary>${+st.period.slice(5)} 月结算明细</summary>
@@ -2073,7 +2097,7 @@ function walletHTML() {
   <div class="card">
     <b style="font-size:14px">✏️ 记一笔</b>
     <div class="row" style="margin-top:8px;gap:6px"><input id="w-in" placeholder="比如：打车 15加币 / 剪发 ¥200 / 普拉提 45000" style="flex:1"><select id="w-cur" style="width:auto">${Object.keys(FX).map(k => `<option value="${k}" ${(UI.wCur || 'CAD') === k ? 'selected' : ''}>${FX_NAME[k]}</option>`).join('')}</select></div>
-    <div class="muted" id="w-prev" style="font-size:12.5px;margin-top:6px">没写货币时按右边选的算</div>
+    <div class="muted" id="w-prev" style="font-size:12.5px;margin-top:6px"></div>
     <div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="wadd">记下</button></div>
     <details class="me-more"><summary>粉丝回礼预设（点一下直接记）</summary><div class="w-pre">${EXP_CATS.粉丝回礼.pre.map(([n, a]) => `<button data-act="wpre" data-c="粉丝回礼" data-n="${esc(n)}" data-a="${a}">${esc(n)}<span>${won(a)}</span></button>`).join('')}</div></details>
   </div>
@@ -2916,7 +2940,7 @@ function tgSettle(k, r, key, today) {
 }
 const TG_NOTE = { S: ['全场最佳，工作人员都在夸你', '片段当晚就被转疯了', '粉丝说今天的你闪闪发光'], A: ['表现很好，反响不错', '粉丝很满意', '顺利又出彩'], B: ['中规中矩，顺利完成', '没什么失误，也没太大亮点'], C: ['有点紧张，发挥一般', '状态不太好，下次加油'] };
 
-function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${EXP_CATS[guessCat(v, m.krw)].ic} ${guessCat(v, m.krw)} · ${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : '没写货币时按右边选的算'; }
+function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${EXP_CATS[guessCat(v, m.krw)].ic} ${guessCat(v, m.krw)} · ${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : ''; }
 let lastReal = Date.now();
 function tick() {
   const now = Date.now(); const dt = now - lastReal; lastReal = now;
