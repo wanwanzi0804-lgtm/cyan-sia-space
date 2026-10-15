@@ -169,9 +169,12 @@ body.typing .bb-tick.bb-tick2{display:block}
 .mv{border-top:1px solid var(--line);padding:10px 0}
 .mv-h{display:flex;gap:10px;align-items:flex-start}
 .mv-th{width:64px;height:40px;border-radius:8px;background:#e5484d;color:#fff;display:grid;place-items:center;flex:none;font-size:16px}
-.mv-bars{display:flex;gap:6px;height:56px;margin-top:8px;align-items:stretch}
+.mv-bars{display:flex;gap:6px;height:84px;margin-top:8px;align-items:stretch}
 .mv-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
 .mv-bars i{display:block;width:70%;background:#e5484d;border-radius:3px 3px 0 0;opacity:.8}
+.mv-bars .bw{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;font-weight:normal}
+.mv-bars .now i{opacity:.45}
+.mv-bars em{font-style:normal;font-size:9.5px;color:var(--muted);white-space:nowrap;margin-bottom:2px}
 .mv-bars span{font-size:10.5px;color:var(--muted);margin-top:2px}
 .m-tabs{margin:8px 0 4px;flex-wrap:wrap}
 .ch-top{display:flex;align-items:center;gap:8px;padding:8px 6px;border-top:1px solid var(--line);font-size:14px;cursor:pointer;border-radius:8px}
@@ -2257,7 +2260,8 @@ function mvHTML() {
     const x = SS.mv[a.id], r = srng('mv' + a.id), lr = .03 + .02 * r(), cr = .0015 + .002 * r(), days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6)), mx = Math.max(1, ...days.map(k => x.days[k] || 0));
     const tt = SS.tt?.[a.id]?.total || 0;
     return `<div class="mv"><div class="mv-h"><div class="mv-th">▶</div><div style="flex:1;min-width:0"><b>${esc(S.profile.name)} - ${esc(albTitle(a))} MV</b><div class="muted" style="font-size:12px">观看 ${fmtNum(Math.round(x.total))} · 👍 ${fmtNum(Math.round(x.total * lr))} · 💬 ${fmtNum(Math.round(x.total * cr))}</div><div class="muted" style="font-size:12px">24 小时 +${fmtNum(Math.round(x.days[today] || 0))} · TikTok #${esc(albTitle(a))}挑战 ${fmtNum(Math.round(tt))} 个视频</div></div></div>
-      <div class="mv-bars">${days.map(k => `<div><i style="height:${Math.max(2, Math.round((x.days[k] || 0) / mx * 100))}%"></i><span>${k === today ? '今' : WD[parseD(k).getDay()]}</span></div>`).join('')}</div></div>`; }).join('')}</div>`;
+      <div class="mv-bars">${(() => { const vs = days.map(k => x.days[k] || 0), nz = vs.filter(v => v > 0), mn = nz.length ? Math.min(...nz) : 0, zoom = nz.length > 1 && mx / mn < 1.6, base = mn * .9; // 每天差不多时放大差异，不然看起来一样高
+        return days.map((k, i) => { const v = vs[i], h = v <= 0 ? 0 : zoom ? 25 + 75 * (v - base) / Math.max(1, mx - base) : Math.max(4, v / mx * 100); return `<div class="${k === today ? 'now' : ''}"><em>${v > 0 ? fmtNum(Math.round(v)) : ''}</em><b class="bw"><i style="height:${Math.round(h)}%"></i></b><span>${k === today ? '今' : WD[parseD(k).getDay()]}</span></div>`; }).join(''); })()}</div>${(() => { const vs = days.map(k => x.days[k] || 0), nz = vs.filter(v => v > 0); return nz.length > 1 && Math.max(...nz) / Math.min(...nz) < 1.6 ? '<div class="muted" style="font-size:11px;margin-top:2px">每天差不多，柱子已放大差异 · 今天的还在累计</div>' : '<div class="muted" style="font-size:11px;margin-top:2px">今天的还在累计</div>'; })()}</div>`; }).join('')}</div>`;
 }
 /* =========================================================
    年末颁奖典礼：受不受邀请看你这一年的成绩和粉丝量
