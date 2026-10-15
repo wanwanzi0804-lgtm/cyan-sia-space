@@ -2996,12 +2996,22 @@ function bbIntents(t) { return BB_INTENT.filter(([re]) => re.test(t)).map(x => x
 // 泡泡要“精”：宁可少回，也只回贴题的话；看不懂的消息就只回安全的短句和表情
 const BB_SAFE = ['好可爱', '爱你', '{n}！！', '嘿嘿嘿', '看到{n}的消息就开心', '今天也好喜欢你', '嗯嗯！', '收到！', '{n}来啦', '被可爱到了'];
 const BB_SAFE_F = { ko: [['사랑해요', '爱你'], ['💙💙💙', '💙💙💙'], ['귀여워요 ㅠㅠ', '好可爱呜呜']], ja: [['大好き！', '最喜欢了！'], ['かわいい！', '好可爱！']], en: [['love you!!', '爱你！！'], ['so cute', '好可爱']] };
+// 只发一个表情包＝来看看大家：粉丝报到、说自己在干嘛
+const BB_CHECKIN = {
+  morning: ['刚起床就看到{n}！', '在去上班的地铁上😭', '早八路上 好困', '在吃早饭！{n}吃了吗', '刚到公司 摸鱼看泡泡', '赖床中…被{n}叫醒了', '在等公交 冻死了', '早上好！今天也要加油'],
+  day: ['在上课偷偷看手机🤫', '工位摸鱼中', '刚吃完午饭 好撑', '在图书馆自习', '开会开到一半看到泡泡', '午休趴桌上刷手机', '在外面跑腿 好热', '上班好累 看到{n}活过来了', '在咖啡店写作业'],
+  evening: ['刚下班！！', '在回家的路上', '刚吃完晚饭', '在写作业 好多啊', '在健身房 看到泡泡停下来了', '在追剧 暂停来回{n}', '刚洗完澡', '和朋友在外面吃饭', '在加班😭 {n}救我'],
+  night: ['躺床上了 在刷手机', '准备睡了 晚安{n}', '熬夜赶ddl中', '睡不着在听{n}的歌', '在床上循环404', '刚躺下就看到泡泡', '失眠中…{n}也早点睡']
+};
+const BB_CHECKIN_F = { ko: [['출근 중이에요!', '在上班路上！'], ['지하철 안이에요ㅋㅋ', '在地铁上哈哈'], ['방금 일어났어요', '刚起床'], ['점심 먹는 중!', '在吃午饭！'], ['퇴근했어요~', '下班了~'], ['누워서 버블 보는 중', '躺着看泡泡']], en: [['just woke up lol', '刚起床哈哈'], ['in class rn 🤫', '正在上课🤫'], ['at work, hi!!', '在上班，嗨！！'], ['eating dinner hehe', '在吃晚饭嘿嘿'], ['in bed scrolling', '在床上刷手机']], ja: [['今起きました！', '刚起床！'], ['電車の中です', '在电车上'], ['お仕事中です〜', '在工作中~'], ['今からご飯です', '正要吃饭']] };
 function bbLine(msg, chatting) {
   const lang = pickLang();
   const leaving = chatting && msg && msg.text && LEAVE_RE.test(msg.text);
   const sad = chatting && msg && BB_SAD.test(msg.text || '');
   const serim = chatting && msg && CAT_KW.serim.test(msg.text || '');
   if (lang !== 'zh' && serim && !leaving && Math.random() < .7) { const it = pick(TPL.serim[lang]); return { lang, text: fill(it[0]), zh: fill(it[1]) }; }
+  const checkin = chatting && msg && msg.type === 'sticker' && !msg.text;
+  if (lang !== 'zh' && checkin && Math.random() < .6) { const it = pick(BB_CHECKIN_F[lang] || BB_CHECKIN_F.en); return { lang, text: it[0], zh: it[1] }; }
   if (lang !== 'zh') { const it = pick(leaving ? BB_BYE_F[lang] : sad ? BB_FOREIGN_CARE[lang] : chatting && Math.random() < .4 ? BB_SAFE_F[lang] : BB_FOREIGN[lang]); return { lang, text: it[0], zh: it[1] }; }
   const t = (msg && msg.text) || '', r = Math.random();
   if (chatting && msg) {
@@ -3015,7 +3025,14 @@ function bbLine(msg, chatting) {
     const ints = bbIntents(clean);
     if (!sad && Math.random() < .08) return { lang, text: fill(pick(BB_LINES.follow)) }; // 偶尔有人顺口问点别的
     if (ints.length && Math.random() < .8) return { lang, text: fill(pick(pick(ints))) };
-    // 3. 表情包 / 照片 / 视频 / 语音：对内容本身的反应
+    // 3. 只丢一个表情包：大家报到、说自己在干嘛，少数人夸表情包
+    if (checkin) {
+      const x = Math.random(), h = new Date().getHours(), per = h >= 5 && h < 11 ? 'morning' : h < 17 ? 'day' : h < 23 ? 'evening' : 'night';
+      if (x < .55) return { lang, text: fill(pick(BB_CHECKIN[per])) };
+      if (x < .7) return { lang, text: fill(pick(['{n}！！', '来了来了', '在呢在呢！', '报到！', '{n}在干嘛呀', '冒泡了！', '刷新到了！'])) };
+      if (x < .82) return { lang, text: fill(pick(BB_LINES.follow)) };
+    }
+    // 表情包 / 照片 / 视频 / 语音：对内容本身的反应
     if (msg.type === 'sticker' && Math.random() < .75) return { lang, text: fill(pick(STICKERS[msg.sticker] && Math.random() < .6 ? STICKERS[msg.sticker].r : BB_LINES.sticker)) };
     if (msg.type !== 'text' && msg.type !== 'sticker' && Math.random() < .6) return { lang, text: fill(pick(BB_LINES[msg.type])) };
     // 4. 其余只回安全的短句和表情
