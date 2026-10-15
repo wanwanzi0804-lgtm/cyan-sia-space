@@ -1748,14 +1748,15 @@ function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) 
   else { W.debt += -mine; W.debt0 = Math.max(W.debt0, W.debt); W.tx.unshift({ id: uid(), at, amt: 0, gross: Math.round(gross), cost: Math.round(cost), why, owe: -mine, cat, note, auto: true }); }
   if (W.tx.length > 400) W.tx.length = 400;
 }
-// 每天的「运气」：慢慢漂移
+// 每天的「运气」：慢慢漂移，偶尔突然爆一下
 function buzzNow() {
   const SS = salesState(), today = dkey(Date.now()); SS.bz = SS.bz || { v: 1, day: today, viral: 0 };
   while (SS.bz.day < today) {
     SS.bz.day = addDays(SS.bz.day, 1);
     SS.bz.v = clamp(SS.bz.v * Math.exp((Math.random() - .5) * .3) * .9 + .1, .6, 1.8);
+    if (SS.bz.viral > 0) SS.bz.viral--; else if (Math.random() < .015) { SS.bz.viral = ri(3, 7); SS.bz.vm = rand(2, 4); pushNotif({ type: 'cb', text: '📈 你的歌突然开始被大量分享', sub: '不知道哪里来的一波热度，抓住机会！' }, true); }
   }
-  return SS.bz.v;
+  return SS.bz.v * (SS.bz.viral > 0 ? SS.bz.vm || 2 : 1);
 }
 // 作品热度：音源、MV、专辑都从这一个数出发，所以三者对得上
 // 出道红利 / 有没有打歌 / 曲风 / 单曲·迷你·正规 / 上一张的余热 / 运气
