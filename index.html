@@ -1765,7 +1765,7 @@ const SCHED_ECON = {
   '签售': [[/视频通话/, 0, 0, 300000, 800000, '平台 · 工作人员'], [/./, 0, 0, 1000000, 3000000, '场地 · 工作人员 · 小礼物']],
   '公演': [[/路演|Busking|busking|军队|公益/, 0, 0, 300000, 800000, '音响 · 交通'], [/歌谣|KCON|Music Bank World|Dream Concert|Waterbomb|音乐节/, 0, 3000000, 1500000, 4000000, '服装妆造 · 舞者'], [/./, 1000000, 5000000, 800000, 2000000, '舞者 · 妆造 · 音响']],
   '校庆': [[/./, 3000000, 10000000, 1000000, 2500000, '舞者 · 妆造 · 交通']],
-  '活动': [[/AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/, 0, 0, 2000000, 6000000, '颁奖礼服装 · 舞台准备'], [/机场|观演|试映|探访|Weverse|会议|生日会|见面会/, 0, 0, 100000, 400000, '妆造 · 交通'], [/品牌|代言|快闪|时装周|秀场/, 1000000, 10000000, 500000, 1500000, '妆造 · 服装'], [/公益/, 0, 0, 200000, 500000, '妆造'], [/./, 1000000, 5000000, 800000, 2000000, '妆造 · 舞者 · 工作人员']],
+  '活动': [[/新歌宣传快闪/, 0, 0, 100000, 300000, '妆造 · 交通'], [/快闪店嘉宾|品牌快闪/, 800000, 2500000, 200000, 500000, '妆造 · 造型'], [/粉丝见面会/, 300000, 1200000, 200000, 500000, '妆造 · 场地布置'], [/开幕嘉宾/, 1000000, 3000000, 200000, 500000, '妆造'], [/AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/, 0, 0, 2000000, 6000000, '颁奖礼服装 · 舞台准备'], [/机场|观演|试映|探访|Weverse|会议|生日会|见面会/, 0, 0, 100000, 400000, '妆造 · 交通'], [/品牌|代言|快闪|时装周|秀场/, 1000000, 10000000, 500000, 1500000, '妆造 · 服装'], [/公益/, 0, 0, 200000, 500000, '妆造'], [/./, 1000000, 5000000, 800000, 2000000, '妆造 · 舞者 · 工作人员']],
   '演唱会': [[/彩排/, 0, 0, 3000000, 8000000, '彩排场地']],
   '上课': [[/./, 0, 0, 80000, 200000, '课时费（公司垫付）']]
 };
@@ -2335,12 +2335,17 @@ function mgrMakeOffer() {
   let x = Math.random() * w.reduce((s, a) => s + a[1], 0), cat = w[0][0]; for (const [c, v] of w) { x -= v; if (x <= 0) { cat = c; break; } }
   const big = /认识的哥哥|Running Man|Radio Star|惊人的星期六|我独自生活|你好|玩什么好呢|VOGUE|ELLE|W Korea|Dazed|延世|高丽|KCON|Dream Concert|Waterbomb|Music Bank World/;
   let pool = (PRESETS[cat] || []).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
-  pool = pool.filter(([t]) => f >= 80000 || !big.test(t) || Math.random() < .05);
+  pool = pool.filter(([t]) => (f >= 80000 || !big.test(t) || Math.random() < .05) && !Object.values(POPUPS).some(p => p.re.test(t)));
   if (!pool.length) return null;
-  let [title, loc] = pick(pool); if (/品牌/.test(title)) { const b = brandPick(uid(), /时装|秀场/.test(title) ? ['fashion'] : null)[0]; title = title.replace('品牌门店开业活动', `${b} 门店开业活动`).replace('品牌活动 / 快闪店', `${b} 快闪店活动`).replace('海外时装周 · 品牌秀场', `海外时装周 · ${b} 秀场`).replace(/品牌/, b); }
+  let [title, loc] = pick(pool), pop = null;
+  if (cat === '活动' && f < 100000 && Math.random() < .6) { pop = popupOffer(); title = pop.title; loc = pop.loc; }
+  else if (/品牌/.test(title)) { const b = brandPick(uid(), /时装|秀场/.test(title) ? ['fashion'] : null)[0]; title = title.replace('品牌门店开业活动', `${b} 门店开业活动`).replace('品牌活动 / 快闪店', `${b} 快闪店活动`).replace('海外时装周 · 品牌秀场', `海外时装周 · ${b} 秀场`).replace(/品牌/, b); }
   const date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
   const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
-  return { id: uid(), cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end: `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3 };
+  const end = pop ? hhmm(sh * 60 + pop.dur) : `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`;
+  return { id: uid(), cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3, popup: pop ? pop.popup : undefined, partner: pop ? pop.partner : undefined };
+}
+function hhmm(m) { return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
 function offersHTML() {
   const M = mgr(); if (!M.offers.length) return '';
@@ -2736,6 +2741,13 @@ const TG_GAME_KINDS = ['rhythm', 'memory', 'quiz', 'photo', 'timing', 'reaction'
 TG_EVENTS.校庆 = TG_EVENTS.公演;
 // 特定行程的专属玩法（标题匹配到时优先抽）
 const TG_SPECIAL = [
+  [/新歌宣传快闪/, r => { const pt = (popPartner(r) || ['唱片店'])[0], sg = tgSong(dkey(Date.now())) || '新歌'; return M([[`${pt} 的店里已经挤满了粉丝，主持人请你先打个招呼。`, [['用招牌问候语打招呼', .5, .95], ['先鞠躬再挥手', .45, .9], ['紧张到只说了名字', .2, .6]]], [`主持人问：「《${sg}》录音时有没有印象特别深的事？」`, [['讲一句改了十几遍的故事', .5, 1], ['分享写词时的灵感', .45, .95], ['说「秘密」吊胃口', .3, .8]]], ['最后是合影和告别时间。', [['一排一排认真合影', .5, .95], ['拉着主持人一起入镜', .35, .85], ['告别时又多说了一次谢谢', .45, .9]]]]); }],
+  [/新歌宣传快闪/, r => W_(`主持人请你跟到场的粉丝分享一下《${tgSong(dkey(Date.now())) || '新歌'}》的创作或录音故事：`, '讲一个小故事')],
+  [/快闪店嘉宾/, r => { const pt = (popPartner(r) || ['品牌'])[0]; return M([[`到了 ${pt} 的快闪店，店员请你体验新品。`, [['认真试色并说出感受', .5, .95], ['试一下就点头', .25, .7], ['问店员推荐的搭配', .45, .9]]], ['主持人简短采访：「平时化妆最在意什么？」', [['分享自己的妆容小习惯', .5, 1], ['说最在意底妆', .4, .85], ['开玩笑说最在意睡够觉', .35, .9]]], [`${pt} 要拍一段宣传短视频。`, [['一条过', .4, 1], ['多试几个表情', .45, .9], ['请摄影师指导', .4, .85]]], ['门口有粉丝在等，工作人员说只有 3 分钟。', [['快速挥手和合影', .45, .9], ['挨个说一句谢谢', .4, 1], ['跟工作人员争取多一分钟', .3, .85]]]]); }],
+  [/品牌快闪|服装品牌快闪/, r => { const pt = (popPartner(r) || ['品牌'])[0]; return M([[`${pt} 准备了三套衣服让你挑一套穿着到场。`, [['最能代表品牌风格的那套', .5, .95], ['最像自己私服风格的那套', .45, 1], ['让造型师决定', .35, .8]]], ['参观快闪店时，摄影师跟拍。', [['自然地边逛边拍', .5, .95], ['摆几个固定姿势', .35, .8], ['拿起配饰互动', .45, 1]]], ['简短采访：「平时的穿搭风格是什么？」', [['认真讲自己的风格', .5, .95], ['说今天这套就很像平时', .4, .9], ['笑着说主要看心情', .3, .8]]], [`最后配合 ${pt} 的 SNS 拍一段短视频。`, [['跟着拍摄脚本来', .4, .85], ['提议加一个自己的小动作', .5, 1], ['拍完主动看回放', .4, .9]]]]); }],
+  [/粉丝见面会/, r => { const pt = (popPartner(r) || ['咖啡厅'])[0]; return M([[`${pt} 里只坐得下几十个人，大家都离你很近。`, [['先聊聊最近过得怎么样', .5, .95], ['问大家今天怎么来的', .45, .9], ['有点害羞，先喝口咖啡', .3, .8]]], ['主持人念出预先收集的问题：「最近最开心的一件事是什么？」', [['认真讲一件小事', .5, 1], ['说「就是今天见到大家」', .45, .9], ['反问粉丝', .35, .85]]], ['问答小游戏：粉丝出关于你的题，答错要做可爱动作。', [['认真答题', .4, .9], ['故意答错做动作', .45, 1], ['和粉丝讨价还价', .35, .85]]], ['最后集体合影，要告别了。', [['站到中间比心', .45, .95], ['挨个挥手说再见', .45, .9], ['说下次还要来', .4, .95]]]]); }],
+  [/粉丝见面会/, r => W_('主持人请你回答一个预先收集的粉丝问题：「最近有什么想对 sia 说的？」', '写给粉丝的话')],
+  [/开幕嘉宾|新店开幕/, r => { const pt = (popPartner(r) || ['商场'])[0]; return M([[`${pt} 的开幕现场人很多，大多是路过的顾客。`, [['大方地向大家问好', .5, .95], ['先自我介绍名字和歌', .45, 1], ['只是笑着挥手', .25, .7]]], ['剪彩仪式，你站在最边上。', [['认真配合', .45, .9], ['和旁边嘉宾简单寒暄', .45, .95], ['偷偷看粉丝在哪', .3, .8]]], ['摄影师请你单独拍几张，然后是一分钟的简短采访。', [['摆好姿势，回答简洁', .5, .95], ['顺便提一下自己的新歌', .45, 1], ['说很高兴受邀', .4, .85]]]]); }],
   [/Music Bank|音乐中心|人气歌谣|M Countdown|THE SHOW|Show Champion/, r => M([['一位候补公布前，你和其他候补站在台上等结果。', [['握紧双手祈祷', .4, .85], ['和旁边的候补互相打气', .5, .95], ['看向台下的粉丝', .45, 1]]], [`主持人念到了名字……${Math.random() < .5 ? '不是你。' : '是你！'}`, [['不管结果都鞠躬感谢粉丝', .55, 1], ['忍不住哭了出来', .3, 1], ['笑着给对方鼓掌', .45, .9]]]])],
   [/事前录制/, r => C('事前录制已经录了三遍，PD 问要不要再来一遍。', [['再来！争取最完美', .4, 1], ['现在这版就很好', .35, .8], ['问粉丝们想不想再看', .5, .95]])],
   [/Showcase|showcase/, r => W_('回归 Showcase 的记者 Q&A：「这次回归最想展现给大家什么？」', '你的回答会出现在新闻稿里')],
@@ -2807,7 +2819,7 @@ function tgCard(k, r) {
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
   // 剧情事件为主，小游戏偶尔出现
   const cands = evs.map(f => f(r)), wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
-  let ev; if (sp.length && rr() < .45) ev = sp[Math.floor(rr() * sp.length)][1](r);
+  let ev; if (sp.length && (popupOf(r) || rr() < .45)) ev = sp[Math.floor(rr() * sp.length)][1](r);
   else { let x = rr() * wts.reduce((a, b) => a + b, 0); ev = cands[cands.length - 1]; for (let i = 0; i < cands.length; i++) { x -= wts[i]; if (x <= 0) { ev = cands[i]; break; } } }
   if (TG_GAME_KINDS.includes(ev.kind) && sp.length && rr() < .5) { const alt = cands.filter(e => !TG_GAME_KINDS.includes(e.kind)); if (alt.length) ev = alt[Math.floor(rr() * alt.length)]; }
   if (ev.kind === 'photo') ev.photos = pickN(PHOTO, 6);
@@ -2839,9 +2851,28 @@ function brandPick(seed, kinds) { const ks = kinds || Object.keys(BRANDS), r = s
 function brandIn(t) { for (const l of Object.values(BRANDS)) for (const b of l) if ((t || '').includes(b[0])) return b; return null; }
 // 行程里写着「品牌」但没说是谁：按行程固定一个品牌
 function brandOf(r) { return brandIn(r.title) || brandPick(r.id, /时装|秀场/.test(r.title) ? ['fashion'] : null); }
+// 小体量艺人能接到的快闪 / 见面类活动（粉丝多了以后再调整规模）
+const POPUPS = {
+  rec: { name: '唱片店新歌宣传快闪', re: /新歌宣传快闪/, dur: [20, 40], kind: '唱片店新歌宣传快闪（亮相问候、聊新歌创作或录音、主持人问答、合影）', partners: [['Synnara Record', '唱片店'], ['Hottracks', '唱片店'], ['Aladin', '唱片店'], ['KTOWN4U', '专辑销售店'], ['Soundwave', '唱片店'], ['Melon', '音乐平台线下活动']], locs: ['明洞', '光化门', '江南', '弘大'] },
+  beauty: { name: '快闪店嘉宾活动', re: /快闪店嘉宾/, dur: [15, 30], kind: '美妆品牌快闪店嘉宾（体验产品、简短采访、拍宣传照或短视频、和粉丝合影）', partners: [...BRANDS.beauty, ['Olive Young', '美妆店']], locs: ['圣水洞', '明洞', '江南站', '汉南洞'] },
+  fashion: { name: '品牌快闪', re: /品牌快闪|服装品牌快闪/, dur: [20, 30], kind: '服装品牌快闪（穿品牌服饰到场、拍照、简短采访、配合品牌 SNS 拍摄）', partners: [...BRANDS.fashion, ['Rest & Recreation', '设计师品牌'], ['STAND OIL', '配饰品牌'], ['Osoi', '设计师包包品牌']], locs: ['圣水洞', '汉南洞', '狎鸥亭', '弘大'] },
+  cafe: { name: '咖啡厅粉丝见面会', re: /咖啡厅粉丝见面会|主题空间粉丝见面会/, dur: [30, 45], kind: '咖啡厅 / 主题空间粉丝见面会（聊近况、回答预先收集的问题、问答游戏、合影）', partners: [['Cafe Onion 圣水', '主题咖啡厅', '圣水洞'], ['Layered 延南', '主题咖啡厅', '延南洞'], ['Mega MGC Coffee', '咖啡品牌'], ['Compose Coffee', '咖啡品牌'], ['KT&G 想象庭院', '文化空间', '弘大']], locs: ['圣水洞', '延南洞', '弘大', '江南'] },
+  mall: { name: '开幕嘉宾', re: /开幕嘉宾|新店开幕/, dur: [10, 20], kind: '商场 / 新店开幕嘉宾（简短亮相问候、剪彩、配合拍照、简短采访）', partners: [['The Hyundai Seoul', '商场', '汝矣岛'], ['Starfield COEX Mall', '商场', '三成洞'], ['Lotte World Mall', '商场', '蚕室'], ['新世界百货 江南店', '商场', '江南'], ...BRANDS.fashion.slice(0, 2), ...BRANDS.beauty.slice(0, 2)], locs: ['汝矣岛', '三成洞', '蚕室', '江南'] }
+};
+function popupOf(r) { if (r.popup && POPUPS[r.popup]) return r.popup; for (const [k, p] of Object.entries(POPUPS)) if (p.re.test(r.title)) return k; return null; }
+function popPartner(r) { const k = popupOf(r); if (!k) return null; if (r.partner) return r.partner; const P = POPUPS[k].partners; return P.find(b => r.title.includes(b[0])) || P[Math.floor(srng('pp' + r.id)() * P.length)]; }
+// 经纪人邀约用：生成一个具体的快闪活动
+function popupOffer() {
+  const ph = cbPhase(), fresh = ['tease', 'promo', 'follow'].includes(ph) || relList().some(a => (Date.now() - parseD(a.date).getTime()) / 86400e3 < 60);
+  const w = [['rec', fresh ? 3 : .3], ['beauty', 2], ['fashion', 1.5], ['cafe', 2], ['mall', 1]];
+  let x = Math.random() * w.reduce((a, b) => a + b[1], 0), k = 'beauty'; for (const [kk, v] of w) { x -= v; if (x <= 0) { k = kk; break; } }
+  const P = POPUPS[k], pt = pick(P.partners), dur = ri(P.dur[0], P.dur[1]);
+  return { popup: k, partner: pt.slice(0, 2), title: `${pt[0]} ${k === 'mall' && pt[1] !== '商场' ? '新店开幕嘉宾' : P.name}`, loc: pt[2] || pick(P.locs), dur };
+}
 // 通告卡的背景信息：这是什么活动、在哪、现在处于什么阶段、要宣传哪首歌
 function tgKind(r) {
   const t = r.title;
+  const pk = popupOf(r); if (pk) return POPUPS[pk].kind;
   if (r.cat === '活动') return /机场|出境|入境|出国|回国/.test(t) ? '机场行程（出入境，站姐和粉丝会拍照）' : /AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/.test(t) ? '颁奖典礼（红毯 + 典礼）' : /品牌|代言|快闪|pop-?up|开幕|店/i.test(t) ? '品牌活动（拍照、简短采访）' : /见面会|生日会|粉丝/.test(t) ? '粉丝见面会' : /直播|Weverse|Live|LIVE/.test(t) ? '线上直播' : /观演|试映|VIP|首映/.test(t) ? '受邀观看演出 / 试映' : /探班|探访/.test(t) ? '探班' : /会议|开会/.test(t) ? '公司内部会议' : /采访|interview/i.test(t) ? '媒体采访' : /Showcase|showcase/.test(t) ? '回归 Showcase' : '其他活动';
   return { 打歌: /彩排/.test(t) ? '音乐节目彩排' : /事前录制/.test(t) ? '音乐节目事前录制（不是直播）' : '音乐节目打歌', 综艺: /网综|YouTube|vlog|Vlog/.test(t) ? '网络综艺录制' : '电视综艺录制', 电台: '电台节目', 物料: /MV/.test(t) ? 'MV 拍摄' : /画报/.test(t) ? '杂志画报拍摄' : /预告|封面/.test(t) ? '回归预告照 / 封面拍摄' : '内容拍摄', 签售: /视频/.test(t) ? '视频签售' : '线下签售会', 公演: '演出', 校庆: '大学庆典演出', 演唱会: '演唱会', 上课: '课程', 练习: '练习', 个人: '个人日程' }[r.cat] || r.cat;
 }
@@ -2860,11 +2891,11 @@ function tgStage(dk) {
 function tgSong(dk) { const ph = cbPhase(); if (ph && ph !== 'plan' && ph !== 'end' && cbAlbum()) return cbSong(); const l = relList().filter(x => x.date <= dk).slice(-1)[0]; return l ? albTitle(l) : ''; }
 function tgCtxHTML(c) {
   const [dk, rid] = c.key.split('|'), r = S.schedule.rules.find(x => x.id === rid) || { title: c.title, cat: c.cat, start: c._start || '', end: '' };
-  const isBrand = /品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title), bd = isBrand ? brandOf(r) : null;
-  return `<div class="tg-ctx"><div>📍 ${esc(tgKind(r))}</div>${bd ? `<div>🏷 合作品牌：${esc(bd[0])}（${bd[1]}）</div>` : ''}<div>🕒 ${r.start}${r.end ? '–' + r.end : ''}${r.loc ? ' · ' + esc(r.loc) : ''}</div>${r.note ? `<div>📝 ${esc(r.note)}</div>` : ''}${['练习', '上课', '个人'].includes(r.cat) ? '' : `<div>💿 ${esc(tgStage(dk))}</div>`}</div>`;
+  const pp = popPartner(r), isBrand = !pp && (/品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title)), bd = pp || (isBrand ? brandOf(r) : null);
+  return `<div class="tg-ctx"><div>📍 ${esc(tgKind(r))}</div>${bd ? `<div>🤝 合作方：${esc(bd[0])}（${bd[1]}）</div>` : ''}<div>🕒 ${r.start}${r.end ? '–' + r.end : ''}${r.loc ? ' · ' + esc(r.loc) : ''}</div>${r.note ? `<div>📝 ${esc(r.note)}</div>` : ''}${['练习', '上课', '个人'].includes(r.cat) ? '' : `<div>💿 ${esc(tgStage(dk))}</div>`}</div>`;
 }
 // 事件文字里「新歌 / 宣传语」换成具体的歌
-function tgFill(t, dk, r) { if (r && (/品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title))) { const b = brandOf(r)[0]; t = t.replace(/品牌方/g, `${b} 方面`).replace(/品牌的/g, `${b} 的`).replace(/品牌新款/g, `${b} 新款`).replace(/品牌标签/g, `${b} 标签`); } const song = tgSong(dk); if (!song) return t; return t.replace(/宣传新歌/g, `宣传《${song}》`).replace(/说一句宣传语/g, `说一句《${song}》的宣传语`).replace(/你的新歌/g, `《${song}》`).replace(/播了你的歌/g, `播了《${song}》`); }
+function tgFill(t, dk, r) { if (r && (popPartner(r) || /品牌|代言|快闪|时装|秀场|广告|门店/.test(r.title) || brandIn(r.title))) { const b = (popPartner(r) || brandOf(r))[0]; t = t.replace(/品牌方/g, `${b} 方面`).replace(/品牌的/g, `${b} 的`).replace(/品牌新款/g, `${b} 新款`).replace(/品牌标签/g, `${b} 标签`); } const song = tgSong(dk); if (!song) return t; return t.replace(/宣传新歌/g, `宣传《${song}》`).replace(/说一句宣传语/g, `说一句《${song}》的宣传语`).replace(/你的新歌/g, `《${song}》`).replace(/播了你的歌/g, `播了《${song}》`); }
 // 选项之外，自己写怎么回应
 function tgCustomHTML() { return `<details class="tg-cus"><summary>✏️ 自己回应…</summary><textarea id="tg-cus" placeholder="写下你会怎么做 / 怎么说" style="min-height:70px;margin-top:6px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="tgcustom">就这样</button></div></details>`; }
 function tgCustomScore(v) { const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .3 : n < 10 ? .55 : n <= 120 ? .75 : .65; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; if (/粉丝|大家|sia|谢谢|感谢|努力|认真|配合|道歉|抱歉|练习|准备/.test(v)) sc += .08; return clamp(sc + rand(-.1, .1), .05, 1); }
@@ -4418,10 +4449,10 @@ const PRESETS = {
     ['建国大学 庆典', '建国大学 一鉴湖 露天舞台'], ['韩国外国语大学 庆典', '韩国外国语大学 首尔校区'], ['釜山大学 庆典', '釜山大学 运动场'], ['西江大学 庆典', '西江大学']
   ],
   '活动': [
-    ['棒球开球仪式', '蚕室棒球场'], ['品牌门店开业活动', ''], ['公益活动', ''], ['快闪见面会', ''], ['生日应援咖啡店探访', '弘大'], ['粉丝 Mini 生日会', ''],
+    ['棒球开球仪式', '蚕室棒球场'], ['商场 / 新店开幕嘉宾', ''], ['公益活动', ''], ['唱片店新歌宣传快闪', ''], ['咖啡厅粉丝见面会', ''], ['生日应援咖啡店探访', '弘大'], ['粉丝 Mini 生日会', ''],
     ['电影 VIP 试映会', 'CGV / 乐天影院'], ['音乐剧 / 话剧 观演', ''], ['海外 Showcase', ''], ['商场签名活动', ''],
     ['MAMA AWARDS', ''], ['MMA Melon Music Awards', '仁川 INSPIRE Arena'], ['金唱片奖 Golden Disc Awards', ''], ['首尔歌谣大赏 SMA', ''], ['AAA Asia Artist Awards', ''], ['Circle Chart 音乐颁奖典礼', ''],
-    ['机场出发', '仁川国际机场 T2'], ['机场入境', '仁川国际机场'], ['首尔时装周', '东大门 DDP'], ['海外时装周 · 品牌秀场', ''], ['品牌活动 / 快闪店', '圣水洞'], ['广告代言签约活动', ''], ['Weverse Live', '宿舍']
+    ['机场出发', '仁川国际机场 T2'], ['机场入境', '仁川国际机场'], ['首尔时装周', '东大门 DDP'], ['海外时装周 · 品牌秀场', ''], ['美妆品牌快闪店嘉宾活动', '圣水洞'], ['服装品牌快闪', '圣水洞'], ['广告代言签约活动', ''], ['Weverse Live', '宿舍']
   ],
   '演唱会': [
     ['首场 Solo 小型演唱会', '奥林匹克公园 奥林匹克大厅'], ['小型演唱会', 'YES24 Live Hall'], ['小型演唱会', '蓝色广场 Blue Square'], ['线上演唱会', ''],
@@ -4829,7 +4860,7 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
+    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
