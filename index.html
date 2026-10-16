@@ -2435,6 +2435,7 @@ const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
   if ((M.repFix || 0) < 5) { M.repFix = 5; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if (!M.meFix) { M.meFix = 1; for (let j = M.chat.length - 1; j >= 0; j--) { const m = M.chat[j], r = m.card && m.res; if (!r || r === '已过期' || r === '已处理' || (M.chat[j + 1] && M.chat[j + 1].me)) continue; const k = r === '已接' ? 'ok' : r === '已签约' ? 'dealOk' : r === '不准备' ? 'giftNo' : /^准备/.test(r) ? 'giftOk' : m.card.type === 'deal' ? 'dealNo' : 'no', [ko, zh] = pick(ME_SAY[k]), nx = M.chat[j + 1]; M.chat.splice(j + 1, 0, { id: uid(), at: nx ? Math.min(m.at + 60e3, nx.at - 1) : m.at + 60e3, text: ko, zh, me: true }); } } // 之前点过的卡片补上你那句回复
   if ((M.topicFix || 0) < 1) { M.topicFix = 1; for (let j = 1; j < M.chat.length; j++) { const m = M.chat[j]; if (m.me || m.card || !/^(오늘|내일|모레)은 (이렇게 있어요|일정 없어요)/.test(m.text || '')) continue; let i = j - 1; const qs = []; while (i >= 0 && M.chat[i].me) qs.unshift(M.chat[i--].text); if (!qs.length) continue; const a = mgrTopic(qs.join('\n'), i); if (a) { m.text = a[0]; m.zh = a[1]; } } } // 之前答非所问的回复改成针对那件事的回答
   if (!M.specV) { M.specV = 1; for (const o of M.offers || []) { if (o.popup || o.note) continue; const sp = offerSpec(o.title, o.loc); if (!sp.note) continue; const old = o.title; o.title = sp.title; o.loc = sp.loc; o.note = sp.note; const m = M.chat.find(c => c.card && c.card.type === 'offer' && c.card.id === o.id); if (m) { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; m.text = toKo(`${o.title} ${md} 섭외 왔어요. ${o.note[0]} 할까요?`); m.zh = `${o.title} ${mz} 来邀约了。${o.note[1]}接吗？`; } } } // 已发的笼统邀约补上具体内容
   if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
@@ -2456,6 +2457,11 @@ function mgrSplit(t) {
   if (ks.length >= 2 && ks.length === zs.length && !ko.includes('\n') && Math.random() < .7) return ks.map((k, i) => [k, zs[i]]);
   return [[ko, zh]];
 }
+// 点卡片上的按钮 = 你回了一句话
+const ME_SAY = { ok: [['할게요!', '接！'], ['네 할게요', '嗯，接吧'], ['좋아요 해요!', '好啊，接！']], no: [['이번엔 패스할게요', '这次就算了'], ['이건 안 할래요', '这个不接了'], ['죄송한데 이번엔 못 할 것 같아요', '不好意思，这次不行']],
+  giftNo: [['이번엔 안 해도 될 것 같아요', '这次就不用了'], ['괜찮아요 이번엔 패스!', '没事，这次先不了！']], giftOk: [['이렇게 준비해 주세요!', '就按这个准备吧！'], ['이걸로 부탁드려요~', '就这些，拜托啦～']],
+  dealOk: [['할게요! 진행해 주세요', '签！推进吧'], ['좋아요 계약해요', '好，签约吧']], dealNo: [['이건 거절할게요', '这个拒绝吧'], ['이번 광고는 안 할래요', '这个代言不接了']] };
+function mgrMe(k) { const [ko, zh] = pick(ME_SAY[k]), M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); mgrRefresh(); }
 function mgrReply(t, now) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 900 + Math.random() * 2200 : now ? 200 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
 function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
 function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'kkt' && !UI.mgrOpen) render(); }
@@ -2541,7 +2547,7 @@ function mgrLogHTML() {
   const M = mgrChat(), tr = UI.mgrTr !== false; let lastDay = '';
   return M.chat.map(m => { const dk = dkey(m.at), t = new Date(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
     const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
-    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${hm}</span><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">매니저</div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
+    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${hm}</span><div class="kk-b me">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">매니저</div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
 }
 function mgrChatHTML() {
   return `<div class="row"><h3 style="flex:1">🧑‍💼 매니저</h3><button class="btn ghost sm" data-act="mgrtr">${UI.mgrTr !== false ? '隐藏翻译' : '显示翻译'}</button><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
@@ -5217,7 +5223,7 @@ document.addEventListener('click', async e => {
     case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
-    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? ['네, 진행할게요.', '好，推进。'] : ['네, 거절할게요.', '好，回绝。']); W.offer = null; save(); mgrRefresh(); render(); break; }
+    case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; mgrMe(ok ? 'dealOk' : 'dealNo'); if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? ['네, 진행할게요.', '好，推进。'] : ['네, 거절할게요.', '好，回绝。']); W.offer = null; save(); mgrRefresh(); render(); break; }
     case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
@@ -5249,16 +5255,16 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
+    case 'ofok': { mgrMe('ok'); mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
       S.schedule.rules.push({ id: rid, title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
-    case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
+    case 'ofno': { mgrMe('no'); mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
     case 'mgift': { const m = mgrChat().chat.find(x => x.id === t.dataset.mid); if (!m) break; const r = S.schedule.rules.find(x => x.id === m.card.id); if (!r) break; const tp = t.dataset.t, sel = m.card.sel || (m.card.sel = []);
       if (tp === '') { m.card.t = null; mgrRefresh(); break; }
-      if (tp === '-') { r.gift = ''; mgrResolve('gift', r.id, '不准备'); mgrReply(['네 알겠어요~', '好的～']); save(); break; }
-      if (tp === 'done') { r.gift = sel.join(','); mgrResolve('gift', r.id, '准备：' + sel.map(c => giftInfo(c).label).join('、')); mgrReply([['네 준비해둘게요!', '好，我去准备！'], ['비용은 그날 정산돼요', '费用当天从你那边扣']]); save(); break; }
+      if (tp === '-') { mgrMe('giftNo'); r.gift = ''; mgrResolve('gift', r.id, '不准备'); mgrReply(['네 알겠어요~', '好的～']); save(); break; }
+      if (tp === 'done') { mgrMe('giftOk'); r.gift = sel.join(','); mgrResolve('gift', r.id, '准备：' + sel.map(c => giftInfo(c).label).join('、')); mgrReply([['네 준비해둘게요!', '好，我去准备！'], ['비용은 그날 정산돼요', '费用当天从你那边扣']]); save(); break; }
       const g = GIFTS[tp]; if (g.sizes.length > 1 && t.dataset.z === undefined) { m.card.t = tp; mgrRefresh(); break; }
       sel.push(`${tp}:${t.dataset.z || 0}`); m.card.t = null; save(); mgrRefresh(); break; }
     case 'gmadd': case 'gmdel': { const id = t.dataset.gm, box = $(`[data-gm="${CSS.escape(id)}"].gmulti`); let rows = giftMultiRows(id); if (t.dataset.act === 'gmadd') rows.push(''); else rows.splice(+t.dataset.i, 1); box.outerHTML = giftMultiHTML(id, box.dataset.gcat, rows); break; }
