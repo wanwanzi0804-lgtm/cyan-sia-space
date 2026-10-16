@@ -2435,6 +2435,7 @@ const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
   if ((M.repFix || 0) < 5) { M.repFix = 5; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if ((M.topicFix || 0) < 1) { M.topicFix = 1; for (let j = 1; j < M.chat.length; j++) { const m = M.chat[j]; if (m.me || m.card || !/^(오늘|내일|모레)은 (이렇게 있어요|일정 없어요)/.test(m.text || '')) continue; let i = j - 1; const qs = []; while (i >= 0 && M.chat[i].me) qs.unshift(M.chat[i--].text); if (!qs.length) continue; const a = mgrTopic(qs.join('\n'), i); if (a) { m.text = a[0]; m.zh = a[1]; } } } // 之前答非所问的回复改成针对那件事的回答
   if (!M.specV) { M.specV = 1; for (const o of M.offers || []) { if (o.popup || o.note) continue; const sp = offerSpec(o.title, o.loc); if (!sp.note) continue; const old = o.title; o.title = sp.title; o.loc = sp.loc; o.note = sp.note; const m = M.chat.find(c => c.card && c.card.type === 'offer' && c.card.id === o.id); if (m) { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; m.text = toKo(`${o.title} ${md} 섭외 왔어요. ${o.note[0]} 할까요?`); m.zh = `${o.title} ${mz} 来邀约了。${o.note[1]}接吗？`; } } } // 已发的笼统邀约补上具体内容
   if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
   return M;
@@ -2550,7 +2551,7 @@ function mgrChatHTML() {
 // 回答：能用真实数据回答的直接答（韩语 + 中文）；其他的开了 AI 就让 AI 回，没开就简短回应
 const hm = r => `${r.start}${r.end ? '~' + r.end : ''}`;
 // 问的是哪件事：点名提到的行程 / 邀约，或者刚发来还没回的邀约（「几点结束？」就是在问它）
-function mgrTopic(t) {
+function mgrTopic(t, upto) {
   if (!/[?？吗呢]|까\??$|요\??$|나요|어디|언제|몇|얼마|뭐|누구|几|哪|多少|什么|怎么/.test(t.trim())) return null;
   if (/今天|明天|后天|오늘|내일|모레/.test(t)) return null; // 问的是某一天整体的日程
   const M = mgrChat(), today = dkey(Date.now());
@@ -2559,7 +2560,7 @@ function mgrTopic(t) {
   const words = it => [...new Set(`${it.title} ${toKo(it.title)}`.split(/[\s〈〉《》()（）·\/,，:]+/).filter(w => w.length >= 2 && !STOP.test(w)))];
   let it = items.find(x => words(x).some(w => t.includes(w)));
   if (!it) { // 没点名：看你问之前经纪人最后发的是不是邀约
-    let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
+    let i = upto === undefined ? M.chat.length - 1 : upto; while (i >= 0 && M.chat[i].me) i--;
     const last = M.chat[i], o = last && last.card && last.card.type === 'offer' && M.offers.find(x => x.id === last.card.id);
     if (o && /끝|시작|몇 ?시|언제|어디|얼마|출연료|페이|뭐|누구|무슨|几点|结束|开始|哪|多少|报酬|什么|谁|多久|오래|걸려/.test(t)) it = { ...o, offer: 1 };
   }
