@@ -2094,19 +2094,20 @@ function chartsHTML() {
   if (!keys.length) return '<div class="muted" style="padding:4px 0">先在「歌单」里添加作品，就能看到音源、专辑和 MV 成绩</div>';
   const focus = chartFocus(), name = focus.split('|').slice(1).join('|');
   const hr = new Date().getHours(), jit = .85 + .3 * ((hr * 7919) % 100) / 100;
+  const acc = k => (SS.trk[k] && SS.trk[k].days[today]) || 0; // 今天零点到现在真实累计的播放
   const best = k => { let b = null; for (const p of PLATS) { const r = chartRank(p, T.trk[k] * p[1] * jit); if (r && (!b || r < b[1])) b = [p[0], r]; } return b; };
-  const rows = PLATS.map(p => { const d = T.trk[focus] * p[1] * jit, r = chartRank(p, d), ry = chartRank(p, (TY.trk[focus] || 0) * p[1]);
+  const rows = PLATS.map(p => { const d = T.trk[focus] * p[1] * jit, r = chartRank(p, d), dd = acc(focus) * p[1], ry = chartRank(p, (TY.trk[focus] || 0) * p[1]);
     const mv = r && ry ? (ry > r ? `<i class="up">▲${ry - r}</i>` : ry < r ? `<i class="dn">▼${r - ry}</i>` : '<i>-</i>') : r ? '<i class="up">NEW</i>' : '';
-    return `<div class="ch-row"><span class="ch-p">${p[0]}</span><b>${r ? r + ' 位' : '<span class="muted">未进榜</span>'}</b>${mv}<span class="muted ch-s">今日约 ${fmtNum(Math.round(d))} 次</span></div>`; }).join('');
+    return `<div class="ch-row"><span class="ch-p">${p[0]}</span><b>${r ? r + ' 位' : '<span class="muted">未进榜</span>'}</b>${mv}<span class="muted ch-s">今日 ${fmtNum(Math.round(dd))} 次</span></div>`; }).join('');
   // 选歌：按作品分组的下拉框，歌再多也好找
   const albs = disco().slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''));
   const sel = `<select id="ch-sel">${albs.map(a => `<optgroup label="${esc(a.name)}${a.date ? ' · ' + a.date.slice(0, 7) : ''}">${a.tracks.map(t => { const k = a.id + '|' + t.name; return `<option value="${esc(k)}" ${k === focus ? 'selected' : ''}>${esc(t.name)}${t.title ? '（主打）' : ''}</option>`; }).join('')}</optgroup>`).join('')}</select>`;
-  const top = keys.sort((a, b) => T.trk[b] - T.trk[a]).slice(0, 5);
+  const top = keys.sort((a, b) => acc(b) - acc(a) || T.trk[b] - T.trk[a]).slice(0, 5);
   return `<b style="font-size:14px">🎧 今日播放 Top 5</b> <span class="muted" style="font-size:12px">（全平台合计）</span>
-    ${top.map((k, i) => { const b = best(k); return `<div class="ch-top ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}"><span class="ch-n">${i + 1}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.split('|').slice(1).join('|'))}</span><span class="muted" style="font-size:12px">${b ? `${b[0]} ${b[1]} 位` : '未进榜'} · ${fmtNum(Math.round(T.trk[k] * jit))} 次</span></div>`; }).join('')}
+    ${top.map((k, i) => { const b = best(k); return `<div class="ch-top ${k === focus ? 'on' : ''}" data-act="charttrk" data-k="${esc(k)}"><span class="ch-n">${i + 1}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(k.split('|').slice(1).join('|'))}</span><span class="muted" style="font-size:12px">${b ? `${b[0]} ${b[1]} 位` : '未进榜'} · ${fmtNum(Math.round(acc(k)))} 次</span></div>`; }).join('')}
     <div style="margin-top:14px"><b style="font-size:14px">📊 各平台名次</b><div style="margin:8px 0">${sel}</div>
-    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》全平台累计 <b style="color:var(--text)">${fmtNum(Math.round(SS.trk[focus]?.total || 0))}</b> 次 · 今日全平台约 ${fmtNum(Math.round(T.trk[focus] * jit))} 次</div>
-    <div class="muted" style="font-size:12px;margin-bottom:4px">各平台今日（每小时更新）</div>${rows}</div>`;
+    <div class="muted" style="font-size:12px;margin-bottom:4px">《${esc(name)}》全平台累计 <b style="color:var(--text)">${fmtNum(Math.round(SS.trk[focus]?.total || 0))}</b> 次 · 今日全平台 ${fmtNum(Math.round(acc(focus)))} 次（0 点起累计）</div>
+    <div class="muted" style="font-size:12px;margin-bottom:4px">名次每小时更新 · 播放为今日累计</div>${rows}</div>`;
 }
 function albumSalesHTML() {
   const SS = salesState(), today = dkey(Date.now());
