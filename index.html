@@ -2408,7 +2408,7 @@ const kd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}(${WDK[parseD(dk).getDay()]}
 const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
-  if ((M.repFix || 0) < 4) { M.repFix = 4; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if ((M.repFix || 0) < 5) { M.repFix = 5; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
   if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
   return M;
 }
@@ -2488,7 +2488,7 @@ function mgrReportText(dk) {
       const body = m.text.startsWith('取消：') ? m.text.slice(3) : '', pen = (body.match(/违约金 ([\d,]+)원/) || [])[1], ttl = body.replace(/（.*?）/g, '');
       notes.push(ttl ? [`일정 취소: ${toKo(ttl)} (사유: ${rs[0]}${pen ? `, 당일 취소 위약금 ${pen}원` : ''})`, `取消行程：${ttl}（原因：${rs[1]}${pen ? `，当天取消违约金 ${pen}원` : ''}）`] : [`일정 취소 요청 (사유: ${rs[0]})`, `取消行程请求（原因：${rs[1]}）`]); continue;
     }
-    notes.push([`아티스트 요청사항: ${toKo(m.text)}`, `艺人交代：${m.text}`]);
+    // 其他聊天里交代的事不写进日报
   }
   both(''); both('■ 특이사항', '■ 特别事项');
   if (notes.length) notes.forEach(n => both('- ' + n[0], '- ' + n[1])); else both('- 없음', '- 无');
@@ -2663,7 +2663,7 @@ function mgrSmall(t) {
 // 交代的事：只有真的在拜托 / 提醒事情时才记
 function mgrMemo(t) {
   const M = mgrChat(), today = dkey(Date.now()), clean = t.trim();
-  if (clean.length < 6 || /[?？吗呢]|까\??$/.test(clean)) return null;
+  if (clean.length < 6 || /[?？吗呢]|까\??$/.test(clean) || /^(감사|고마|谢谢|感谢|수고|辛苦)/.test(clean)) return null;
   if (!/帮我|麻烦|记得|别忘|提醒|请|要|想|希望|下周|明天|后天|周[一二三四五六日天]|부탁|해주세요|해줘|알려|챙겨|기억|다음 주|내일|모레/.test(clean)) return null;
   (M.memos || (M.memos = [])).push({ dk: today, at: Date.now(), text: clean }); if (M.memos.length > 60) M.memos.splice(0, M.memos.length - 60);
   return pick([['넵 알겠어요! 챙겨둘게요', '好嘞，我记着'], ['오케이 기억해둘게요', 'OK，我记住了'], ['네네 그렇게 할게요', '嗯嗯，就这么办']]);
