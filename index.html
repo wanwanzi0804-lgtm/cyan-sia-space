@@ -2442,7 +2442,7 @@ function skillScore(cat) { const w = CAT_SKILL[cat]; if (!w) return .5; const K 
 function skillUp(k, n) { const K = skills(); K[k] = Math.min(100, K[k] + n * (1 - K[k] / 130)); }
 function skillsHTML() {
   const K = skills();
-  return SKILLS.map(([k, n]) => `<div class="w-cat"><span>${n}</span><div class="w-bar sm"><i style="width:${Math.round(K[k])}%"></i></div><b style="min-width:34px">${Math.round(K[k])}</b></div>`).join('') + '<div class="muted" style="font-size:12px;margin-top:8px">上课、练习的📋通告做完能力会涨，长期不练会慢慢退步。能力会影响行程表现和经纪人接到的活动。</div>';
+  return SKILLS.map(([k, n]) => `<div class="w-cat"><span>${n}</span><div class="w-bar sm"><i style="width:${Math.round(K[k])}%"></i></div><b style="min-width:34px">${Math.round(K[k])}</b></div>`).join('') + '<div class="muted" style="font-size:12px;margin-top:8px">上课、练习的📋通告做完能力会涨，排得越久涨得越多（超过 2 小时的部分效率减半）；其他行程也会按时长加一点相关能力。长期不练会慢慢退步。能力会影响行程表现和经纪人接到的活动。</div>';
 }
 // 休息周：周一的日期作为 key
 const isRestWeek = dk => !!(S.schedule.rest || {})[weekOf(dk)];
@@ -2909,7 +2909,7 @@ const W_ = (d, ph) => ({ kind: 'write', d, ph });
 const TG_EVENTS = {
   练习: [
     r => C(`${r.title}练到一半，你发现有一段动作总是慢半拍，镜子里的自己看起来很僵。`, [['拆开慢速练一百遍', .5, .95], ['拍视频和老师的版本对比', .55, .9], ['先放一放，去练别的部分', .2, .6], ['找公司前辈请教', .35, 1]]),
-    r => ({ kind: 'hours', d: `今天的${r.title}，打算练多久？练得越久涨得越多，但体能不够容易受伤。` }),
+    r => ({ kind: 'hours', d: `今天的${r.title}排了 ${+((toMin(r.end) - toMin(r.start)) / 60).toFixed(1)} 小时，打算练多狠？越拼涨得越多，但体能不够容易受伤。` }),
     r => ({ kind: 'rhythm', d: '跟着节拍器练卡点：看到圆圈亮起就点「拍」，一共 8 拍。' }),
     r => W_('练完了，给自己写一句练习日记吧。', '今天练了什么、哪里还不够…'),
     r => ({ kind: 'seq', d: '编舞老师示范了一串新动作，记住顺序再跳一遍！', n: 5 }),
@@ -3525,7 +3525,7 @@ function tgCardHTML(key) {
   let body = '';
   if (c.kind === 'choice') body = c.opts.map((o, j) => `<button class="hot-opt" data-act="tgpick" data-j="${j}">${esc(F(o[0]))}</button>`).join('') + tgCustomHTML();
   else if (c.kind === 'write') body = `<textarea id="tg-in" placeholder="${esc(c.ph || '')}" style="min-height:90px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgwrite">完成</button></div>`;
-  else if (c.kind === 'hours') body = [[1, '1 小时'], [2, '2 小时'], [3, '3 小时（体能不够可能受伤）']].map(([h, t]) => `<button class="hot-opt" data-act="tghours" data-h="${h}">${t}</button>`).join('');
+  else if (c.kind === 'hours') body = [[1, '轻松练，保持状态'], [2, '正常强度'], [3, '全力冲刺（体能不够可能受伤）']].map(([h, t]) => `<button class="hot-opt" data-act="tghours" data-h="${h}">${t}</button>`).join('');
   else if (c.kind === 'song') body = c.songs.map(([n, t], j) => `<button class="hot-opt" data-act="tgsong" data-j="${j}">${esc(n)}${t ? ' <span class="alb-star">主打</span>' : ''}</button>`).join('');
   else if (c.kind === 'multi') { const st = c.steps[c.si || 0]; body = `${c.si ? `<div class="tg-d" style="margin-bottom:8px">${esc(F(st[0]))}</div>` : ''}${st[1].map((o, j) => `<button class="hot-opt" data-act="tgmulti" data-j="${j}">${esc(F(o[0]))}</button>`).join('')}${tgCustomHTML()}<div class="muted" style="font-size:12px">${(c.si || 0) + 1} / ${c.steps.length}</div>`; }
   else if (c.kind === 'timing') body = `<div class="tg-tm"><div class="tg-tm-bar"><i class="tg-tm-z"></i><i class="tg-tm-c" id="tg-tm-c"></i></div><button class="btn primary" id="tg-tm-btn" data-act="tgtime" style="min-width:140px">开始</button></div>`;
@@ -3637,13 +3637,13 @@ function tgSettle(k, r, key, today) {
   const mult = { S: 1.3, A: 1.1, B: 1, C: .8 }[grade];
   let fans = 0, note = '';
   if (r.cat === '上课' || r.cat === '练习') {
-    const sk = lessonSkill(r.title), h = c.hours || 1.5, n = (r.cat === '上课' ? 1.2 : .6 * h) * (.6 + c.score);
+    const sk = lessonSkill(r.title), dur = clamp((toMin(r.end) - toMin(r.start)) / 60 || 1, .5, 6), eff = dur <= 2 ? dur : 2 + (dur - 2) * .5, it = c.hours ? { 1: .7, 2: 1, 3: 1.3 }[c.hours] : 1, n = (r.cat === '上课' ? .9 : .6 * it) * eff * (.6 + c.score); // 能力加成按行程时长算（超过 2 小时的部分效率减半）
     skillUp(sk, n); if (r.cat === '上课') walletSchedFee(r);
-    note = `${SKILLS.find(x => x[0] === sk)[1]} +${n.toFixed(1)}${c.hurt ? ' · 练太猛有点拉伤，体能 -2' : ''}`; if (c.hurt) skills().stamina -= 2;
+    note = `${SKILLS.find(x => x[0] === sk)[1]} +${n.toFixed(1)}（${+dur.toFixed(1)} 小时）${c.hurt ? ' · 练太猛有点拉伤，体能 -2' : ''}`; if (c.hurt) skills().stamina -= 2;
   } else {
     const g = EVENT_GAIN[r.cat] || [10, 40]; fans = Math.round(rand(g[0], g[1]) * folRatio() * heat() * { S: 1.6, A: 1.2, B: 1, C: .6 }[grade]);
     if (r.cat === '物料') { relQueue(r, fans, parseD(k).getTime() + toMin(r.end) * 60e3); fans = 0; } else addFans(fans, '行程：' + r.title); walletSchedFee(r, mult);
-    for (const [s, w] of Object.entries(CAT_SKILL[r.cat] || {})) skillUp(s, .3 * w);
+    { const dur = clamp((toMin(r.end) - toMin(r.start)) / 60 || 1, .5, 6), eff = dur <= 2 ? dur : 2 + (dur - 2) * .5; for (const [s, w] of Object.entries(CAT_SKILL[r.cat] || {})) skillUp(s, .2 * w * eff); } // 行程越长，相关能力涨得越多
     note = pick(r.cat === '物料' ? TG_NOTE_SHOOT[grade] : TG_NOTE[grade]) + (r.cat === '物料' ? ' · 成片 5～10 天后公开' : '');
     if (grade === 'S' && r.cat !== '物料' && Math.random() < .35) { const H = hotState(); if (!H.forced && HOT_EVENTS.some(e => e.id === 'sched')) H.forced = { id: 'sched', e: r.title, q: '', at: Date.now() + rand(1, 5) * 3600e3 }; }
   }
@@ -5536,7 +5536,7 @@ document.addEventListener('click', async e => {
       UI.tgKey = t.dataset.k; UI.tgPh = []; UI.tgOrd = []; TGG = null; openModal(tgCardHTML(t.dataset.k)); break;
     case 'tgpick': { const c = tgState().cards[UI.tgKey], o = c.opts[+t.dataset.j]; tgFinish(rand(o[1], o[2]), o[0]); break; }
     case 'tgwrite': { const v = ($('#tg-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .25 : n < 10 ? .5 : n <= 100 ? .75 : .6; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; tgFinish(sc + rand(-.15, .2), v); break; }
-    case 'tghours': { const c = tgState().cards[UI.tgKey], h = +t.dataset.h; c.hours = h; c.hurt = h === 3 && skills().stamina < 55 && Math.random() < .3; tgFinish({ 1: .5, 2: .7, 3: .9 }[h], `练 ${h} 小时`); break; }
+    case 'tghours': { const c = tgState().cards[UI.tgKey], h = +t.dataset.h; c.hours = h; c.hurt = h === 3 && skills().stamina < 55 && Math.random() < .3; tgFinish({ 1: .5, 2: .7, 3: .9 }[h], ['', '轻松练', '正常强度', '全力冲刺'][h]); break; }
     case 'tgsong': { const c = tgState().cards[UI.tgKey], [n, ti] = c.songs[+t.dataset.j]; tgFinish((ti ? .75 : .5) + rand(-.2, .25), n); break; }
     case 'tgq': { const c = tgState().cards[UI.tgKey]; (c.ans || (c.ans = {}))[t.dataset.i] = t.dataset.o; $$(`[data-act=tgq][data-i="${t.dataset.i}"]`).forEach(b => b.classList.toggle('on', b === t)); break; }
     case 'tgqdone': { const c = tgState().cards[UI.tgKey], ok = c.qs.filter((q, i) => (c.ans || {})[i] === q.m).length; tgFinish(ok / 3, `答对 ${ok} / 3`); break; }
