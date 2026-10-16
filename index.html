@@ -1982,10 +1982,10 @@ function settleHTML() {
   const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), st = (W.stmts || [])[0];
   const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
   return `<div class="card"><b style="font-size:14px">📑 结算</b>
-    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R.filter(x => x.gross > 0 || FINE_SRC.includes(x.src)), 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${+st.period.slice(5)} 月 · ${won(st.pay - (st.fines || 0))}` : '还没有'}</b></div></div>
+    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R.filter(x => x.gross > 0 || FINE_SRC.includes(x.src)), 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${st.label || +st.period.slice(5) + ' 月'} · ${won(st.pay - (st.fines || 0))}` : '还没有'}</b></div></div>
     ${pend.length ? `<details class="me-more"><summary>待付款明细</summary>${pend.slice().sort((a, b) => a.payAt.localeCompare(b.payAt)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · 预计 ${x.payAt.slice(5).replace('-', '/')} 前付款</div></span><b>${won(x.gross)}</b></div>`).join('')}</details>` : ''}
     ${R.some(x => x.cost > 0 && (x.gross > 0 || FINE_SRC.includes(x.src))) ? `<details class="me-more"><summary>待扣费用明细</summary>${R.filter(x => x.cost > 0 && (x.gross > 0 || FINE_SRC.includes(x.src))).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.src === '活动经费' ? '经纪人活动经费' : x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · ${esc({ 行程: '直接成本', 课程: '课时费', 活动经费: '车费 · 餐费 · 临时采购', 取消违约金: '当天取消违约金', 旷工罚款: '旷工罚款', 专辑制作: '专辑制作 / 宣传' }[x.src] || x.src)}${x.why && x.src !== '活动经费' && x.why !== x.src ? ' · ' + esc(x.why) : ''}</div></span><b>-${won(x.cost)}</b></div>`).join('')}</details>` : ''}
-    ${st ? `<details class="me-more"><summary>${+st.period.slice(5)} 月结算明细</summary>
+    ${st ? `<details class="me-more"><summary>${st.label || +st.period.slice(5) + ' 月结算'}明细</summary>
       ${(st.lines || []).filter(l => !l.fine).map(l => `<div class="rule"><span style="flex:1;min-width:0">${esc(l.title)}<div class="muted" style="font-size:12px">${esc(l.label)} · ${won(l.gross)}${l.cost ? ` - 直接成本 ${won(l.cost)}${l.why ? `（${esc(l.why)}）` : ''}` : ''} × 你 ${Math.round(l.ratio * 100)}%</div></span><b>${won(l.pay)}</b></div>`).join('')}
       <div class="rule"><span style="flex:1">你的份额合计</span><b>${won(st.part)}</b></div>
       ${(st.lines || []).filter(l => l.fine).map(l => `<div class="rule"><span style="flex:1;min-width:0">${esc(l.src)}<div class="muted" style="font-size:12px">${esc(l.title)}</div></span><b style="color:var(--danger)">-${won(l.fine)}</b></div>`).join('')}
@@ -2805,8 +2805,74 @@ function mgrMemo(t) {
   (M.memos || (M.memos = [])).push({ dk: today, at: Date.now(), text: clean }); if (M.memos.length > 60) M.memos.splice(0, M.memos.length - 60);
   return pick([['넵 알겠어요! 챙겨둘게요', '好嘞，我记着'], ['오케이 기억해둘게요', 'OK，我记住了'], ['네네 그렇게 할게요', '嗯嗯，就这么办']]);
 }
+function mgrAnswer(t) {
+  const fact = mgrFacts(t); if (fact) return fact;
+  const D = dayState(), pu = r => { const p = Math.max(0, toMin(r.start) - 60); return `${String(Math.floor(p / 60)).padStart(2, '0')}:${String(p % 60).padStart(2, '0')}`; };
+  if (/谢谢|感谢|辛苦了|辛苦啦|辛苦你|고마|감사|수고/.test(t)) return D.st === 'done' || (D.st === 'none' && D.h >= 18) ? ['수고했어요. 푹 쉬어요.', '辛苦了，好好休息。'] : pick([['네~', '嗯～'], ['별말씀을요.', '哪里的话。']]);
+  if (/早上好|早安|早啊|^早|좋은 아침|안녕/.test(t)) return D.st === 'before' && D.ext && D.ext[0] ? [`좋은 아침이에요. 픽업 ${pu(D.ext[0])}이에요.`, `早上好，${pu(D.ext[0])} 接你。`] : ['좋은 아침이에요.', '早上好。'];
+  if (/晚安|睡了|잘자|잘 자/.test(t)) return ['잘 자요.', '晚安。'];
+  if (/(好|很|太|有点|超)累|累死|^累|累了|困|不舒服|生病|疼|发烧|嗓子|힘들|피곤|아파/.test(t)) return D.st === 'before' || D.st === 'during' ? ['괜찮아요? 필요하면 말해줘요.', '还好吗？需要的话跟我说。'] : ['푹 쉬어요.', '好好休息。'];
+  if (/想接|想上|想去|想做|想试|하고 싶/.test(t)) return ['네, 알아볼게요.', '好，我打听一下。'];
+  if (/[?？]|吗|까|요\?/.test(t)) return ['확인해볼게요.', '我确认一下。'];
+  return pick([['네.', '好。'], ['넵', '嗯'], ['👍', '👍']]);
+}
+function mgrContext() {
+  const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum(), R = W.recv || [];
+  const sch = d => rulesFor(d).map(r => `${hm(r)} ${r.title}（${r.cat}）`).join('；') || '无';
+  const D = dayState(), now = new Date();
+  return `现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
+今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
+结算：每月 ${SETTLE_DAY} 日结算上月已到账收入，按收入类型分成（网综电台采访、品牌代言、签售见面会 艺人40%；大学庆典商演 50%；音源专辑 30%；打歌不单独算），只扣合同允许的直接成本；艺人可以申请预支已确认的活动款或提前发当月结算款，需要公司同意；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。艺人账户余额 ${won(W.bal)}，未回收的公司前期投入 ${won(W.debt)}。
+${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
+艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。`;
+}
+async function mgrAi(text) {
+  const client = await aiClient(), M = mgrChat();
+  const hist = M.chat.slice(-14).filter(m => m.text).map(m => ({ role: m.me ? 'user' : 'assistant', content: m.text }));
+  while (hist.length && hist[0].role !== 'user') hist.shift();
+  const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
+  if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
+  const r = await client.messages.create({ model: S.ai.model, max_tokens: 200, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。用韩语回复，像真人发 KakaoTalk：口语、自然、有点人情味（会用 ~、ㅎㅎ、ㅠㅠ 这类语气），先直接回答对方问的，再顺口补半句就够了；一般 1~2 句，不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
+可以像真人一样分成 1~3 条短消息发。每条消息输出两行：KO: 韩语；ZH: 中文翻译。多条就重复这两行。不要提到 App 界面（比如「在钱包里能看到」）。
+${mgrContext()}`, messages: msgs });
+  const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
+  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(), msgs2 = [];
+  for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]);
+  return msgs2.length ? msgs2 : null;
+}
+// 预支：① 已完成、份额已确认但主办方还没付款的活动款 ② 公司已经收到、原定 15 日才发的结算款提前发。都要公司同意
+function mgrAdvance(t) {
+  if (!/预支|提前|先发|先给|早点发|가불|선지급|미리 ?(받|주|당겨)|당겨|먼저 ?(받|주)|일찍 ?(받|주|정산)/.test(t) || !/钱|款|结算|收入|工资|费|정산|돈|출연료|수익|입금|월급|페이/.test(t)) return null;
+  const M = mgrChat(); if (M.adv) return [['아까 그거 지금 회사에 확인 중이에요~', '刚才那个正在跟公司确认～']];
+  const W = wallet(), today = dkey(Date.now()), R = W.recv || [];
+  const evt = R.filter(x => x.st === 'pend' && x.gross > 0 && x.kind !== 'bb' && ['行程', '代言'].includes(x.src) && x.date < today), paid = R.filter(x => x.st === 'paid');
+  const want1 = /行程|活动|商演|庆典|演出|主办|행사|공연|축제|출연료|주최/.test(t), want2 = /当月|这个月|月结|结算|이번 ?달|정산/.test(t);
+  const kind = want1 && !want2 ? 1 : want2 && !want1 ? 2 : paid.some(x => x.gross > 0) ? 2 : 1;
+  const list = kind === 1 ? evt : paid;
+  if (!list.some(x => x.gross > 0)) return kind === 1 ? [['지금은 끝난 행사 중에 입금 기다리는 게 없어요', '现在已经结束、还在等主办方付款的活动没有']] : [['이번 달은 아직 회사에 들어온 게 없어서 당길 게 없어요ㅠ', '这个月公司还没收到钱，没有能提前发的ㅠ']];
+  M.adv = { kind, at: Date.now() + rand(8, 35) * 60e3 };
+  return [pick([['회사에 한번 물어볼게요!', '我去问问公司！'], ['재무팀에 확인해볼게요', '我跟财务确认一下']]), ['조금만 기다려줘요', '稍等一下哈']];
+}
+function mgrAdvanceTick() {
+  const M = mgrChat(), A = M.adv; if (!A || Date.now() < A.at) return; M.adv = null;
+  const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
+  const list = A.kind === 1 ? R.filter(x => x.st === 'pend' && x.gross > 0 && x.kind !== 'bb' && ['行程', '代言'].includes(x.src) && x.date < today) : R.filter(x => x.st === 'paid');
+  if (!list.some(x => x.gross > 0)) { mgrSay(['확인해보니까 지금은 당길 게 없대요', '确认了一下，现在没有能预支的']); return; }
+  if (A.kind === 2 && W.earlyMon === mon) { mgrReply([['이번 달은 이미 한 번 당겨 받아서 이번엔 안 된대요ㅠ', '这个月已经提前发过一次了，这次不行ㅠ'], [`${SETTLE_DAY}일 정산 때 같이 들어가요`, `${SETTLE_DAY} 号结算时一起发`]]); return; }
+  if (A.kind === 1 && Math.random() < .2) { mgrReply([['이번엔 어렵대요ㅠ', '这次公司说不太行ㅠ'], ['주최 측 입금되는 대로 바로 정산해준대요', '说主办方一打款就马上给你结']]); return; }
+  const c = settleCalc(list), repay = W.debt > 0 ? Math.min(W.debt, Math.round(c.part * W.contract.repay)) : 0, net = c.part - repay - c.fines;
+  W.debt -= repay; W.bal += net; if (A.kind === 2) W.earlyMon = mon;
+  const label = A.kind === 1 ? '活动款预支' : `${+mon.slice(5)} 月提前结算`;
+  (W.stmts || (W.stmts = [])).unshift({ id: uid(), v: 2, mon, period: mon, label, at: Date.now(), part: c.part, fines: c.fines, repay, pay: c.part - repay, lines: c.lines });
+  W.recv = R.filter(x => !list.includes(x));
+  W.tx.unshift({ id: uid(), at: Date.now(), amt: c.part, repay, cat: '月度结算', note: label, auto: true });
+  if (c.fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -c.fines, cat: '违约金 / 罚款', note: label + ' · 违约金 / 罚款', auto: true });
+  mgrReply([['회사에서 OK 났어요!', '公司同意了！'], [`${krw(net)} 오늘 들어갈 거예요${repay ? `. 연습생 비용 ${krw(repay)}은 빼고요` : ''}`, `今天会打给你 ${krw(net)}${repay ? `，已经扣掉练习生费用 ${krw(repay)}` : ''}`]]);
+  pushNotif({ type: 'system', text: `💸 ${label}已到账`, sub: `实际入账 ${won(net)}${repay ? ` · 还欠款 ${won(repay)}` : ''}` }, true);
+}
 async function mgrRespond(text) {
   const cancel = mgrCancel(text); if (cancel) { mgrReply(cancel, true); return; }
+  const adv = mgrAdvance(text); if (adv) { mgrReply(adv, true); return; }
   const small = mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; }
   const req = /帮我|麻烦|记得|别忘|提醒|부탁|해주세요|해줘|말해|전달|챙겨/.test(text) && !/[?？吗]|까\??$/.test(text.trim());
   const fact = req ? null : (mgrTopic(text) || mgrFacts(text));
@@ -2819,11 +2885,14 @@ function mgrDelay() { const x = Math.random(); return 1000 * (x < .5 ? rand(4, 1
 let mgrBusy = false;
 function mgrReplyTick() {
   const M = mgrChat();
+  try { mgrAdvanceTick(); } catch (e) { console.error('adv', e); }
+  if (!M.replyAt && !mgrBusy && M.chat.length && M.chat[M.chat.length - 1].me && Date.now() - M.chat[M.chat.length - 1].at > 20e3) M.replyAt = Date.now() + rand(3, 20) * 1000; // 之前没回的补回
   if (M.readPlan && Date.now() >= M.readPlan) { M.readPlan = 0; M.readAt = Date.now(); mgrRefresh(); }
   if (!M.replyAt || Date.now() < M.replyAt || mgrBusy) return;
   M.replyAt = 0; M.readAt = Math.max(M.readAt || 0, Date.now()); let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
   const pend = M.chat.slice(i + 1).filter(m => m.me); if (!pend.length) return;
-  mgrBusy = true; mgrRespond(pend.map(m => m.text).join('\n')).finally(() => { mgrBusy = false; save(); });
+  mgrBusy = true; const t = pend.map(m => m.text).join('\n'), guard = setTimeout(() => { mgrBusy = false; }, 60e3);
+  mgrRespond(t).catch(e => { console.error('mgr', e); mgrReply(['넵 확인해볼게요', '好，我确认一下'], true); }).finally(() => { clearTimeout(guard); mgrBusy = false; save(); }); // 出错也要回一句，不能把你晾着
 }
 /* ---------- 📋 通告：每个行程当天的一张机遇卡 ---------- */
 const KO_W = [['고양이', '猫'], ['사랑', '爱'], ['노래', '歌'], ['친구', '朋友'], ['행복', '幸福'], ['무대', '舞台'], ['연습', '练习'], ['감사합니다', '谢谢'], ['보고 싶어요', '想你'], ['맛있어요', '好吃'], ['꿈', '梦想'], ['하늘', '天空']];
