@@ -1596,7 +1596,7 @@ function cbTick() {
   if (d <= 0 && s < P.promoEnd) once('d0', () => {
     const n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1));
     addFans(n, '回归：' + a.name);
-    const pc = { single: [5e7, 1e8], mini: [1.5e8, 2.5e8], full: [2.5e8, 4e8] }[a.type]; if (pc) walletDeal(0, rand(...pc), '专辑制作', `《${a.name}》制作 · 宣传`, '作曲编曲 · 录音 · MV · 宣传');
+    const pc = { single: [5e7, 1e8], mini: [1.5e8, 2.5e8], full: [2.5e8, 4e8] }[a.type]; // 专辑制作、MV、宣传费用由公司承担，不扣你的钱
     pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》正式回归！`, sub: `主打《${title}》${a.tracks.length > 1 ? ` · 共 ${a.tracks.length} 首` : ''} · 回归首日涨粉 +${fmtNum(n)}` }, true);
   });
   if (c.rest && s >= P.promoEnd && s < P.followStart) once('rest', () => pushNotif({ type: 'cb', text: `💿 《${title}》主打活动结束`, sub: '这周是休息周，好好休息一下吧' }, true));
@@ -1811,10 +1811,44 @@ function walletSpend(krw, cat, note, orig) {
   W.tx.unshift({ id: uid(), at: Date.now(), amt: -krw, cat, note, orig, auto: false });
   if (cat === '粉丝回礼') { addFans(Math.min(S.profile.followers * .004, krw / 1500), '粉丝回礼'); logAct('reply'); }
 }
-// 行程的收入和成本：成本先由公司垫付，结算时从收入里扣，扣不完的部分按合同比例记进你的欠款
+// 收入分成（按可分配收入 = 活动收入 - 合同允许扣除的直接成本 来分）。常规打歌不单独算通告收入
+const SPLITS = [
+  [.3, '音源收入', x => x.src === '音源'],
+  [.3, '专辑收入', x => x.src === '专辑'],
+  [.4, '品牌合作 · 广告代言', x => x.src === '代言' || /广告|画报|品牌|代言|时装|秀场|开幕|新店|门店/.test(x.title)],
+  [.4, '视频通话签售 · 粉丝见面会', x => /签售|签名|见面会|生日会|Fan ?Meeting|팬미팅|팬사인|사인회/i.test(x.title)],
+  [.5, '大学庆典 · 商业商演', x => /大学(?!路)|庆典|大东祭|入实典|AKARAKA|LUCAUS|商演|演出|演唱会|巡演|音乐节|Live|KCON|Waterbomb|Dream Concert|歌谣|Showcase|路演|Busking|快闪/i.test(x.title)],
+  [.4, '网综 · 电台 · 采访', () => true]
+];
+const FINE_SRC = ['取消违约金', '旷工罚款'];
+function splitOf(x) { if (x.kind === 'bb') return [cShare('bb'), '泡泡订阅']; const r = SPLITS.find(s => s[2](x)); return [r[0], r[1]]; }
+// 合同允许扣除的直接成本：只有实际发生、和这场活动直接相关的才扣（外包舞者 / 额外设备 / 必要场地 / 临时专业人员），不是每场都有
+// 经纪人和工作人员工资、公司车、打歌电台综艺通告、MV / 练习室 / 宣传视频制作、办公室练习室、培训宣传都由公司承担，不扣
+function dedCost(title, gross, seed, orig = 0) {
+  if (/演唱会|巡演/.test(title) && !/彩排/.test(title)) return { cost: Math.round(orig), why: '场馆 · 舞台制作 · 乐队（自办演唱会直接成本）' };
+  if (!(gross > 0)) return { cost: 0, why: '' };
+  const r = srng('ded' + seed), it = [], add = (n, a, b) => it.push([n, Math.round((a + (b - a) * r()) / 10000) * 10000]);
+  const overseas = /海外|KCON|东京|大阪|横滨|台北|香港|曼谷|新加坡|洛杉矶|JAPAN|World Tour/.test(title), stage = /大学(?!路)|庆典|大东祭|入实典|AKARAKA|LUCAUS|商演|音乐节|Waterbomb|Dream Concert|中场表演/.test(title);
+  if (stage || overseas) { if (r() < (overseas ? .6 : .35)) add('外包舞者', 500000, 1200000); if (r() < .15) add('额外设备租赁（音响 / 灯光）', 300000, 1000000); if (overseas && r() < .5) add('临时翻译', 200000, 500000); }
+  if (/见面会|生日会|线下签售|签名会|Fan ?Meeting/i.test(title) && !/视频通话|线上|唱片店|商场|咖啡/.test(title) && r() < .5) add('场地租赁（自办）', 300000, 1500000);
+  const cost = Math.min(it.reduce((a, x) => a + x[1], 0), Math.round(gross * .6));
+  return { cost, why: it.map(x => x[0]).join(' · ') };
+}
+// 一笔结算：每项按自己的比例分；违约金 / 罚款单独扣
+function settleCalc(items) {
+  let part = 0, fines = 0; const lines = [];
+  for (const x of items) {
+    if (FINE_SRC.includes(x.src)) { fines += x.cost; lines.push({ src: x.src, title: x.title, fine: x.cost }); continue; }
+    if (!(x.gross > 0)) continue; // 没有收入的（公司承担的成本）不进你的账
+    const [ratio, label] = splitOf(x), cost = x.kind === 'bb' ? 0 : Math.min(x.cost || 0, x.gross), pay = Math.round((x.gross - cost) * ratio);
+    part += pay; lines.push({ src: x.src, title: x.title, gross: x.gross, cost, why: x.why || '', ratio, label, pay });
+  }
+  return { part, fines, lines };
+}
+// 行程的收入：等主办方付款后进结算
 // [匹配标题, 收入下限, 上限, 成本下限, 上限, 说明]
 const SCHED_ECON = {
-  '打歌': [[/彩排|事前录制/, 0, 0, 300000, 800000, '彩排 / 事前录制'], [/Showcase|showcase/, 0, 0, 5000000, 12000000, 'Showcase 场地制作'], [/./, 0, 300000, 1500000, 3000000, '服装妆造 · 舞者 · 工作人员']],
+  '打歌': [[/彩排|事前录制/, 0, 0, 300000, 800000, '彩排 / 事前录制'], [/Showcase|showcase/, 0, 0, 5000000, 12000000, 'Showcase 场地制作'], [/./, 0, 0, 1500000, 3000000, '服装妆造 · 舞者 · 工作人员']], // 常规打歌不单独算通告收入，成本公司承担
   '综艺': [[/网综|YouTube|vlog|Vlog|采访|自制/, 300000, 1000000, 300000, 600000, '妆造 · 经纪人'], [/./, 500000, 3000000, 400000, 800000, '妆造 · 服装 · 经纪人']],
   '电台': [[/./, 0, 300000, 100000, 300000, '妆造 · 交通']],
   '物料': [[/MV 拍摄/, 0, 0, 30000000, 80000000, 'MV 制作'], [/封面|预告照/, 0, 0, 5000000, 15000000, '摄影棚 · 造型 · 后期'], [/Dance Practice|舞蹈挑战|Vlog/, 0, 0, 1000000, 4000000, '拍摄制作'], [/画报/, 500000, 3000000, 300000, 800000, '妆造'], [/广告/, 1000000, 10000000, 300000, 1000000, '妆造'], [/./, 0, 300000, 300000, 800000, '妆造 · 交通']],
@@ -1833,7 +1867,8 @@ function schedEcon(r) {
   const q = luckQ(); return { gross: row[1] + (row[2] - row[1]) * Math.pow(q, 1.3), cost: rand(row[3], row[4]), why: row[5] };
 }
 function walletSchedFee(r, mult = 1) {
-  const e = schedEcon(r); if (!e) return; walletDeal(e.gross * mult, e.cost, r.cat === '上课' ? '课程' : '行程', r.title, e.why);
+  const e = schedEcon(r); if (!e || r.cat === '上课' || r.cat === '打歌') return; const g = e.gross * mult; if (!(g > 0)) return; // 没收入的行程成本由公司承担
+  const d = dedCost(r.title, g, r.id + r.title, e.cost); walletDeal(g, d.cost, '行程', r.title, d.why);
 }
 // 收入 - 成本 → 按合同分；负数就记进欠款
 // 不再当天到手：通告费等主办方付款，成本先记着，每月结算时一起算
@@ -1857,7 +1892,7 @@ function addMonths(mon, n) { const [y, m] = mon.split('-').map(Number), t = y * 
 function ledgerMigrate() {
   const W = wallet(); if (W.ledV === 2) return; W.ledV = 2;
   const keep = [], salesBy = {}, R = W.recv || (W.recv = []);
-  for (const st of W.stmts || []) for (const it of st.items) R.push({ id: uid(), src: it.src, title: it.title, date: lastDay(st.period), gross: it.gross, cost: it.cost, why: '', kind: it.src === '泡泡' ? 'bb' : 'gen', payAt: lastDay(st.period), st: 'pend' });
+  for (const st of W.stmts || []) for (const it of st.items || []) R.push({ id: uid(), src: it.src, title: it.title, date: lastDay(st.period), gross: it.gross, cost: it.cost, why: '', kind: it.src === '泡泡' ? 'bb' : 'gen', payAt: lastDay(st.period), st: 'pend' });
   for (const x of W.tx) {
     const legacy = x.auto && (x.gross != null || x.owe || ['月度结算', '代言', '泡泡分成', '音源分成', '专辑分成', '周边分成'].includes(x.cat)) && x.cat !== '居住';
     if (!legacy) { keep.push(x); continue; }
@@ -1880,17 +1915,48 @@ function ledgerMigrate() {
 // 一次性：旧规则算的当天取消违约金按新规则（8%，5～30 万）重算
 function penFix() { const W = wallet(); if (!W.penFix) { W.penFix = 1; for (const x of W.recv || []) if (x.src === '取消违约金' && x.st !== 'done') { const r = { title: x.title, cat: /签售|팬사인/.test(x.title) ? '签售' : /Music Bank|人气歌谣|音乐中心|M Countdown|THE SHOW|Show Champion|打歌/.test(x.title) ? '打歌' : '活动' }, { fine } = tgFine(r), pen = clamp(Math.round(fine * .08 / 10000) * 10000, 50000, 300000); if (pen < x.cost) { for (const m of mgrChat().memos || []) { m.text = m.text.split(`违约金 ${krw(x.cost)}`).join(`违约金 ${krw(pen)}`); for (const it of m.cancel || []) if (it.title === x.title && it.pen === x.cost) it.pen = pen; } x.cost = pen; } } }
 }
+// 一次性：按新的分成和扣费规则，重算还没结算的账和已经发过的结算单
+function splitFix() {
+  const W = wallet(); if (W.splitV) return; W.splitV = 1;
+  // 还没结算的：公司承担的成本删掉，行程只留合同允许扣的直接成本，旷工只扣罚款
+  W.recv = (W.recv || []).filter(x => {
+    if (['课程', '活动经费', '专辑制作'].includes(x.src)) return false;
+    if (x.src === '旷工罚款') { const m = (x.why || '').match(/罚款 ₩([\d,]+)/); if (m) x.cost = +m[1].replace(/,/g, ''); x.why = '旷工罚款'; return true; }
+    if (x.src === '行程') { if (!(x.gross > 0) && !/演唱会|巡演/.test(x.title)) return false; const d = dedCost(x.title, x.gross, x.id + x.title, x.cost); x.cost = d.cost; x.why = d.why; }
+    return true;
+  });
+  // 已经发的结算单：按时间顺序重算（欠款跟着重算；10 月零碎消费那笔之前的余额是你定好的，不动）
+  const anchor = (W.tx.find(x => x.cat === '个人消费' && /^10 月/.test(x.note || '')) || {}).at || 0;
+  const sts = (W.stmts || []).slice().sort((a, b) => a.at - b.at); if (!sts.length) return;
+  let D = W.debt - sts.reduce((a, st) => a + (st.loss || 0) - (st.repay || 0), 0), dBal = 0;
+  for (const st of sts) {
+    if (st.v === 2) { D -= st.repay; continue; }
+    const items = (st.items || []).filter(x => !['课程', '活动经费', '专辑制作'].includes(x.src)).map(x => {
+      const y = { ...x, kind: x.src === '泡泡' ? 'bb' : 'gen' };
+      if (x.src === '行程') { const d = dedCost(x.title, x.gross, x.title + st.period, x.cost); y.cost = d.cost; y.why = d.why; }
+      return y;
+    });
+    const c = settleCalc(items), repay = D > 0 ? Math.min(D, Math.round(c.part * W.contract.repay)) : 0; D -= repay;
+    if (st.at > anchor) dBal += (c.part - repay - c.fines) - (st.pay || 0);
+    const tx = W.tx.find(x => x.cat === '月度结算' && (x.note || '').startsWith(`${+st.period.slice(5)} 月结算`));
+    if (tx) { tx.amt = c.part; tx.repay = repay; tx.note = `${+st.period.slice(5)} 月结算（按新分成规则重算）`; }
+    if (c.fines && st.at > anchor) W.tx.push({ id: uid(), at: st.at + 1, amt: -c.fines, cat: '违约金 / 罚款', note: `${+st.period.slice(5)} 月违约金 / 罚款`, auto: true });
+    Object.assign(st, { v: 2, part: c.part, fines: c.fines, repay, pay: c.part - repay, lines: c.lines }); delete st.items; delete st.loss;
+  }
+  W.debt = Math.max(0, Math.round(D)); W.bal = Math.round(W.bal + dBal); W.tx.sort((a, b) => b.at - a.at);
+  pushNotif({ type: 'system', text: '📑 结算已按新的分成规则重算', sub: `余额 ${dBal >= 0 ? '+' : ''}${won(dBal)} · 欠款现在 ${won(W.debt)}` }, true);
+}
 function financeTick() {
   ledgerMigrate();
   for (const x of wallet().tx) if (x.cat === '粉丝回礼' && !x.auto && / · (小礼物|打歌逆应援|咖啡车|零食车|特别活动逆应援)/.test(x.note || '')) x.auto = true; // 回礼是按行程自动扣的，不能手动删
-  penFix();
+  penFix(); splitFix();
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
   if (W.pend) { for (const k of Object.keys(W.pend)) if (k < today) { const P = W.pend[k], M = (W.salesM || (W.salesM = {}))[k.slice(0, 7)] || (W.salesM[k.slice(0, 7)] = { 音源: 0, 专辑: 0 }); M.音源 += P.音源 || 0; M.专辑 += (P.专辑 || 0) + (P.周边 || 0); delete W.pend[k]; } }
   // 音源 / 专辑：月底统计，平台下个月底付款
   for (const m of Object.keys(W.salesM || {})) if (m < mon) { const M = W.salesM[m], end = lastDay(m); if (M.音源 >= 1) recvAdd('音源', `${+m.slice(5)}월 음원 수익`, end, M.音源, 0, '', 'gen', 30); if (M.专辑 >= 1) recvAdd('专辑', `${+m.slice(5)}월 음반 판매`, end, M.专辑, 0, '', 'gen', 30); delete W.salesM[m]; }
   // 经纪人经费：前几天的补记
   const done = W.mexpDone || (W.mexpDone = {});
-  for (let i = 1; i <= 5; i++) { const dk = addDays(today, -i); if (done[dk]) continue; done[dk] = 1; const e = mgrExpenses(dk); if (e) recvAdd('活动经费', `${+dk.slice(5, 7)}/${+dk.slice(8)} 활동 경비`, dk, 0, e.total, '차량·식대·기타', 'gen', 0); }
+  for (let i = 1; i <= 5; i++) { const dk = addDays(today, -i); if (done[dk]) continue; done[dk] = 1; const e = 0; /* 经纪人法人卡经费公司承担，只写进日报 */ if (e) recvAdd('活动经费', `${+dk.slice(5, 7)}/${+dk.slice(8)} 활동 경비`, dk, 0, e.total, '차량·식대·기타', 'gen', 0); }
   for (const k of Object.keys(done)) if (k < addDays(today, -10)) delete done[k];
   // 主办方 / 平台付款
   for (const x of W.recv || []) if (x.st === 'pend' && x.payAt <= today) { x.st = 'paid'; x.paidOn = today; }
@@ -1899,17 +1965,15 @@ function financeTick() {
     W.setMon = mon;
     const cut = lastDay(addMonths(mon, -1)), items = (W.recv || []).filter(x => x.st === 'paid' && x.payAt <= cut);
     if (!items.length) return;
-    const gen = items.filter(x => x.kind !== 'bb'), bb = items.filter(x => x.kind === 'bb');
-    const gG = gen.reduce((a, x) => a + x.gross, 0), gC = gen.reduce((a, x) => a + x.cost, 0), bG = bb.reduce((a, x) => a + x.gross, 0);
-    const sg = cShare('gen'), sb = cShare('bb'), net = gG - gC, part = Math.round(Math.max(0, net) * sg + bG * sb), loss = net < 0 ? Math.round(-net * sg) : 0;
-    if (loss) { W.debt += loss; W.debt0 = Math.max(W.debt0, W.debt); }
-    const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0; W.debt -= repay; W.bal += part - repay;
-    const pm = addMonths(mon, -1), st = { id: uid(), mon, period: pm, at: Date.now(), gG, gC, bG, sg, sb, part, loss, repay, pay: part - repay, items: items.map(x => ({ src: x.src, title: x.title, gross: x.gross, cost: x.cost })) };
+    const c = settleCalc(items), part = c.part, fines = c.fines;
+    const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0; W.debt -= repay; W.bal += part - repay - fines;
+    const pm = addMonths(mon, -1), st = { id: uid(), v: 2, mon, period: pm, at: Date.now(), part, fines, repay, pay: part - repay, lines: c.lines };
     (W.stmts || (W.stmts = [])).unshift(st); if (W.stmts.length > 24) W.stmts.length = 24;
     for (const x of items) x.st = 'done';
     W.recv = W.recv.filter(x => x.st !== 'done');
-    W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算${loss ? `（亏损 ${won(loss)} 计入欠款）` : ''}`, auto: true });
-    pushNotif({ type: 'system', text: `📑 ${+pm.slice(5)} 月结算明细已发放`, sub: `实际入账 ${won(part - repay)}${repay ? ` · 还欠款 ${won(repay)}` : ''}${loss ? ` · 亏损 ${won(loss)} 计入欠款` : ''}` }, true);
+    W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算`, auto: true });
+    if (fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -fines, cat: '违约金 / 罚款', note: `${+pm.slice(5)} 月违约金 / 罚款`, auto: true });
+    pushNotif({ type: 'system', text: `📑 ${+pm.slice(5)} 月结算明细已发放`, sub: `实际入账 ${won(part - repay)}${repay ? ` · 还欠款 ${won(repay)}` : ''}${fines ? ` · 违约金 / 罚款 -${won(fines)}` : ''}` }, true);
   }
 }
 function settleHTML() {
@@ -1918,17 +1982,16 @@ function settleHTML() {
   const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), st = (W.stmts || [])[0];
   const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
   return `<div class="card"><b style="font-size:14px">📑 结算</b>
-    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R, 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${+st.period.slice(5)} 月 · ${won(st.pay)}` : '还没有'}</b></div></div>
+    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R.filter(x => x.gross > 0 || FINE_SRC.includes(x.src)), 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${+st.period.slice(5)} 月 · ${won(st.pay - (st.fines || 0))}` : '还没有'}</b></div></div>
     ${pend.length ? `<details class="me-more"><summary>待付款明细</summary>${pend.slice().sort((a, b) => a.payAt.localeCompare(b.payAt)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · 预计 ${x.payAt.slice(5).replace('-', '/')} 前付款</div></span><b>${won(x.gross)}</b></div>`).join('')}</details>` : ''}
-    ${R.some(x => x.cost > 0) ? `<details class="me-more"><summary>待扣费用明细</summary>${R.filter(x => x.cost > 0).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.src === '活动经费' ? '经纪人活动经费' : x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · ${esc({ 行程: '通告成本', 课程: '课时费', 活动经费: '车费 · 餐费 · 临时采购', 取消违约金: '当天取消违约金', 旷工罚款: '旷工罚款', 专辑制作: '专辑制作 / 宣传' }[x.src] || x.src)}${x.why && x.src !== '活动经费' ? ' · ' + esc(x.why) : ''}</div></span><b>-${won(x.cost)}</b></div>`).join('')}</details>` : ''}
+    ${R.some(x => x.cost > 0 && (x.gross > 0 || FINE_SRC.includes(x.src))) ? `<details class="me-more"><summary>待扣费用明细</summary>${R.filter(x => x.cost > 0 && (x.gross > 0 || FINE_SRC.includes(x.src))).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.src === '活动经费' ? '经纪人活动经费' : x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · ${esc({ 行程: '直接成本', 课程: '课时费', 活动经费: '车费 · 餐费 · 临时采购', 取消违约金: '当天取消违约金', 旷工罚款: '旷工罚款', 专辑制作: '专辑制作 / 宣传' }[x.src] || x.src)}${x.why && x.src !== '活动经费' && x.why !== x.src ? ' · ' + esc(x.why) : ''}</div></span><b>-${won(x.cost)}</b></div>`).join('')}</details>` : ''}
     ${st ? `<details class="me-more"><summary>${+st.period.slice(5)} 月结算明细</summary>
-      <div class="rule"><span style="flex:1">活动收入</span><b>${won(st.gG)}</b></div><div class="rule"><span style="flex:1">扣除费用</span><b>-${won(st.gC)}</b></div>
-      <div class="rule"><span style="flex:1">活动分成（你 ${Math.round(st.sg * 100)}%）</span><b>${won(Math.max(0, Math.round((st.gG - st.gC) * st.sg)))}</b></div>
-      ${st.bG ? `<div class="rule"><span style="flex:1">泡泡 ${won(st.bG)} × ${Math.round(st.sb * 100)}%</span><b>${won(Math.round(st.bG * st.sb))}</b></div>` : ''}
-      ${st.loss ? `<div class="rule"><span style="flex:1">活动亏损计入欠款</span><b style="color:var(--danger)">${won(st.loss)}</b></div>` : ''}
+      ${(st.lines || []).filter(l => !l.fine).map(l => `<div class="rule"><span style="flex:1;min-width:0">${esc(l.title)}<div class="muted" style="font-size:12px">${esc(l.label)} · ${won(l.gross)}${l.cost ? ` - 直接成本 ${won(l.cost)}${l.why ? `（${esc(l.why)}）` : ''}` : ''} × 你 ${Math.round(l.ratio * 100)}%</div></span><b>${won(l.pay)}</b></div>`).join('')}
+      <div class="rule"><span style="flex:1">你的份额合计</span><b>${won(st.part)}</b></div>
+      ${(st.lines || []).filter(l => l.fine).map(l => `<div class="rule"><span style="flex:1;min-width:0">${esc(l.src)}<div class="muted" style="font-size:12px">${esc(l.title)}</div></span><b style="color:var(--danger)">-${won(l.fine)}</b></div>`).join('')}
       ${st.repay ? `<div class="rule"><span style="flex:1">还练习生欠款</span><b>-${won(st.repay)}</b></div>` : ''}
-      <div class="rule"><span style="flex:1"><b>实际支付</b></span><b style="color:var(--accent)">${won(st.pay)}</b></div>
-      <div class="muted" style="font-size:12px;margin-top:6px">${st.items.map(x => `${esc(x.title)}${x.gross ? ' +' + won(x.gross) : ''}${x.cost ? ' -' + won(x.cost) : ''}`).join(' · ')}</div></details>` : ''}
+      <div class="rule"><span style="flex:1"><b>实际支付</b></span><b style="color:var(--accent)">${won(st.pay - (st.fines || 0))}</b></div>
+    </details>` : ''}
   </div>`;
 }
 // 每天的「运气」：慢慢漂移，偶尔突然爆一下
@@ -2179,10 +2242,12 @@ function walletHTML() {
   <div class="card"><b style="font-size:14px">📄 专属合同</b>
     <div class="wct"><div><span>合同</span><b>第 ${C.no} 份 · ${TIERS[C.tier].name}</b></div><div><span>期限</span><b>${C.start} ~ ${C.end}</b></div>
       <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
-      <div><span>活动分成</span><b>你 ${Math.round(T.gen * 100)}% · 公司 ${100 - Math.round(T.gen * 100)}%</b></div><div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
+      <div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
-    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：行程成本和活动经费由公司垫付，结算时从收入里扣；每月 15 日结算已到账收入并提供明细（到账后 45 日内支付）；${C.stepUp ? '练习生欠款还清后活动分成提高 10%；' : ''}合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
-    ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（活动 ${TIERS[C.offer.tier].gen * 100}% / 泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
+    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：每月 15 日结算已到账收入并提供明细（到账后 45 日内支付）；合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
+    <details class="me-more"><summary>收入分成比例</summary>${SPLITS.map(([r, l]) => `<div class="rule"><span style="flex:1">${l}</span><b>你 ${Math.round(r * 100)}% · 公司 ${100 - Math.round(r * 100)}%</b></div>`).join('')}<div class="rule"><span style="flex:1">常规音乐节目打歌</span><b>不单独计算通告收入</b></div>
+      <div class="muted" style="font-size:12px;line-height:1.7;margin-top:6px">按可分配收入分：活动收入 - 合同允许扣除的直接成本。可以扣的只有实际发生、和这场活动直接相关的：外包舞者、额外设备、自办活动的场地、临时聘请的专业人员（编舞 / 音响师 / 翻译 / 摄影），不是每场都有。<br>公司承担、不扣你的：经纪人和工作人员工资、公司车、打歌 / 音乐节目 / 电台 / 综艺通告安排、MV / Dance Practice / 宣传视频制作、办公室练习室租金、常规宣传培训运营。特殊费用另有约定的单独处理，不自动算作你的欠款。</div></details>
+    ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
   </div>`;
 }
 
@@ -2600,7 +2665,7 @@ function mgrFacts(t) {
     const dd = +today.slice(8), st = (W.stmts || [])[0], doneToday = st && st.mon === mon && dkey(st.at) === today, nm = +next.slice(5);
     // 问「今天是不是结算日 / 什么时候结算」
     if (/정산일|정산 날|정산하는 날|언제 정산|오늘.*정산|结算日|几号结算|什么时候结算|今天.*结算/.test(t)) {
-      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [['네 오늘이에요!', '对，就是今天！'], [`${+st.period.slice(5)}월분 들어갔을 거예요. ${krw(st.pay)}이요`, `${+st.period.slice(5)} 月的应该到了，${krw(st.pay)}`]] : [['네 오늘이긴 한데', '是今天倒是'], ['이번엔 들어갈 게 없더라고요ㅠ 입금 아직 안 된 건 다음 달에 같이 들어가요', '这次没有能结的ㅠ 还没到账的下个月一起']];
+      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [['네 오늘이에요!', '对，就是今天！'], [`${+st.period.slice(5)}월분 들어갔을 거예요. ${krw(st.pay - (st.fines || 0))}이요`, `${+st.period.slice(5)} 月的应该到了，${krw(st.pay - (st.fines || 0))}`]] : [['네 오늘이긴 한데', '是今天倒是'], ['이번엔 들어갈 게 없더라고요ㅠ 입금 아직 안 된 건 다음 달에 같이 들어가요', '这次没有能结的ㅠ 还没到账的下个月一起']];
       const left = dd < SETTLE_DAY ? SETTLE_DAY - dd : null;
       return left ? [`이번 달 ${SETTLE_DAY}일이에요. ${left === 1 ? '내일이네요!' : `${left}일 남았어요.`}`, `这个月 ${SETTLE_DAY} 号，${left === 1 ? '就是明天！' : `还有 ${left} 天。`}`] : [`이번 달 정산은 끝났고, 다음은 ${nm}월 ${SETTLE_DAY}일이에요.`, `这个月已经结算过了，下次是 ${nm} 月 ${SETTLE_DAY} 日。`];
     }
@@ -3336,9 +3401,9 @@ function tgSettle(k, r, key, today) {
   if (!c.done) {
     if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没去练习，能力没有提升', at: Date.now() }; return 'done'; }
     const e = schedEcon(r) || { cost: 0 }, { fine, fm } = tgFine(r), lose = Math.round(f * rand(.002, .004) * fm);
-    addFans(-lose, '旷工：' + r.title); walletDeal(0, e.cost + fine, '旷工罚款', r.title, `成本 + 罚款 ${won(fine)}`);
-    R[key] = { grade: '旷', note: `旷工了。掉粉 ${fmtNum(lose)}，公司按成本加罚款扣钱`, fans: -lose, at: Date.now() };
-    pushNotif({ type: 'sched', text: `⚠️ 「${r.title}」旷工了`, sub: `掉粉 ${fmtNum(lose)} · 公司罚款计入欠款` }, true);
+    addFans(-lose, '旷工：' + r.title); walletDeal(0, fine, '旷工罚款', r.title, '旷工罚款');
+    R[key] = { grade: '旷', note: `旷工了。掉粉 ${fmtNum(lose)}，结算时扣罚款 ${won(fine)}`, fans: -lose, at: Date.now() };
+    pushNotif({ type: 'sched', text: `⚠️ 「${r.title}」旷工了`, sub: `掉粉 ${fmtNum(lose)} · 罚款 ${won(fine)} 下次结算时扣` }, true);
     return 'done';
   }
   const sc = .45 * c.score + .35 * skillScore(r.cat) + .2 * Math.random(), grade = sc >= .72 ? 'S' : sc >= .58 ? 'A' : sc >= .42 ? 'B' : 'C';
