@@ -1109,9 +1109,21 @@ function dailyFans() {
   F.lastDaily = today;
   if (idleDays) pushNotif({ type: 'system', text: `已经 ${idleDays} 天没营业了，粉丝在流失…`, sub: '发条帖子或者开个直播吧，粉丝们很想你' }, false);
 }
+// 物料拍摄不是公开行程：拍完 5～10 天成片公开，粉丝这时才看到、才涨粉
+function relQueue(r, n, endAt) { const F = fanState(); (F.relQ || (F.relQ = [])).push({ title: r.title, n, at: endAt + rand(5, 10) * 86400e3 }); }
+function relTick() {
+  const F = fanState(), now = Date.now(); if (!F.relQ || !F.relQ.length) return;
+  for (const q of F.relQ.filter(q => q.at <= now)) {
+    const t = q.title, bts = /MV 拍摄|封面|预告照/.test(t), n = Math.round(q.n * (bts ? .6 : 1));
+    addFans(n, '公开：' + t);
+    pushNotif({ type: 'sched', text: bts ? `「${t}」的拍摄花絮公开了，涨粉 +${n}` : `「${t}」公开了，涨粉 +${n}`, sub: /画报/.test(t) ? '粉丝在疯狂保存图' : /广告/.test(t) ? '广告一出，路人也在问这是谁' : /挑战|Dance Practice/.test(t) ? '视频被转发了好多次' : pick(['粉丝终于等到了！', '评论区都在夸你', '新粉丝涌进社区打招呼']) }, false);
+  }
+  F.relQ = F.relQ.filter(q => q.at > now);
+}
 // 公开行程结束后涨粉
 function schedFans() {
   const F = fanState(), now = new Date(), today = dkey(now), nowMin = now.getHours() * 60 + now.getMinutes();
+  relTick();
   // 补救：通告做完了却因为「事后补录」被跳过、没出结果的，重新结算
   { const R = S.schedule.res || {}, T = tgState(); for (const k of Object.keys(F.credited)) if (k >= addDays(today, -2) && !R[k] && T.cards[k] && T.cards[k].done) delete F.credited[k]; }
   for (const k of [addDays(today, -2), addDays(today, -1), today]) for (const r of rulesFor(k)) {
@@ -1124,9 +1136,10 @@ function schedFans() {
     if (st === 'wait') continue; // 通告还没做完，等到今天结束
     { const x = (S.schedule.res || {})[key]; if (r.gift && !(x && x.grade === '旷')) giftPay(key, r, r.gift); }
     F.credited[key] = 1;
-    if (g) F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
+    if (g && r.cat !== '物料') F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
     if (st === 'done' || !g) continue;
     const n = Math.round(rand(g[0], g[1]) * folRatio() * heat());
+    if (r.cat === '物料') { relQueue(r, n, endAt); walletSchedFee(r); continue; }
     addFans(n, '行程：' + r.title); walletSchedFee(r);
     pushNotif({ type: 'sched', text: `「${r.title}」结束，涨粉 +${n}`, sub: pick(['路人被圈粉了！', '直拍在网上小火了一把', '新粉丝涌进社区打招呼', '有人剪了你的高光片段']) }, false);
   }
@@ -1138,7 +1151,7 @@ function eventsNear() {
   for (let i = -2; i <= 3; i++) {
     const k = addDays(today, i);
     for (const r of rulesFor(k)) {
-      if (!EVENT_GAIN[r.cat] || r.repeat === 'daily') continue;
+      if (!EVENT_GAIN[r.cat] || r.repeat === 'daily' || r.cat === '物料') continue; // 物料拍摄不公开，粉丝不知道
       const past = i < 0 || (i === 0 && toMin(r.end) <= nowMin);
       const when = i === -2 ? '前天' : i === -1 ? '昨天' : i === 0 ? '今天' : i === 1 ? '明天' : i === 2 ? '后天' : '周' + WD[parseD(k).getDay()];
       out.push({ title: r.title.replace(/^[^《]*《([^》]+)》.*$/, '《$1》'), cat: r.cat, when, past });
@@ -1211,7 +1224,7 @@ const HOT_EVENTS = [
     opts: [{ t: '发一段清唱', task: { where: 'any', need: 'sound', hint: '在泡泡或社区发一段清唱（语音或视频）' }, r: [[.55, .01, .025, '清唱被夸，口碑反转'], [.45, -.006, .002, '被说「急了」，又吵了一轮']] },
       { t: '让粉丝别吵', task: { where: 'any', need: 'text', hint: '在泡泡或社区跟粉丝说一声' }, r: [[.6, 0, .008, '粉丝冷静下来了'], [.4, -.006, 0, '帖子还是被顶上去了']] },
       { t: '不看不理', r: [[.5, -.008, -.001, '帖子越传越远'], [.5, 0, .004, '很快就没人讨论了']] }] },
-  { id: 'late', min: 0, w: 1, neg: 1, sc: ['打歌', '综艺', '电台', '物料', '签售', '公演', '校庆', '活动', '演唱会'], au: ['现场repo', '路人'], title: '{name} 迟到', body: '「{e}」那天 {name} 好像迟到了几分钟，有人拍到工作人员在门口等。',
+  { id: 'late', min: 0, w: 1, neg: 1, sc: ['打歌', '综艺', '电台', '签售', '公演', '校庆', '活动', '演唱会'], au: ['现场repo', '路人'], title: '{name} 迟到', body: '「{e}」那天 {name} 好像迟到了几分钟，有人拍到工作人员在门口等。',
     talk: ['堵车了吧', '迟到几分钟而已', '不要被带节奏', '后面不是好好完成了吗'],
     opts: [{ t: '解释一下', task: { where: 'any', need: 'text', hint: '在泡泡或社区说明一下' }, r: [[.5, 0, .008, '大家表示理解'], [.5, -.008, -.002, '被说找借口']] },
       { t: '简单说声抱歉', task: { where: 'any', need: 'text', hint: '在泡泡或社区说一声' }, r: [[.6, -.002, .006, '态度被夸'], [.4, -.006, 0, '有人觉得没必要，反而又被讨论']] },
@@ -3295,15 +3308,16 @@ function tgSettle(k, r, key, today) {
     note = `${SKILLS.find(x => x[0] === sk)[1]} +${n.toFixed(1)}${c.hurt ? ' · 练太猛有点拉伤，体能 -2' : ''}`; if (c.hurt) skills().stamina -= 2;
   } else {
     const g = EVENT_GAIN[r.cat] || [10, 40]; fans = Math.round(rand(g[0], g[1]) * folRatio() * heat() * { S: 1.6, A: 1.2, B: 1, C: .6 }[grade]);
-    addFans(fans, '行程：' + r.title); walletSchedFee(r, mult);
+    if (r.cat === '物料') { relQueue(r, fans, parseD(k).getTime() + toMin(r.end) * 60e3); fans = 0; } else addFans(fans, '行程：' + r.title); walletSchedFee(r, mult);
     for (const [s, w] of Object.entries(CAT_SKILL[r.cat] || {})) skillUp(s, .3 * w);
-    note = pick(TG_NOTE[grade]);
-    if (grade === 'S' && Math.random() < .35) { const H = hotState(); if (!H.forced && HOT_EVENTS.some(e => e.id === 'sched')) H.forced = { id: 'sched', e: r.title, q: '', at: Date.now() + rand(1, 5) * 3600e3 }; }
+    note = pick(r.cat === '物料' ? TG_NOTE_SHOOT[grade] : TG_NOTE[grade]) + (r.cat === '物料' ? ' · 成片 5～10 天后公开' : '');
+    if (grade === 'S' && r.cat !== '物料' && Math.random() < .35) { const H = hotState(); if (!H.forced && HOT_EVENTS.some(e => e.id === 'sched')) H.forced = { id: 'sched', e: r.title, q: '', at: Date.now() + rand(1, 5) * 3600e3 }; }
   }
   R[key] = { grade, note, fans, pick: c.pickText, at: Date.now() };
   pushNotif({ type: 'sched', text: `「${r.title}」结束 · 表现 ${grade}`, sub: `${note}${fans ? ` · 涨粉 +${fans}` : ''}` }, false);
   return 'done';
 }
+const TG_NOTE_SHOOT = { S: ['摄影师一直夸你，成片肯定好看', '一次就过，现场工作人员都在鼓掌'], A: ['拍得很顺利', '导演很满意'], B: ['顺利拍完了', '拍了挺久，总算收工'], C: ['状态不太好，补拍了好几次', '表情有点僵，后期要多修修'] };
 const TG_NOTE = { S: ['全场最佳，工作人员都在夸你', '片段当晚就被转疯了', '粉丝说今天的你闪闪发光'], A: ['表现很好，反响不错', '粉丝很满意', '顺利又出彩'], B: ['中规中矩，顺利完成', '没什么失误，也没太大亮点'], C: ['有点紧张，发挥一般', '状态不太好，下次加油'] };
 
 function walletPreview() { const v = $('#w-in')?.value || '', m = parseMoney(v, $('#w-cur').value), el = $('#w-prev'); UI.wCur = $('#w-cur').value; if (el) el.innerHTML = m && m.krw ? `${EXP_CATS[guessCat(v, m.krw)].ic} ${guessCat(v, m.krw)} · ${m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]} → ` : ''}<b>${won(m.krw)}</b> <span class="rmb">${rmb(m.krw)}</span> · ${UI.wCat || guessCat(v)}` : ''; }
