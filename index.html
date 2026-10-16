@@ -1766,12 +1766,12 @@ function luxTick() {
     if ((paidRecently || bday) && W.bal - amt >= 800000) { buy(amt, pick(LUX_B) + (bday ? '（生日礼物送自己）' : '')); W.luxB = now + rand(180, 365) * D; } else W.luxB = now + rand(15, 30) * D; // 等一笔像样的结算或生日
   }
 }
-// 不手动记的零碎个人消费：每月 10 日固定扣一笔，60～130 万韩元
+// 不手动记的零碎个人消费：每月 10 日固定扣一笔，70～150 万韩元
 const MISC_DAY = 10;
 function miscTick() {
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
   if (+today.slice(8) < MISC_DAY || W.miscMon === mon) return; W.miscMon = mon;
-  const amt = Math.round((600000 + 700000 * srng('misc' + mon)()) / 1000) * 1000;
+  const amt = Math.round((700000 + 800000 * srng('misc' + mon)()) / 1000) * 1000;
   W.bal -= amt; W.tx.unshift({ id: uid(), at: parseD(`${mon}-${String(MISC_DAY).padStart(2, '0')}`).getTime() + 9 * 3600e3, amt: -amt, cat: '个人消费', note: `${+mon.slice(5)} 月零碎个人消费`, auto: true });
   W.tx.sort((a, b) => b.at - a.at);
 }
