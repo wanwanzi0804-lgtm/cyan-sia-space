@@ -203,7 +203,8 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-n{font-size:12px;color:var(--muted);margin-bottom:2px}
 .kk-b{background:#fff;color:#1d2329;border-radius:4px 14px 14px 14px;padding:8px 11px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .kk-b.me{background:#fee500;border-radius:14px 4px 14px 14px}
-.kk-t{font-size:10.5px;color:var(--muted);flex:none}
+.kk-t{font-size:10.5px;color:var(--muted);flex:none;text-align:right}
+.kk-1{display:block;color:#e6b800;font-weight:700;font-size:11px;line-height:1.2}
 .kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
 .kk-act .btn{white-space:normal;line-height:1.35;height:auto;padding-top:7px;padding-bottom:7px}
 .kk-row>div{min-width:0}
@@ -2435,6 +2436,7 @@ const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
   if ((M.repFix || 0) < 5) { M.repFix = 5; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if (M.readAt === undefined) M.readAt = M.replyAt ? Math.max(0, ...M.chat.filter(m => !m.me).map(m => m.at)) : Date.now(); // 以前的消息都算已读（还在等回复的除外）
   if (!M.meFix) { M.meFix = 1; for (let j = M.chat.length - 1; j >= 0; j--) { const m = M.chat[j], r = m.card && m.res; if (!r || r === '已过期' || r === '已处理' || (M.chat[j + 1] && M.chat[j + 1].me)) continue; const k = r === '已接' ? 'ok' : r === '已签约' ? 'dealOk' : r === '不准备' ? 'giftNo' : /^准备/.test(r) ? 'giftOk' : m.card.type === 'deal' ? 'dealNo' : 'no', [ko, zh] = pick(ME_SAY[k]), nx = M.chat[j + 1]; M.chat.splice(j + 1, 0, { id: uid(), at: nx ? Math.min(m.at + 60e3, nx.at - 1) : m.at + 60e3, text: ko, zh, me: true }); } } // 之前点过的卡片补上你那句回复
   if ((M.topicFix || 0) < 1) { M.topicFix = 1; for (let j = 1; j < M.chat.length; j++) { const m = M.chat[j]; if (m.me || m.card || !/^(오늘|내일|모레)은 (이렇게 있어요|일정 없어요)/.test(m.text || '')) continue; let i = j - 1; const qs = []; while (i >= 0 && M.chat[i].me) qs.unshift(M.chat[i--].text); if (!qs.length) continue; const a = mgrTopic(qs.join('\n'), i); if (a) { m.text = a[0]; m.zh = a[1]; } } } // 之前答非所问的回复改成针对那件事的回答
   if (!M.specV) { M.specV = 1; for (const o of M.offers || []) { if (o.popup || o.note) continue; const sp = offerSpec(o.title, o.loc); if (!sp.note) continue; const old = o.title; o.title = sp.title; o.loc = sp.loc; o.note = sp.note; const m = M.chat.find(c => c.card && c.card.type === 'offer' && c.card.id === o.id); if (m) { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; m.text = toKo(`${o.title} ${md} 섭외 왔어요. ${o.note[0]} 할까요?`); m.zh = `${o.title} ${mz} 来邀约了。${o.note[1]}接吗？`; } } } // 已发的笼统邀约补上具体内容
@@ -2457,11 +2459,19 @@ function mgrSplit(t) {
   if (ks.length >= 2 && ks.length === zs.length && !ko.includes('\n') && Math.random() < .7) return ks.map((k, i) => [k, zs[i]]);
   return [[ko, zh]];
 }
+// 你发的消息也配翻译：写韩语配中文，写中文配韩语。开了 AI 用 AI，没开就用在线翻译
+async function trText(text, to) {
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `把用户给的这句话翻译成自然的${to === 'ko' ? '韩语（对经纪人说话的口吻，礼貌但亲近）' : '简体中文'}。只输出译文。`, messages: [{ role: 'user', content: text }] }); const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); if (out) return out; } catch (e) { } }
+  try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
+  try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
+  return '';
+}
+async function mgrTrMe(m) { if (m.zh || m._tr) return; m._tr = 1; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh'); m._tr = 0; if (out && out !== m.text) { m.zh = out; save(); mgrRefresh(); } }
 // 点卡片上的按钮 = 你回了一句话
 const ME_SAY = { ok: [['할게요!', '接！'], ['네 할게요', '嗯，接吧'], ['좋아요 해요!', '好啊，接！']], no: [['이번엔 패스할게요', '这次就算了'], ['이건 안 할래요', '这个不接了'], ['죄송한데 이번엔 못 할 것 같아요', '不好意思，这次不行']],
   giftNo: [['이번엔 안 해도 될 것 같아요', '这次就不用了'], ['괜찮아요 이번엔 패스!', '没事，这次先不了！']], giftOk: [['이렇게 준비해 주세요!', '就按这个准备吧！'], ['이걸로 부탁드려요~', '就这些，拜托啦～']],
   dealOk: [['할게요! 진행해 주세요', '签！推进吧'], ['좋아요 계약해요', '好，签约吧']], dealNo: [['이건 거절할게요', '这个拒绝吧'], ['이번 광고는 안 할래요', '这个代言不接了']] };
-function mgrMe(k) { const [ko, zh] = pick(ME_SAY[k]), M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); mgrRefresh(); }
+function mgrMe(k) { const [ko, zh] = pick(ME_SAY[k]), M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); M.readPlan = Date.now() + 700; mgrRefresh(); }
 function mgrReply(t, now) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 900 + Math.random() * 2200 : now ? 200 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
 function mgrResolve(type, id, res) { const m = (mgrChat().chat || []).find(x => x.card && x.card.type === type && x.card.id === id); if (m && !m.res) m.res = res; mgrRefresh(); }
 function mgrRefresh() { if (UI.mgrOpen && $('#mgr-log')) { const el = $('#mgr-log'); el.innerHTML = mgrLogHTML(); el.scrollTop = el.scrollHeight; hydrate(el); } else if (UI.tab === 'kkt' && !UI.mgrOpen) render(); }
@@ -2547,7 +2557,7 @@ function mgrLogHTML() {
   const M = mgrChat(), tr = UI.mgrTr !== false; let lastDay = '';
   return M.chat.map(m => { const dk = dkey(m.at), t = new Date(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
     const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
-    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${hm}</span><div class="kk-b me">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">매니저</div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
+    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${m.at > (mgr().readAt || 0) ? '<b class="kk-1">1</b>' : ''}${hm}</span><div class="kk-b me">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">매니저</div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
 }
 function mgrChatHTML() {
   return `<div class="row"><h3 style="flex:1">🧑‍💼 매니저</h3><button class="btn ghost sm" data-act="mgrtr">${UI.mgrTr !== false ? '隐藏翻译' : '显示翻译'}</button><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
@@ -2743,8 +2753,10 @@ async function mgrRespond(text) {
 function mgrDelay() { const x = Math.random(); return 1000 * (x < .5 ? rand(4, 15) : x < .85 ? rand(20, 90) : rand(120, 360)); }
 let mgrBusy = false;
 function mgrReplyTick() {
-  const M = mgrChat(); if (!M.replyAt || Date.now() < M.replyAt || mgrBusy) return;
-  M.replyAt = 0; let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
+  const M = mgrChat();
+  if (M.readPlan && Date.now() >= M.readPlan) { M.readPlan = 0; M.readAt = Date.now(); mgrRefresh(); }
+  if (!M.replyAt || Date.now() < M.replyAt || mgrBusy) return;
+  M.replyAt = 0; M.readAt = Math.max(M.readAt || 0, Date.now()); let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
   const pend = M.chat.slice(i + 1).filter(m => m.me); if (!pend.length) return;
   mgrBusy = true; mgrRespond(pend.map(m => m.text).join('\n')).finally(() => { mgrBusy = false; save(); });
 }
@@ -5258,7 +5270,7 @@ document.addEventListener('click', async e => {
     case 'ofok': { mgrMe('ok'); mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
       S.schedule.rules.push({ id: rid, title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrMe('no'); mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
-    case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'mgropen': { const M = mgrChat(); M.chat.filter(m => m.me && !m.zh).slice(-30).forEach(mgrTrMe); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
     case 'mgift': { const m = mgrChat().chat.find(x => x.id === t.dataset.mid); if (!m) break; const r = S.schedule.rules.find(x => x.id === m.card.id); if (!r) break; const tp = t.dataset.t, sel = m.card.sel || (m.card.sel = []);
@@ -5271,7 +5283,8 @@ document.addEventListener('click', async e => {
     case 'gbfok': { let n = 0, sum = 0; for (const el of $$('[data-gbf]')) { const val = giftMultiVal(el.dataset.gbf); if (!val) { (S.giftPaid || (S.giftPaid = {}))[el.dataset.gbf] = -1; continue; } const key = el.dataset.gbf, [k, rid] = key.split('|'), r = S.schedule.rules.find(x => x.id === rid); if (!r) continue; sum += giftPay(key, r, val, true); n++; } S.giftBF2 = 1; save(); closeModal(); render(); if (n) toast('补上了 🎁', `${n} 个行程 · ${won(sum)}`); break; }
     case 'gbfskip': for (const el of $$('[data-gbf]')) (S.giftPaid || (S.giftPaid = {}))[el.dataset.gbf] = -1; S.giftBF2 = 1; save(); closeModal(); render(); break;
     case 'gbfopen': { const l = giftBackfillList(); if (l.length) openModal(giftBackfillHTML(l)); else toast('没有可以补选的行程', '最近两周结束的公开行程都处理过了'); break; }
-    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: v, me: true }); M.replyAt = Math.max(M.replyAt || 0, Date.now() + 5000, Date.now() + (M.replyAt ? 0 : mgrDelay())); mgrRefresh(); save(); break; }
+    case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; const M = mgrChat(), nm = { id: uid(), at: Date.now(), text: v, me: true }; M.chat.push(nm); mgrTrMe(nm); M.replyAt = Math.max(M.replyAt || 0, Date.now() + 5000, Date.now() + (M.replyAt ? 0 : mgrDelay())); if (!M.readPlan || M.readPlan < Date.now()) M.readPlan = Math.max(Date.now() + 3000, M.replyAt - rand(3, 40) * 1000); // 先已读（1 消失），过一会儿才回
+ mgrRefresh(); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
