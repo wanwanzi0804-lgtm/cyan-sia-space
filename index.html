@@ -2401,7 +2401,7 @@ const kd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}(${WDK[parseD(dk).getDay()]}
 const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
-  if (!M.repFix) { M.repFix = 1; for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = Math.min(m.at, mgrReportAt(dk)); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if ((M.repFix || 0) < 2) { M.repFix = 2; for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
   if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
   return M;
 }
@@ -2439,7 +2439,7 @@ function mgrChatter() {
 }
 function viewKkt() { return `<div class="sec-title">💬 KKT</div>${mgrCardHTML()}`; }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
-function mgrReportAt(dk) { return parseD(dk).getTime() + (21 + 6 * srng('rep' + dk)()) * 3600e3; }
+function mgrReportAt(dk) { const r = srng('rep2' + dk); return parseD(dk).getTime() + ((21 + Math.floor(r() * 6)) * 60 + 1 + Math.floor(r() * 58)) * 60e3 + Math.floor(r() * 59) * 1e3; } // 21:01~02:58 之间随机到分钟
 function mgrReport() {
   const M = mgrChat(), now = Date.now(), today = dkey(now);
   for (const dk of [addDays(today, -1), today]) {
@@ -2476,7 +2476,11 @@ function mgrReportText(dk) {
   if (paid.length) notes.push([`주최 측 입금 확인: ${paid.map(x => toKo(x.title)).join(', ')} (정산일에 반영)`, `主办方已付款：${paid.map(x => x.title).join('、')}（结算日计入）`]);
   for (const m of (mgrChat().memos || []).filter(m => m.dk === dk)) {
     if (m.cancel) { for (const it of m.cancel) notes.push([`일정 취소: ${toKo(it.title)} (사유: ${(m.reason || [])[0] || '아티스트 개인 사정'}${it.pen ? `, 당일 취소 위약금 ${krw(it.pen)}` : ''})`, `取消行程：${it.title}（原因：${(m.reason || [])[1] || '艺人个人原因'}${it.pen ? `，当天取消违约金 ${krw(it.pen)}` : ''}）`]); continue; }
-    if (m.text.startsWith('取消：')) { notes.push([`일정 취소: ${toKo(m.text.slice(3)).replace(/当天取消，违约金/g, '당일 취소, 위약금')}`, `取消行程：${m.text.slice(3)}`]); continue; }
+    if (m.text.startsWith('取消：') || /취소|取消|推掉|退掉|빼/.test(m.text)) { // 旧格式的取消记录：从当时聊天里找原因
+      const said = mgrChat().chat.filter(c => c.me && Math.abs(c.at - m.at) < 15 * 60e3 && /취소|取消|推掉|退掉|빼|못 가|去不了/.test(c.text)).map(c => c.text).join(' ') || m.text, rs = cancelReason(said);
+      const body = m.text.startsWith('取消：') ? m.text.slice(3) : '', pen = (body.match(/违约金 ([\d,]+)원/) || [])[1], ttl = body.replace(/（.*?）/g, '');
+      notes.push(ttl ? [`일정 취소: ${toKo(ttl)} (사유: ${rs[0]}${pen ? `, 당일 취소 위약금 ${pen}원` : ''})`, `取消行程：${ttl}（原因：${rs[1]}${pen ? `，当天取消违约金 ${pen}원` : ''}）`] : [`일정 취소 요청 (사유: ${rs[0]})`, `取消行程请求（原因：${rs[1]}）`]); continue;
+    }
     notes.push([`아티스트 요청사항: ${toKo(m.text)}`, `艺人交代：${m.text}`]);
   }
   both(''); both('■ 특이사항', '■ 特别事项');
