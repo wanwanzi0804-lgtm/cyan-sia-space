@@ -4829,8 +4829,13 @@ function giftOpts(cat) { const out = []; for (const [k, g] of Object.entries(GIF
 function giftInfo(code) { if (!code) return null; const [k, i] = code.split(':'), g = GIFTS[k]; if (!g) return null; const sz = g.sizes[+i] || g.sizes[0]; return { k, g, sz, label: g.name + (sz[0] ? ' · ' + sz[0] : '') }; }
 function giftPay(key, r, code, late) {
   const G = giftInfo(code); if (!G) return 0; const P = S.giftPaid || (S.giftPaid = {}); if (P[key]) return 0;
-  const amt = Math.round((G.sz[1] + (G.sz[2] - G.sz[1]) * srng('gift' + key)()) / 10000) * 10000;
-  P[key] = amt; walletSpend(amt, '粉丝回礼', `${late ? '（补）' : ''}${r.title} · ${G.label}`);
+  // 金额看余额：手头越宽裕越往档位上限靠；不够就缩减规模，绝不让余额变负
+  const bal = wallet().bal, pos = clamp(bal / (G.sz[2] * 4), 0, 1), x = .5 * srng('gift' + key)() + .5 * pos;
+  let amt = Math.round((G.sz[1] + (G.sz[2] - G.sz[1]) * x) / 10000) * 10000, note = `${late ? '（补）' : ''}${r.title} · ${G.label}`;
+  const cap = bal - Math.max(100000, bal * .1); // 留一点生活费
+  if (amt > cap) { amt = Math.floor(Math.max(0, cap) / 10000) * 10000; note += '（预算不够，缩小了规模）'; }
+  if (amt < 30000) { P[key] = -1; pushNotif({ type: 'system', text: `🎁 ${r.title} 的粉丝回礼没能准备`, sub: '余额不够了，这次先算了' }, true); return 0; }
+  P[key] = amt; walletSpend(amt, '粉丝回礼', note);
   const M = S.fanMem || (S.fanMem = []); M.push({ at: Date.now(), k: G.k, title: r.title }); if (M.length > 20) M.splice(0, M.length - 20);
   return amt;
 }
@@ -5107,6 +5112,7 @@ document.addEventListener('click', async e => {
     case 'wadd': {
       const text = $('#w-in').value.trim(), m = parseMoney(text, $('#w-cur').value); if (!m || !m.krw) { toast('没识别到金额', '比如：打车 15加币'); break; }
       const cat = guessCat(text, m.krw);
+      if (m.krw > wallet().bal) { toast('余额不够', `现在只有 ${won(Math.max(0, wallet().bal))}`); break; }
       const note = text.replace(/\d[\d,.]*\s*(万|千|k|w)?/gi, '').replace(/加币|加元|cad|c\$|ca\$|美元|美金|usd|us\$|日元|日币|円|jpy|港币|港元|hkd|欧元|eur|€|韩元|韩币|원|krw|won|₩|人民币|rmb|cny|元|块|¥|￥|\$/gi, '').trim() || cat;
       walletSpend(m.krw, cat, note, m.cur !== 'KRW' ? `${m.n} ${FX_NAME[m.cur]}` : ''); save(); render(); toast('记下了 ✏️', `${cat} · ${won(m.krw)}`); break;
     }
