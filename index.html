@@ -282,6 +282,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .hot-opt:active{background:var(--bg)}
 .tg-cus{margin-top:2px}
 .gpick{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.loc-q{display:flex;gap:6px;margin-top:6px}
 .gm-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .gpick select{flex:1;min-width:120px}
 .tg-cus summary{cursor:pointer;color:var(--accent);font-size:14px;padding:6px 2px}
@@ -4726,7 +4727,7 @@ PRESETS['物料'] = PRESETS['物料'].filter(([t]) => !/画报|广告/.test(t));
 PRESETS['公演'] = [...UNIV_FEST, ...PRESETS['公演'].filter(([t]) => !/歌谣大祝祭|歌谣大战|歌谣大祭典/.test(t))];
 const CAT_ORDER = ['练习', '签售', '上课', '电台', '公演', '综艺', '活动', '物料', '打歌', '演唱会', '其他'];
 // 其他：艺人自己在宿舍 / 工作室处理的个人工作（没有通告卡、收入和罚款）
-PRESETS['其他'] = [['个人工作', '宿舍'], ['个人工作', '工作室'], ['音乐创作', '工作室'], ['线上会议', '宿舍']];
+PRESETS['其他'] = [['个人工作', '宿舍'], ['音乐创作', '宿舍'], ['线上会议', '宿舍']];
 { const P = { ...PRESETS }; for (const k of Object.keys(PRESETS)) delete PRESETS[k]; for (const c of CAT_ORDER) PRESETS[c] = P[c]; }
 // 经纪人接下来的行程：后台只能看，不能改 / 删
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
@@ -4809,7 +4810,7 @@ function adminHTML(edit) {
     <div class="field" style="margin-top:8px"><label>标题</label><input id="r-title" value="${esc(r.title)}" placeholder="选择预设或直接输入"></div>
     <div class="grid2">
       <div class="field"><label>类别</label><select id="r-cat">${CAT_ORDER.map(c => `<option ${c === r.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
-      <div class="field"><label>地点</label><input id="r-loc" value="${esc(r.loc)}"></div>
+      <div class="field"><label>地点</label><input id="r-loc" value="${esc(r.loc)}"><div class="loc-q" id="r-locq" style="${r.cat === '其他' ? '' : 'display:none'}">${['宿舍', '工作室'].map(l => `<button class="pcat ${r.loc === l ? 'on' : ''}" data-act="rlocq" data-l="${l}">${l}</button>`).join('')}</div></div>
       <div class="field"><label>开始时间</label><input type="time" id="r-start" value="${r.start}"></div>
       <div class="field"><label>结束时间</label><input type="time" id="r-end" value="${r.end}"></div>
     </div>
@@ -4893,6 +4894,8 @@ function giftBackfillHTML(list) {
     <div class="card">${list.map(x => `<div class="field"><label>${x.k.slice(5).replace('-', '/')} · ${esc(x.r.title)}</label><div data-gbf="${x.key}">${giftMultiHTML(x.key, x.r.cat, '')}</div></div>`).join('')}</div>
     <div class="row"><button class="btn ghost" data-act="gbfskip">都没有</button><span class="sp"></span><button class="btn primary" data-act="gbfok">补上</button></div>`;
 }
+// 「其他」类：地点一键选宿舍 / 工作室
+function locQSync() { const q = $('#r-locq'); if (!q) return; q.style.display = $('#r-cat').value === '其他' ? '' : 'none'; $$('#r-locq .pcat').forEach(b => b.classList.toggle('on', b.dataset.l === $('#r-loc').value)); }
 function saveRule() {
   const title = $('#r-title').value.trim(); if (!title) return toast('请填写标题');
   const r = { id: $('#r-id').value || uid(), title, cat: $('#r-cat').value, start: $('#r-start').value || '09:00', end: $('#r-end').value || '10:00', loc: $('#r-loc').value.trim(), repeat: $('#r-rep').value, days: $$('#r-days-f input:checked').map(i => +i.value), date: $('#r-date').value, note: $('#r-note').value.trim() };
@@ -5139,8 +5142,9 @@ document.addEventListener('click', async e => {
       toast('🎲 随机到：' + it[1], it[2] ? '📍 ' + it[2] : '记得填时间');
       $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
     }
+    case 'rlocq': $('#r-loc').value = t.dataset.l; locQSync(); break;
     case 'preset': {
-      $('#r-title').value = t.dataset.t; $('#r-cat').value = t.dataset.c; $('#r-loc').value = t.dataset.l;
+      $('#r-title').value = t.dataset.t; $('#r-cat').value = t.dataset.c; $('#r-loc').value = t.dataset.l; locQSync();
       $$('.preset').forEach(x => x.classList.toggle('on', x === t));
       $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
     }
@@ -5259,6 +5263,7 @@ document.addEventListener('click', async e => {
   }
 });
 document.addEventListener('change', async e => {
+  if (e.target.id === 'r-cat') locQSync();
   if (e.target.dataset && e.target.dataset.gtype !== undefined) { const t = e.target, box = t.closest('.gpick'); box.outerHTML = giftPickHTML(t.dataset.gtype, t.dataset.gcat, t.value ? t.value + ':0' : ''); return; }
   const t = e.target;
   if (t.id === 'cmp-file') {
