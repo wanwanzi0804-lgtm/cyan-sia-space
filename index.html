@@ -4727,6 +4727,7 @@ function viewSched() {
     ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
     <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done && tgOpen(c)).length || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
+  ${giftBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="gbfopen">🎁 有 ${giftBackfillList().length} 个已结束的行程可以补选粉丝回礼 ›</button></div>` : ''}
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
     ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
@@ -4843,9 +4844,10 @@ function giftPay(key, r, code, late) {
 // 粉丝最近收到的逆应援：几天内会被提起
 function giftLine() { const m = (S.fanMem || []).filter(x => Date.now() - x.at < 4 * 86400e3); if (!m.length) return null; const x = pick(m); return fill(pick(GIFTS[x.k].mem)); }
 // 已经结束的行程：一次性补选
+// 有结果、或者旧版本已结算过的都算去了
 function giftBackfillList() {
   const today = dkey(Date.now()), R = S.schedule.res || {}, P = S.giftPaid || {}, out = [];
-  for (let i = 0; i <= 14; i++) { const k = addDays(today, -i); for (const r of rulesFor(k)) { const key = k + '|' + r.id, x = R[key]; if (!x || x.grade === '旷' || !GIFT_CATS.includes(r.cat) || P[key] || r.gift) continue; out.push({ key, r, k }); } }
+  for (let i = 0; i <= 14; i++) { const k = addDays(today, -i); for (const r of rulesFor(k)) { const key = k + '|' + r.id, x = R[key]; if (!(x || fanState().credited[key]) || (x && ['旷', '缺'].includes(x.grade)) || !GIFT_CATS.includes(r.cat) || P[key] || r.gift) continue; out.push({ key, r, k }); } }
   return out.slice(0, 20);
 }
 function giftBackfillHTML(list) {
@@ -5159,8 +5161,9 @@ document.addEventListener('click', async e => {
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
     case 'mgift': { const r = S.schedule.rules.find(x => x.id === t.dataset.id); if (!r) break; r.gift = t.dataset.g; const G = giftInfo(r.gift); mgrResolve('gift', r.id, G ? '准备：' + G.label : '不准备'); mgrReply(G ? [['네 준비해둘게요!', '好，我去准备！'], [`비용은 당일 정산돼요`, '费用当天从你那边扣']] : ['네 알겠어요~', '好的～']); save(); break; }
-    case 'gbfok': { let n = 0, sum = 0; for (const el of $$('[data-gbf]')) { if (!el.value) continue; const key = el.dataset.gbf, [k, rid] = key.split('|'), r = S.schedule.rules.find(x => x.id === rid); if (!r) continue; sum += giftPay(key, r, el.value, true); n++; } S.giftBF = 1; save(); closeModal(); render(); if (n) toast('补上了 🎁', `${n} 个行程 · ${won(sum)}`); break; }
-    case 'gbfskip': S.giftBF = 1; save(); closeModal(); break;
+    case 'gbfok': { let n = 0, sum = 0; for (const el of $$('[data-gbf]')) { if (!el.value) { (S.giftPaid || (S.giftPaid = {}))[el.dataset.gbf] = -1; continue; } const key = el.dataset.gbf, [k, rid] = key.split('|'), r = S.schedule.rules.find(x => x.id === rid); if (!r) continue; sum += giftPay(key, r, el.value, true); n++; } S.giftBF2 = 1; save(); closeModal(); render(); if (n) toast('补上了 🎁', `${n} 个行程 · ${won(sum)}`); break; }
+    case 'gbfskip': for (const el of $$('[data-gbf]')) (S.giftPaid || (S.giftPaid = {}))[el.dataset.gbf] = -1; S.giftBF2 = 1; save(); closeModal(); render(); break;
+    case 'gbfopen': { const l = giftBackfillList(); if (l.length) openModal(giftBackfillHTML(l)); else toast('没有可以补选的行程', '最近两周结束的公开行程都处理过了'); break; }
     case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: v, me: true }); M.replyAt = Math.max(M.replyAt || 0, Date.now() + 5000, Date.now() + (M.replyAt ? 0 : mgrDelay())); mgrRefresh(); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
@@ -5302,7 +5305,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
-setTimeout(() => { if (S.giftBF) return; const l = giftBackfillList(); if (!l.length) { S.giftBF = 1; save(); return; } openModal(giftBackfillHTML(l)); }, 1500);
+setTimeout(() => { if (S.giftBF2) return; const l = giftBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; openModal(giftBackfillHTML(l)); }, 2500);
 setInterval(flushAgg, 6000);
 setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
 window.addEventListener('beforeunload', () => { S.sim.lastTick = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } });
