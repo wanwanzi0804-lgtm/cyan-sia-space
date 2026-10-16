@@ -1829,8 +1829,10 @@ function dedCost(title, gross, seed, orig = 0) {
   if (!(gross > 0)) return { cost: 0, why: '' };
   const r = srng('ded' + seed), it = [], add = (n, a, b) => it.push([n, Math.round((a + (b - a) * r()) / 10000) * 10000]);
   const overseas = /海外|KCON|东京|大阪|横滨|台北|香港|曼谷|新加坡|洛杉矶|JAPAN|World Tour/.test(title), stage = /大学(?!路)|庆典|大东祭|入实典|AKARAKA|LUCAUS|商演|音乐节|Waterbomb|Dream Concert|中场表演/.test(title);
-  if (stage || overseas) { if (r() < (overseas ? .6 : .35)) add('外包舞者', 500000, 1200000); if (r() < .15) add('额外设备租赁（音响 / 灯光）', 300000, 1000000); if (overseas && r() < .5) add('临时翻译', 200000, 500000); }
-  if (/见面会|生日会|线下签售|签名会|Fan ?Meeting/i.test(title) && !/视频通话|线上|唱片店|商场|咖啡/.test(title) && r() < .5) add('场地租赁（自办）', 300000, 1500000);
+  const self = /见面会|生日会|线下签售|签名会|Fan ?Meeting/i.test(title) && !/视频通话|线上|唱片店|商场|咖啡/.test(title);
+  if (!(stage || overseas || self) || r() >= .4) return { cost: 0, why: '' }; // 能扣直接成本的活动里，大约 40% 真的会产生
+  if (stage || overseas) { if (r() < .75) add('外包舞者', 500000, 1200000); if (r() < .25) add('额外设备租赁（音响 / 灯光）', 300000, 1000000); if (overseas && r() < .5) add('临时翻译', 200000, 500000); if (!it.length) add('临时聘请编舞 / 音响师', 300000, 800000); }
+  else add('场地租赁（自办）', 300000, 1500000);
   const cost = Math.min(it.reduce((a, x) => a + x[1], 0), Math.round(gross * .6));
   return { cost, why: it.map(x => x[0]).join(' · ') };
 }
@@ -1948,6 +1950,7 @@ function splitFix() {
 }
 function financeTick() {
   ledgerMigrate();
+  { const W = wallet(); if (W.splitV && (W.dedV || 0) < 2) { W.dedV = 2; for (const x of W.recv || []) if (x.src === '行程' && x.gross > 0 && x.st !== 'done') { const d = dedCost(x.title, x.gross, x.id + x.title, x.cost); x.cost = d.cost; x.why = d.why; } } } // 直接成本改成约 40% 概率，未结算的重算
   for (const x of wallet().tx) if (x.cat === '粉丝回礼' && !x.auto && / · (小礼物|打歌逆应援|咖啡车|零食车|特别活动逆应援)/.test(x.note || '')) x.auto = true; // 回礼是按行程自动扣的，不能手动删
   penFix(); splitFix();
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
@@ -3257,11 +3260,17 @@ function tgCard(k, r) {
   const evs = r.cat === '公演' && UNIV_RE.test(r.title) ? TG_EVENTS['校庆'] : TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
   // 剧情事件为主，小游戏偶尔出现
-  const cands = evs.map(f => { try { return f(r); } catch (e) { return null; } }).filter(Boolean); if (!cands.length) return null;
+  // 同一天不重复：别的行程今天已经用过的事件 / 同一种小游戏都跳过；事件池里重复的也只算一个
+  const sigOf = e => TG_GAME_KINDS.includes(e.kind) ? 'g:' + e.kind : String(e.d).split(r.title).join('§');
+  const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.key !== key).map(c => c.sig || (TG_GAME_KINDS.includes(c.kind) ? 'g:' + c.kind : String(c.d).split(c.title).join('§'))));
+  const uniq = es => { const seen = new Set(); return es.filter(e => { const g = sigOf(e); if (seen.has(g)) return false; seen.add(g); return true; }); };
+  let cands = uniq(evs.map(f => { try { return f(r); } catch (e) { return null; } }).filter(Boolean)); if (!cands.length) return null;
+  { const fresh = cands.filter(e => !used.has(sigOf(e))); if (fresh.length) cands = fresh; }
   const wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
-  let ev; if (sp.length && (popupOf(r) || rr() < .45)) ev = sp[Math.floor(rr() * sp.length)][1](r);
+  const spE = uniq(sp.map(x => { try { return x[1](r); } catch (e) { return null; } }).filter(e => e && !used.has(sigOf(e))));
+  let ev; if (spE.length && (popupOf(r) || rr() < .45)) ev = spE[Math.floor(rr() * spE.length)];
   else { let x = rr() * wts.reduce((a, b) => a + b, 0); ev = cands[cands.length - 1]; for (let i = 0; i < cands.length; i++) { x -= wts[i]; if (x <= 0) { ev = cands[i]; break; } } }
-  if (TG_GAME_KINDS.includes(ev.kind) && sp.length && rr() < .5) { const alt = cands.filter(e => !TG_GAME_KINDS.includes(e.kind)); if (alt.length) ev = alt[Math.floor(rr() * alt.length)]; }
+  if (TG_GAME_KINDS.includes(ev.kind) && spE.length && rr() < .5) { const alt = cands.filter(e => !TG_GAME_KINDS.includes(e.kind)); if (alt.length) ev = alt[Math.floor(rr() * alt.length)]; }
   if (ev.kind === 'photo') ev.photos = pickN(PHOTO, 6);
   if (ev.kind === 'quiz') { const W = ev.lang === 'en' ? EN_W : KO_W; ev.qs = pickN(W, 3).map(([w, m]) => ({ w, m, opts: pickN([m, ...pickN(W.filter(x => x[1] !== m), 3).map(x => x[1])], 4) })); }
   if (ev.kind === 'trivia') ev.qs = tgTrivia();
@@ -3269,9 +3278,17 @@ function tgCard(k, r) {
   if (ev.kind === 'song') { const tk = []; for (const a of disco()) for (const t of a.tracks) tk.push([t.name, t.title]); ev.songs = tk.length ? pickN(tk, Math.min(4, tk.length)) : [['翻唱一首别人的歌', false]]; }
   if (ev.kind === 'order' && !ev.items) { const T2 = salesTargets(k).trk, tk = Object.entries(T2).sort((a, b) => b[1] - a[1]).map(x => x[0].split('|').slice(1).join('|')); ev.items = pickN(tk.slice(0, 6), Math.min(5, tk.length)); ev.top = tk.slice(0, 2); ev.songsOrder = true; if (ev.items.length < 2) ev.items = ['开场曲（翻唱）', '你的歌', '互动环节', '安可']; }
   if (ev.kind === 'seq') ev.seqv = Array.from({ length: ev.n || 5 }, () => pick(['⬆️', '⬇️', '⬅️', '➡️']));
-  return T.cards[key] = { key, cat: r.cat, title: r.title, ...ev, done: false };
+  return T.cards[key] = { key, cat: r.cat, title: r.title, ...ev, sig: sigOf(ev), done: false };
 }
-function tgToday() { const k = dkey(Date.now()); return rulesFor(k).map(r => { const c = tgCard(k, r); if (c) c._start = r.start; return c; }).filter(Boolean); }
+function tgToday() {
+  const k = dkey(Date.now()), T = tgState(), seen = new Set();
+  return rulesFor(k).map(r => {
+    let c = tgCard(k, r); if (!c) return null; c._start = r.start;
+    const g = c.sig || (TG_GAME_KINDS.includes(c.kind) ? 'g:' + c.kind : String(c.d).split(c.title).join('§'));
+    if (seen.has(g) && !c.done && !c.opened) { delete T.cards[c.key]; c = tgCard(k, r); if (!c) return null; c._start = r.start; } // 还没打开过的重复通告换一个
+    seen.add(c.sig || g); return c;
+  }).filter(Boolean);
+}
 // 行程开始后才能做这张通告
 const tgOpen = c => { const n = new Date(); return !c._start || n.getHours() * 60 + n.getMinutes() >= toMin(c._start) - 10; }; // 开始前 10 分钟出现
 function tgListHTML() {
@@ -5374,7 +5391,7 @@ document.addEventListener('click', async e => {
     case 'crenew': { const W = wallet(), c = W.contract, o = c.offer; if (!o) break; const st = addDays(c.end, 1); W.contract = { no: c.no + 1, start: st, end: addDays(st.replace(/^\d{4}/, y => String(+y + o.years)), -1), tier: o.tier, repay: c.repay, stepUp: c.stepUp }; save(); render(); toast('续约成功 📄', `${TIERS[o.tier].name} · ${o.years} 年`); break; }
     case 'showres': openModal(showResHTML(t.dataset.k)); break;
     case 'tglist': UI.tgKey = null; TGG = null; openModal(tgListHTML()); break;
-    case 'tgopen': { const c0 = tgState().cards[t.dataset.k], r0 = c0 && S.schedule.rules.find(x => x.id === t.dataset.k.split('|')[1]); if (c0 && r0) c0._start = r0.start; if (c0 && !c0.done && !tgOpen(c0)) { toast('还没到时间', '行程开始前 10 分钟才能做'); break; } }
+    case 'tgopen': { const c0 = tgState().cards[t.dataset.k]; if (c0) c0.opened = 1; const _x = 0, r0 = c0 && S.schedule.rules.find(x => x.id === t.dataset.k.split('|')[1]); if (c0 && r0) c0._start = r0.start; if (c0 && !c0.done && !tgOpen(c0)) { toast('还没到时间', '行程开始前 10 分钟才能做'); break; } }
       UI.tgKey = t.dataset.k; UI.tgPh = []; UI.tgOrd = []; TGG = null; openModal(tgCardHTML(t.dataset.k)); break;
     case 'tgpick': { const c = tgState().cards[UI.tgKey], o = c.opts[+t.dataset.j]; tgFinish(rand(o[1], o[2]), o[0]); break; }
     case 'tgwrite': { const v = ($('#tg-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .25 : n < 10 ? .5 : n <= 100 ? .75 : .6; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; tgFinish(sc + rand(-.15, .2), v); break; }
