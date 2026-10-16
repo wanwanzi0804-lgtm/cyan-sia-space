@@ -1867,6 +1867,7 @@ function penFix() { const W = wallet(); if (!W.penFix) { W.penFix = 1; for (cons
 }
 function financeTick() {
   ledgerMigrate();
+  for (const x of wallet().tx) if (x.cat === '粉丝回礼' && !x.auto && / · (小礼物|打歌逆应援|咖啡车|零食车|特别活动逆应援)/.test(x.note || '')) x.auto = true; // 回礼是按行程自动扣的，不能手动删
   penFix();
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
   if (W.pend) { for (const k of Object.keys(W.pend)) if (k < today) { const P = W.pend[k], M = (W.salesM || (W.salesM = {}))[k.slice(0, 7)] || (W.salesM[k.slice(0, 7)] = { 音源: 0, 专辑: 0 }); M.音源 += P.音源 || 0; M.专辑 += (P.专辑 || 0) + (P.周边 || 0); delete W.pend[k]; } }
@@ -1904,6 +1905,7 @@ function settleHTML() {
   return `<div class="card"><b style="font-size:14px">📑 结算</b>
     <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R, 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${+st.period.slice(5)} 月 · ${won(st.pay)}` : '还没有'}</b></div></div>
     ${pend.length ? `<details class="me-more"><summary>待付款明细</summary>${pend.slice().sort((a, b) => a.payAt.localeCompare(b.payAt)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · 预计 ${x.payAt.slice(5).replace('-', '/')} 前付款</div></span><b>${won(x.gross)}</b></div>`).join('')}</details>` : ''}
+    ${R.some(x => x.cost > 0) ? `<details class="me-more"><summary>待扣费用明细</summary>${R.filter(x => x.cost > 0).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.src === '活动经费' ? '经纪人活动经费' : x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · ${esc({ 行程: '通告成本', 课程: '课时费', 活动经费: '车费 · 餐费 · 临时采购', 取消违约金: '当天取消违约金', 旷工罚款: '旷工罚款', 专辑制作: '专辑制作 / 宣传' }[x.src] || x.src)}${x.why && x.src !== '活动经费' ? ' · ' + esc(x.why) : ''}</div></span><b>-${won(x.cost)}</b></div>`).join('')}</details>` : ''}
     ${st ? `<details class="me-more"><summary>${+st.period.slice(5)} 月结算明细</summary>
       <div class="rule"><span style="flex:1">活动收入</span><b>${won(st.gG)}</b></div><div class="rule"><span style="flex:1">扣除费用</span><b>-${won(st.gC)}</b></div>
       <div class="rule"><span style="flex:1">活动分成（你 ${Math.round(st.sg * 100)}%）</span><b>${won(Math.max(0, Math.round((st.gG - st.gC) * st.sg)))}</b></div>
@@ -4860,6 +4862,7 @@ function giftMultiVal(id) { const box = $(`[data-gm="${CSS.escape(id)}"].gmulti`
 function giftMultiRows(id) { const box = $(`[data-gm="${CSS.escape(id)}"].gmulti`); return box ? [...box.querySelectorAll('[data-gtype]')].map(el => giftPickVal(el.dataset.gtype)) : []; }
 function giftPickVal(id) { const t = $(`[data-gtype="${CSS.escape(id)}"]`), z = $(`[data-gsize="${CSS.escape(id)}"]`); return t && t.value ? `${t.value}:${(z && z.value) || 0}` : ''; }
 function giftInfo(code) { if (!code) return null; const [k, i] = code.split(':'), g = GIFTS[k]; if (!g) return null; const sz = g.sizes[+i] || g.sizes[0]; return { k, g, sz, label: g.name + (sz[0] ? ' · ' + sz[0] : '') }; }
+const W0 = () => wallet();
 function giftPay(key, r, codes, late) {
   const P = S.giftPaid || (S.giftPaid = {}); if (P[key]) return 0;
   let total = 0;
@@ -4871,7 +4874,7 @@ function giftPay(key, r, codes, late) {
     const cap = bal - Math.max(100000, bal * .1); // 留一点生活费
     if (amt > cap) { amt = Math.floor(Math.max(0, cap) / 10000) * 10000; note += '（预算不够，缩小了规模）'; }
     if (amt < 30000) { pushNotif({ type: 'system', text: `🎁 ${r.title} 的${G.g.short}没能准备`, sub: '余额不够了，这次先算了' }, true); continue; }
-    walletSpend(amt, '粉丝回礼', note); total += amt;
+    walletSpend(amt, '粉丝回礼', note); W0().tx[0].auto = true; total += amt;
     const M = S.fanMem || (S.fanMem = []); M.push({ at: Date.now(), k: G.k, title: r.title }); if (M.length > 20) M.splice(0, M.length - 20);
   }
   P[key] = total || -1; return total;
