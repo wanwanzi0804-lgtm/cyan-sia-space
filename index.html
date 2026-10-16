@@ -5137,7 +5137,7 @@ document.addEventListener('click', async e => {
     case 'prand': {
       const list = presetMatches(); if (!list.length) break;
       let it = pick(list); for (let i = 0; i < 5 && it[1] === $('#r-title').value; i++) it = pick(list);
-      $('#r-title').value = it[1]; $('#r-cat').value = it[0]; $('#r-loc').value = it[2] || '';
+      $('#r-title').value = it[1]; $('#r-cat').value = it[0]; $('#r-loc').value = it[0] === '其他' ? pick(['宿舍', '工作室']) : it[2] || ''; locQSync();
       $$('.preset').forEach(x => x.classList.toggle('on', x.dataset.t === it[1] && x.dataset.l === (it[2] || '')));
       toast('🎲 随机到：' + it[1], it[2] ? '📍 ' + it[2] : '记得填时间');
       $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
