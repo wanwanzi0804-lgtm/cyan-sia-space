@@ -2376,8 +2376,17 @@ function mgrTick() {
   M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
   const o = mgrMakeOffer(); if (!o) return;
   M.offers.push(o);
-  { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; mgrSay([`${o.title} ${md} 섭외 왔어요. 할까요?`, `${o.title} ${mz} 来邀约了，接吗？`], { type: 'offer', id: o.id }); }
+  { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; mgrSay([`${o.title} ${md} 섭외 왔어요.${o.note ? ' ' + o.note[0] : ''} 할까요?`, `${o.title} ${mz} 来邀约了。${o.note ? o.note[1] : ''}接吗？`], { type: 'offer', id: o.id }); }
 }
+// 邀约的具体内容：笼统的活动名补上是哪部电影 / 哪部剧 / 哪个球队、在哪、要做什么
+const OFFER_SPEC = [
+  [/电影 VIP 试映会/, () => { const [m, mk, g, gk] = pick([['夜行列车', '야간열차', '悬疑', '스릴러'], ['那年夏天的我们', '그해 여름의 우리', '青春爱情', '청춘 로맨스'], ['第五个房间', '다섯 번째 방', '惊悚', '공포'], ['首尔漂流记', '서울 표류기', '喜剧', '코미디'], ['最后的告白', '마지막 고백', '爱情', '멜로'], ['无名之辈', '이름 없는 자들', '犯罪动作', '범죄 액션']]), [l, lk] = pick([['CGV 龙山 I\'Park Mall', 'CGV 용산아이파크몰'], ['乐天影院 世界塔', '롯데시네마 월드타워'], ['Megabox COEX', '메가박스 코엑스']]); return { title: `电影《${m}》VIP 试映会`, loc: l, ko: [[`电影《${m}》VIP 试映会`, `영화 〈${mk}〉 VIP 시사회`], [l, lk]], note: [`${gk} 영화예요. 포토월 서고 영화 보시면 돼요. 끝나고 SNS에 관람 인증 하나 올려주시면 되고 출연료는 없어요.`, `是部${g}片。在照片墙前拍照，然后看电影，结束后在SNS发一条观影认证就行，没有出演费。`] }; }],
+  [/音乐剧 \/ 话剧 观演/, () => { const [m, mk, l, lk] = pick([['蝴蝶夫人', '나비부인', '世宗文化会馆', '세종문화회관'], ['Rebecca', '레베카', 'Blue Square', '블루스퀘어'], ['Mozart!', '모차르트!', '世宗文化会馆', '세종문화회관'], ['Hedwig', '헤드윅', '弘益大 大学路 艺术中心', '홍익대 대학로 아트센터'], ['Death Note', '데스노트', 'D-Cube Arts Center', '디큐브아트센터']]); return { title: `音乐剧《${m}》观演`, loc: l, ko: [[`音乐剧《${m}》观演`, `뮤지컬 〈${mk}〉 관람`], [l, lk]], note: ['제작사 초청이에요. 공연 보고 끝나고 배우분들이랑 사진 한 장 찍는 정도예요.', '制作方邀请的。看完演出后和演员们拍张合照就行。'] }; }],
+  [/^公益活动$/, () => { const [t, tk, n, nk] = pick([['爱心煤球配送志愿', '연탄 배달 봉사', '오전에 연탄 나르는 봉사예요. 편한 옷 입고 오시면 돼요.', '上午搬运配送煤球的志愿活动，穿方便活动的衣服就行。'], ['流浪动物保护所志愿', '유기견 보호소 봉사', '보호소 청소랑 산책 봉사예요. 사진 몇 장 찍어요.', '去保护所打扫、遛狗，会拍几张照片。'], ['献血公益宣传', '헌혈 캠페인', '헌혈 캠페인 홍보 행사예요. 포스터 촬영이랑 짧은 인사 있어요.', '献血宣传活动，拍宣传照加简短致辞。']]); return { title: t, ko: [[t, tk]], note: [n, nk] }; }],
+  [/棒球开球仪式/, () => { const [t, tk] = pick([['LG Twins', 'LG 트윈스'], ['斗山 Bears', '두산 베어스'], ['SSG Landers', 'SSG 랜더스']]); return { title: `${t} 主场 棒球开球仪式`, ko: [[`${t} 主场 棒球开球仪式`, `${tk} 홈경기 시구`]], note: ['경기 시작 전에 시구하고 바로 나오는 일정이에요.', '比赛开始前开球，开完就走。'] }; }],
+  [/商场签名活动/, () => { const [l, lk] = pick([['Starfield 河南', '스타필드 하남'], ['现代百货 板桥店', '현대백화점 판교점'], ['Lotte World Mall', '롯데월드몰']]); return { title: `${l} 商场签名活动`, loc: l, ko: [[l, lk]], note: ['매장 이벤트 당첨자 대상 사인회예요. 한 시간 정도요.', '商场活动中奖顾客的签名会，大概一个小时。'] }; }]
+];
+function offerSpec(title, loc) { const f = OFFER_SPEC.find(([re]) => re.test(title)); if (!f) return { title, loc }; const r = f[1](); return { title: r.title, loc: r.loc || loc, note: r.note }; }
 function mgrMakeOffer() {
   const f = S.profile.followers, K = skills(), mo = new Date().getMonth() + 1, today = dkey(Date.now());
   const days = []; for (let i = 3; i <= 24; i++) { const k = addDays(today, i); if (offerDayOk(k)) days.push(k); }
@@ -2392,10 +2401,11 @@ function mgrMakeOffer() {
   let [title, loc] = pick(pool), pop = null;
   if (cat === '活动' && f < POP_MAX && Math.random() < .6) { pop = popupOffer(); title = pop.title; loc = pop.loc; }
   else if (/品牌/.test(title)) { const b = brandPick(uid(), /时装|秀场/.test(title) ? ['fashion'] : null)[0]; title = title.replace('品牌门店开业活动', `${b} 门店开业活动`).replace('品牌活动 / 快闪店', `${b} 快闪店活动`).replace('海外时装周 · 品牌秀场', `海外时装周 · ${b} 秀场`).replace(/品牌/, b); }
+  let sp = null; if (!pop) { sp = offerSpec(title, loc); title = sp.title; loc = sp.loc; }
   const date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
   const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
   const end = pop ? hhmm(sh * 60 + pop.dur) : `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`;
-  return { id: uid(), cat: cat === '校庆' ? '公演' : cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3, popup: pop ? pop.popup : undefined, partner: pop ? pop.partner : undefined };
+  return { id: uid(), cat: cat === '校庆' ? '公演' : cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3, popup: pop ? pop.popup : undefined, partner: pop ? pop.partner : undefined, note: sp && sp.note };
 }
 function hhmm(m) { return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }
@@ -2412,6 +2422,7 @@ const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
   if ((M.repFix || 0) < 5) { M.repFix = 5; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if (!M.specV) { M.specV = 1; for (const o of M.offers || []) { if (o.popup || o.note) continue; const sp = offerSpec(o.title, o.loc); if (!sp.note) continue; const old = o.title; o.title = sp.title; o.loc = sp.loc; o.note = sp.note; const m = M.chat.find(c => c.card && c.card.type === 'offer' && c.card.id === o.id); if (m) { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; m.text = toKo(`${o.title} ${md} 섭외 왔어요. ${o.note[0]} 할까요?`); m.zh = `${o.title} ${mz} 来邀约了。${o.note[1]}接吗？`; } } } // 已发的笼统邀约补上具体内容
   if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
   return M;
 }
@@ -2595,6 +2606,10 @@ const KO_DICT = [
   ['设计师包包品牌', '디자이너 가방 브랜드'], ['彩色隐形眼镜', '컬러렌즈'], ['设计师品牌', '디자이너 브랜드'], ['配饰品牌', '액세서리 브랜드'], ['音乐平台线下活动', '음원 플랫폼 오프라인 행사'], ['专辑销售店', '음반 판매점'], ['主题咖啡厅', '테마 카페'], ['咖啡品牌', '커피 브랜드'], ['文化空间', '문화 공간'], ['美妆店', '뷰티 스토어'], ['彩妆', '색조 화장품'], ['护肤', '스킨케어'], ['服饰', '패션'], ['饮料', '음료'], ['零食', '과자'], ['烘焙', '베이커리'], ['耳机', '이어폰'], ['猫粮', '고양이 사료'], ['手机壳', '휴대폰 케이스'], ['商场', '쇼핑몰'],
   ['打歌', '음악방송'], ['活动', '행사'], ['课', '수업'], ['《', '〈'], ['》', '〉'], ['（', '('], ['）', ')'], ['、', ', '], ['·', '·']
 ];
+KO_DICT.unshift(['电影《夜行列车', '영화 〈야간열차'], ['电影《那年夏天的我们', '영화 〈그해 여름의 우리'], ['电影《第五个房间', '영화 〈다섯 번째 방'], ['电影《首尔漂流记', '영화 〈서울 표류기'], ['电影《最后的告白', '영화 〈마지막 고백'], ['电影《无名之辈', '영화 〈이름 없는 자들'], ['》VIP 试映会', '〉 VIP 시사회'],
+  ['蝴蝶夫人', '나비부인'], ['音乐剧《', '뮤지컬 〈'], ['》观演', '〉 관람'], ['世宗文化会馆', '세종문화회관'], ['弘益大 大学路 艺术中心', '홍익대 대학로 아트센터'],
+  ['CGV 龙山 I\'Park Mall', 'CGV 용산아이파크몰'], ['乐天影院 世界塔', '롯데시네마 월드타워'], ['爱心煤球配送志愿', '연탄 배달 봉사'], ['流浪动物保护所志愿', '유기견 보호소 봉사'], ['献血公益宣传', '헌혈 캠페인'],
+  ['斗山 Bears', '두산 베어스'], ['主场 棒球开球仪式', '홈경기 시구'], ['Starfield 河南', '스타필드 하남'], ['现代百货 板桥店', '현대백화점 판교점']); // 邀约里具体的电影 / 剧目 / 地点
 function toKo(t) { let s = String(t || ''); for (const [a, b] of KO_DICT) s = s.split(a).join(b); return s; }
 const hasHan = t => /[一-鿿]/.test(t || '');
 // 还剩中文的话（自定义的行程名等），开了 AI 就请 AI 翻成韩语
