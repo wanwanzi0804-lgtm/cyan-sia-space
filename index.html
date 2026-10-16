@@ -2549,6 +2549,29 @@ function mgrChatHTML() {
 }
 // 回答：能用真实数据回答的直接答（韩语 + 中文）；其他的开了 AI 就让 AI 回，没开就简短回应
 const hm = r => `${r.start}${r.end ? '~' + r.end : ''}`;
+// 问的是哪件事：点名提到的行程 / 邀约，或者刚发来还没回的邀约（「几点结束？」就是在问它）
+function mgrTopic(t) {
+  if (!/[?？吗呢]|까\??$|요\??$|나요|어디|언제|몇|얼마|뭐|누구|几|哪|多少|什么|怎么/.test(t.trim())) return null;
+  if (/今天|明天|后天|오늘|내일|모레/.test(t)) return null; // 问的是某一天整体的日程
+  const M = mgrChat(), today = dkey(Date.now());
+  const items = [...M.offers.map(o => ({ ...o, offer: 1 })), ...S.schedule.rules.filter(r => r.repeat === 'once' && r.date >= today && !['练习', '上课', '其他'].includes(r.cat))];
+  const STOP = /^(일정|스케줄|행사|활동|촬영|이거|그거|저거|행程|行程|活动|日程|通告|那个|这个|몇시|언제|어디|얼마)$/;
+  const words = it => [...new Set(`${it.title} ${toKo(it.title)}`.split(/[\s〈〉《》()（）·\/,，:]+/).filter(w => w.length >= 2 && !STOP.test(w)))];
+  let it = items.find(x => words(x).some(w => t.includes(w)));
+  if (!it) { // 没点名：看你问之前经纪人最后发的是不是邀约
+    let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
+    const last = M.chat[i], o = last && last.card && last.card.type === 'offer' && M.offers.find(x => x.id === last.card.id);
+    if (o && /끝|시작|몇 ?시|언제|어디|얼마|출연료|페이|뭐|누구|무슨|几点|结束|开始|哪|多少|报酬|什么|谁|多久|오래|걸려/.test(t)) it = { ...o, offer: 1 };
+  }
+  if (!it) return null;
+  const d = `${+it.date.slice(5, 7)}월 ${+it.date.slice(8)}일`, dz = `${+it.date.slice(5, 7)}月${+it.date.slice(8)}日`, ko = toKo(it.title);
+  const dur = (toMin(it.end) - toMin(it.start)) / 60, durK = dur % 1 ? `${Math.floor(dur)}시간 반` : `${dur}시간`, durZ = dur % 1 ? `${Math.floor(dur)}个半小时` : `${dur}个小时`;
+  if (/끝|几点结束|结束|多久|오래|걸려/.test(t)) return pick([[`${it.end}쯤 끝나요. ${durK} 정도요`, `${it.end}左右结束，大概${durZ}`], [`${it.start}에 시작해서 ${it.end}쯤 끝날 거예요`, `${it.start}开始，${it.end}左右结束`]]);
+  if (/어디|哪/.test(t)) return it.loc ? [`${toKo(it.loc)}이요`, `在${it.loc}`] : ['장소는 아직 확정 전이에요. 나오면 알려줄게요', '地点还没定，定了告诉你'];
+  if (/얼마|출연료|페이|돈|多少|报酬|钱|酬劳/.test(t)) return it.fee && it.fee[1] ? [`${krw(it.fee[0])}~${krw(it.fee[1])} 정도 예상돼요`, `预计 ${krw(it.fee[0])}～${krw(it.fee[1])}`] : ['그건 출연료 없어요', '那个没有出演费'];
+  if (/뭐|무슨|什么|做|干嘛|누구|谁/.test(t)) return it.note ? [it.note[0], it.note[1]] : [`${ko} 일정이에요. ${d} ${it.start}~${it.end}`, `是${it.title}，${dz} ${it.start}～${it.end}`];
+  return [`${d} ${it.start}~${it.end}${it.loc ? `, ${toKo(it.loc)}` : ''}이에요`, `${dz} ${it.start}～${it.end}${it.loc ? `，在${it.loc}` : ''}`];
+}
 function mgrFacts(t) {
   if (/谢谢|感谢|辛苦|고마|감사|수고/.test(t) && !/[?？吗]/.test(t)) return null; // 道谢不是在问事情
   const W = wallet(), today = dkey(Date.now()), tm = addDays(today, 1), f = S.profile.followers;
@@ -2704,7 +2727,7 @@ async function mgrRespond(text) {
   const cancel = mgrCancel(text); if (cancel) { mgrReply(cancel, true); return; }
   const small = mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; }
   const req = /帮我|麻烦|记得|别忘|提醒|부탁|해주세요|해줘|말해|전달|챙겨/.test(text) && !/[?？吗]|까\??$/.test(text.trim());
-  const fact = req ? null : mgrFacts(text);
+  const fact = req ? null : (mgrTopic(text) || mgrFacts(text));
   if (!fact) { const memo = mgrMemo(text); if (memo) { mgrReply(memo, true); return; } }
   if (!fact && aiOn()) { try { const r = await mgrAi(text); if (r) { mgrReply(r, true); return; } } catch (e) { } }
   mgrReply(fact || mgrAnswer(text), true);
