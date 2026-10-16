@@ -205,6 +205,8 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-b.me{background:#fee500;border-radius:14px 4px 14px 14px}
 .kk-t{font-size:10.5px;color:var(--muted);flex:none}
 .kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.kk-act .btn{white-space:normal;line-height:1.35;height:auto;padding-top:7px;padding-bottom:7px}
+.kk-row>div{min-width:0}
 .kk-res{margin-top:6px;font-size:12px;color:#8a939c}
 .kk-zh{margin-top:6px;padding-top:6px;border-top:1px dashed #d5dbe0;font-size:12.5px;color:#6b7680}
 .offer-b{display:flex;flex-direction:column;gap:6px}
@@ -1116,6 +1118,7 @@ function schedFans() {
     if (r.createdAt && endAt < r.createdAt) { const c0 = tgState().cards[key]; if (!(c0 && c0.done)) { F.credited[key] = 1; continue; } } // 事后补录的行程：做了通告就照常结算，没做就不算（也不罚）
     let st; try { st = tgSettle(k, r, key, today); } catch (e) { console.error('settle', r.title, e); continue; }
     if (st === 'wait') continue; // 通告还没做完，等到今天结束
+    { const x = (S.schedule.res || {})[key]; if (r.gift && !(x && x.grade === '旷')) giftPay(key, r, r.gift); }
     F.credited[key] = 1;
     if (g) F.lastEvent = { title: r.title, cat: r.cat, at: Date.now() };
     if (st === 'done' || !g) continue;
@@ -1145,6 +1148,7 @@ const EV_TPL = {
   past: ['{w}的{e}怎么样呀？', '{e}辛苦了！', '{e}的直拍我看了好多遍', '{e}那天开心吗？', '{w}{e}太好看了！！', '{e}的造型好绝']
 };
 function eventLine() {
+  if (Math.random() < .5) { const g = giftLine(); if (g) return g; }
   const evs = eventsNear(); if (!evs.length) return null;
   const e = pick(evs);
   const pool = e.past ? EV_TPL.past : (['演唱会', '签售', '公演', '校庆'].includes(e.cat) ? EV_TPL.future.concat(EV_TPL.futureBig) : EV_TPL.future);
@@ -2140,7 +2144,7 @@ function walletHTML() {
     <div class="row" style="margin-top:8px;gap:6px"><input id="w-in" placeholder="比如：打车 15加币 / 剪发 ¥200 / 普拉提 45000" style="flex:1"><select id="w-cur" style="width:auto">${Object.keys(FX).map(k => `<option value="${k}" ${(UI.wCur || 'CAD') === k ? 'selected' : ''}>${FX_NAME[k]}</option>`).join('')}</select></div>
     <div class="muted" id="w-prev" style="font-size:12.5px;margin-top:6px"></div>
     <div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="wadd">记下</button></div>
-    <details class="me-more"><summary>粉丝回礼预设（点一下直接记）</summary><div class="w-pre">${EXP_CATS.粉丝回礼.pre.map(([n, a]) => `<button data-act="wpre" data-c="粉丝回礼" data-n="${esc(n)}" data-a="${a}">${esc(n)}<span>${won(a)}</span></button>`).join('')}</div></details>
+
   </div>
   ${Object.keys(byCat).length ? `<div class="card"><b style="font-size:14px">本月支出</b>${Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="w-cat"><span>${EXP_CATS[k]?.ic || '•'} ${esc(k)}</span><div class="w-bar sm"><i style="width:${Math.round(v / mx * 100)}%"></i></div><b>${won(v)}</b></div>`).join('')}</div>` : ''}
   ${settleHTML()}
@@ -2485,6 +2489,7 @@ function mgrCardHTML() {
 function mgrCardMsg(m) {
   if (!m.card) return '';
   if (m.card.type === 'offer') { const o = mgr().offers.find(x => x.id === m.card.id); return o && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="ofno" data-id="${o.id}">不接</button><button class="btn primary sm" data-act="ofok" data-id="${o.id}">接</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
+  if (m.card.type === 'gift') { const r = S.schedule.rules.find(x => x.id === m.card.id); return r && !m.res ? `<div class="kk-act" style="flex-direction:column;align-items:stretch">${[['', '이번엔 괜찮아요（不准备）'], ...giftOpts(m.card.cat)].map(([c, l]) => `<button class="btn ghost sm" data-act="mgift" data-id="${r.id}" data-g="${c}" style="text-align:left">${esc(l)}</button>`).join('')}</div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   if (m.card.type === 'deal') { const o = wallet().offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   return '';
 }
@@ -4752,6 +4757,7 @@ function adminHTML(edit) {
       <option value="daily" ${r.repeat === 'daily' ? 'selected' : ''}>每天</option></select></div>
     <div class="field" id="r-days-f"><label>星期</label><div class="days">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" value="${d}" ${(r.days || []).includes(d) ? 'checked' : ''}>周${WD[d]}</label>`).join('')}</div></div>
     <div class="field" id="r-date-f"><label>日期</label><input type="date" id="r-date" value="${r.date || UI.schedDate}"></div>
+    <div class="field"><label>粉丝回礼 / 逆应援 <span class="muted">（公开行程可选，结束时扣款）</span></label><select id="r-gift"><option value="">不准备</option>${giftOpts().map(([c, l]) => `<option value="${c}" ${r.gift === c ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>
     <div class="field"><label>备注</label><input id="r-note" value="${esc(r.note)}"></div>
     <div class="row"><span class="sp"></span>${edit ? '<button class="btn ghost" data-act="admin">取消编辑</button>' : ''}<button class="btn primary" data-act="rsave">${edit ? '保存修改' : '添加到行程'}</button></div>
   </div>
@@ -4769,6 +4775,37 @@ function syncRepFields() {
   $('#r-days-f').style.display = v === 'weekly' ? '' : 'none';
   $('#r-date-f').style.display = v === 'once' ? '' : 'none';
 }
+// 逆应援 / 粉丝回礼：每个公开行程可以选准备什么，行程结束时从你余额扣，粉丝会记得
+const GIFTS = {
+  small: { name: '小礼物（手写信 / 零食 / 饮料）', sizes: [['', 50000, 200000]], cats: ['签售', '活动', '公演', '演唱会'], mem: ['今天拿到了{n}准备的小礼物！！', '{n}的手写卡片我要裱起来', '签售送的零食舍不得吃', '{n}送的饮料上还贴了小猫贴纸'] },
+  rev: { name: '打歌逆应援（饮料 + 早餐）', sizes: [['30–50 份', 150000, 300000], ['50–100 份', 300000, 600000]], cats: ['打歌'], mem: ['早上打歌拿到{n}准备的三明治了呜呜', '{n}准备的早餐好暖心', '凌晨排队有饮料喝 太感动了', '打歌逆应援的饼干好好吃'] },
+  coffee: { name: '咖啡车（커피차）', sizes: [['小规模', 500000, 800000], ['常规', 800000, 1500000], ['定制', 1500000, 2000000]], cats: ['打歌', '签售', '活动', '公演'], mem: ['{n}的咖啡车！！杯套好可爱', '咖啡车上的照片我拍了好多张', '喝到{n}请的咖啡了', '咖啡车横幅上的{n}太好看了'] },
+  snack: { name: '零食车（간식차）', sizes: [['简单配送', 200000, 500000], ['小型零食车', 500000, 1000000], ['完整定制', 1000000, 1600000]], cats: ['打歌', '签售', '活动', '公演'], mem: ['零食车的热狗好好吃', '{n}的零食车太豪华了', '拿到零食车的小蛋糕了', '零食车排队的时候大家都好开心'] },
+  special: { name: '特别活动逆应援', sizes: [['普通小礼物', 100000, 300000], ['完整现场逆应援', 300000, 800000]], cats: ['签售', '活动', '公演', '演唱会', '打歌'], mem: ['{n}准备的礼物太用心了', '纪念日礼物收到了 好幸福', '{n}每次都这么宠粉', '特别准备的礼物我会珍藏一辈子'] }
+};
+const GIFT_CATS = ['打歌', '签售', '活动', '公演', '演唱会'];
+function giftOpts(cat) { const out = []; for (const [k, g] of Object.entries(GIFTS)) if (!cat || g.cats.includes(cat)) g.sizes.forEach((sz, i) => out.push([`${k}:${i}`, `${g.name}${sz[0] ? ' · ' + sz[0] : ''}（${fmtNum(sz[1] / 10000)}–${fmtNum(sz[2] / 10000)}万）`])); return out; }
+function giftInfo(code) { if (!code) return null; const [k, i] = code.split(':'), g = GIFTS[k]; if (!g) return null; const sz = g.sizes[+i] || g.sizes[0]; return { k, g, sz, label: g.name + (sz[0] ? ' · ' + sz[0] : '') }; }
+function giftPay(key, r, code, late) {
+  const G = giftInfo(code); if (!G) return 0; const P = S.giftPaid || (S.giftPaid = {}); if (P[key]) return 0;
+  const amt = Math.round((G.sz[1] + (G.sz[2] - G.sz[1]) * srng('gift' + key)()) / 10000) * 10000;
+  P[key] = amt; walletSpend(amt, '粉丝回礼', `${late ? '（补）' : ''}${r.title} · ${G.label}`);
+  const M = S.fanMem || (S.fanMem = []); M.push({ at: Date.now(), k: G.k, title: r.title }); if (M.length > 20) M.splice(0, M.length - 20);
+  return amt;
+}
+// 粉丝最近收到的逆应援：几天内会被提起
+function giftLine() { const m = (S.fanMem || []).filter(x => Date.now() - x.at < 4 * 86400e3); if (!m.length) return null; const x = pick(m); return fill(pick(GIFTS[x.k].mem)); }
+// 已经结束的行程：一次性补选
+function giftBackfillList() {
+  const today = dkey(Date.now()), R = S.schedule.res || {}, P = S.giftPaid || {}, out = [];
+  for (let i = 0; i <= 14; i++) { const k = addDays(today, -i); for (const r of rulesFor(k)) { const key = k + '|' + r.id, x = R[key]; if (!x || x.grade === '旷' || !GIFT_CATS.includes(r.cat) || P[key] || r.gift) continue; out.push({ key, r, k }); } }
+  return out.slice(0, 20);
+}
+function giftBackfillHTML(list) {
+  return `<div class="row"><h3 style="flex:1">🎁 补选粉丝回礼</h3></div><div class="muted" style="font-size:13px;margin-bottom:8px">这些行程已经结束了。如果当时有给粉丝准备东西，可以在这里补上，会照常扣款，粉丝也会记得。</div>
+    <div class="card">${list.map(x => `<div class="field"><label>${x.k.slice(5).replace('-', '/')} · ${esc(x.r.title)}</label><select data-gbf="${x.key}"><option value="">没有准备</option>${giftOpts(x.r.cat).map(([c, l]) => `<option value="${c}">${esc(l)}</option>`).join('')}</select></div>`).join('')}</div>
+    <div class="row"><button class="btn ghost" data-act="gbfskip">都没有</button><span class="sp"></span><button class="btn primary" data-act="gbfok">补上</button></div>`;
+}
 function saveRule() {
   const title = $('#r-title').value.trim(); if (!title) return toast('请填写标题');
   const r = { id: $('#r-id').value || uid(), title, cat: $('#r-cat').value, start: $('#r-start').value || '09:00', end: $('#r-end').value || '10:00', loc: $('#r-loc').value.trim(), repeat: $('#r-rep').value, days: $$('#r-days-f input:checked').map(i => +i.value), date: $('#r-date').value, note: $('#r-note').value.trim() };
@@ -4776,8 +4813,8 @@ function saveRule() {
   if (r.repeat === 'weekly' && !r.days.length) return toast('请至少选择一个星期');
   if (r.repeat === 'once' && !r.date) return toast('请选择日期');
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
-  r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now();
-  if (i >= 0) S.schedule.rules[i] = r; else S.schedule.rules.push(r);
+  r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now(); r.gift = ($('#r-gift') || {}).value || '';
+  if (i >= 0) S.schedule.rules[i] = { ...S.schedule.rules[i], ...r }; else S.schedule.rules.push(r);
   save(); UI.presetQ = ''; openModal(adminHTML()); syncRepFields(); render(); toast(i >= 0 ? '已保存' : '已添加行程', `${r.title} · ${r.start}-${r.end}`);
 }
 function schedReminders() {
@@ -5067,11 +5104,15 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); S.schedule.rules.push({ id: uid(), title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
+    case 'ofok': { mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
+      S.schedule.rules.push({ id: rid, title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr': UI.mgrTr = UI.mgrTr === false; openModal(mgrChatHTML()); { const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break;
     case 'mgrclose': UI.mgrOpen = false; closeModal(); render(); break;
+    case 'mgift': { const r = S.schedule.rules.find(x => x.id === t.dataset.id); if (!r) break; r.gift = t.dataset.g; const G = giftInfo(r.gift); mgrResolve('gift', r.id, G ? '准备：' + G.label : '不准备'); mgrReply(G ? [['네 준비해둘게요!', '好，我去准备！'], [`비용은 당일 정산돼요`, '费用当天从你那边扣']] : ['네 알겠어요~', '好的～']); save(); break; }
+    case 'gbfok': { let n = 0, sum = 0; for (const el of $$('[data-gbf]')) { if (!el.value) continue; const key = el.dataset.gbf, [k, rid] = key.split('|'), r = S.schedule.rules.find(x => x.id === rid); if (!r) continue; sum += giftPay(key, r, el.value, true); n++; } S.giftBF = 1; save(); closeModal(); render(); if (n) toast('补上了 🎁', `${n} 个行程 · ${won(sum)}`); break; }
+    case 'gbfskip': S.giftBF = 1; save(); closeModal(); break;
     case 'mgrsend': { const v = $('#mgr-in').value.trim(); if (!v) break; $('#mgr-in').value = ''; const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: v, me: true }); M.replyAt = Math.max(M.replyAt || 0, Date.now() + 5000, Date.now() + (M.replyAt ? 0 : mgrDelay())); mgrRefresh(); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
@@ -5213,6 +5254,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
+setTimeout(() => { if (S.giftBF) return; const l = giftBackfillList(); if (!l.length) { S.giftBF = 1; save(); return; } openModal(giftBackfillHTML(l)); }, 1500);
 setInterval(flushAgg, 6000);
 setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
 window.addEventListener('beforeunload', () => { S.sim.lastTick = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } });
