@@ -1861,8 +1861,12 @@ function ledgerMigrate() {
   W.debt = Math.max(0, Math.round(W.debt)); W.debt0 = Math.max(W.debt0, W.debt); W.bal = Math.round(W.bal);
   W.tx = keep; W.stmts = []; W.setMon = null;
 }
+// 一次性：旧规则算的当天取消违约金按新规则（8%，5～30 万）重算
+function penFix() { const W = wallet(); if (!W.penFix) { W.penFix = 1; for (const x of W.recv || []) if (x.src === '取消违约金' && x.st !== 'done') { const r = { title: x.title, cat: /签售|팬사인/.test(x.title) ? '签售' : /Music Bank|人气歌谣|音乐中心|M Countdown|THE SHOW|Show Champion|打歌/.test(x.title) ? '打歌' : '活动' }, { fine } = tgFine(r), pen = clamp(Math.round(fine * .08 / 10000) * 10000, 50000, 300000); if (pen < x.cost) { for (const m of mgrChat().memos || []) { m.text = m.text.split(`违约金 ${krw(x.cost)}`).join(`违约金 ${krw(pen)}`); for (const it of m.cancel || []) if (it.title === x.title && it.pen === x.cost) it.pen = pen; } x.cost = pen; } } }
+}
 function financeTick() {
   ledgerMigrate();
+  penFix();
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7);
   if (W.pend) { for (const k of Object.keys(W.pend)) if (k < today) { const P = W.pend[k], M = (W.salesM || (W.salesM = {}))[k.slice(0, 7)] || (W.salesM[k.slice(0, 7)] = { 音源: 0, 专辑: 0 }); M.音源 += P.音源 || 0; M.专辑 += (P.专辑 || 0) + (P.周边 || 0); delete W.pend[k]; } }
   // 音源 / 专辑：月底统计，平台下个月底付款
@@ -2403,7 +2407,7 @@ const kd = dk => `${+dk.slice(5, 7)}/${+dk.slice(8)}(${WDK[parseD(dk).getDay()]}
 const krw = n => Math.round(n).toLocaleString('en-US') + '원';
 function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
-  if ((M.repFix || 0) < 3) { M.repFix = 3; for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
+  if ((M.repFix || 0) < 4) { M.repFix = 4; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
   if ((M.chatV || 1) < 4) { M.chat = M.chat.filter(m => m.card && !m.res); M.memos = []; M.unread = 0; M.replyAt = 0; M.chatV = 4; } // 清空聊天记录和交代过的事（只留还没处理的邀约） // 旧的聊天记录清掉，只留还没处理的邀约
   return M;
 }
