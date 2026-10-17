@@ -3667,7 +3667,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, chalTick, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -5143,7 +5143,98 @@ function viewSched() {
       <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
       <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && TG_EVENTS[r.cat] ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
-  }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>`;
+  }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
+}
+/* =========================================================
+   🎬 Challenge 邀请：有活动的日子可以邀请别的艺人一起拍你的歌的挑战视频
+   同公司、好友基本都会答应；其他艺人要看咖位差
+   ========================================================= */
+// [团名, 韩文, 咖位 1~10, 成员 [韩文, 中文/英文]]
+const CH_SAME = [
+  ['MONSTA X', '몬스타엑스', 7.5, [['셔누', 'Shownu'], ['민혁', '玟赫'], ['기현', '基贤'], ['형원', '亨愿'], ['주헌', '周宪'], ['아이엠', 'I.M/昌均']]],
+  ['WJSN', '우주소녀', 6, [['설아', '雪娥'], ['보나', '苞娜'], ['엑시', 'EXY/秋昭贞'], ['수빈', '秀彬'], ['루다', '露多'], ['다원', '多愿'], ['은서', '恩熙'], ['여름', '夏天'], ['다영', '多荣'], ['연정', '延静']]],
+  ['CRAVITY', '크래비티', 7, [['세림', '世琳'], ['앨런', 'Allen'], ['정모', '廷谟'], ['우빈', '宇彬'], ['원진', '元进'], ['민희', '敏熙'], ['형준', '亨俊'], ['태영', '太煐'], ['성민', '成珉']]],
+  ['IVE', '아이브', 9.5, [['가을', '秋天'], ['안유진', '安宥真'], ['레이', 'Rei/直井怜'], ['장원영', '张元英'], ['리즈', 'Liz'], ['이서', '李瑞']]],
+  ['KiiiKiii', '키키', 7, [['이솔', 'Leesol'], ['수이', 'Sui'], ['지유', 'Jiyu'], ['하음', 'Haum'], ['키야', 'Kya']]],
+  ['IDID', '아이딧', 6.5, [['장용훈', '张容勋'], ['김민재', '金民载'], ['박원빈', '朴元彬'], ['추유찬', '秋裕赞'], ['박성현', '朴成贤'], ['백준혁', '白俊赫'], ['정세민', '郑世珉']]],
+  ['AEN', '에이엔', 4, [['지용', 'JIYONG'], ['보민', 'BOMIN'], ['규현', 'KYUHYUN'], ['하루', 'HARU'], ['하루토', 'HARUTO'], ['준서', 'JUNSEO'], ['카이라', 'KAIRA']]]
+];
+// 五代起、还在活动的团
+const CH_OTHERS = [
+  ['CORTIS', '코르티스', 9, [['마틴', 'Martin'], ['제임스', 'James'], ['주훈', '柱勋'], ['성현', '成贤'], ['건호', '建浩']]],
+  ['RIIZE', '라이즈', 9, [['쇼타로', 'Shotaro'], ['은석', '恩硕'], ['성찬', '圣灿'], ['원빈', '元彬'], ['소희', '昭希'], ['앤톤', 'Anton']]],
+  ['BOYNEXTDOOR', '보이넥스트도어', 9, [['성호', '晟豪'], ['리우', 'Riwoo'], ['명재현', '明宰铉'], ['태산', '泰山'], ['이한', '易汉'], ['운학', '云鹤']]],
+  ['BABYMONSTER', '베이비몬스터', 9, [['루카', 'Ruka'], ['파리타', 'Pharita'], ['아사', 'Asa'], ['아현', '雅贤'], ['라미', 'Rami'], ['로라', 'Rora'], ['치키타', 'Chiquita']]],
+  ['ILLIT', '아일릿', 8.5, [['윤아', '允儿'], ['민주', '珉周'], ['모카', 'Moka'], ['원희', '元熙'], ['이로하', 'Iroha']]],
+  ['TWS', '투어스', 8.5, [['신유', '信宥'], ['도훈', '道勋'], ['영재', '英宰'], ['한진', '韩振'], ['지훈', '志薰'], ['경민', '炅民']]],
+  ['NCT WISH', '엔시티 위시', 7.5, [['시온', 'Sion'], ['리쿠', 'Riku'], ['유우시', 'Yushi'], ['재희', '在熙'], ['료', 'Ryo'], ['사쿠야', 'Sakuya']]],
+  ['KISS OF LIFE', '키스오브라이프', 7.5, [['쥴리', 'Julie'], ['나띠', 'Natty'], ['벨', 'Belle'], ['하늘', 'Haneul']]],
+  ['ALLDAY PROJECT', '올데이 프로젝트', 7.5, [['애니', 'Annie'], ['타잔', 'Tarzzan'], ['베일리', 'Bailey'], ['우찬', '宇灿'], ['영서', '英瑞']]],
+  ['MEOVV', '미야오', 7, [['수인', '秀仁'], ['가원', '佳媛'], ['안나', 'Anna'], ['나린', '娜潾'], ['엘라', 'Ella']]],
+  ['Hearts2Hearts', '하츠투하츠', 7, [['지우', '智友'], ['카르멘', 'Carmen'], ['유하', '侑夏'], ['스텔라', 'Stella'], ['주은', '珠恩'], ['에이나', 'A-na'], ['이안', '伊安'], ['예온', '艺温']]],
+  ['UNIS', '유니스', 6.5, [['진현주', '陈贤珠'], ['나나', 'Nana'], ['젤리당카', 'Gehlee'], ['코토코', 'Kotoko'], ['방윤하', '方允夏'], ['엘리시아', 'Elisia'], ['오윤아', '吴允儿'], ['임서원', '林舒媛']]],
+  ['NEXZ', '넥스지', 6.5, [['토모야', 'Tomoya'], ['유우', 'Yu'], ['하루', 'Haru'], ['소건', '昭健'], ['세이타', 'Seita'], ['휴이', 'Hyui'], ['유키', 'Yuki']]],
+  ['KickFlip', '킥플립', 6.5, [['계훈', '桂勋'], ['아마루', 'Amaru'], ['동화', '东华'], ['주왕', '株旺'], ['민제', '珉齐'], ['케이주', 'Keiju'], ['동현', '东炫']]]
+];
+const CH_DAY_CATS = ['打歌', '综艺', '电台', '公演', '活动', '演唱会', '签售'];
+function chal() { const C = S.chal || (S.chal = { list: [], friends: [{ g: 'CRAVITY', n: '세림', z: '世琳' }] }); return C; }
+function chDayOk(k) { return k >= dkey(Date.now()) && rulesFor(k).some(r => CH_DAY_CATS.includes(r.cat)); }
+// 我的咖位：粉丝体量 + 热度 + 一位次数
+function myTier() { const f = S.profile.followers, wins = Object.values(showsState().res).filter(x => x.rank === 1).length; return clamp(2 + 2.2 * Math.log10(Math.max(f, 1000) / 5000) + 1.2 * (heat() - 1) + .25 * wins, 1, 10); }
+function chFind(g, n) { for (const [kind, L] of [['same', CH_SAME], ['other', CH_OTHERS]]) { const G = L.find(x => x[0] === g); if (G) { const m = G[3].find(x => x[0] === n); if (m) return { kind, g, gk: G[1], tier: G[2], n, z: m[1] }; } } const fr = chal().friends.find(x => x.g === g && x.n === n); return fr ? { kind: 'friend', g, gk: g, tier: 5, n, z: fr.z || '' } : null; }
+function chKind(p) { return chal().friends.some(x => x.n === p.n && (x.g === p.g || !x.g)) ? 'friend' : p.kind; }
+function chSongs() { const out = []; for (const a of relList().slice().reverse()) for (const t of a.tracks) out.push([a.id, t.name, !!t.title]); return out.sort((x, y) => y[2] - x[2]); }
+function chCooling(p) { const today = dkey(Date.now()); return chal().list.some(x => x.p.g === p.g && x.p.n === p.n && (x.st === 'ask' || x.st === 'ok' || (x.date > addDays(today, -30) && x.st !== 'no') || (x.st === 'no' && x.at > Date.now() - 14 * 86400e3))); }
+function chInvite(k, p, song) {
+  const C = chal(), kind = chKind(p), now = Date.now();
+  const gap = p.tier - myTier(), promo = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? .1 : 0;
+  const prob = kind === 'same' ? .85 : kind === 'friend' ? .92 : clamp(.88 - .2 * gap + promo, .02, .88);
+  const ok = Math.random() < prob, wait = (kind === 'other' ? rand(40, 240) : rand(5, 45)) * 60e3;
+  C.list.push({ id: uid(), date: k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind }, song, st: 'ask', ok, at: now, resAt: now + wait });
+  const who = `${p.gk} ${p.n}`, md = `${+k.slice(5, 7)}월 ${+k.slice(8)}일`, mz = `${+k.slice(5, 7)}月${+k.slice(8)}日`;
+  mgrReply(kind === 'other' ? [[`${who}님 쪽 매니저한테 물어볼게요`, `我去问问${p.g} ${p.z || p.n}那边的经纪人`], [`${md} 〈${song[1]}〉 챌린지요`, `${mz}拍《${song[1]}》的 challenge`]] : [[`${who}님한테 얘기해둘게요!`, `我跟${p.g} ${p.z || p.n}说一声！`]], true);
+  save();
+}
+function chalTick() {
+  const C = S.chal; if (!C) return; const now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
+  for (const x of C.list) {
+    const who = `${x.p.gk} ${x.p.n}`;
+    if (x.st === 'ask' && now >= x.resAt) {
+      if (!chDayOk(x.date) && x.date >= today) x.ok = false;
+      x.st = x.ok ? 'ok' : 'no';
+      mgrSay(x.ok ? [`${who}님 OK래요! ${+x.date.slice(5, 7)}/${+x.date.slice(8)} 스케줄 끝나고 대기실에서 찍어요`, `${x.p.g} ${x.p.z || x.p.n}答应了！${+x.date.slice(5, 7)}/${+x.date.slice(8)} 行程结束后在待机室拍`]
+        : x.p.kind === 'other' ? pick([[`${who}님 쪽은 그날 스케줄이 너무 빡빡하대요ㅠ`, `${x.p.g}那边说那天行程太满了ㅠ`], ['이번엔 어렵다고 하네요ㅠ 다음에 기회 되면 하재요', '那边说这次不太方便ㅠ 说下次有机会再拍'], ['정중하게 거절했어요ㅠ 아쉽네요', '那边客气地婉拒了ㅠ 有点可惜']]) : [`${who}님 그날 일정이 안 맞는대요ㅠ`, `${x.p.g} ${x.p.z || x.p.n}那天时间对不上ㅠ`]);
+    }
+    if (x.st === 'ok') {
+      const rs = rulesFor(x.date).filter(r => CH_DAY_CATS.includes(r.cat)), end = rs.length ? Math.max(...rs.map(r => toMin(r.end))) : 18 * 60;
+      if (x.date < today || (x.date === today && nm >= end + 60)) {
+        const f = S.profile.followers, views = Math.round((f * rand(1, 3) + Math.pow(x.p.tier, 3) * rand(600, 1600)) * heat());
+        const fans = Math.round(Math.min(views * rand(.002, .006), f * .06));
+        x.st = 'done'; x.views = views; x.fans = fans; addFans(fans, 'Challenge：' + x.p.g + ' ' + x.p.n);
+        const M = salesState().mom || {}, m = M[x.song[0]]; if (m) m.v = clamp(m.v + Math.min(.35, x.p.tier / 30), -.5, 2.3); // 带一下这首歌
+        pushNotif({ type: 'cb', text: `🎬 和 ${x.p.g} ${x.p.z || x.p.n} 的《${x.song[1]}》challenge 发布了`, sub: `播放 ${fmtNum(views)} · 涨粉 +${fmtNum(fans)}` }, true);
+      }
+    }
+  }
+}
+function chDayHTML(k) {
+  const L = chal().list.filter(x => x.date === k), can = chDayOk(k);
+  if (!L.length && !can) return '';
+  const st = x => x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">已发布 · 播放 ${fmtNum(x.views)} · +${fmtNum(x.fans)} 粉</span>`;
+  return `<div class="card">${L.map(x => `<div class="rule"><span style="flex:1;min-width:0">🎬 ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? `（${esc(x.p.z)}）` : ''} · 《${esc(x.song[1])}》</span>${st(x)}</div>`).join('')}
+    ${can && L.length < 3 ? `<button class="btn ghost sm" style="margin-top:${L.length ? 8 : 0}px" data-act="chopen" data-k="${k}">🎬 邀请其他艺人拍 challenge</button>` : ''}</div>`;
+}
+function chPickHTML(k) {
+  const C = chal(), songs = chSongs(), sel = UI.chSong || (songs[0] && songs[0][0] + '|' + songs[0][1]);
+  const chip = (g, n, z, tier) => { const p = { g, n }; const cool = chCooling(p); return `<button class="pcat${cool ? ' off' : ''}" ${cool ? 'disabled' : `data-act="chpick" data-k="${k}" data-g="${esc(g)}" data-n="${esc(n)}"`} style="${cool ? 'opacity:.4' : ''}">${esc(n)}${z ? ` <span class="muted" style="font-size:11px">${esc(z)}</span>` : ''}</button>`; };
+  const grp = L => L.map(([g, gk, t, ms]) => `<div style="margin:8px 0 4px"><b style="font-size:13px">${esc(g)}</b> <span class="muted" style="font-size:11px">${esc(gk)}</span></div><div class="row" style="flex-wrap:wrap;gap:6px">${ms.map(([n, z]) => chip(g, n, z, t)).join('')}</div>`).join('');
+  return `<div class="row"><h3 style="flex:1">🎬 邀请拍 challenge</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="muted" style="font-size:13px;margin-bottom:8px">${+k.slice(5, 7)}月${+k.slice(8)}日 · ${esc(rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)).map(r => r.title).join('、'))}<br>点名字就会让经纪人去问。同公司和好友基本都会答应；其他艺人要看咖位，差太多大概率会被婉拒。最近拍过、正在问的人是灰的。</div>
+    ${songs.length ? `<div class="field"><label>拍哪首歌</label><select id="ch-song">${songs.map(([a, n, ti]) => `<option value="${esc(a + '|' + n)}" ${a + '|' + n === sel ? 'selected' : ''}>${esc(n)}${ti ? '（主打）' : ''}</option>`).join('')}</select></div>` : '<div class="muted">还没有发行的歌</div>'}
+    <details class="me-more" open><summary>同公司（STARSHIP）</summary>${grp(CH_SAME)}</details>
+    <details class="me-more"><summary>好友</summary><div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">${C.friends.map(fr => chip(fr.g, fr.n, fr.z, 5)).join('') || '<span class="muted">还没有</span>'}</div>
+      <div class="row" style="gap:6px;margin-top:8px"><input id="ch-fg" placeholder="团名" style="flex:1;min-width:0"><input id="ch-fn" placeholder="名字（韩文）" style="flex:1;min-width:0"><input id="ch-fz" placeholder="中文名（可空）" style="flex:1;min-width:0"><button class="btn sm" data-act="chfriend" data-k="${k}">加</button></div></details>
+    <details class="me-more"><summary>其他艺人（五代起）</summary>${grp(CH_OTHERS)}</details>`;
 }
 function workSumHTML(k, items, today, nowMin) {
   const fin = r => S.schedule.done[k + '|' + r.id] || k < today || (k === today && nowMin >= toMin(r.end));
@@ -5511,6 +5602,9 @@ document.addEventListener('click', async e => {
     case 'golive': startLive(); break;
     case 'livepost': closeModal(); UI.tab = 'feed'; UI.postId = null; draft = `今天的直播谢谢大家陪我！${'\n'}聊得好开心，下次见～ 🐱💙`; render(); $('#cmp-text')?.focus(); break;
     case 'close': closeModal(); break;
+    case 'chopen': UI.chSong = null; openModal(chPickHTML(t.dataset.k)); break;
+    case 'chpick': { const p = chFind(t.dataset.g, t.dataset.n), v = ($('#ch-song') || {}).value; if (!p || !v) { toast('还没有可以拍的歌'); break; } const i = v.indexOf('|'), song = [v.slice(0, i), v.slice(i + 1)]; chInvite(t.dataset.k, p, song); closeModal(); toast('🎬 已经让经纪人去问了', `${p.g} ${p.n} · 《${song[1]}》`); render(); break; }
+    case 'chfriend': { const g = $('#ch-fg').value.trim(), n = $('#ch-fn').value.trim(), z = $('#ch-fz').value.trim(); if (!n) { toast('写一下名字'); break; } const C = chal(); if (!C.friends.some(x => x.n === n && x.g === g)) C.friends.push({ g: g || '好友', n, z }); UI.chSong = ($('#ch-song') || {}).value; save(); openModal(chPickHTML(t.dataset.k)); break; }
     case 'sdate': UI.schedDate = t.dataset.k; render(); break;
     case 'sdone': { const k = t.dataset.dk; if (t.checked) S.schedule.done[k] = 1; else delete S.schedule.done[k]; save(); render(); break; }
     case 'pcat': UI.presetCat = t.dataset.c; UI.presetQ = ''; $('#preset-q').value = ''; $$('.pcat').forEach(x => x.classList.toggle('on', x === t)); $('#plist').innerHTML = presetListHTML(); break;
