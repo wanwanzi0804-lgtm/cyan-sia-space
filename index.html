@@ -2313,6 +2313,7 @@ function showResult(sh, dk, trackKey, albumId, follow) {
 function showsState() { return S.shows || (S.shows = { res: {} }); }
 // 回归期里每天检查：今天有没有节目出结果
 function showsTick() {
+  { const SS = showsState(); if ((SS.realV || 0) < 1 && S.cb && cbAlbum()) { SS.realV = 1; const a0 = cbAlbum(); for (const [key, r] of Object.entries(SS.res)) { const dk = key.split('|')[0]; if (!REAL_WEEKS[weekOf(dk)]) continue; const sh = SHOWS.find(x => x[0] === r.show); if (!sh) continue; const nr = showResult(sh, dk, a0.id + '|' + r.song, a0.id, !!(S.cb.follow && r.song === S.cb.follow)); nr.at = r.at; SS.res[key] = nr; } } } // 现实阵容那几周的结果按真实对手重算
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return;
   const d = cbDay(); if (d > 0) return;
   const P = cbPlan(), now = new Date(), today = dkey(now), R = showsState().res, f = S.profile.followers;
