@@ -5429,7 +5429,14 @@ function mgrCollab(t) {
   if (type === 'song' || type === 'var' || type === 'mat') { const M = mgrChat(); (M.memos || (M.memos = [])).push({ dk: dkey(Date.now()), at: Date.now(), text: t.trim() }); }
   return [...pre, ...body];
 }
+// 播放量 / 点赞量按对方咖位：[播放下限, 上限, 点赞下限, 上限]，拍得好不好（事件）再乘 0.7～1.3
+function chViews(tier, mult = 1) {
+  const R = tier <= 2 ? [1000, 8000, 50, 500] : tier <= 4 ? [3000, 20000, 150, 1500] : tier <= 6 ? [5000, 40000, 300, 3000] : tier <= 8 ? [10000, 100000, 500, 8000] : tier < 10 ? [20000, 200000, 1000, 15000] : [30000, 500000, 2000, 40000];
+  const q = Math.pow(Math.random(), 1.4), q2 = clamp(q + rand(-.12, .12), 0, 1), h = clamp(heat(), .85, 1.2);
+  return [Math.round(R[0] * Math.pow(R[1] / R[0], q) * mult * h), Math.round(R[2] * Math.pow(R[3] / R[2], q2) * mult * h)];
+}
 function chalTick() {
+  { const C0 = S.chal; if (C0 && !C0.vV) { C0.vV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1); x.views = v; x.likes = l; } } } // 旧记录按新标准重算播放 / 点赞
   const C = S.chal; if (!C) return; const now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   for (const x of C.list) {
     const who = `${x.p.gk} ${x.p.n}`;
@@ -5443,11 +5450,11 @@ function chalTick() {
     if (x.st === 'ok') {
       const rs = rulesFor(x.date).filter(r => CH_DAY_CATS.includes(r.cat)), end = x.relMin != null ? x.relMin : rs.length ? Math.max(...rs.map(r => toMin(r.end))) : 18 * 60;
       if (x.date < today || (x.date === today && nm >= end + 60)) {
-        const f = S.profile.followers, views = Math.round((f * rand(1, 3) + Math.pow(x.p.tier, 3) * rand(600, 1600)) * heat() * (x.mult || 1));
-        const fans = Math.round(Math.min(views * rand(.002, .006), f * .06));
-        x.st = 'done'; x.views = views; x.fans = fans; addFans(fans, 'Challenge：' + x.p.g + ' ' + x.p.n);
+        const f = S.profile.followers, [views, likes] = chViews(x.p.tier, x.mult || 1);
+        const fans = Math.round(Math.min(views * rand(.002, .006), f * .03));
+        x.st = 'done'; x.views = views; x.likes = likes; x.fans = fans; addFans(fans, 'Challenge：' + x.p.g + ' ' + x.p.n);
         const M = salesState().mom || {}, m = M[x.song[0]]; if (m) m.v = clamp(m.v + Math.min(.35, x.p.tier / 30), -.5, 2.3); // 带一下这首歌
-        pushNotif({ type: 'cb', text: `🎬 和 ${x.p.g} ${x.p.z || x.p.n} 的《${x.song[1]}》challenge 发布了`, sub: `播放 ${fmtNum(views)} · 涨粉 +${fmtNum(fans)}` }, true);
+        pushNotif({ type: 'cb', text: `🎬 和 ${x.p.g} ${x.p.z || x.p.n} 的《${x.song[1]}》challenge 发布了`, sub: `播放 ${fmtNum(views)} · 点赞 ${fmtNum(likes)} · 涨粉 +${fmtNum(fans)}` }, true);
       }
     }
   }
@@ -5472,16 +5479,16 @@ function chBackfillHTML(list) {
 // 全部 challenge 记录
 function chLogHTML() {
   const L = chal().list.filter(x => x.st !== 'no' || x.p).slice().sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at);
-  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">拍好了 · 待上传</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">播放 ${fmtNum(x.views)} · +${fmtNum(x.fans)} 粉</span>`;
-  const done = L.filter(x => x.st === 'done'), tv = done.reduce((a, x) => a + (x.views || 0), 0), tf = done.reduce((a, x) => a + (x.fans || 0), 0);
+  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">拍好了 · 待上传</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">播放 ${fmtNum(x.views)} · ❤️ ${fmtNum(x.likes || 0)} · +${fmtNum(x.fans)} 粉</span>`;
+  const done = L.filter(x => x.st === 'done'), tl = done.reduce((a, x) => a + (x.likes || 0), 0), tv = done.reduce((a, x) => a + (x.views || 0), 0), tf = done.reduce((a, x) => a + (x.fans || 0), 0);
   return `<div class="row"><h3 style="flex:1">🎬 Challenge 记录</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="muted" style="font-size:13px;margin-bottom:8px">已发布 ${done.length} 条 · 总播放 ${fmtNum(tv)} · 涨粉 ${fmtNum(tf)}</div>
+    <div class="muted" style="font-size:13px;margin-bottom:8px">已发布 ${done.length} 条 · 总播放 ${fmtNum(tv)} · 点赞 ${fmtNum(tl)} · 涨粉 ${fmtNum(tf)}</div>
     <div class="card">${L.length ? L.map(x => `<div class="rule"><span style="flex:1;min-width:0">${+x.date.slice(5, 7)}/${+x.date.slice(8)} · ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? ` <span class="muted" style="font-size:12px">${esc(x.p.z)}</span>` : ''}${x.song && x.song[1] ? `<div class="muted" style="font-size:12px">《${esc(x.song[1])}》${x.bf ? ' · 补录' : ''}</div>` : ''}</span><span style="font-size:12.5px;text-align:right">${st(x)}</span></div>`).join('') : '<div class="muted">还没有记录</div>'}</div>`;
 }
 function chDayHTML(k) {
   const L = chal().list.filter(x => x.date === k);
   if (!L.length) return '';
-  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">已发布 · 播放 ${fmtNum(x.views)} · +${fmtNum(x.fans)} 粉</span>`;
+  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">已发布 · 播放 ${fmtNum(x.views)} · ❤️ ${fmtNum(x.likes || 0)} · +${fmtNum(x.fans)} 粉</span>`;
   return `<div class="card">${L.map(x => `<div class="rule"><span style="flex:1;min-width:0">🎬 ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? `（${esc(x.p.z)}）` : ''} ${x.song[1] ? ` · 《${esc(x.song[1])}》` : ''}</span>${st(x)}</div>`).join('')}
 </div>`;
 }
