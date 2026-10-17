@@ -5130,6 +5130,7 @@ function viewSched() {
     ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
     <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done && tgOpen(c)).length || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
+  <div style="margin:-2px 4px 8px"><button class="link" data-act="chlog">🎬 Challenge 记录${chal().list.length ? `（${chal().list.filter(x => x.st !== 'no').length}）` : ''} ›</button></div>
   ${chBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="chbfopen">🎬 有 ${chBackfillList().length} 个有活动的日子可以补 challenge ›</button></div>` : ''}
   ${giftBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="gbfopen">🎁 有 ${giftBackfillList().length} 个已结束的行程可以补选粉丝回礼 ›</button></div>` : ''}
   <div class="card week">
@@ -5467,6 +5468,15 @@ function chBackfillHTML(list) {
   return `<div class="row"><h3 style="flex:1">🎬 补 challenge</h3></div><div class="muted" style="font-size:13px;margin-bottom:8px">这些日子有活动。如果当时和其他艺人拍过 challenge，可以在这里补上（已经拍了，不用再问对方），会照常算播放和涨粉。</div>
     <div class="card">${list.map(x => `<div class="field" data-chbf="${x.k}"><label>${+x.k.slice(5, 7)}/${+x.k.slice(8)} · ${esc(x.rs.map(r => r.title).join('、'))}</label><div class="row" style="gap:6px;flex-wrap:wrap"><select class="chbf-g" style="flex:1;min-width:0">${chGroupOpts()}</select><select class="chbf-p" style="flex:1;min-width:0;display:none"></select><select class="chbf-s" style="flex:1;min-width:0;display:none">${chSongs(x.k).map(([a, n, ti]) => `<option value="${esc(a + '|' + n)}">${esc(n)}${ti ? '（主打）' : ''}</option>`).join('')}</select></div></div>`).join('')}</div>
     <div class="row"><button class="btn ghost" data-act="chbfskip">都没有</button><span class="sp"></span><button class="btn primary" data-act="chbfok">补上</button></div>`;
+}
+// 全部 challenge 记录
+function chLogHTML() {
+  const L = chal().list.filter(x => x.st !== 'no' || x.p).slice().sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at);
+  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">拍好了 · 待上传</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">播放 ${fmtNum(x.views)} · +${fmtNum(x.fans)} 粉</span>`;
+  const done = L.filter(x => x.st === 'done'), tv = done.reduce((a, x) => a + (x.views || 0), 0), tf = done.reduce((a, x) => a + (x.fans || 0), 0);
+  return `<div class="row"><h3 style="flex:1">🎬 Challenge 记录</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="muted" style="font-size:13px;margin-bottom:8px">已发布 ${done.length} 条 · 总播放 ${fmtNum(tv)} · 涨粉 ${fmtNum(tf)}</div>
+    <div class="card">${L.length ? L.map(x => `<div class="rule"><span style="flex:1;min-width:0">${+x.date.slice(5, 7)}/${+x.date.slice(8)} · ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? ` <span class="muted" style="font-size:12px">${esc(x.p.z)}</span>` : ''}${x.song && x.song[1] ? `<div class="muted" style="font-size:12px">《${esc(x.song[1])}》${x.bf ? ' · 补录' : ''}</div>` : ''}</span><span style="font-size:12.5px;text-align:right">${st(x)}</span></div>`).join('') : '<div class="muted">还没有记录</div>'}</div>`;
 }
 function chDayHTML(k) {
   const L = chal().list.filter(x => x.date === k);
@@ -5870,6 +5880,7 @@ document.addEventListener('click', async e => {
       if (ok) C.list.push({ id: uid(), date: o.date, p: o.p, song: ['', ''], st: 'book', at: Date.now(), bk: { min: o.min, where: o.where, act: o.act, music: o.music, relMin: o.relMin } });
       mgrReply(ok ? ['네 그날로 잡아둘게요', '好，那天给你安排上'] : ['네 그쪽에 말해둘게요', '好，我跟那边说一声'], true); B.offer = null; save(); render(); break; }
     case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
+    case 'chlog': openModal(chLogHTML()); break;
     case 'chbfopen': { const l = chBackfillList(); if (l.length) openModal(chBackfillHTML(l)); else toast('没有可以补的日子'); break; }
     case 'chbfskip': { const C = chal(); C.bf = C.bf || {}; for (const el of $$('[data-chbf]')) C.bf[el.dataset.chbf] = 1; S.chBF = 1; save(); closeModal(); render(); break; }
     case 'chbfok': { const C = chal(); C.bf = C.bf || {}; let n = 0;
