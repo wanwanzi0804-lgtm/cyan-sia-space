@@ -5219,7 +5219,7 @@ function chCooling(p) { const today = dkey(Date.now()); return chal().list.some(
 function chInvite(k, p, song) {
   const C = chal(), kind = chKind(p), now = Date.now();
   const gap = p.tier - myTier(), promo = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? .1 : 0;
-  const lv = (friendOf(p.g, p.n) || {}).lv, prob = kind === 'friend' ? { best: .98, close: .85, friend: .7 }[lv] || .7 : kind === 'same' ? .85 : clamp(.88 - .2 * gap + promo, .02, .88);
+  const lv = (friendOf(p.g, p.n) || {}).lv, prob = kind === 'friend' ? { best: .98, close: .7, friend: .5 }[lv] || .5 : kind === 'same' ? .85 : clamp(.88 - .2 * gap + promo, .02, .88);
   const ok = Math.random() < prob, wait = (kind === 'other' ? rand(40, 240) : rand(5, 45)) * 60e3;
   C.list.push({ id: uid(), date: k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind }, song, st: 'ask', ok, at: now, resAt: now + wait });
   const who = `${p.gk} ${p.n}`, md = `${+k.slice(5, 7)}월 ${+k.slice(8)}일`, mz = `${+k.slice(5, 7)}月${+k.slice(8)}日`;
