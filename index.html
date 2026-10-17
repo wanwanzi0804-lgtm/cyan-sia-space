@@ -811,7 +811,6 @@ function snippet(text) {
 function tplComment(ctx) {
   const lang = pickLang();
   if (ctx.tone === 'neg' && lang === 'zh' && Math.random() < .55) return { lang, text: fill(pick(TPL.neg.zh)), zh: null };
-  if (lang === 'zh' && ctx.text && ctx.tone !== 'neg' && !ctx.ans && Math.random() < .08) { const q = snippet(ctx.text); if (q) return { lang, text: fill(pick(TPL.quote.zh), q), zh: null }; }
   if (lang === 'zh' && Math.random() < .07) { const ev = eventLine(); if (ev) return { lang, text: ev, zh: null }; }
   if (lang === 'zh' && Math.random() < .1) { const hl = Math.random() < .5 ? hotLine() || cbLine() : cbLine() || hotLine(); if (hl) return { lang, text: hl, zh: null }; }
   if (lang === 'zh' && ctx.ans && Math.random() < .5) return { lang, text: fill(pick(ctx.ans)), zh: null };
@@ -885,6 +884,7 @@ function aiNews() {
 function aiSystem() {
   const p = S.profile;
   return `你在为一个偶像模拟器扮演粉丝群体（设定在平行世界，但粉丝不会提起“平行世界”这件事）。
+粉丝不要引用、复述或加引号重复她说过的原话，用自己的话回应她的意思。
 在这个世界里，她的歌和专辑都是她自己的原创作品：就算歌名或专辑名和现实中其他歌手的作品一样，也当作那些作品不存在，不要提到原唱或其他歌手。
 偶像资料：艺名 ${p.name}，${p.company || 'STARSHIP'}（星船娱乐）旗下 solo 女歌手（同公司有 IVE、CRAVITY、KiiiKiii），${ageOf()} 岁（生日 ${p.birth || '2007-08-29'}），${(p.trainee || '2022-10').replace('-', ' 年 ')} 月成为练习生，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
 粉丝群体设定：${p.fanRules || '（无）'}
@@ -1307,7 +1307,7 @@ const HOT_EVENTS = [
       { t: '在泡泡里吐槽一下', task: { where: 'bubble', need: 'any', hint: '在泡泡里说两句' }, r: [[.6, .003, .01, '粉丝笑得好开心'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, 0, .006, '照片自己传开了']] }] },
   { id: 'liveclip', min: 0, w: 2, live: {}, au: ['直播切片站', '切片博主'], title: '{name} 直播切片', body: '{name} 直播「{lt}」里的一句「{q}」被切了出来，转发了好多 [视频]',
-    talk: ['「{q}」哈哈哈哈', '这段切片我看了好多遍', '直播原来这么好玩', '下次直播我一定蹲', '这句好有{n}的感觉'],
+    talk: ['笑死这段', '这段切片我看了好多遍', '直播原来这么好玩', '下次直播我一定蹲', '这句好有{n}的感觉'],
     opts: [{ t: '再开一次直播', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .008, .02, '新直播又被切了好几段'], [.45, .001, .006, '直播热度一般']] },
       { t: '聊聊那场直播', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊那场直播' }, r: [[.6, .004, .012, '粉丝又把切片转了一轮'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, .001, .008, '切片自己继续传着']] }] },
@@ -3751,14 +3751,14 @@ function replyFollow(target, text) {
   const ans = answerFor(text);
   if (ans) return fill(pick(ans));
   const sn = snippet(text);
-  if (target && /[?？]|吗|呢|什么|TMI|OOTD|怎么样/i.test(target.text)) return pick(['原来如此！谢谢{n}回答我', '记下了📝 谢谢{n}', '啊啊啊{n}真的回答我了', sn ? `「${sn}」好可爱的回答` : '好可爱的回答']).replace(/\{n\}/g, pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
+  if (target && /[?？]|吗|呢|什么|TMI|OOTD|怎么样/i.test(target.text)) return pick(['原来如此！谢谢{n}回答我', '记下了📝 谢谢{n}', '啊啊啊{n}真的回答我了', '好可爱的回答']).replace(/\{n\}/g, pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
   if (/谢谢|感谢/.test(text)) return pick(['不客气！应该的', '是我们要谢谢你', '呜呜呜不用谢']);
   if (tone(text) === 'neg') return pick(['对不起…是我说错什么了吗', '呜呜好吧', '不要生气嘛']);
   if (/爱你|喜欢你|想你/.test(text)) return pick(['我也爱你！！！', '我更爱你', '心脏骤停']);
   if (/晚安|早点睡|去睡/.test(text)) return pick(['晚安！！好梦', '好的我这就去睡', '{n}也早点睡']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
   if (/吃饭|多吃|好好吃/.test(text)) return pick(['好！我会好好吃饭的', '遵命！', '{n}也要好好吃饭']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
   if (/加油|努力/.test(text)) return pick(['我会加油的！！', '一起加油！', '有{n}这句话什么都能做到']).replace('{n}', pick(S.profile.nicks.length ? S.profile.nicks : [S.profile.name]));
-  return sn && Math.random() < .5 ? `「${sn}」我要记一辈子` : null;
+  return null;
 }
 function tplReactions(post, parent, target, text = '') {
   if (target) {
@@ -4873,7 +4873,7 @@ function liveReact(text) {
     fresh(LIVE_TPL.answered, ri(1, 2)).forEach(push);
     const mb = text.match(/[IEie][NSns][TFtf][JPjp]/); const sn = snippet(text);
     if (mb) { const m = mb[0].toUpperCase(); fresh([`${m}！我也是！`, `${m[0]}人实锤`, `难怪！好${m}`, `${m}好适合你`], 2).forEach(push); }
-    else if (sn) push(pick([`原来是「${sn}」`, `「${sn}」记下了📝`, `「${sn}」好真实哈哈`]));
+    else push(pick(['原来是这样', '记下了📝', '好真实哈哈']));
     L.lastQ = null; hit = true;
   }
   // 二选一：「A 还是 B」→ 粉丝投票
@@ -4904,7 +4904,7 @@ function liveReact(text) {
   }
   if (S.profile.fandom && text.toLowerCase().includes(S.profile.fandom.toLowerCase())) { hit = true; fresh(LIVE_TPL.fandom, ri(2, 3)).forEach(t => L.queue.push({ lang: 'zh', text: t })); }
   if (!hit) fresh(LIVE_TPL.generic, ri(1, 2)).forEach(t => L.queue.push({ lang: 'zh', text: t }));
-  const q = snippet(text); if (q && tn !== 'neg' && !ch && !yn && !ans && Math.random() < .25) L.queue.push({ lang: 'zh', text: fill(pick(LIVE_TPL.echo), q) });
+
   // 打乱一下，混一点外语
   if (Math.random() < .15) { const lang = pick(['ko', 'en', 'ja']); const it = pick(LIVE_TPL.chatF[lang]); L.queue.push({ lang, text: fill(it[0]), zh: fill(it[1]) }); }
   // 一句话最多引出 6 条反应，太多会刷屏
