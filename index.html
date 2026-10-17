@@ -3669,7 +3669,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, chalTick, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, chalTick, chPopTick, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -5214,8 +5214,45 @@ function chDayOk(k) { return k >= dkey(Date.now()) && rulesFor(k).some(r => CH_D
 function myTier() { const f = S.profile.followers, wins = Object.values(showsState().res).filter(x => x.rank === 1).length; return clamp(2 + 2.2 * Math.log10(Math.max(f, 1000) / 5000) + 1.2 * (heat() - 1) + .25 * wins, 1, 10); }
 function chFind(g, n) { for (const [kind, L] of [['same', CH_SAME], ['other', CH_OTHERS]]) { const G = L.find(x => x[0] === g); if (G) { const m = G[3].find(x => x[0] === n); if (m) return { kind, g, gk: G[1], tier: G[2], n, z: m[1] }; } } const fr = chal().friends.find(x => x.g === g && x.n === n); return fr ? { kind: 'friend', g, gk: g, tier: 5, n, z: fr.z || '' } : null; }
 function chKind(p) { return friendOf(p.g, p.n) ? 'friend' : p.kind; }
-function chSongs() { const out = []; for (const a of relList().slice().reverse()) for (const t of a.tracks) out.push([a.id, t.name, !!t.title]); return out.sort((x, y) => y[2] - x[2]); }
+function chSongs(ref) { ref = ref || dkey(Date.now()); const out = []; for (const a of relList().slice().reverse().filter(a => a.date <= ref && a.date >= addDays(ref, -183))) for (const t of a.tracks) out.push([a.id, t.name, !!t.title]); return out.sort((x, y) => y[2] - x[2]); }
 function chCooling(p) { const today = dkey(Date.now()); return chal().list.some(x => x.p.g === p.g && x.p.n === p.n && (x.st === 'ask' || x.st === 'ok' || (x.date > addDays(today, -30) && x.st !== 'no') || (x.st === 'no' && x.at > Date.now() - 14 * 86400e3))); }
+function chProb(p) {
+  const kind = chKind(p), lv = (friendOf(p.g, p.n) || {}).lv, promo = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? rand(.05, .1) : 0;
+  const base = kind === 'friend' ? ({ best: .98, close: .85, friend: .65, acq: .45 })[lv] ?? .65 : kind === 'same' ? clamp(.45 + .02 * (myTier() - p.tier), .25, .45) : clamp(.3 + .04 * (myTier() - p.tier), .1, .5);
+  return [clamp(base + .1 + promo, .02, .99), kind === 'same' ? .9 : kind === 'friend' ? .8 : .75, kind];
+}
+// 🎬 活动现场随机碰到三位艺人：活动进行中（含前后 10 分钟）随机弹一次
+function chPopCands() {
+  const pool = [], add = (p, w) => { if (p && !chCooling(p)) pool.push([p, w]); };
+  for (const f of chal().friends) add(chFind(f.g, f.n) || { kind: 'friend', g: f.g, gk: f.g, tier: 5, n: f.n, z: f.z }, f.lv === 'best' ? 3 : f.lv === 'close' ? 2 : 1);
+  for (const [g, gk, t, ms] of CH_SAME) for (const [n] of ms) if (!friendOf(g, n)) add(chFind(g, n), .35);
+  for (const [g, gk, t, ms] of CH_OTHERS) for (const [n] of ms) if (!friendOf(g, n)) add(chFind(g, n), .25);
+  const out = []; while (out.length < 3 && pool.length) { let x = Math.random() * pool.reduce((a, b) => a + b[1], 0), i = 0; for (; i < pool.length - 1; i++) { x -= pool[i][1]; if (x <= 0) break; } const [p] = pool.splice(i, 1)[0]; if (!out.some(o => o.g === p.g)) out.push(p); }
+  return out;
+}
+function chPopTick() {
+  const C = chal(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes(), P = C.pop || (C.pop = {});
+  if (P.day !== today) { P.day = today; P.done = 0; const rs = rulesFor(today).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) { const r = pick(rs), a = toMin(r.start) - 10, b = toMin(r.end) + 10; P.at = Math.round(a + Math.random() * Math.max(1, b - a)); P.end = b; P.rid = r.id; } else P.at = null; }
+  if (P.done || P.at == null || nm < P.at) return;
+  if (nm > P.end) { P.done = 1; return; } // 错过了就算了
+  if ($('#modal').classList.contains('on') || UI.chPop) return;
+  P.done = 1;
+  if (chLimit(today) || !chSongs(today).length) return;
+  const cands = chPopCands(); if (!cands.length) return;
+  const r = S.schedule.rules.find(x => x.id === P.rid);
+  UI.chPop = { k: today, where: r ? r.title : '', cands, step: 'pick' }; openModal(chPopHTML()); save();
+}
+function chPopHTML() {
+  const Q = UI.chPop; if (!Q) return '';
+  const nm = p => `${esc(p.g)} ${esc(p.n)}${p.z ? ` <span class="muted" style="font-size:12px">${esc(p.z)}</span>` : ''}`;
+  const head = `<div class="row"><h3 style="flex:1">🎬 拍个 challenge？</h3></div><div class="muted" style="font-size:13px;margin-bottom:10px">${esc(Q.where)} 现场</div>`;
+  if (Q.step === 'pick') return head + `<div class="muted" style="font-size:13px;margin-bottom:8px">待机室附近碰到了这几位，要邀请谁一起拍吗？（只能邀请一位）</div>${Q.cands.map((p, i) => `<button class="hot-opt" data-act="chpoppick" data-i="${i}">${nm(p)}${friendOf(p.g, p.n) ? ` <span class="muted" style="font-size:12px">· ${FR_LV[friendOf(p.g, p.n).lv || 'friend']}</span>` : ''}</button>`).join('')}<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost" data-act="chpopclose">算了，不拍</button></div>`;
+  if (Q.step === 'wait') return head + `<div style="text-align:center;padding:26px 0"><div style="font-size:34px">💬</div><div class="muted" style="margin-top:8px">正在问 ${nm(Q.p)}…</div></div>`;
+  if (Q.step === 'no') return head + `<div style="text-align:center;padding:18px 0"><div style="font-size:34px">🙏</div><div style="margin-top:8px">${esc(Q.msg)}</div></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="chpopclose">好吧</button></div>`;
+  if (Q.step === 'song') return head + `<div style="margin-bottom:10px">✅ ${nm(Q.p)} 答应了！拍哪首歌？</div>${chSongs(Q.k).map(([a, n, ti]) => `<button class="hot-opt" data-act="chpopsong" data-v="${esc(a + '|' + n)}">《${esc(n)}》${ti ? ' <span class="muted" style="font-size:12px">主打</span>' : ''}</button>`).join('')}`;
+  if (Q.step === 'done') return head + `<div style="text-align:center;padding:18px 0"><div style="font-size:34px">🎬</div><div style="margin-top:8px">和 ${nm(Q.p)} 拍好了《${esc(Q.song[1])}》challenge！</div><div class="muted" style="font-size:13px;margin-top:4px">活动结束后上传</div></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="chpopclose">好</button></div>`;
+  return '';
+}
 function chInvite(k, p, song) {
   const C = chal(), kind = chKind(p), now = Date.now();
   // ① 关系基础概率（不认识的按咖位修正，10%～50%）② challenge 这种简单短视频 +10% ③ 打歌期 +5～10%
@@ -5298,19 +5335,20 @@ function chLimit(k) {
 }
 // 补 challenge：最近 30 天有活动的日子，当时如果和别人拍过可以补上
 function chBackfillList() { const today = dkey(Date.now()), D = chal().bf || {}, out = []; for (let i = 1; i <= 30; i++) { const k = addDays(today, -i); if (D[k] || chal().list.some(x => x.date === k)) continue; const rs = rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) out.push({ k, rs }); } return out; }
+function chGroupOpts() { const F = chal().friends; return `<option value="">没有</option>${F.length ? '<option value="好友">好友</option>' : ''}<optgroup label="同公司">${CH_SAME.map(x => `<option value="${esc(x[0])}">${esc(x[0])}</option>`).join('')}</optgroup><optgroup label="其他艺人">${CH_OTHERS.map(x => `<option value="${esc(x[0])}">${esc(x[0])}</option>`).join('')}</optgroup>`; }
+function chMemberOpts(g) { if (!g) return ''; if (g === '好友') return chal().friends.map(f => `<option value="${esc(f.g + '|' + f.n)}">${esc(f.z || f.n)}（${esc(f.g)}）</option>`).join(''); const G = [...CH_SAME, ...CH_OTHERS].find(x => x[0] === g); return G ? G[3].map(([n, z]) => `<option value="${esc(g + '|' + n)}">${esc(n)}${z ? ' ' + esc(z) : ''}</option>`).join('') : ''; }
 function chPartnerOpts() { const o = (lab, L) => `<optgroup label="${esc(lab)}">${L.map(([g, gk, t, ms]) => ms.map(([n, z]) => `<option value="${esc(g + '|' + n)}">${esc(g)} ${esc(n)}${z ? ' ' + esc(z) : ''}</option>`).join('')).join('')}</optgroup>`; const F = chal().friends; return `<option value="">没有</option>${F.length ? `<optgroup label="好友">${F.map(f => `<option value="${esc(f.g + '|' + f.n)}">${esc(f.g)} ${esc(f.n)}${f.z ? ' ' + esc(f.z) : ''}</option>`).join('')}</optgroup>` : ''}${o('同公司', CH_SAME)}${o('其他艺人', CH_OTHERS)}`; }
 function chBackfillHTML(list) {
-  const songs = chSongs(), so = songs.map(([a, n, ti]) => `<option value="${esc(a + '|' + n)}">${esc(n)}${ti ? '（主打）' : ''}</option>`).join(''), po = chPartnerOpts();
   return `<div class="row"><h3 style="flex:1">🎬 补 challenge</h3></div><div class="muted" style="font-size:13px;margin-bottom:8px">这些日子有活动。如果当时和其他艺人拍过 challenge，可以在这里补上（已经拍了，不用再问对方），会照常算播放和涨粉。</div>
-    <div class="card">${list.map(x => `<div class="field" data-chbf="${x.k}"><label>${+x.k.slice(5, 7)}/${+x.k.slice(8)} · ${esc(x.rs.map(r => r.title).join('、'))}</label><div class="row" style="gap:6px"><select class="chbf-p" style="flex:1.3;min-width:0">${po}</select><select class="chbf-s" style="flex:1;min-width:0">${so}</select></div></div>`).join('')}</div>
+    <div class="card">${list.map(x => `<div class="field" data-chbf="${x.k}"><label>${+x.k.slice(5, 7)}/${+x.k.slice(8)} · ${esc(x.rs.map(r => r.title).join('、'))}</label><div class="row" style="gap:6px;flex-wrap:wrap"><select class="chbf-g" style="flex:1;min-width:0">${chGroupOpts()}</select><select class="chbf-p" style="flex:1;min-width:0;display:none"></select><select class="chbf-s" style="flex:1;min-width:0;display:none">${chSongs(x.k).map(([a, n, ti]) => `<option value="${esc(a + '|' + n)}">${esc(n)}${ti ? '（主打）' : ''}</option>`).join('')}</select></div></div>`).join('')}</div>
     <div class="row"><button class="btn ghost" data-act="chbfskip">都没有</button><span class="sp"></span><button class="btn primary" data-act="chbfok">补上</button></div>`;
 }
 function chDayHTML(k) {
-  const L = chal().list.filter(x => x.date === k), can = chDayOk(k);
-  if (!L.length && !can) return '';
+  const L = chal().list.filter(x => x.date === k);
+  if (!L.length) return '';
   const st = x => x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">已发布 · 播放 ${fmtNum(x.views)} · +${fmtNum(x.fans)} 粉</span>`;
-  return `<div class="card">${L.map(x => `<div class="rule"><span style="flex:1;min-width:0">🎬 ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? `（${esc(x.p.z)}）` : ''} · 《${esc(x.song[1])}》</span>${st(x)}</div>`).join('')}
-    ${can ? (chLimit(k) ? `<div class="muted" style="font-size:12px;margin-top:${L.length ? 6 : 0}px">🎬 ${chLimit(k)}</div>` : `<button class="btn ghost sm" style="margin-top:${L.length ? 8 : 0}px" data-act="chopen" data-k="${k}">🎬 邀请其他艺人拍 challenge</button>`) : ''}</div>`;
+  return `<div class="card">${L.map(x => `<div class="rule"><span style="flex:1;min-width:0">🎬 ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? `（${esc(x.p.z)}）` : ''} ${x.song[1] ? ` · 《${esc(x.song[1])}》` : ''}</span>${st(x)}</div>`).join('')}
+</div>`;
 }
 function chPickHTML(k) {
   const C = chal(), songs = chSongs(), sel = UI.chSong || (songs[0] && songs[0][0] + '|' + songs[0][1]);
@@ -5692,6 +5730,10 @@ document.addEventListener('click', async e => {
     case 'close': closeModal(); break;
     case 'chopen': if (chLimit(t.dataset.k)) { toast(chLimit(t.dataset.k)); break; } UI.chSong = null; openModal(chPickHTML(t.dataset.k)); break;
     case 'chpick': { const p = chFind(t.dataset.g, t.dataset.n), v = ($('#ch-song') || {}).value; if (!p || !v) { toast('还没有可以拍的歌'); break; } const i = v.indexOf('|'), song = [v.slice(0, i), v.slice(i + 1)]; chInvite(t.dataset.k, p, song); closeModal(); toast('🎬 已经让经纪人去问了', `${p.g} ${p.n} · 《${song[1]}》`); render(); break; }
+    case 'chpoppick': { const Q = UI.chPop; if (!Q) break; const p = Q.cands[+t.dataset.i], [p1, p2, kind] = chProb(p), ok1 = Math.random() < p1, ok = ok1 && Math.random() < p2; Q.p = p; Q.step = 'wait'; openModal(chPopHTML());
+      setTimeout(() => { if (UI.chPop !== Q) return; if (ok) Q.step = 'song'; else { Q.step = 'no'; Q.msg = ok1 ? pick([`${p.n}本人说好，但经纪人说接下来马上还有行程，来不及拍了`, `${p.n}想拍，可那边经纪人说公司这次不方便`]) : kind === 'other' ? pick([`${p.n}客气地说今天有点累，下次吧`, `${p.n}那边说今天不太方便，抱歉`, `${p.n}笑着说下次有机会一定一起拍`]) : pick([`${p.n}说今天状态不好，下次再拍吧`, `${p.n}马上要上台了，没时间了`]); chal().list.push({ id: uid(), date: Q.k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind }, song: ['', ''], st: 'no', at: Date.now() }); } save(); openModal(chPopHTML()); }, rand(1000, 5000)); break; }
+    case 'chpopsong': { const Q = UI.chPop; if (!Q) break; const v = t.dataset.v, i = v.indexOf('|'); Q.song = [v.slice(0, i), v.slice(i + 1)]; const p = Q.p; chal().list.push({ id: uid(), date: Q.k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind: chKind(p) }, song: Q.song, st: 'ok', ok: true, at: Date.now() }); Q.step = 'done'; save(); openModal(chPopHTML()); break; }
+    case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
     case 'chbfopen': { const l = chBackfillList(); if (l.length) openModal(chBackfillHTML(l)); else toast('没有可以补的日子'); break; }
     case 'chbfskip': { const C = chal(); C.bf = C.bf || {}; for (const el of $$('[data-chbf]')) C.bf[el.dataset.chbf] = 1; S.chBF = 1; save(); closeModal(); render(); break; }
     case 'chbfok': { const C = chal(); C.bf = C.bf || {}; let n = 0;
@@ -5834,6 +5876,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', async e => {
   if (e.target.id === 'r-cat') locQSync();
+  if (e.target.classList && e.target.classList.contains('chbf-g')) { const row = e.target.parentElement, ps = row.querySelector('.chbf-p'), ss = row.querySelector('.chbf-s'); ps.innerHTML = chMemberOpts(e.target.value); ps.style.display = ss.style.display = e.target.value ? '' : 'none'; return; }
   if (e.target.dataset && e.target.dataset.gtype !== undefined) { const t = e.target, box = t.closest('.gpick'); box.outerHTML = giftPickHTML(t.dataset.gtype, t.dataset.gcat, t.value ? t.value + ':0' : ''); return; }
   const t = e.target;
   if (t.id === 'cmp-file') {
