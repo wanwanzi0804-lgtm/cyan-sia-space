@@ -2273,8 +2273,17 @@ const LABELMATES = ['IVE', 'CRAVITY', 'KiiiKiii']; // 同公司（STARSHIP）
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function srng(seed) { let a = hashStr(seed); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const weekOf = dk => addDays(dk, -((parseD(dk).getDay() + 6) % 7));
+// 现实里这几周真的在打歌的团（周一为 key）：[团, 歌, 档次, 分数下限, 上限]
+const W1 = [['BOYNEXTDOOR', 'Count To Love', 'top', .78, .95], ['PLAVE', 'Star Trace', 'top', .8, .97], ['NCT WISH', 'I SPY', 'mid', .45, .65], ['Hearts2Hearts', 'ICONIC', 'mid', .4, .6], ['MEOVV', 'GO HARD', 'mid', .35, .55], ['CRAVITY', 'LOUDER', 'mid', .3, .5], ['KickFlip', '미완성 (Incomplete)', 'mid', .3, .48], ['Xdinary Heroes', 'Obsessed with Youth', 'mid', .28, .45],
+  ['Sung Hanbin', 'UNDEAD', 'rook', .18, .34], ['MODYSSEY', 'CAN YOU HEAR THAT', 'rook', .05, .2], ['DAILY:DIRECTION', 'WHICH WAY', 'rook', .05, .16], ['FLARE U', 'U Bloom', 'rook', .05, .18]];
+const REAL_WEEKS = {
+  '2026-10-12': W1,
+  '2026-10-19': [['IVE', 'Looks Can Kill', 'top', .85, .98], ['NMIXX', 'Birthday Wish', 'top', .62, .82], ['EVNNE', 'LOOK AT MA', 'rook', .15, .3], ...W1.map(x => [x[0], x[1], x[2], x[3] * .85, x[4] * .85])] // 上周回归的进入后续活动，分数略降
+};
 // 这一周一起打歌的对手（同一周固定，可以提前看到）
 function weekRivals(dk) {
+  const RW = REAL_WEEKS[weekOf(dk)];
+  if (RW) { const r = srng('rivals' + weekOf(dk)); return RW.map(([name, song, tier, lo, hi]) => ({ name, song, tier, sc: lo + (hi - lo) * r() })); }
   const r = srng('rivals' + weekOf(dk)), out = [], used = new Set();
   const take = (arr, tier, lo, hi) => { let n; do n = arr[Math.floor(r() * arr.length)]; while (used.has(n)); used.add(n); out.push({ name: n, tier, sc: lo + (hi - lo) * r() }); };
   if (r() < .3) take(RIVALS.top, 'top', .72, .95);
@@ -2297,9 +2306,9 @@ function myShowComps(dk, trackKey, albumId) {
 function showResult(sh, dk, trackKey, albumId, follow) {
   const [id, name, , , , w, ease] = sh, c = myShowComps(dk, trackKey, albumId);
   let me = Object.keys(w).reduce((s, k) => s + w[k] * c[k], 0); if (follow) me *= .9;
-  const r = srng(id + dk), field = weekRivals(dk).filter(x => !(x.tier === 'top' && ['theshow', 'champ'].includes(id))).map(x => ({ name: x.name, tier: x.tier, sc: x.sc * ease * (.9 + .2 * r()) }));
+  const r = srng(id + dk), field = weekRivals(dk).filter(x => !(x.tier === 'top' && ['theshow', 'champ'].includes(id))).map(x => ({ name: x.name, song: x.song, tier: x.tier, sc: x.sc * ease * (.9 + .2 * r()) }));
   const all = field.concat([{ name: S.profile.name, me: true, sc: me }]).sort((a, b) => b.sc - a.sc);
-  return { show: id, dk, rank: all.findIndex(x => x.me) + 1, top: all.slice(0, 5).map(x => ({ name: x.name, me: !!x.me, sc: +x.sc.toFixed(3), tier: x.tier })), comps: Object.fromEntries(Object.keys(w).map(k => [k, +c[k].toFixed(3)])), raw: c.raw, song: trackKey.split('|').slice(1).join('|'), at: Date.now() };
+  return { show: id, dk, rank: all.findIndex(x => x.me) + 1, top: all.slice(0, 5).map(x => ({ name: x.name, song: x.song, me: !!x.me, sc: +x.sc.toFixed(3), tier: x.tier })), comps: Object.fromEntries(Object.keys(w).map(k => [k, +c[k].toFixed(3)])), raw: c.raw, song: trackKey.split('|').slice(1).join('|'), at: Date.now() };
 }
 function showsState() { return S.shows || (S.shows = { res: {} }); }
 // 回归期里每天检查：今天有没有节目出结果
@@ -2335,7 +2344,7 @@ function showsCardHTML() {
   const base = active ? today : keys[keys.length - 1].split('|')[0], mon = weekOf(base);
   const rivals = weekRivals(base), top = rivals.find(x => x.tier === 'top');
   const wins = Object.values(R).filter(x => x.rank === 1).length, cands = Object.values(R).filter(x => x.rank <= 3).length;
-  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${mon.slice(5).replace('-', '/')} 这周${top ? ` · ⚠ TOP 团 <b>${top.name}</b> 也在打歌` : ' · 这周没有 TOP 团'} · 累计一位 ${wins} 次 / 候补 ${cands} 次</div>
+  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${mon.slice(5).replace('-', '/')} 这周${top ? ` · ⚠ TOP 团 <b>${top.name}</b> 也在打歌` : ' · 这周没有 TOP 团'} · 累计一位 ${wins} 次 / 候补 ${cands} 次</div>${rivals.some(x => x.song) ? `<details class="me-more" style="margin-bottom:6px"><summary>这周一起打歌的（${rivals.length}）</summary>${rivals.map(x => `<div class="rule"><span style="flex:1">${esc(x.name)} <span class="muted" style="font-size:12px">《${esc(x.song)}》</span></span>${x.tier === 'top' ? '<span class="alb-star" style="background:#e5484d">TOP</span>' : ''}</div>`).join('')}</details>` : ''}
     ${SHOWS.map(sh => { let k; for (let i = 0; i < 7; i++) { const x = addDays(mon, i); if (parseD(x).getDay() === sh[2]) k = x; }
       const r = R[k + '|' + sh[0]];
       const st = r ? (r.rank === 1 ? '<b class="sh-win">🏆 一位</b>' : r.rank <= 3 ? `<b class="sh-cand">候补 · 第 ${r.rank}</b>` : `<span class="muted">第 ${r.rank} 位</span>`) : `<span class="muted">${k < today || !active ? '—' : `${WD[sh[2]] === '日' ? '周日' : '周' + WD[sh[2]]} ${sh[3]}:00 公布`}</span>`;
@@ -2347,7 +2356,7 @@ function showResHTML(key) {
     <div class="card"><b>《${esc(r.song)}》${r.rank === 1 ? '🏆 一位' : `第 ${r.rank} 位`}</b><div class="muted" style="font-size:12.5px;margin-top:2px">${sh[7]}</div>
       <div style="margin-top:10px">${Object.entries(r.comps).filter(([k]) => sh[5][k]).map(([k, v]) => `<div class="w-cat"><span>${COMP_NAME[k]} <i class="muted" style="font-style:normal;font-size:11px">${Math.round(sh[5][k] * 100)}%</i></span><div class="w-bar sm"><i style="width:${Math.round(v * 100)}%"></i></div><b>${Math.round(v * 100)}</b></div>`).join('')}</div>
       <div class="muted" style="font-size:12px;margin-top:8px">这周：音源 ${fmtNum(Math.round(r.raw.st))} 次 · 专辑 ${fmtNum(Math.round(r.raw.al))} 张 · MV ${fmtNum(Math.round(r.raw.mv))} 次 · 放送曝光 ${r.raw.br} 次</div></div>
-    <div class="card"><b style="font-size:14px">这周排名</b>${r.top.map((x, i) => `<div class="rule"><span style="width:26px">${i + 1}</span><span style="flex:1">${esc(x.name)}${x.tier === 'top' ? ' <span class="alb-star" style="background:#e5484d">TOP</span>' : ''}${x.me ? ' <span class="alb-star">你</span>' : ''}</span><b>${Math.round(x.sc * 1000)}</b></div>`).join('')}${r.rank > 5 ? `<div class="rule"><span style="width:26px">${r.rank}</span><span style="flex:1">${esc(S.profile.name)} <span class="alb-star">你</span></span></div>` : ''}</div>`;
+    <div class="card"><b style="font-size:14px">这周排名</b>${r.top.map((x, i) => `<div class="rule"><span style="width:26px">${i + 1}</span><span style="flex:1">${esc(x.name)}${x.song ? ` <span class="muted" style="font-size:12px">《${esc(x.song)}》</span>` : ''}${x.tier === 'top' ? ' <span class="alb-star" style="background:#e5484d">TOP</span>' : ''}${x.me ? ' <span class="alb-star">你</span>' : ''}</span><b>${Math.round(x.sc * 1000)}</b></div>`).join('')}${r.rank > 5 ? `<div class="rule"><span style="width:26px">${r.rank}</span><span style="flex:1">${esc(S.profile.name)} <span class="alb-star">你</span></span></div>` : ''}</div>`;
 }
 /* ---------- YouTube MV / TikTok ---------- */
 function mvHTML() {
