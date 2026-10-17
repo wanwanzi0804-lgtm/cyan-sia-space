@@ -3968,6 +3968,7 @@ function bbAddFan(line, user) {
   g.fans.push(m); g.count = (g.count || 0) + 1;
   if (g.fans.length > 400) g.fans.splice(0, g.fans.length - 400);
   if (UI.tab !== 'bubble') B.unread = (B.unread || 0) + 1; else bbTickQ.push(m);
+  try { bbRlLive(g, m); } catch (e) { }
   return m;
 }
 // 粉丝消息：你刚发消息时一波（大概订阅者的 5%~12%，大部分订阅者不说话），平时零星主动发（深夜少、晚上多）
@@ -4189,16 +4190,25 @@ function bbReplyBar() {
   bar.innerHTML = rt ? `<div class="bb-rbar"><div style="flex:1;min-width:0"><b>回复给 ${esc(rt.user)}</b><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(rt.text)}</div></div><button class="link" data-act="bbrcancel">✕</button></div>` : '';
 }
 /* ---------- 查看回复：点开 FROM FAN 后的整页粉丝消息 ---------- */
+function bbRlRow(f) { return `<div class="bb-rl-row">
+      <div class="bb-rl-av">${f.st || '🐶'}</div>
+      <div class="bb-rl-main"><div class="bb-rl-name">${esc(f.user)}<button class="bb-rl-rep" data-act="bbreport">举报</button></div>
+        <div class="bb-rl-line"><div class="bb-rl-bub${f.ai ? ' a' : ''}" data-act="bbrlmenu" data-f="${f.id}"><div>${esc(f.text)}</div>${f.zh ? `<div class="bb-rl-zh" ${S.prefs.autoTr ? '' : 'hidden'}>${esc(f.zh)}</div>` : ''}</div>
+        ${f.zh ? `<button class="bb-rl-tr${S.prefs.autoTr ? ' on' : ''}" data-act="bbrltr" title="翻译">Ⓐ</button>` : ''}</div></div></div>`; }
+// 查看回复开着的时候，新来的粉丝消息实时加到底部（看着最底下时自动跟着滚）
+function bbRlLive(g, f) {
+  const d = $('#bb-rl'), L = $('#bb-rl-list'); if (!d || !L || d.dataset.g !== g.id) return;
+  const atBottom = L.scrollHeight - L.scrollTop - L.clientHeight < 80; L.querySelector('.bb-rl-note:last-child')?.textContent === '还没有消息' && L.lastElementChild.remove();
+  L.insertAdjacentHTML('beforeend', bbRlRow(f)); const el = L.lastElementChild; el.style.animation = 'tickin .35s ease-out';
+  while (L.querySelectorAll('.bb-rl-row').length > 400) L.querySelector('.bb-rl-row').remove();
+  if (atBottom) L.scrollTop = L.scrollHeight;
+}
 function bbListOpen(g) {
   $('#bb-rl')?.remove();
   const d = document.createElement('div'); d.id = 'bb-rl'; d.dataset.g = g.id;
   const more = (g.count || 0) > g.fans.length ? `<div class="bb-rl-note">只显示最近 ${g.fans.length} 条 · 共 ${fmtNum(g.count)} 条</div>` : '';
   d.innerHTML = `<div class="bb-rl-head"><button data-act="bbrlclose" aria-label="关闭">✕</button><b>查看回复</b><span style="width:40px"></span></div>
-    <div class="bb-rl-list" id="bb-rl-list">${more}${g.fans.map(f => `<div class="bb-rl-row">
-      <div class="bb-rl-av">${f.st || '🐶'}</div>
-      <div class="bb-rl-main"><div class="bb-rl-name">${esc(f.user)}<button class="bb-rl-rep" data-act="bbreport">举报</button></div>
-        <div class="bb-rl-line"><div class="bb-rl-bub${f.ai ? ' a' : ''}" data-act="bbrlmenu" data-f="${f.id}"><div>${esc(f.text)}</div>${f.zh ? `<div class="bb-rl-zh" ${S.prefs.autoTr ? '' : 'hidden'}>${esc(f.zh)}</div>` : ''}</div>
-        ${f.zh ? `<button class="bb-rl-tr${S.prefs.autoTr ? ' on' : ''}" data-act="bbrltr" title="翻译">Ⓐ</button>` : ''}</div></div></div>`).join('') || '<div class="bb-rl-note">还没有消息</div>'}</div>
+    <div class="bb-rl-list" id="bb-rl-list">${more}${g.fans.map(bbRlRow).join('') || '<div class="bb-rl-note">还没有消息</div>'}</div>
     <button class="bb-rl-back" data-act="bbrlclose">返回聊天室</button>`;
   document.body.appendChild(d); bbWallpaper($('#bb-rl-list'));
   const l = $('#bb-rl-list'); l.scrollTop = l.scrollHeight;
