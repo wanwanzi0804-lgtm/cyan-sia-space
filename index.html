@@ -5436,7 +5436,9 @@ function chViews(tier, mult = 1) {
   return [Math.round(R[0] * Math.pow(R[1] / R[0], q) * mult * h), Math.round(R[2] * Math.pow(R[3] / R[2], q2) * mult * h)];
 }
 function chalTick() {
+  { const C0 = S.chal; if (C0 && !C0.fV) { C0.fV = 1; C0.vV = C0.vV || 0; } }
   { const C0 = S.chal; if (C0 && !C0.vV) { C0.vV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1); x.views = v; x.likes = l; } } } // 旧记录按新标准重算播放 / 点赞
+  { const C0 = S.chal; if (C0 && C0.fV === 1) { C0.fV = 2; let d = 0; for (const x of C0.list) if (x.st === 'done') { const nf = Math.round(Math.min(x.views * rand(.002, .006), S.profile.followers * .03)); d += nf - (x.fans || 0); x.fans = nf; } if (d) addFans(d, 'Challenge 涨粉校正'); } } // 已发布的涨粉也按新播放量重算，多涨的扣回
   const C = S.chal; if (!C) return; const now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   for (const x of C.list) {
     const who = `${x.p.gk} ${x.p.n}`;
