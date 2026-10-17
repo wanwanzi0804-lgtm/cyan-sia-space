@@ -2831,7 +2831,7 @@ function mgrContext() {
 今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
 结算：每月 ${SETTLE_DAY} 日结算上月已到账收入，按收入类型分成（网综电台采访、品牌代言、签售见面会 艺人40%；大学庆典商演 50%；音源专辑 30%；打歌不单独算），只扣合同允许的直接成本；艺人可以申请预支已确认的活动款或提前发当月结算款，需要公司同意；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。艺人账户余额 ${won(W.bal)}，未回收的公司前期投入 ${won(W.debt)}。
 ${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
-艺人的朋友：${chal().friends.map(f => `${f.g} ${f.z || f.n}（${FR_LV[f.lv || 'friend']}）`).join('、')}。合作规则：challenge 有活动的日子就能约，同公司和朋友基本都会答应，其他艺人要看咖位差；音源合作要走公司企划、要几个月；综艺是节目组邀请，只能去争取；画报广告由品牌决定，自制内容可以请嘉宾。
+艺人的朋友：${chal().friends.map(f => `${f.g} ${f.z || f.n}（${FR_LV[f.lv || 'friend']}）`).join('、')}。合作规则：challenge 有活动的日子就能约，关系越好越容易答应，不认识的艺人要看咖位差，对方本人答应后还要看对方公司和档期，私人关系不能保证落实；音源合作要走公司企划、要几个月；综艺是节目组邀请，只能去争取；画报广告由品牌决定，自制内容可以请嘉宾。
 艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。`;
 }
 async function mgrAi(text) {
@@ -5176,9 +5176,9 @@ const CH_OTHERS = [
   ['TREASURE', '트레저', 8.5, [['현석', '崔玹硕'], ['지훈', '朴志训'], ['요시', 'Yoshi'], ['준규', '金俊奎'], ['재혁', '尹材赫'], ['아사히', 'Asahi'], ['도영', '金到永'], ['하루토', 'Haruto'], ['정우', '朴正雨'], ['정환', '苏正焕']]],
   ['THE BOYZ', '더보이즈', 8, [['상연', '李尚渊'], ['제이콥', 'Jacob'], ['영훈', '金英勋'], ['현재', '李玹在'], ['주연', '李柱延'], ['케빈', 'Kevin'], ['뉴', 'New'], ['큐', 'Q'], ['선우', '金善宇'], ['에릭', 'Eric']]],
   ['PLAVE', '플레이브', 9, [['예준', 'Yejun'], ['노아', 'Noah'], ['밤비', 'Bamby'], ['은호', 'Eunho'], ['하민', 'Hamin']]],
-  ['P1Harmony', '피원하모니', 7.5, [['기호', 'Keeho'], ['테오', 'Theo'], ['지웅', 'Jiung'], ['인탁', 'Intak'], ['소울', 'Soul'], ['종섭', 'Jongseob']]],
+  ['P1Harmony', '피원하모니', 8, [['기호', 'Keeho'], ['테오', 'Theo'], ['지웅', 'Jiung'], ['인탁', 'Intak'], ['소울', 'Soul'], ['종섭', 'Jongseob']]],
   ['WayV', '웨이션브이', 7.5, [['쿤', '钱锟'], ['텐', '李永钦'], ['윈윈', '董思成'], ['샤오쥔', '肖德俊'], ['헨드리', '黄冠亨'], ['양양', '刘扬扬']]],
-  ['xikers', '싸이커스', 6.5, [['민재', '民载'], ['준민', '俊旼'], ['수민', '洙玟'], ['진식', '真植'], ['현우', '贤宇'], ['정훈', '正勋'], ['세은', '世恩'], ['유준', '侑俊'], ['헌터', 'Hunter'], ['예찬', '艺灿']]],
+  ['xikers', '싸이커스', 7, [['민재', '民载'], ['준민', '俊旼'], ['수민', '洙玟'], ['진식', '真植'], ['현우', '贤宇'], ['정훈', '正勋'], ['세은', '世恩'], ['유준', '侑俊'], ['헌터', 'Hunter'], ['예찬', '艺灿']]],
   ['STAYC', '스테이씨', 7.5, [['수민', '裴秀珉'], ['시은', '朴诗恩'], ['아이사', 'Isa'], ['세은', '尹世恩'], ['윤', 'Yoon'], ['재이', 'J']]],
   ['CORTIS', '코르티스', 9, [['마틴', 'Martin'], ['제임스', 'James'], ['주훈', '柱勋'], ['성현', '成贤'], ['건호', '建浩']]],
   ['RIIZE', '라이즈', 9, [['쇼타로', 'Shotaro'], ['은석', '恩硕'], ['성찬', '圣灿'], ['원빈', '元彬'], ['소희', '昭希'], ['앤톤', 'Anton']]],
@@ -5186,11 +5186,11 @@ const CH_OTHERS = [
   ['BABYMONSTER', '베이비몬스터', 9, [['루카', 'Ruka'], ['파리타', 'Pharita'], ['아사', 'Asa'], ['아현', '郑雅娴'], ['라미', 'Rami'], ['로라', 'Rora'], ['치키타', 'Chiquita']]],
   ['ILLIT', '아일릿', 8.5, [['윤아', '允儿'], ['민주', '朴敏珠'], ['모카', 'Moka'], ['원희', '李沅禧'], ['이로하', 'Iroha']]],
   ['TWS', '투어스', 8.5, [['신유', '信宥'], ['도훈', '道勋'], ['영재', '英宰'], ['한진', '韩振'], ['지훈', '志薰'], ['경민', '炅民']]],
-  ['NCT WISH', '엔시티 위시', 7.5, [['시온', 'Sion'], ['리쿠', 'Riku'], ['유우시', 'Yushi'], ['재희', '在熙'], ['료', 'Ryo'], ['사쿠야', 'Sakuya']]],
-  ['KISS OF LIFE', '키스오브라이프', 7.5, [['쥴리', 'Julie'], ['나띠', 'Natty'], ['벨', 'Belle'], ['하늘', 'Haneul']]],
+  ['NCT WISH', '엔시티 위시', 8, [['시온', 'Sion'], ['리쿠', 'Riku'], ['유우시', 'Yushi'], ['재희', '在熙'], ['료', 'Ryo'], ['사쿠야', 'Sakuya']]],
+  ['KISS OF LIFE', '키스오브라이프', 8, [['쥴리', 'Julie'], ['나띠', 'Natty'], ['벨', 'Belle'], ['하늘', 'Haneul']]],
   ['ALLDAY PROJECT', '올데이 프로젝트', 7.5, [['애니', 'Annie'], ['타잔', 'Tarzzan'], ['베일리', 'Bailey'], ['우찬', '宇灿'], ['영서', '英瑞']]],
   ['MEOVV', '미야오', 7, [['수인', '秀仁'], ['가원', '佳媛'], ['안나', 'Anna'], ['나린', '娜潾'], ['엘라', 'Ella']]],
-  ['Hearts2Hearts', '하츠투하츠', 7, [['지우', '智友'], ['카르멘', 'Carmen'], ['유하', '侑夏'], ['스텔라', 'Stella'], ['주은', '珠恩'], ['에이나', 'A-na'], ['이안', '伊安'], ['예온', '艺温']]],
+  ['Hearts2Hearts', '하츠투하츠', 8, [['지우', '智友'], ['카르멘', 'Carmen'], ['유하', '侑夏'], ['스텔라', 'Stella'], ['주은', '珠恩'], ['에이나', 'A-na'], ['이안', '伊安'], ['예온', '艺温']]],
   ['NEXZ', '넥스지', 6.5, [['토모야', 'Tomoya'], ['유우', 'Yu'], ['하루', 'Haru'], ['소건', '昭健'], ['세이타', 'Seita'], ['휴이', 'Hyui'], ['유키', 'Yuki']]],
   ['KickFlip', '킥플립', 6.5, [['계훈', '桂勋'], ['아마루', 'Amaru'], ['동화', '东华'], ['주왕', '株旺'], ['민제', '珉齐'], ['케이주', 'Keiju'], ['동현', '东炫']]]
 ];
@@ -5202,7 +5202,7 @@ const FRIEND_DEF = [['CRAVITY', '세림', '世琳', 'best'], ['CRAVITY', '정모
   ['BOYNEXTDOOR', '리우', 'Riwoo', 'friend'], ['BOYNEXTDOOR', '태산', '泰山', 'friend'], ['BOYNEXTDOOR', '이한', '易汉', 'friend'],
   ['KiiiKiii', '하음', 'Haum', 'friend'], ['IVE', '이서', '李瑞', 'friend'], ['WJSN', '엑시', 'EXY', 'friend'], ['MONSTA X', '기현', '基贤', 'friend'],
   ['BABYMONSTER', '루카', 'Ruka', 'friend'], ['ILLIT', '민주', '朴敏珠', 'friend'], ['ILLIT', '원희', '李沅禧', 'friend'], ['ITZY', '리아', 'Lia', 'friend']];
-const FR_LV = { best: '最要好', close: '很熟', friend: '朋友' };
+const FR_LV = { best: '最要好', close: '很熟', friend: '朋友', acq: '熟人' };
 function chal() {
   const C = S.chal || (S.chal = { list: [], friends: [] });
   if ((C.frV || 0) < 1) { C.frV = 1; const custom = (C.friends || []).filter(f => !FRIEND_DEF.some(d => d[1] === f.n)); C.friends = [...FRIEND_DEF.map(([g, n, z, lv]) => ({ g, n, z, lv })), ...custom.map(f => ({ ...f, lv: f.lv || 'friend' }))]; }
@@ -5218,10 +5218,13 @@ function chSongs() { const out = []; for (const a of relList().slice().reverse()
 function chCooling(p) { const today = dkey(Date.now()); return chal().list.some(x => x.p.g === p.g && x.p.n === p.n && (x.st === 'ask' || x.st === 'ok' || (x.date > addDays(today, -30) && x.st !== 'no') || (x.st === 'no' && x.at > Date.now() - 14 * 86400e3))); }
 function chInvite(k, p, song) {
   const C = chal(), kind = chKind(p), now = Date.now();
-  const gap = p.tier - myTier(), promo = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? .1 : 0;
-  const lv = (friendOf(p.g, p.n) || {}).lv, prob = kind === 'friend' ? { best: .98, close: .7, friend: .5 }[lv] || .5 : kind === 'same' ? .4 : clamp(.88 - .2 * gap + promo, .02, .88);
-  const ok = Math.random() < prob, wait = (kind === 'other' ? rand(40, 240) : rand(5, 45)) * 60e3;
-  C.list.push({ id: uid(), date: k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind }, song, st: 'ask', ok, at: now, resAt: now + wait });
+  // ① 关系基础概率（不认识的按咖位修正，10%～50%）② challenge 这种简单短视频 +10% ③ 打歌期 +5～10%
+  const lv = (friendOf(p.g, p.n) || {}).lv, promo = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? rand(.05, .1) : 0;
+  const base = kind === 'friend' ? ({ best: .98, close: .85, friend: .65, acq: .45 })[lv] ?? .65 : kind === 'same' ? .85 : clamp(.3 + .04 * (myTier() - p.tier), .1, .5);
+  const prob = clamp(base + .1 + promo, .02, .99), ok1 = Math.random() < prob;
+  // ④ 对方本人答应后，还要过公司和档期这一关：私人关系不能保证最终落实
+  const ok = ok1 && Math.random() < (kind === 'same' ? .9 : kind === 'friend' ? .8 : .75), wait = (kind === 'other' ? rand(40, 240) : rand(5, 45)) * 60e3;
+  C.list.push({ id: uid(), date: k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind }, song, st: 'ask', ok, ok1, at: now, resAt: now + wait });
   const who = `${p.gk} ${p.n}`, md = `${+k.slice(5, 7)}월 ${+k.slice(8)}일`, mz = `${+k.slice(5, 7)}月${+k.slice(8)}日`;
   mgrReply(kind === 'other' ? [[`${who}님 쪽 매니저한테 물어볼게요`, `我去问问${p.g} ${p.z || p.n}那边的经纪人`], [`${md} 〈${song[1]}〉 챌린지요`, `${mz}拍《${song[1]}》的 challenge`]] : [[`${who}님한테 얘기해둘게요!`, `我跟${p.g} ${p.z || p.n}说一声！`]], true);
   save();
@@ -5271,6 +5274,7 @@ function chalTick() {
       if (!chDayOk(x.date) && x.date >= today) x.ok = false;
       x.st = x.ok ? 'ok' : 'no';
       mgrSay(x.ok ? [`${who}님 OK래요! ${+x.date.slice(5, 7)}/${+x.date.slice(8)} 스케줄 끝나고 대기실에서 찍어요`, `${x.p.g} ${x.p.z || x.p.n}答应了！${+x.date.slice(5, 7)}/${+x.date.slice(8)} 行程结束后在待机室拍`]
+        : x.ok1 ? pick([[`${who}님은 좋다고 했는데 회사 쪽에서 그날 스케줄이 안 된대요ㅠ`, `${x.p.g} ${x.p.z || x.p.n}本人说好，但那边公司说那天档期排不开ㅠ`], [`${who}님은 하고 싶어 했는데 그쪽 회사에서 이번엔 어렵다고 하네요ㅠ`, `${x.p.g} ${x.p.z || x.p.n}本人想拍，但那边公司说这次不方便ㅠ`]])
         : x.p.kind === 'other' ? pick([[`${who}님 쪽은 그날 스케줄이 너무 빡빡하대요ㅠ`, `${x.p.g}那边说那天行程太满了ㅠ`], ['이번엔 어렵다고 하네요ㅠ 다음에 기회 되면 하재요', '那边说这次不太方便ㅠ 说下次有机会再拍'], ['정중하게 거절했어요ㅠ 아쉽네요', '那边客气地婉拒了ㅠ 有点可惜']]) : [`${who}님 그날 일정이 안 맞는대요ㅠ`, `${x.p.g} ${x.p.z || x.p.n}那天时间对不上ㅠ`]);
     }
     if (x.st === 'ok') {
@@ -5313,11 +5317,11 @@ function chPickHTML(k) {
   const chip = (g, n, z, tier) => { const p = { g, n }; const cool = chCooling(p); return `<button class="pcat${cool ? ' off' : ''}" ${cool ? 'disabled' : `data-act="chpick" data-k="${k}" data-g="${esc(g)}" data-n="${esc(n)}"`} style="${cool ? 'opacity:.4' : ''}">${esc(n)}${z ? ` <span class="muted" style="font-size:11px">${esc(z)}</span>` : ''}</button>`; };
   const grp = L => L.map(([g, gk, t, ms]) => `<div style="margin:8px 0 4px"><b style="font-size:13px">${esc(g)}</b> <span class="muted" style="font-size:11px">${esc(gk)}</span></div><div class="row" style="flex-wrap:wrap;gap:6px">${ms.map(([n, z]) => chip(g, n, z, t)).join('')}</div>`).join('');
   return `<div class="row"><h3 style="flex:1">🎬 邀请拍 challenge</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="muted" style="font-size:13px;margin-bottom:8px">${+k.slice(5, 7)}月${+k.slice(8)}日 · ${esc(rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)).map(r => r.title).join('、'))}<br>点名字就会让经纪人去问。同公司和好友基本都会答应；其他艺人要看咖位，差太多大概率会被婉拒。最近拍过、正在问的人是灰的。</div>
+    <div class="muted" style="font-size:13px;margin-bottom:8px">${+k.slice(5, 7)}月${+k.slice(8)}日 · ${esc(rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)).map(r => r.title).join('、'))}<br>点名字就会让经纪人去问。关系越好越容易答应，不认识的要看咖位；对方答应后还要过公司和档期这一关。最近拍过、正在问的人是灰的。</div>
     ${songs.length ? `<div class="field"><label>拍哪首歌</label><select id="ch-song">${songs.map(([a, n, ti]) => `<option value="${esc(a + '|' + n)}" ${a + '|' + n === sel ? 'selected' : ''}>${esc(n)}${ti ? '（主打）' : ''}</option>`).join('')}</select></div>` : '<div class="muted">还没有发行的歌</div>'}
     <details class="me-more" open><summary>同公司（STARSHIP）</summary>${grp(CH_SAME)}</details>
-    <details class="me-more"><summary>好友</summary>${['best', 'close', 'friend'].map(lv => { const F = C.friends.filter(f => (f.lv || 'friend') === lv); return F.length ? `<div style="margin:8px 0 4px"><b style="font-size:13px">${FR_LV[lv]}</b></div><div class="row" style="flex-wrap:wrap;gap:6px">${F.map(fr => chip(fr.g, fr.n, (fr.g ? fr.g + ' ' : '') + (fr.z || ''), 5)).join('')}</div>` : ''; }).join('') || '<span class="muted">还没有</span>'}
-      <div class="row" style="gap:6px;margin-top:8px"><input id="ch-fg" placeholder="团名" style="flex:1;min-width:0"><input id="ch-fn" placeholder="名字（韩文）" style="flex:1;min-width:0"><input id="ch-fz" placeholder="中文名（可空）" style="flex:1;min-width:0"><button class="btn sm" data-act="chfriend" data-k="${k}">加</button></div></details>
+    <details class="me-more"><summary>好友</summary>${['best', 'close', 'friend', 'acq'].map(lv => { const F = C.friends.filter(f => (f.lv || 'friend') === lv); return F.length ? `<div style="margin:8px 0 4px"><b style="font-size:13px">${FR_LV[lv]}</b></div><div class="row" style="flex-wrap:wrap;gap:6px">${F.map(fr => chip(fr.g, fr.n, (fr.g ? fr.g + ' ' : '') + (fr.z || ''), 5)).join('')}</div>` : ''; }).join('') || '<span class="muted">还没有</span>'}
+      <div class="row" style="gap:6px;margin-top:8px"><input id="ch-fg" placeholder="团名" style="flex:1;min-width:0"><input id="ch-fn" placeholder="名字（韩文）" style="flex:1;min-width:0"><input id="ch-fz" placeholder="中文名（可空）" style="flex:1;min-width:0"><select id="ch-flv" style="width:auto"><option value="friend">朋友</option><option value="acq">熟人</option><option value="close">很熟</option></select><button class="btn sm" data-act="chfriend" data-k="${k}">加</button></div></details>
     <details class="me-more"><summary>其他艺人（四代起）</summary>${grp(CH_OTHERS)}</details>`;
 }
 function workSumHTML(k, items, today, nowMin) {
@@ -5695,7 +5699,7 @@ document.addEventListener('click', async e => {
         const [g, nm] = pv.split('|'), p = chFind(g, nm); if (!p) continue; const i = sv.indexOf('|');
         C.list.push({ id: uid(), date: k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind: chKind(p) }, song: [sv.slice(0, i), sv.slice(i + 1)], st: 'ok', ok: true, at: Date.now(), resAt: 0, bf: 1 }); n++; }
       S.chBF = 1; chalTick(); save(); closeModal(); render(); toast(n ? `🎬 补上了 ${n} 个 challenge` : '好的，都没有'); break; }
-    case 'chfriend': { const g = $('#ch-fg').value.trim(), n = $('#ch-fn').value.trim(), z = $('#ch-fz').value.trim(); if (!n) { toast('写一下名字'); break; } const C = chal(); if (!C.friends.some(x => x.n === n && x.g === g)) C.friends.push({ g: g || '好友', n, z, lv: 'friend' }); UI.chSong = ($('#ch-song') || {}).value; save(); openModal(chPickHTML(t.dataset.k)); break; }
+    case 'chfriend': { const g = $('#ch-fg').value.trim(), n = $('#ch-fn').value.trim(), z = $('#ch-fz').value.trim(); if (!n) { toast('写一下名字'); break; } const C = chal(); if (!C.friends.some(x => x.n === n && x.g === g)) C.friends.push({ g: g || '好友', n, z, lv: ($('#ch-flv') || {}).value || 'friend' }); UI.chSong = ($('#ch-song') || {}).value; save(); openModal(chPickHTML(t.dataset.k)); break; }
     case 'sdate': UI.schedDate = t.dataset.k; render(); break;
     case 'sdone': { const k = t.dataset.dk; if (t.checked) S.schedule.done[k] = 1; else delete S.schedule.done[k]; save(); render(); break; }
     case 'pcat': UI.presetCat = t.dataset.c; UI.presetQ = ''; $('#preset-q').value = ''; $$('.pcat').forEach(x => x.classList.toggle('on', x === t)); $('#plist').innerHTML = presetListHTML(); break;
