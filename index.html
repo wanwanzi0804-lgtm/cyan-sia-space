@@ -2345,7 +2345,7 @@ function showsCardHTML() {
   const base = active ? today : keys[keys.length - 1].split('|')[0], mon = weekOf(base);
   const rivals = weekRivals(base), top = rivals.find(x => x.tier === 'top');
   const wins = Object.values(R).filter(x => x.rank === 1).length, cands = Object.values(R).filter(x => x.rank <= 3).length;
-  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${mon.slice(5).replace('-', '/')} 这周${top ? ` · ⚠ TOP 团 <b>${top.name}</b> 也在打歌` : ' · 这周没有 TOP 团'} · 累计一位 ${wins} 次 / 候补 ${cands} 次</div>${rivals.some(x => x.song) ? `<details class="me-more" style="margin-bottom:6px"><summary>这周一起打歌的（${rivals.length}）</summary>${rivals.map(x => `<div class="rule"><span style="flex:1">${esc(x.name)} <span class="muted" style="font-size:12px">《${esc(x.song)}》</span></span>${x.tier === 'top' ? '<span class="alb-star" style="background:#e5484d">TOP</span>' : ''}</div>`).join('')}</details>` : ''}
+  return `<div class="muted" style="font-size:12.5px;margin-bottom:6px">${mon.slice(5).replace('-', '/')} 这周${top ? ` · ⚠ TOP 团 <b>${top.name}</b> 也在打歌` : ' · 这周没有 TOP 团'} · 累计一位 ${wins} 次 / 候补 ${cands} 次</div>
     ${SHOWS.map(sh => { let k; for (let i = 0; i < 7; i++) { const x = addDays(mon, i); if (parseD(x).getDay() === sh[2]) k = x; }
       const r = R[k + '|' + sh[0]];
       const st = r ? (r.rank === 1 ? '<b class="sh-win">🏆 一位</b>' : r.rank <= 3 ? `<b class="sh-cand">候补 · 第 ${r.rank}</b>` : `<span class="muted">第 ${r.rank} 位</span>`) : `<span class="muted">${k < today || !active ? '—' : `${WD[sh[2]] === '日' ? '周日' : '周' + WD[sh[2]]} ${sh[3]}:00 公布`}</span>`;
