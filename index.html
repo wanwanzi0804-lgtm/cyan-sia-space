@@ -300,6 +300,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .bb-rl-line{display:flex;align-items:flex-end;gap:6px}
 .bb-rl-bub{background:#fff;color:#1d2329;border-radius:18px;padding:10px 14px;font-size:15.5px;line-height:1.45;max-width:84%;word-break:break-word;box-shadow:0 1px 3px rgba(0,0,0,.12);cursor:pointer}
 .bb-rl-bub:active{background:#eceff2}
+.bb-rl-bub.a{border-bottom-left-radius:7px}
 .bb-rl-zh{color:#8a939c;font-size:13.5px;margin-top:4px;padding-top:4px;border-top:1px dashed #e3e7eb}
 .bb-rl-tr{border:1.5px solid rgba(255,255,255,.9);background:rgba(0,0,0,.22);color:#fff;width:26px;height:26px;border-radius:50%;font-size:14px;flex:none;padding:0;line-height:1}
 .bb-rl-tr.on{background:#fff;color:var(--accent)}
@@ -3963,7 +3964,7 @@ function bbUniq(make) {
 }
 function bbAddFan(line, user) {
   const B = S.bubble, g = bbOpen();
-  const m = { id: uid(), user: user || line.user || makeFan(line.lang).user, st: pick(BB_STICKERS), lang: line.lang || 'zh', text: line.text, zh: line.zh || null, at: Date.now() };
+  const m = { id: uid(), user: user || line.user || makeFan(line.lang).user, st: pick(BB_STICKERS), lang: line.lang || 'zh', text: line.text, zh: line.zh || null, at: Date.now(), ai: line.ai ? 1 : undefined };
   g.fans.push(m); g.count = (g.count || 0) + 1;
   if (g.fans.length > 400) g.fans.splice(0, g.fans.length - 400);
   if (UI.tab !== 'bubble') B.unread = (B.unread || 0) + 1; else bbTickQ.push(m);
@@ -4011,25 +4012,25 @@ async function bbSend(type, payload = {}) {
   hotTaskCheck('bubble', [type], m.text);
   bbAiOnSend(m);
 }
-/* ---------- Bubble AI：3 分钟请一次，省字版一批约 18 条；你每发一条就放出 2~5 条 AI 回复 ---------- */
-const BB_AI_WINDOW = 3 * 60000;
+/* ---------- Bubble AI：2 分钟请一次，一批约 30 条；你每发一条就放出 4~8 条 AI 回复（AI 粉丝的气泡左下角稍微尖一点，不细看看不出来） ---------- */
+const BB_AI_WINDOW = 2 * 60000;
 let bbAiTimer = null;
 const bbAiWorth = m => m.type === 'sticker' ? false : m.type !== 'text' || m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️|\s/gu, '').length >= 4;
 function bbRelease(n) {
   const B = S.bubble, now = Date.now(); n = Math.min(n, B.aiPool.length);
-  for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + rand(2500, 20000), user: l.user, line: l }); }
+  for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + rand(2500, 20000), user: l.user, line: { ...l, ai: 1 } }); }
 }
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
-  const want = ri(2, 5);
+  const want = ri(4, 8);
   const windowOpen = Date.now() - (B._lastAi || 0) >= BB_AI_WINDOW && !B._aiBusy;
   if (windowOpen && (bbAiWorth(m) || B._aiScheduled)) {
-    // 新的 3 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
+    // 新的 2 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
     B._owed = (B._owed || 0) + want; B._aiScheduled = true;
     clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 1500); return;
   }
   if (B._aiBusy) { B._owed = (B._owed || 0) + want; return; }
-  bbRelease(want); // 这 3 分钟里的那批还有剩就放出来；用完了就全是免费回复
+  bbRelease(want); // 这 2 分钟里的那批还有剩就放出来；用完了就全是免费回复
 }
 async function bbAI() {
   const B = S.bubble; B._aiScheduled = false; B._aiBusy = true;
@@ -4044,10 +4045,10 @@ async function bbAI() {
     content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}：
 ${lines}
 每个粉丝都以为这是偶像单独发给自己的私聊。
-请写 18 条粉丝回复放进 r：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
+请写 30 条粉丝回复放进 r（30 个不同的粉丝，语气、长短、关注点各不相同，有人激动有人淡定有人碎碎念）：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
 格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
 回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。` });
-    const res = await aiCompact(content, 3000);
+    const res = await aiCompact(content, 4500);
     B.aiPool = res.r;
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
@@ -4196,7 +4197,7 @@ function bbListOpen(g) {
     <div class="bb-rl-list" id="bb-rl-list">${more}${g.fans.map(f => `<div class="bb-rl-row">
       <div class="bb-rl-av">${f.st || '🐶'}</div>
       <div class="bb-rl-main"><div class="bb-rl-name">${esc(f.user)}<button class="bb-rl-rep" data-act="bbreport">举报</button></div>
-        <div class="bb-rl-line"><div class="bb-rl-bub" data-act="bbrlmenu" data-f="${f.id}"><div>${esc(f.text)}</div>${f.zh ? `<div class="bb-rl-zh" ${S.prefs.autoTr ? '' : 'hidden'}>${esc(f.zh)}</div>` : ''}</div>
+        <div class="bb-rl-line"><div class="bb-rl-bub${f.ai ? ' a' : ''}" data-act="bbrlmenu" data-f="${f.id}"><div>${esc(f.text)}</div>${f.zh ? `<div class="bb-rl-zh" ${S.prefs.autoTr ? '' : 'hidden'}>${esc(f.zh)}</div>` : ''}</div>
         ${f.zh ? `<button class="bb-rl-tr${S.prefs.autoTr ? ' on' : ''}" data-act="bbrltr" title="翻译">Ⓐ</button>` : ''}</div></div></div>`).join('') || '<div class="bb-rl-note">还没有消息</div>'}</div>
     <button class="bb-rl-back" data-act="bbrlclose">返回聊天室</button>`;
   document.body.appendChild(d); bbWallpaper($('#bb-rl-list'));
