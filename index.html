@@ -5220,7 +5220,7 @@ function chInvite(k, p, song) {
   const C = chal(), kind = chKind(p), now = Date.now();
   // ① 关系基础概率（不认识的按咖位修正，10%～50%）② challenge 这种简单短视频 +10% ③ 打歌期 +5～10%
   const lv = (friendOf(p.g, p.n) || {}).lv, promo = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? rand(.05, .1) : 0;
-  const base = kind === 'friend' ? ({ best: .98, close: .85, friend: .65, acq: .45 })[lv] ?? .65 : kind === 'same' ? .85 : clamp(.3 + .04 * (myTier() - p.tier), .1, .5);
+  const base = kind === 'friend' ? ({ best: .98, close: .85, friend: .65, acq: .45 })[lv] ?? .65 : kind === 'same' ? clamp(.45 + .02 * (myTier() - p.tier), .25, .45) : clamp(.3 + .04 * (myTier() - p.tier), .1, .5); // 同公司但不是朋友：按普通熟人算，对方咖位高的再低一点
   const prob = clamp(base + .1 + promo, .02, .99), ok1 = Math.random() < prob;
   // ④ 对方本人答应后，还要过公司和档期这一关：私人关系不能保证最终落实
   const ok = ok1 && Math.random() < (kind === 'same' ? .9 : kind === 'friend' ? .8 : .75), wait = (kind === 'other' ? rand(40, 240) : rand(5, 45)) * 60e3;
