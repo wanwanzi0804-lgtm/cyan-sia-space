@@ -3981,7 +3981,7 @@ function bubbleTick(dt, silent) {
     bbAddFan(dup ? bbUniq(() => bbLine(null, false)) : p.line, p.user); return false;
   });
   let lam = 0;
-  if (last && last.burst) { const tau = 60e3, a1 = now - last.at, a0 = Math.max(0, a1 - dt); lam += last.burst * (Math.exp(-a0 / tau) - Math.exp(-a1 / tau)); }
+  if (last && last.burst) { const tau = 60e3, a1 = now - last.at, a0 = Math.max(0, a1 - dt); lam += last.burst * (Math.exp(-a0 / tau) - Math.exp(-a1 / tau)) * (B._aiBusy && a1 < 25e3 ? .3 : 1); } // AI 还在读你的消息时，先少来点套话
   const h = new Date().getHours(), tod = h >= 1 && h < 7 ? .3 : (h >= 20 || h < 1) ? 1.5 : 1;
   lam += subs * .006 * (dt * (S.prefs.speed || 1) / 3600e3) * tod * heat();
   let n = poisson(lam); if (silent) n = Math.min(n, 120);
@@ -4019,7 +4019,7 @@ let bbAiTimer = null;
 const bbAiWorth = m => m.type === 'sticker' ? false : m.type !== 'text' || m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️|\s/gu, '').length >= 4;
 function bbRelease(n) {
   const B = S.bubble, now = Date.now(); n = Math.min(n, B.aiPool.length);
-  for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + rand(2500, 20000), user: l.user, line: { ...l, ai: 1 } }); }
+  for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + 600 + Math.pow(Math.random(), 1.6) * 9000, user: l.user, line: { ...l, ai: 1 } }); }
 }
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
@@ -4028,7 +4028,7 @@ function bbAiOnSend(m) {
   if (windowOpen && (bbAiWorth(m) || B._aiScheduled)) {
     // 新的 2 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
     B._owed = (B._owed || 0) + want; B._aiScheduled = true;
-    clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 1500); return;
+    clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 900); return;
   }
   if (B._aiBusy) { B._owed = (B._owed || 0) + want; return; }
   bbRelease(want); // 这 2 分钟里的那批还有剩就放出来；用完了就全是免费回复
@@ -4043,17 +4043,19 @@ async function bbAI() {
     if (img) { const bl = await idbGet(img.media).catch(() => null); if (bl) { const d = await imageB64(bl); if (d) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } }); } }
     const kind = { text: '文字', image: '照片', video: '视频', voice: '语音', sticker: '表情包' };
     const lines = batch.map(x => `- [${kind[x.type]}${x.type === 'sticker' && STICKERS[x.sticker] ? '：小猫' + STICKERS[x.sticker].d : ''}]${x.text ? ' ' + x.text.split(BB_TOK).join('【粉丝自己的昵称】') : ''}${x.replyTo ? `（回复粉丝「${x.replyTo.user}」：「${x.replyTo.text}」）` : ''}`).join('\n');
-    content.push({ type: 'text', text: `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}：
+    const prompt = N => `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}：
 ${lines}
 每个粉丝都以为这是偶像单独发给自己的私聊。
-请写 30 条粉丝回复放进 r（30 个不同的粉丝，语气、长短、关注点各不相同，有人激动有人淡定有人碎碎念）：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
+请写 ${N} 条粉丝回复放进 r（${N} 个不同的粉丝，语气、长短、关注点各不相同，有人激动有人淡定有人碎碎念）：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
 格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
-回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。` });
-    const res = await aiCompact(content, 4500);
+回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。`;
+    // 先要一小批（快），马上放出来；剩下的再在后台补一批，不让粉丝慢半拍
+    const res = await aiCompact([...content, { type: 'text', text: prompt(10) }], 1500);
     B.aiPool = res.r;
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
-    bbRelease(B._owed || 0);
+    bbRelease(B._owed || 0); B._owed = 0; B._aiBusy = false;
+    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { B.aiPool = (B.aiPool || []).concat(r2.r); save(); }).catch(() => { });
   } catch (e) { aiFail(e); }
   finally { B._owed = 0; B._aiBusy = false; }
 }
