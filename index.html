@@ -4627,7 +4627,7 @@ const LIVE_TPL = {
   echo: ['{n}说「{q}」哈哈哈', '「{q}」好可爱', '「{q}」记下了', '刚刚说「{q}」吗']
 };
 const LIVE_KW = [
-  ['greetR', /大家好|你们好|哈喽|hello|嗨|晚上好|早上好|안녕/i], ['food', /吃|饭|饿|零食|喝/], ['sing', /唱|歌/], ['dance', /跳|舞/],
+  ['greetR', /大家好|你们好|哈喽|hello|嗨|晚上好|早上好|안녕/i], ['food', /吃|饭|饿|零食|喝/], ['sing', /唱(首|一|个|给|歌|了)|来一首|清唱|点歌|唱吗|唱什么/], ['dance', /跳|舞/],
   ['cat', /猫|喵/], ['bye', /晚安|下播|拜拜|再见|走了|要睡|该走|先走|ㅃㅃ|ㅂㅂ|bye|撤了|溜了/i], ['q', /吗|呢|什么|怎么|要不要|想不想|有没有|[?？]/],
   ['thanks', /谢谢|感谢/], ['tired', /累|困|辛苦|好忙/], ['comeback', /新歌|回归|专辑|打歌|演唱会|签售|综艺/],
   ['love', /爱你|喜欢你|想你/], ['look', /看这个|你们看|给你们看|看看这|看到了吗/], ['study', /学习|考试|作业|学校|复习/], ['game', /游戏|王者|原神|手游/],
@@ -4718,7 +4718,7 @@ async function startLive() {
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
     <div id="lv-beauty" hidden></div>
-    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
   if (mode === 'video') attachPair(layer, stream);
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
@@ -4733,6 +4733,9 @@ async function startLive() {
   }
   $('#lv-end').onclick = endLive;
   $('#lv-send').onclick = liveSend;
+  $('#lv-sing').onclick = () => { const L = LIVE; L.singing = !L.singing; $('#lv-sing').classList.toggle('on', L.singing); $('#lv-input').placeholder = L.singing ? '唱的是哪首 / 歌词…' : '说点什么…';
+    if (L.singing) { sysChat('🎵 开始唱歌了'); L.topic = { cat: 'sing', until: Date.now() + 60000 }; fresh(LIVE_TPL.sing, ri(3, 5)).forEach(t => L.queue.push({ lang: 'zh', text: t })); const sub = $('#lv-sub'); if (sub) sub.textContent = '🎵 唱歌中…'; }
+    else { sysChat('🎵 唱完了'); pickN(['安可！！', '再来一首！', '唱得太好了', '👏👏👏', '好好听呜呜', '录屏了', '还想听！'], ri(3, 5)).forEach(t => L.queue.push({ lang: 'zh', text: t })); const sub = $('#lv-sub'); if (sub && sub.textContent === '🎵 唱歌中…') sub.textContent = ''; } };
   $('#lv-input').onkeydown = e => { if (e.key === 'Enter') liveSend(); };
   if ($('#lv-mic')) $('#lv-mic').onclick = () => LIVE.micOn ? stopRec() : startRec();
   if ($('#lv-bty')) $('#lv-bty').onclick = () => { const p = $('#lv-beauty'); p.hidden = !p.hidden; if (!p.hidden) p.innerHTML = beautyPanelHTML(); $('#lv-bty').classList.toggle('on', !p.hidden); };
@@ -4843,8 +4846,8 @@ function pushChat(c, cls = '') {
   LIVE.comments++;
   LIVE.recent.push(`${c.user}：${c.text}`); if (LIVE.recent.length > 15) LIVE.recent.shift();
   if (!cls || cls === 'q') { LIVE.users.push(c.user); if (LIVE.users.length > 40) LIVE.users.shift(); }
-  const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc ' + cls;
-  d.innerHTML = `${cls === 'q' ? '❓ ' : ''}<b style="color:${cls && cls !== 'q' ? '#fff' : c.color || '#9ff'}">${esc(c.user)}</b>${esc(c.text)}${c.zh ? `<span class="ltr">译：${esc(c.zh)}</span>` : ''}`;
+  const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc ' + (cls === 'q' ? '' : cls);
+  d.innerHTML = `<b style="color:${cls && cls !== 'q' ? '#fff' : c.color || '#9ff'}">${esc(c.user)}</b>${esc(c.text)}${c.zh ? `<span class="ltr">译：${esc(c.zh)}</span>` : ''}`;
   box.appendChild(d); while (box.children.length > 40) box.firstElementChild.remove();
 }
 function sysChat(text) { if (!LIVE) return; const box = $('#lv-chat'); const d = document.createElement('div'); d.className = 'lc sys'; d.textContent = text; box.appendChild(d); }
@@ -4855,6 +4858,10 @@ function spawnHeart() {
 }
 function liveReact(text) {
   const L = LIVE; if (!L) return;
+  if (L.singing) { // 唱歌模式：说的 / 打的都是歌词，粉丝按「在唱歌」反应
+    L.speech = (L.speech + ' 🎵' + text).slice(-300); L.newSpeech = true; L.topic = { cat: 'sing', until: Date.now() + 60000 };
+    fresh(LIVE_TPL.sing.concat(['好好听', '这句好戳我', '是现场！！', '声音好稳', '鸡皮疙瘩起来了', '跟着一起唱了']), ri(2, 4)).forEach(t => L.queue.push({ lang: 'zh', text: t })); return;
+  }
   L.speech = (L.speech + ' ' + text).slice(-300); L.newSpeech = true;
   (L.said || (L.said = [])).push(text.trim().slice(0, 60)); if (L.said.length > 60) L.said.shift(); // 记下你直播里说过的话（热搜切片只用这些）
   let hit = false; const qBefore = L.queue.length;
@@ -4989,7 +4996,7 @@ function parseYesNo(text) {
 }
 function liveSend() {
   const inp = $('#lv-input'); const t = inp.value.trim(); if (!t) return; inp.value = '';
-  pushChat({ user: S.profile.name + ' (主播)', text: t }, 'host');
+  pushChat({ user: S.profile.name + ' (主播)', text: LIVE.singing ? '🎵 ' + t : t }, 'host');
   liveReact(t);
 }
 function startRec() {
@@ -5015,7 +5022,7 @@ async function liveAI() {
     if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
     content.push({ type: 'text', text:
 `${S.profile.name} 正在${L.mode === 'video' ? '视频' : L.mode === 'voice' ? '语音（没有画面，只有声音）' : '纯文字聊天'}直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
-${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话：粉丝可以聊画面里的细节、互相聊天，或者向她提问（TMI、OOTD、最近的行程等）。'}
+${L.singing ? '她现在正在唱歌（不是在说话），🎵 后面是她唱的歌词或歌名：粉丝的弹幕要对她的歌声和演唱作出反应（好听、点歌、跟唱、安可等），不要把歌词当成她在聊天。\n' : ''}${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话：粉丝可以聊画面里的细节、互相聊天，或者向她提问（TMI、OOTD、最近的行程等）。'}
 最近的弹幕：
 ${L.recent.slice(-10).join('\n')}
 请生成 ${idle ? 4 : 6} 条新弹幕：大部分要回应她刚说的话或画面里的细节（如果她提问就回答），短一点（多数 2~15 字），像直播间弹幕。` });
