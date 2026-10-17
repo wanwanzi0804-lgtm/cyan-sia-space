@@ -2505,6 +2505,7 @@ function mgrChat() {
   const M = mgr(); M.chat = M.chat || []; M.said = M.said || {};
   if ((M.repFix || 0) < 5) { M.repFix = 5; penFix(); for (const m of M.chat) { const mm = !m.me && (m.text || '').match(/^\[(\d{1,2})\/(\d{1,2})\(.\) 일정 보고\]/); if (!mm) continue; const dk = `${dkey(m.at).slice(0, 4)}-${mm[1].padStart(2, '0')}-${mm[2].padStart(2, '0')}`, r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; m.at = mgrReportAt(dk); } M.chat.sort((a, b) => a.at - b.at); } // 已发的日报按新格式重写，时间改回原定时间
   if (M.readAt === undefined) M.readAt = M.replyAt ? Math.max(0, ...M.chat.filter(m => !m.me).map(m => m.at)) : Date.now(); // 以前的消息都算已读（还在等回复的除外）
+  if (!M.noReadFix) { M.noReadFix = 1; let j = M.chat.length - 1; while (j >= 0 && M.chat[j].me) j--; const p0 = M.chat[j + 1]; if (p0 && !M.replyAt && (M.readAt || 0) >= p0.at) M.readAt = p0.at - 1; } // 之前已读但没回的，改回未读
   if (!M.meFix) { M.meFix = 1; for (let j = M.chat.length - 1; j >= 0; j--) { const m = M.chat[j], r = m.card && m.res; if (!r || r === '已过期' || r === '已处理' || (M.chat[j + 1] && M.chat[j + 1].me)) continue; const k = r === '已接' ? 'ok' : r === '已签约' ? 'dealOk' : r === '不准备' ? 'giftNo' : /^准备/.test(r) ? 'giftOk' : m.card.type === 'deal' ? 'dealNo' : 'no', [ko, zh] = pick(ME_SAY[k]), nx = M.chat[j + 1]; M.chat.splice(j + 1, 0, { id: uid(), at: nx ? Math.min(m.at + 60e3, nx.at - 1) : m.at + 60e3, text: ko, zh, me: true }); } } // 之前点过的卡片补上你那句回复
   if ((M.topicFix || 0) < 1) { M.topicFix = 1; for (let j = 1; j < M.chat.length; j++) { const m = M.chat[j]; if (m.me || m.card || !/^(오늘|내일|모레)은 (이렇게 있어요|일정 없어요)/.test(m.text || '')) continue; let i = j - 1; const qs = []; while (i >= 0 && M.chat[i].me) qs.unshift(M.chat[i--].text); if (!qs.length) continue; const a = mgrTopic(qs.join('\n'), i); if (a) { m.text = a[0]; m.zh = a[1]; } } } // 之前答非所问的回复改成针对那件事的回答
   if (!M.specV) { M.specV = 1; for (const o of M.offers || []) { if (o.popup || o.note) continue; const sp = offerSpec(o.title, o.loc); if (!sp.note) continue; const old = o.title; o.title = sp.title; o.loc = sp.loc; o.note = sp.note; const m = M.chat.find(c => c.card && c.card.type === 'offer' && c.card.id === o.id); if (m) { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; m.text = toKo(`${o.title} ${md} 섭외 왔어요. ${o.note[0]} 할까요?`); m.zh = `${o.title} ${mz} 来邀约了。${o.note[1]}接吗？`; } } } // 已发的笼统邀约补上具体内容
@@ -2792,12 +2793,14 @@ function mgrCancel(t) {
     : [[`네 ${names} 뺐어요~`, `好，${names}拿掉了～`]]), ...tail];
 }
 // 闲聊：道歉、笑、「知道了」这类不用记，像人一样随口回，或者干脆不回
+// 「ㅋㅋ」「네」这类：一半不回。按这条消息定好，不回的话也不会已读
+const mgrNoReply = t => srng('nr' + mgrChat().chat.filter(m => m.me).length + t)() < .5;
 function mgrSmall(t) {
   const c = t.replace(/\s/g, '');
   if (/죄송|미안|sorry|抱歉|对不起|不好意思/i.test(c)) return pick([['ㅋㅋㅋ 아니에요~', '哈哈哈没事～'], ['괜찮아요ㅎㅎ', '没关系哈哈'], ['ㅋㅋ 뭘요', '哈哈这有啥']]);
   if (/^아맞다|^啊对|^对哦|^哦对/.test(c)) return pick([['ㅎㅎ', '嘿嘿'], ['ㅋㅋ 그쵸', '哈哈对吧']]);
-  if (/^[ㅋㅎ哈呵w]+[!~.]*$/i.test(c)) return Math.random() < .5 ? 'NONE' : ['ㅋㅋㅋ', '哈哈哈'];
-  if (c.length <= 14 && /^(네+|넵+|응+|ㅇㅇ|알겠|알았|오케이|ok|好的?|嗯+|知道了|收到|行)/i.test(c)) return Math.random() < .5 ? 'NONE' : pick([['ㅎㅎ 넵', '嗯嗯'], ['👍', '👍']]);
+  if (/^[ㅋㅎ哈呵w]+[!~.]*$/i.test(c)) return mgrNoReply(t) ? 'NONE' : ['ㅋㅋㅋ', '哈哈哈'];
+  if (c.length <= 14 && /^(네+|넵+|응+|ㅇㅇ|알겠|알았|오케이|ok|好的?|嗯+|知道了|收到|行)/i.test(c)) return mgrNoReply(t) ? 'NONE' : pick([['ㅎㅎ 넵', '嗯嗯'], ['👍', '👍']]);
   return null;
 }
 // 交代的事：只有真的在拜托 / 提醒事情时才记
@@ -2889,10 +2892,11 @@ let mgrBusy = false;
 function mgrReplyTick() {
   const M = mgrChat();
   try { mgrAdvanceTick(); } catch (e) { console.error('adv', e); }
-  if (!M.replyAt && !mgrBusy && M.chat.length && M.chat[M.chat.length - 1].me && Date.now() - M.chat[M.chat.length - 1].at > 20e3) M.replyAt = Date.now() + rand(3, 20) * 1000; // 之前没回的补回
-  if (M.readPlan && Date.now() >= M.readPlan) { M.readPlan = 0; M.readAt = Date.now(); mgrRefresh(); }
+  const pendText = () => { let j = M.chat.length - 1; while (j >= 0 && M.chat[j].me) j--; return M.chat.slice(j + 1).filter(m => m.me).map(m => m.text).join('\n'); };
+  if (!M.replyAt && !mgrBusy && M.chat.length && M.chat[M.chat.length - 1].me && Date.now() - M.chat[M.chat.length - 1].at > 20e3 && mgrSmall(pendText()) !== 'NONE') M.replyAt = Date.now() + rand(3, 20) * 1000; // 之前没回的补回
+  if (M.readPlan && Date.now() >= M.readPlan) { M.readPlan = 0; if (mgrSmall(pendText()) !== 'NONE') { M.readAt = Date.now(); mgrRefresh(); } } // 不打算回的就不点开（不已读）
   if (!M.replyAt || Date.now() < M.replyAt || mgrBusy) return;
-  M.replyAt = 0; M.readAt = Math.max(M.readAt || 0, Date.now()); let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
+  M.replyAt = 0; if (mgrSmall(pendText()) === 'NONE') return; M.readAt = Math.max(M.readAt || 0, Date.now()); let i = M.chat.length - 1; while (i >= 0 && M.chat[i].me) i--;
   const pend = M.chat.slice(i + 1).filter(m => m.me); if (!pend.length) return;
   mgrBusy = true; const t = pend.map(m => m.text).join('\n'), guard = setTimeout(() => { mgrBusy = false; }, 60e3);
   mgrRespond(t).catch(e => { console.error('mgr', e); mgrReply(['넵 확인해볼게요', '好，我确认一下'], true); }).finally(() => { clearTimeout(guard); mgrBusy = false; save(); }); // 出错也要回一句，不能把你晾着
