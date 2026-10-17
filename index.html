@@ -2268,7 +2268,7 @@ const SHOWS = [
   ['ink', '人气歌谣', 0, 16, 'SBS', { stream: .55, album: .1, sns: .2, vote: .1, broad: .05 }, 1, '音源+SNS+事前投票']
 ];
 const COMP_NAME = { stream: '音源', album: '销量', sns: 'SNS', vote: '投票', broad: '放送' };
-const RIVALS = { top: ['IVE', 'aespa', 'LE SSERAFIM', 'SEVENTEEN', 'Stray Kids', 'ZEROBASEONE', 'BABYMONSTER', 'ILLIT', 'RIIZE', 'BOYNEXTDOOR', 'TWS', 'ENHYPEN', 'TXT', 'i-dle', 'TWICE'], mid: ['STAYC', 'Kep1er', 'KISS OF LIFE', 'NMIXX', 'ITZY', 'tripleS', 'fromis_9', 'QWER', 'CRAVITY', 'THE BOYZ', 'NCT WISH', 'MEOVV', 'xikers', 'Billlie', 'Hearts2Hearts'], rook: ['KiiiKiii', 'ifeye', 'AHOF', 'Baby DONT Cry', 'ALLDAY PROJECT', 'izna', 'KickFlip', 'NEWBEAT', 'Say My Name', 'BADVILLAIN', 'UNIS', 'YOUNG POSSE', 'CLOSE YOUR EYES', 'ARTMS'] };
+const RIVALS = { top: ['IVE', 'aespa', 'LE SSERAFIM', 'SEVENTEEN', 'Stray Kids', 'ZEROBASEONE', 'BABYMONSTER', 'ILLIT', 'RIIZE', 'BOYNEXTDOOR', 'TWS', 'ENHYPEN', 'TXT', 'i-dle', 'TWICE'], mid: ['STAYC', 'Kep1er', 'KISS OF LIFE', 'NMIXX', 'ITZY', 'tripleS', 'fromis_9', 'QWER', 'CRAVITY', 'THE BOYZ', 'NCT WISH', 'MEOVV', 'xikers', 'Billlie', 'Hearts2Hearts'], rook: ['KiiiKiii', 'ifeye', 'AHOF', 'Baby DONT Cry', 'ALLDAY PROJECT', 'izna', 'KickFlip', 'NEWBEAT', 'Say My Name', 'BADVILLAIN', 'YOUNG POSSE', 'CLOSE YOUR EYES', 'ARTMS'] };
 const LABELMATES = ['IVE', 'CRAVITY', 'KiiiKiii']; // 同公司（STARSHIP）
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function srng(seed) { let a = hashStr(seed); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -5174,6 +5174,11 @@ const CH_OTHERS = [
   ['ITZY', '있지', 8.5, [['예지', '黄礼志'], ['리아', 'Lia'], ['류진', '申留真'], ['채령', '李彩领'], ['유나', '申有娜']]],
   ['NMIXX', '엔믹스', 8.5, [['릴리', 'Lily'], ['해원', '吴海媛'], ['설윤', '薛允'], ['배이', 'BAE'], ['지우', '智友'], ['규진', '张圭真']]],
   ['TREASURE', '트레저', 8.5, [['현석', '崔玹硕'], ['지훈', '朴志训'], ['요시', 'Yoshi'], ['준규', '金俊奎'], ['재혁', '尹材赫'], ['아사히', 'Asahi'], ['도영', '金到永'], ['하루토', 'Haruto'], ['정우', '朴正雨'], ['정환', '苏正焕']]],
+  ['THE BOYZ', '더보이즈', 8, [['상연', '李尚渊'], ['제이콥', 'Jacob'], ['영훈', '金英勋'], ['현재', '李玹在'], ['주연', '李柱延'], ['케빈', 'Kevin'], ['뉴', 'New'], ['큐', 'Q'], ['선우', '金善宇'], ['에릭', 'Eric']]],
+  ['PLAVE', '플레이브', 9, [['예준', 'Yejun'], ['노아', 'Noah'], ['밤비', 'Bamby'], ['은호', 'Eunho'], ['하민', 'Hamin']]],
+  ['P1Harmony', '피원하모니', 7.5, [['기호', 'Keeho'], ['테오', 'Theo'], ['지웅', 'Jiung'], ['인탁', 'Intak'], ['소울', 'Soul'], ['종섭', 'Jongseob']]],
+  ['WayV', '웨이션브이', 7.5, [['쿤', '钱锟'], ['텐', '李永钦'], ['윈윈', '董思成'], ['샤오쥔', '肖德俊'], ['헨드리', '黄冠亨'], ['양양', '刘扬扬']]],
+  ['xikers', '싸이커스', 6.5, [['민재', '民载'], ['준민', '俊旼'], ['수민', '洙玟'], ['진식', '真植'], ['현우', '贤宇'], ['정훈', '正勋'], ['세은', '世恩'], ['유준', '侑俊'], ['헌터', 'Hunter'], ['예찬', '艺灿']]],
   ['STAYC', '스테이씨', 7.5, [['수민', '裴秀珉'], ['시은', '朴诗恩'], ['아이사', 'Isa'], ['세은', '尹世恩'], ['윤', 'Yoon'], ['재이', 'J']]],
   ['CORTIS', '코르티스', 9, [['마틴', 'Martin'], ['제임스', 'James'], ['주훈', '柱勋'], ['성현', '成贤'], ['건호', '建浩']]],
   ['RIIZE', '라이즈', 9, [['쇼타로', 'Shotaro'], ['은석', '恩硕'], ['성찬', '圣灿'], ['원빈', '元彬'], ['소희', '昭希'], ['앤톤', 'Anton']]],
@@ -5186,7 +5191,6 @@ const CH_OTHERS = [
   ['ALLDAY PROJECT', '올데이 프로젝트', 7.5, [['애니', 'Annie'], ['타잔', 'Tarzzan'], ['베일리', 'Bailey'], ['우찬', '宇灿'], ['영서', '英瑞']]],
   ['MEOVV', '미야오', 7, [['수인', '秀仁'], ['가원', '佳媛'], ['안나', 'Anna'], ['나린', '娜潾'], ['엘라', 'Ella']]],
   ['Hearts2Hearts', '하츠투하츠', 7, [['지우', '智友'], ['카르멘', 'Carmen'], ['유하', '侑夏'], ['스텔라', 'Stella'], ['주은', '珠恩'], ['에이나', 'A-na'], ['이안', '伊安'], ['예온', '艺温']]],
-  ['UNIS', '유니스', 6.5, [['진현주', '陈贤珠'], ['나나', 'Nana'], ['젤리당카', 'Gehlee'], ['코토코', 'Kotoko'], ['방윤하', '方允夏'], ['엘리시아', 'Elisia'], ['오윤아', '吴允儿'], ['임서원', '林舒媛']]],
   ['NEXZ', '넥스지', 6.5, [['토모야', 'Tomoya'], ['유우', 'Yu'], ['하루', 'Haru'], ['소건', '昭健'], ['세이타', 'Seita'], ['휴이', 'Hyui'], ['유키', 'Yuki']]],
   ['KickFlip', '킥플립', 6.5, [['계훈', '桂勋'], ['아마루', 'Amaru'], ['동화', '东华'], ['주왕', '株旺'], ['민제', '珉齐'], ['케이주', 'Keiju'], ['동현', '东炫']]]
 ];
@@ -5223,7 +5227,7 @@ function chInvite(k, p, song) {
   save();
 }
 // 问经纪人「能不能和某某合作」：看是谁（同公司 / 好友 / 其他）、咖位差、合作类型（challenge / 音源 / 综艺 / 物料）
-const CH_ALIAS = { 'LE SSERAFIM': ['勒塞拉菲姆', '乐瑟拉菲姆', 'lesserafim', 'lsf'], 'i-dle': ['idle', 'gidle', '(g)i-dle'], 'TOMORROW X TOGETHER': ['txt', '투바투'], 'BOYNEXTDOOR': ['bnd', '보넥도'], 'BABYMONSTER': ['baemon', '베몬'], 'Stray Kids': ['skz', '스키즈'], 'WJSN': ['宇宙少女'], 'MONSTA X': ['monstax', '몬엑'], 'NCT WISH': ['nctwish'], 'KISS OF LIFE': ['kiof', '키오프'], 'Hearts2Hearts': ['h2h', '하투하'] };
+const CH_ALIAS = { 'LE SSERAFIM': ['勒塞拉菲姆', '乐瑟拉菲姆', 'lesserafim', 'lsf'], 'i-dle': ['idle', 'gidle', '(g)i-dle'], 'TOMORROW X TOGETHER': ['txt', '투바투'], 'BOYNEXTDOOR': ['bnd', '보넥도'], 'BABYMONSTER': ['baemon', '베몬'], 'Stray Kids': ['skz', '스키즈'], 'THE BOYZ': ['tbz', '더비', '德鹅'], 'PLAVE': ['플브'], 'P1Harmony': ['p1h', '피원'], 'WayV': ['威神v', '威神'], 'WJSN': ['宇宙少女'], 'MONSTA X': ['monstax', '몬엑'], 'NCT WISH': ['nctwish'], 'KISS OF LIFE': ['kiof', '키오프'], 'Hearts2Hearts': ['h2h', '하투하'] };
 function chWho(t) {
   const low = t.toLowerCase().replace(/\s+/g, ''), all = [...CH_SAME.map(x => ['same', x]), ...CH_OTHERS.map(x => ['other', x])];
   const nameHit = s => { s = String(s || ''); return s.split(/[\/]/).some(w => { w = w.trim(); return w.length >= 2 && (/[가-힣一-鿿]/.test(w) ? t.includes(w) : w.length >= 3 && new RegExp('\\b' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(t)); }); };
