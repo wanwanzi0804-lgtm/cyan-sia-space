@@ -4718,7 +4718,7 @@ async function startLive() {
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
     <div id="lv-beauty" hidden></div>
-    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
   if (mode === 'video') attachPair(layer, stream);
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
@@ -4733,6 +4733,7 @@ async function startLive() {
   }
   $('#lv-end').onclick = endLive;
   $('#lv-send').onclick = liveSend;
+  $('#lv-lang').onclick = () => { const L = ['zh-CN', 'ko-KR', 'en-US'], cur = S.prefs.srLang || 'zh-CN', nx = L[(L.indexOf(cur) + 1) % L.length]; S.prefs.srLang = nx; save(); $('#lv-lang').textContent = { 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[nx]; sysChat(`语音识别改成${{ 'zh-CN': '中文', 'ko-KR': '韩语', 'en-US': '英语' }[nx]}`); if (LIVE.micOn) { stopRec(); setTimeout(startRec, 300); } };
   $('#lv-sing').onclick = () => { const L = LIVE; L.singing = !L.singing; $('#lv-sing').classList.toggle('on', L.singing); $('#lv-input').placeholder = L.singing ? '唱的是哪首 / 歌词…' : '说点什么…';
     if (L.singing) { sysChat('🎵 开始唱歌了'); L.topic = { cat: 'sing', until: Date.now() + 60000 }; fresh(LIVE_TPL.sing, ri(3, 5)).forEach(t => L.queue.push({ lang: 'zh', text: t })); const sub = $('#lv-sub'); if (sub) sub.textContent = '🎵 唱歌中…'; }
     else { sysChat('🎵 唱完了'); pickN(['安可！！', '再来一首！', '唱得太好了', '👏👏👏', '好好听呜呜', '录屏了', '还想听！'], ri(3, 5)).forEach(t => L.queue.push({ lang: 'zh', text: t })); const sub = $('#lv-sub'); if (sub && sub.textContent === '🎵 唱歌中…') sub.textContent = ''; } };
@@ -5002,11 +5003,13 @@ function liveSend() {
 function startRec() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { sysChat('当前浏览器不支持语音识别，可以打字和粉丝互动'); return; }
-  const rec = new SR(); rec.lang = 'zh-CN'; rec.continuous = true; rec.interimResults = true;
+  const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const rec = new SR(); rec.lang = S.prefs.srLang || 'zh-CN'; rec.continuous = !iOS; rec.interimResults = true; rec.maxAlternatives = 1; // iPhone 上一句一句识别更准（连续模式容易乱）
   rec.onresult = e => {
     let fin = '', inter = '';
     for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t; else inter += t; }
     const sub = $('#lv-sub'); if (sub) sub.innerHTML = esc(fin || '') + (inter ? `<span class="interim">${esc(inter)}</span>` : '');
+    if (LIVE.singing) { if (sub) sub.textContent = '🎵 唱歌中…'; if (fin.trim()) liveReact('（唱歌中）'); return; } // 唱歌时识别不了歌词，只让粉丝知道你在唱
     if (fin.trim()) { liveReact(fin.trim()); clearTimeout(LIVE._subT); LIVE._subT = setTimeout(() => { const s = $('#lv-sub'); if (s) s.textContent = ''; }, 4000); }
   };
   rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { sysChat('语音识别被拒绝/不可用，可以打字互动'); stopRec(); } };
