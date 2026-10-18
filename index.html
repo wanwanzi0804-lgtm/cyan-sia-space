@@ -2567,7 +2567,7 @@ function mgrSplit(t) {
 }
 // 你发的消息也配翻译：写韩语配中文，写中文配韩语。开了 AI 用 AI，没开就用在线翻译
 async function trText(text, to, who) {
-  if (aiOn()) { try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `把用户给的这句话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文'}。只输出译文。`, messages: [{ role: 'user', content: text }] }); const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); if (out) return out; } catch (e) { } }
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
   try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
@@ -5820,7 +5820,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); serimMemFix(); serimRedo2(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -6276,7 +6276,8 @@ function socCardTxt(p) {
   const tone = c.toneAmb && socStage(p) === 'amb' ? c.toneAmb : c.tone;
   return `性格档案（公开形象整理，可信度${c.conf}；只是公开场合的样子，但请保持一致，不要每次变）：${tone ? `说话/打字：${tone}。` : ''}${c.pers ? `性格：${c.pers}。` : ''}${c.like ? `喜好：${c.like}。` : ''}${c.lang ? `会的外语：${c.lang}。` : ''}${c.extra ? `补充：${c.extra}。` : ''}档案里没写的不要自己发挥；${c.conf === '低' ? '可信度低，只当作很轻的倾向。' : ''}性格只决定他怎么说话，不决定你们有多熟。`;
 }
-function socCtx(p) {
+const socClock = ts => { const d = ts ? new Date(ts) : new Date(); return `${d.getMonth() + 1}月${d.getDate()}日 周${WD[d.getDay()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function socCtx(p, when) {
   const P = socPX(p), st = socStage(p), pers = socPers(p), T = dms()[p.key], same = CH_SAME.some(x => x[0] === p.g);
   const ex = P.ex.slice(-12).map(e => `- ${e.day.slice(5)} ${e.d}`).join('\n') || '（这里没有记录，不要编造任何过去的见面或聊天）';
   const never = ['meal', 'coffee', 'chal', 'call', 'gift'].filter(t => !P.cnt[t] && !(t === 'meal' && P.facts.meal)).map(t => EX_ZH[t]).join('、');
@@ -6291,7 +6292,7 @@ ${p.key === 'CRAVITY|세림' ? '世琳是她最要好的朋友，两人在这个
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
-${socWho(p)}现在：${socNow(p).zh}；此刻具体在${socAct(p, socNow(p))}（这是事实，回复要和它一致，也要和他自己在下面聊天里已经说过的话一致，不要前后矛盾）。
+${socWho(p)}在 ${socClock(when)} 的状态：${socNow(p, when).zh}；${when && Date.now() - when > 30 * 60e3 ? '' : `此刻具体在${socAct(p, socNow(p))}（这是事实，回复要和它一致，`}${when && Date.now() - when > 30 * 60e3 ? '回复' : ''}也要和他自己在下面聊天里已经说过的话一致，不要前后矛盾${when && Date.now() - when > 30 * 60e3 ? '' : '）'}。
 ${S.profile.name} 今天的行程：${today}
 最近的 KKT 聊天：
 ${chat || '（还没聊过）'}`;
@@ -6480,8 +6481,8 @@ function socAct(p, st) {
   const L = NOW_ACT[kind]; let i = cur && cur.kind === kind ? Math.min(L.length - 1, L.indexOf(cur.zh) + 1) : Math.floor(Math.random() * Math.min(3, L.length)); if (i < 0) i = 0; // 同一段时间里往后推进（到宿舍→洗澡→躺着）
   A[p.key] = { kind, zh: L[i], until: now + rand(40, 100) * 60e3 }; save(); return L[i];
 }
-function socNow(p) {
-  const d = new Date(), nm = d.getHours() * 60 + d.getMinutes(), D = socDay(p), Y = socDay(p, addDays(dkey(Date.now()), -1));
+function socNow(p, ts) {
+  const d = ts ? new Date(ts) : new Date(), nm = d.getHours() * 60 + d.getMinutes(), dk0 = dkey(d.getTime()), D = socDay(p, dk0), Y = socDay(p, addDays(dk0, -1));
   const asleep = (nm >= D.sleepS && nm < D.wake) || (Y.wake > 1440 && nm < Y.wake - 1440);
   if (asleep) return { sleep: 1, busy: 1, wakeIn: (nm < D.sleepS ? Y.wake - 1440 : D.wake) - nm, zh: D.promo ? '活动期，昨晚很晚才收工，现在在睡觉' : '空白期，作息晚，现在在睡觉' };
   if (!D.light && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: '回归活动期，正在跑行程（打歌 / 拍摄 / 练习），只能在候场或移动的空隙看手机' };
@@ -6514,21 +6515,22 @@ function dmQueue(p, list, delay) { const T = dmThread(p), d = delay == null ? dm
 function dmWillRead(T, at) { const upto = Date.now(); if (!T.rd || T.rd.at > at) T.rd = { at, upto }; else T.rd.upto = Math.max(T.rd.upto, upto); }
 // 到点了：他看了你发的所有消息，一次性回（不会每条各回一遍、前后矛盾）
 async function dmDueReply(T) {
-  T.gen = 1; save();
+  T.gen = 1; save(); const when = Math.min(T.due.at, Date.now()); // 他是在这个时间看到并回的（就算你那时没开着页面）
   try { const last = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) last.unshift(T.msgs[i].text);
-    const r = last.length ? await dmChatAi(T, last.join('\n')) : null;
-    if (r) { T.pend = T.pend || []; T.pend.push({ at: Date.now(), list: r.list }); }
+    const r = last.length ? await dmChatAi(T, last.join('\n'), when) : null;
+    if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: r.list }); }
   } finally { T.due = null; T.gen = 0; save(); }
 }
-function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.due && !T.gen && now >= T.due.at) dmDueReply(T); for (const T of Object.values(dms())) { if (T.readTo === undefined) { const o = T.msgs.filter(m => !m.me && !m.sys).pop(); T.readTo = T.pend && T.pend.length ? (o ? o.at : 0) : now; } if (T.rd && now >= T.rd.at) { T.readTo = Math.max(T.readTo || 0, T.rd.upto); T.rd = null; save(); if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } } for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { T.lastOut = Date.now(); let t = 0; const cps = { warm: 4.5, funny: 4.5, direct: 4, gentle: 3, polite: 2.6, cool: 3, neutral: 3.2 }[socPers(T.p).id] || 3.2;
-          d.list.forEach((m, i) => { if (i) t += rand(.8, 2.5) * 1e3 + String(m.text || '').length / cps * 1e3 * rand(.8, 1.3); UI.typing = { ...(UI.typing || {}), [T.p.key]: Date.now() + t }; setTimeout(() => { dmPush(T.p, m); if (i === d.list.length - 1 && UI.typing) { delete UI.typing[T.p.key]; if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } }, t); }); } save(); } }
+function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.due && !T.gen && now >= T.due.at) dmDueReply(T); for (const T of Object.values(dms())) { if (T.readTo === undefined) { const o = T.msgs.filter(m => !m.me && !m.sys).pop(); T.readTo = T.pend && T.pend.length ? (o ? o.at : 0) : now; } if (T.rd && now >= T.rd.at) { T.readTo = Math.max(T.readTo || 0, T.rd.upto); T.rd = null; save(); if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } } for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { if (now - d.at > 60e3) { let t = d.at; d.list.forEach((m, i) => { if (i) t += rand(.8, 2.5) * 1e3 + String(m.text || '').length / 3.5 * 1e3; dmPush(T.p, { ...m, at: Math.min(t, now) }); }); T.msgs.sort((a, b) => a.at - b.at); T.lastOut = d.at; T.readTo = Math.max(T.readTo || 0, d.at); continue; }
+        { T.lastOut = Date.now(); let t = 0; const cps = { warm: 4.5, funny: 4.5, direct: 4, gentle: 3, polite: 2.6, cool: 3, neutral: 3.2 }[socPers(T.p).id] || 3.2;
+          d.list.forEach((m, i) => { if (i) t += rand(.8, 2.5) * 1e3 + String(m.text || '').length / cps * 1e3 * rand(.8, 1.3); UI.typing = { ...(UI.typing || {}), [T.p.key]: Date.now() + t }; setTimeout(() => { dmPush(T.p, m); if (i === d.list.length - 1 && UI.typing) { delete UI.typing[T.p.key]; if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } }, t); }); } } save(); } }
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
-async function dmChatAi(T, mine) {
+async function dmChatAi(T, mine, when) {
   const p = T.p, pers = socPers(p), P = socPX(p);
   const local = () => { const n = pers.id === 'warm' && Math.random() < .5 ? 2 : 1; return pickN(PERS_LOCAL[pers.id], n).map(L => persFix(L, socBan(p))).map(([ko, zh]) => ({ text: ko, zh })); };
   if (!aiOn()) { if (pers.id === 'cool' && Math.random() < .25) return null; return { list: local() }; }
   try {
-    const j = await aiRaw([{ type: 'text', text: `你在扮演 ${socWho(p)}，和 ${S.profile.name}（女，solo 爱豆，STARSHIP，单身，2025 年出道）用 KKT 私聊。\n${socCtx(p)}\n\n${S.profile.name}发来、他还没回的消息（一起回，不要一条一条各回一遍）：「${mine}」\n\n${SOC_RULES}\n怎么回（重要）：
+    const j = await aiRaw([{ type: 'text', text: `你在扮演 ${socWho(p)}，和 ${S.profile.name}（女，solo 爱豆，STARSHIP，单身，2025 年出道）用 KKT 私聊。\n${socCtx(p, when)}\n他是在 ${socClock(when)} 看到这些消息并回复的${when && Date.now() - when > 30 * 60e3 ? '（她发消息的时间和这个时间可能隔了很久，按他看到的这个时间点来回，比如她深夜说晚安、他早上才看到，就按早上刚看到来回）' : ''}。\n\n${S.profile.name}发来、他还没回的消息（一起回，不要一条一条各回一遍）：「${mine}」\n\n${SOC_RULES}\n怎么回（重要）：
 - 像真人在 KKT 上回朋友，要有内容、有自己的想法，不要空洞的客套话。不要只回「좋아요」「화이팅」「그렇구나」这种。
 - 她问意见：给出明确的看法和理由（「我觉得 A 更好，因为…」「说实话 B 有点…」），可以不同意她、可以犹豫，但要说出自己怎么想；结合他自己的经验、喜好和工作（只能用档案里有的或很普通的爱豆日常，不编和她的共同经历）。
 - 她分享事情：针对她说的具体内容回应，接着她的话往下聊，可以分享一点自己相关的近况或感受（符合「现在」的状态，比如活动期很累、刚收工），可以吐槽、开玩笑、损她一句。
@@ -6553,6 +6555,17 @@ function serimRedoMig() {
   T.msgs = T.msgs.slice(0, i + 1); T.pend = []; T.rd = null; T.due = { at: Date.now() + 5e3 }; save();
 }
 // 一次性：删掉世琳那段被重做的旧回复留在「你们之间发生过的事」里的记录，按现在留下的聊天重新记一条
+// 一次性：世琳那几条是你打开页面时才生成的（时间和内容都按打开那一刻），删掉，按他当时真正看到消息的时间重新回
+function serimRedo2() {
+  const SO0 = social(); if (!SO0.trFix) { SO0.trFix = 1; for (const T0 of Object.values(dms())) for (const m of T0.msgs) if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; save(); } // 坏掉的翻译（模型自言自语）清掉重翻
+  const SO = social(); if (SO.serimRedo2) return; SO.serimRedo2 = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
+  let i = T.msgs.length - 1; while (i >= 0 && !T.msgs[i].me) i--; if (i < 0 || i === T.msgs.length - 1) return;
+  const lastMe = T.msgs[i].at, p = T.p, st = socNow(p, lastMe);
+  T.msgs = T.msgs.slice(0, i + 1); T.pend = []; T.rd = null;
+  T.due = { at: Math.min(Date.now(), lastMe + (st.sleep ? st.wakeIn * 60e3 + rand(10, 40) * 60e3 : rand(5, 30) * 60e3)) };
+  const P = (SO.ppl || {})['CRAVITY|세림']; if (P && P.ex) P.ex = P.ex.filter(e => !(e.t === 'chat' && e.ai && e.day >= dkey(lastMe)));
+  save();
+}
 function serimMemFix() {
   const SO = social(); if (SO.serimMemFix) return; SO.serimMemFix = 1; const T = dms()['CRAVITY|세림'], P = (SO.ppl || {})['CRAVITY|세림']; if (!T || !P || !P.ex) return;
   let i = T.msgs.length - 1; while (i >= 0 && !T.msgs[i].me) i--; let j = i; while (j > 0 && T.msgs[j - 1].me) j--; if (j < 0) return;
@@ -6727,7 +6740,8 @@ function dmProfHTML(key) {
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
-async function dmTrMe(T, m) { if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友，用半语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
+async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友，用半语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
@@ -6739,7 +6753,7 @@ function dmLogHTML(T, key, tr) {
       : `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div><span class="kk-t">${hm}</span></div>`); }).join('');
 }
 function dmHTML(key) {
-  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
+  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
   return `<div class="row">${kAv(key, 'mgr-av sm')}<h3 style="flex:1;margin-left:8px">${esc(socDisp(p))}</h3><button class="btn ghost sm" data-act="dmprof" data-k="${esc(key)}">备注</button><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
     ${socMemHTML(key)}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
