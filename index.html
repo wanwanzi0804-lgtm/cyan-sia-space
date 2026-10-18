@@ -2567,7 +2567,7 @@ function mgrSplit(t) {
 }
 // 你发的消息也配翻译：写韩语配中文，写中文配韩语。开了 AI 用 AI，没开就用在线翻译
 async function trText(text, to, who) {
-  if (aiOn()) { try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
   try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
@@ -2883,12 +2883,12 @@ async function mgrAi(text) {
   while (hist.length && hist[0].role !== 'user') hist.shift();
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
-  const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。她说的事不在你的固定流程里时，就按一个真实经纪人的身份和性格看着办：她在倾诉焦虑、累、迷茫时，先接住情绪，再给具体、实在的想法（结合她现在的粉丝数、热度、行程、回归计划），这种时候可以多说几句、分几条发；不要空洞的鼓励，也不要编造没有的资源或承诺。用韩语回复，像真人发 KakaoTalk：口语、自然、有点人情味（会用 ~、ㅎㅎ、ㅠㅠ 这类语气），先直接回答对方问的，再顺口补半句就够了；一般 1~2 句，不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
-可以像真人一样分成 1~3 条短消息发。每条消息输出两行：KO: 韩语；ZH: 中文翻译。多条就重复这两行。不要提到 App 界面（比如「在钱包里能看到」）。
-${mgrContext()}`, messages: msgs });
+  const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。她说的事不在你的固定流程里时，就按一个真实经纪人的身份和性格看着办：她在倾诉焦虑、累、迷茫时，先接住情绪，再给具体、实在的想法（结合她现在的粉丝数、热度、行程、回归计划），这种时候可以多说几句、分几条发；不要空洞的鼓励，也不要编造没有的资源或承诺。用韩语回复，像真人发 KakaoTalk：口语、自然、有点人情味（会用 ~、ㅎㅎ、ㅠㅠ 这类语气），先直接回答对方问的，再顺口补半句就够了；一般 1~2 句，不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
+可以像真人一样分成 1~3 条短消息发（ko 韩语，zh 中文翻译）。一定要接着她刚才说的内容回，不要答非所问，不要只说「확인해볼게요」这种空话。不要提到 App 界面（比如「在钱包里能看到」）。
+${mgrContext()}`, messages: msgs, output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['msgs'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } } } } } } });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
-  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(), msgs2 = [];
-  for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]);
+  const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let msgs2 = [];
+  try { msgs2 = (JSON.parse(out).msgs || []).filter(m => m.ko).map(m => [m.ko.trim(), (m.zh || '').trim()]); } catch (e) { for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]); }
   return msgs2.length ? msgs2 : null;
 }
 // 预支：① 已完成、份额已确认但主办方还没付款的活动款 ② 公司已经收到、原定 15 日才发的结算款提前发。都要公司同意
@@ -2926,14 +2926,14 @@ async function mgrRespond(text) {
   const adv = mgrAdvance(text); if (adv) { mgrReply(adv, true); return; }
   const col = mgrCollab(text); if (col) { mgrReply(col, true); return; }
   if (!aiOn() && /恋爱|谈恋爱|男朋友|交往|연애|남친|남자친구|사귀|열애/.test(text)) { const t = mgrType(); mgrReply(t === 'adult' ? [['회사는 연애 막지 않아요', '公司不拦着恋爱'], ['일에 지장 없고, 기사 날 것 같으면 미리 말만 해줘요', '只要不影响工作，可能被报道的话提前跟我说一声就行']] : t === 'care' ? [['연애하는 건 괜찮아요. 근데 상처받을 일 있으면 꼭 말해줘요', '恋爱没关系。但要是有什么受伤的事一定要跟我说'], ['밖에서는 조금만 조심하고요', '在外面稍微注意点']] : [['ㅎㅎ 저는 아무것도 몰라요', '哈哈我什么都不知道'], ['필요하면 그때 말해요', '需要的时候再跟我说']], true); return; }
-  const small = mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; }
+  const small = aiOn() && text.replace(/\s/g, '').length > 12 ? null : mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; } // 开着 AI 时，长一点的话（哪怕带「미안」）交给 AI 接着聊
   const req = /帮我|麻烦|记得|别忘|提醒|부탁|해주세요|해줘|말해|전달|챙겨/.test(text) && !/[?？吗]|까\??$/.test(text.trim());
   // 开着 AI 时：预设只管短的、具体的问题（日程、钱这类要准确的事）；长的、聊心事的、预设之外的都交给 AI 按经纪人的身份看着回
   const emo = /불안|힘들|지쳐|지치|우울|무서|걱정|모르겠|고민|자신이? ?없|잠도|눈물|울고|焦虑|难过|累|怕|担心|不知道|迷茫|失眠|想哭|压力/.test(text), open = emo || (aiOn() && text.replace(/\s/g, '').length > 25);
   if (emo && !aiOn()) { mgrReply(mgrAnswer(text), true); return; } // 在说心事：不要拿粉丝数之类的数据去回
   const fact = req || open ? null : (mgrTopic(text) || mgrFacts(text));
   if (!fact) { const memo = mgrMemo(text); if (memo && !open) { mgrReply(memo, true); return; } }
-  if (!fact && aiOn()) { try { const r = await mgrAi(text); if (r) { mgrReply(r, true); return; } } catch (e) { } }
+  if (!fact && aiOn()) { for (let k = 0; k < 2; k++) { try { const r = await mgrAi(text); if (r) { mgrReply(r, true); return; } } catch (e) { console.error('mgrAi', e); } } }
   mgrReply(fact || mgrAnswer(text), true);
 }
 // 不秒回：等你发完（最后一条后至少 5 秒），再按经纪人当时忙不忙随机等一会儿；你连发几条，他会一起看完再回
@@ -2941,6 +2941,7 @@ function mgrDelay() { const x = Math.random(); return 1000 * (x < .5 ? rand(4, 1
 let mgrBusy = false;
 function mgrReplyTick() {
   const M = mgrChat();
+  if (!M.vagueFix) { M.vagueFix = 1; const L = M.chat[M.chat.length - 1]; if (L && !L.me && /^확인해볼게요\.?$/.test(L.text) && M.chat.length > 1 && M.chat[M.chat.length - 2].me) { M.chat.pop(); M.replyAt = Date.now() + 5000; save(); mgrRefresh(); } } // 一次性：那句答非所问的「확인해볼게요」删掉重新回
   try { mgrAdvanceTick(); } catch (e) { console.error('adv', e); }
   const pendText = () => { let j = M.chat.length - 1; while (j >= 0 && M.chat[j].me) j--; return M.chat.slice(j + 1).filter(m => m.me).map(m => m.text).join('\n'); };
   if (!M.replyAt && !mgrBusy && M.chat.length && M.chat[M.chat.length - 1].me && Date.now() - M.chat[M.chat.length - 1].at > 20e3 && mgrSmall(pendText()) !== 'NONE') M.replyAt = Date.now() + rand(3, 20) * 1000; // 之前没回的补回
