@@ -7162,7 +7162,17 @@ function viewMe() {
 /* =========================================================
    模态框
    ========================================================= */
-function openModal(html) { $('#sheet').innerHTML = html; $('#modal').classList.add('on'); hydrate($('#sheet')); }
+// 刷新弹窗时保留输入框里的字、键盘焦点和聊天记录的滚动位置（之前一发消息界面就跳回顶部）
+function openModal(html) {
+  const sh = $('#sheet'), keep = {}, act = document.activeElement, wasOn = $('#modal').classList.contains('on');
+  if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
+    for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
+    keep.sheet = sh.scrollTop; }
+  sh.innerHTML = html; $('#modal').classList.add('on'); hydrate(sh);
+  for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
+  if (keep.sheet != null) sh.scrollTop = keep.sheet;
+  for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
+}
 function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on'); $('#sheet').innerHTML = ''; }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 
@@ -7505,6 +7515,9 @@ document.addEventListener('input', e => {
   if (e.target.id === 'bb-in') { UI.bbDraft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }
   if (e.target.id === 'preset-q') { UI.presetQ = e.target.value; $$('.pcat').forEach(x => x.classList.toggle('on', !UI.presetQ && x.dataset.c === UI.presetCat)); $('#plist').innerHTML = presetListHTML(); }
 });
+// 点「发送」不让输入框失去焦点（键盘不收起、界面不跳）
+document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('[data-act=dmsend],[data-act=mgrsend]'); if (b) e.preventDefault(); }, true);
+document.addEventListener('mousedown', e => { const b = e.target.closest && e.target.closest('[data-act=dmsend],[data-act=mgrsend]'); if (b) e.preventDefault(); }, true);
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
   if (e.target.id === 'rep-in') { e.preventDefault(); sendReply(); }
