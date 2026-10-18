@@ -2556,8 +2556,8 @@ function mgrSplit(t) {
   return [[ko, zh]];
 }
 // 你发的消息也配翻译：写韩语配中文，写中文配韩语。开了 AI 用 AI，没开就用在线翻译
-async function trText(text, to) {
-  if (aiOn()) { try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `把用户给的这句话翻译成自然的${to === 'ko' ? '韩语（对经纪人说话的口吻，礼貌但亲近）' : '简体中文'}。只输出译文。`, messages: [{ role: 'user', content: text }] }); const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); if (out) return out; } catch (e) { } }
+async function trText(text, to, who) {
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 400, system: `把用户给的这句话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文'}。只输出译文。`, messages: [{ role: 'user', content: text }] }); const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); if (out) return out; } catch (e) { } }
   try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
@@ -6708,18 +6708,20 @@ function dmProfHTML(key) {
 }
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
-function dmPush(p, m) { const T = dmThread(p); T.msgs.push({ id: uid(), at: Date.now(), ...m }); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
+// 你发的消息也显示翻译（中文→韩语，韩语→中文）
+async function dmTrMe(T, m) { if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友，用半语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
   let lastDay = ''; const rd = T.readTo || 0;
   return T.msgs.map(m => { const t = new Date(m.at), dk = dkey(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
     const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
     if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
-    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${m.at > rd ? '<b class="kk-1">1</b>' : ''}${hm}</span><div class="kk-b me">${esc(m.text)}</div></div>`
+    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${m.at > rd ? '<b class="kk-1">1</b>' : ''}${hm}</span><div class="kk-b me">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div>`
       : `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div><span class="kk-t">${hm}</span></div>`); }).join('');
 }
 function dmHTML(key) {
-  const T = dms()[key]; if (!T) return ''; const p = T.p, SO = social(), tr = UI.mgrTr !== false;
+  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
   return `<div class="row">${kAv(key, 'mgr-av sm')}<h3 style="flex:1;margin-left:8px">${esc(socDisp(p))}</h3><button class="btn ghost sm" data-act="dmprof" data-k="${esc(key)}">备注</button><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
     ${socMemHTML(key)}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
