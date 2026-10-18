@@ -1434,6 +1434,7 @@ function hotNewPost(p, ev) {
 }
 function hotTick() {
   const H = hotState(), now = Date.now();
+  if (!H.cmFix) { H.cmFix = 1; const after = new Set(Object.values(HOT_AFTER).flat()); for (const [k, post] of Object.entries(H.posts || {})) { const h = H.hist.find(x => x.key === k); if (!h || h.choice === '没有回应' || !/回应|澄清|声明|公开|发|直播|泡泡/.test(h.choice)) post.cm = post.cm.filter(c => !after.has(c.text)); } } // 之前没公开回应的热搜，删掉那些在评论「回应」的话
   if (!S.profile || !S.posts) return;
   if (!H.next) H.next = now + hotGap() * rand(.3, .7);
   const hr = new Date().getHours();
@@ -1506,7 +1507,7 @@ function hotResolve() {
   H.hist.push({ id: c.id, key: c.key, title: c.title, at: c.at, choice: c.choice >= 0 ? ev.opts[c.choice].t : '没有回应', result: o[3], net: total });
   if (H.hist.length > 30) H.hist.shift();
   const post = H.posts[c.key];
-  if (post) { post.result = o[3]; const kind = c.choice < 0 ? 'none' : total >= 0 ? 'pos' : 'neg'; for (let i = 0; i < ri(2, 4); i++) post.cm.unshift(hotComment(ev, kind)); post.cc += ri(3, 12); }
+  if (post) { post.result = o[3]; const op = c.choice >= 0 ? ev.opts[c.choice] : null, pub = op && (op.task || (/回应|澄清|声明|公开/.test(op.t) && !/不回应/.test(op.t))); const kind = !pub ? null : total >= 0 ? 'pos' : 'neg'; for (let i = 0; i < ri(2, 4); i++) post.cm.push(hotComment(kind ? ev : { ...ev, talk: ev.talk.map(t => hotFill(t, post.p || {})) }, kind)); post.cc += ri(3, 12); } // 没有公开回应时，评论不会去说「这个回应怎样」
   if (H.talk && H.talk.id === c.id) H.talk.until = now + 2 * 86400e3;
   pushNotif({ type: 'hot', key: c.key, text: `📰 后续 #${c.title}#`, sub: `${o[3]} · 粉丝 ${total >= 0 ? '+' : ''}${fmtNum(total)}（一天内陆续变化）` }, true);
 }
@@ -1549,7 +1550,7 @@ function hotPostHTML(key) {
     </div>
     ${act}
     <div class="sec-title" style="margin-top:14px">评论 ${fmtNum(post.cc)}</div>
-    <div class="card" style="padding:4px 12px">${post.cm.map(x => `<div class="hp-c"><div style="flex:1;min-width:0"><b>${esc(x.user)}</b><div>${esc(x.text)}</div></div><button class="hp-cl ${x.liked ? 'on' : ''}" data-act="hotclike" data-k="${key}" data-id="${x.id}">${x.liked ? '❤️' : '🤍'} ${x.likes || ''}</button></div>`).join('')}</div>`;
+    <div class="card" style="padding:4px 12px">${post.cm.slice().sort((a, b) => (b.likes || 0) - (a.likes || 0)).map(x => `<div class="hp-c"><div style="flex:1;min-width:0"><b>${esc(x.user)}</b><div>${esc(x.text)}</div></div><button class="hp-cl ${x.liked ? 'on' : ''}" data-act="hotclike" data-k="${key}" data-id="${x.id}">${x.liked ? '❤️' : '🤍'} ${x.likes || ''}</button></div>`).join('')}</div>`;
 }
 
 /* =========================================================
@@ -2570,7 +2571,7 @@ function mgrChatter() {
   if (win) once('win' + win.at, () => mgrSay(['1위 축하해요 🎉', '恭喜一位 🎉']));
   const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay(['연습생 비용 정산 끝났어요.', '练习生费用结清了。']));
 }
-function viewKkt() { return `<div class="sec-title">💬 KKT</div>${mgrCardHTML()}${dmListHTML()}${serimCardHTML()}${socHistHTML()}`; }
+function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div>${mgrCardHTML()}${dmListHTML()}${socHistHTML()}`; }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
 function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...rulesFor(dk).map(x => toMin(x.end))), from = Math.min(27 * 60, Math.max(21 * 60, last + 20)); return parseD(dk).getTime() + (from + Math.floor(r() * (28 * 60 - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
 function mgrReport() {
@@ -5728,7 +5729,7 @@ function serimTick() {
 }
 function serimCardHTML() {
   const SO = social(), today = dkey(Date.now()), SV = SO.serim && SO.serim.day === today ? SO.serim : null, hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-  return `<div class="card"><b style="font-size:14px">💙 今天和世琳</b>
+  return `<div class="row"><h3 style="flex:1">💙 今天和世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div><div class="card">
     ${SV ? `<div style="margin-top:6px">${esc(SV.text)}</div><div class="muted" style="font-size:12.5px;margin-top:4px">${SV.done ? '已经发生了' : SV.shown ? '正在发生…' : `大概 ${hm(SV.at)} 左右`}${SV.warn ? ' · ' + esc(SV.warn) : ''}</div>${!SV.done && !SV.shown ? '<button class="link" data-act="serimclear" style="margin-top:4px">取消</button>' : ''}`
       : `<div class="muted" style="font-size:12.5px;margin:4px 0 8px">写下今天你和世琳之间会发生的事，到了合适的时间会弹出来。不写的话，今天你们就不会有这种突然的交集。</div><textarea id="serim-in" style="min-height:64px" placeholder="比如：他下班回到公司的时候遇到了，我夸他衣服好看"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">安排</button></div>`}</div>`;
 }
@@ -6197,8 +6198,9 @@ document.addEventListener('click', async e => {
     case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const e = SOCIAL_EVENTS.find(y => y.id === Q.x.ev), o = e.o[+t.dataset.j], P = Q.x.p; socResolve(socG(o[0], P).split('{她}').join(socName(P)).split('{他}').join(socName(P)), o[1], o[2] * (P.f ? .2 : 1), socG(o[3], P), o[4]); break; }
     case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const tn = tone(v); socResolve(v, tn === 'neg' ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, .04, tn === 'neg' ? '他好像有点尴尬' : pick(['他回了个笑脸', '「哈哈好」', '「下次再聊！」', '他认真地回了一大段'])); break; }
     case 'socclose': { const Q = UI.socPop; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(SOCIAL_EVENTS.find(y => y.id === Q.x.ev), Q.x.p), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
-    case 'serimset': { const v = ($('#serim-in').value || '').trim(); if (!v) { toast('写一下会发生什么'); break; } const SV = serimPlan(v); toast('💙 安排好了', `大概 ${String(Math.floor(SV.at / 60)).padStart(2, '0')}:${String(SV.at % 60).padStart(2, '0')} 左右`); render(); break; }
-    case 'serimclear': social().serim = null; save(); render(); break;
+    case 'serimopen': openModal(serimCardHTML()); break;
+    case 'serimset': { const v = ($('#serim-in').value || '').trim(); if (!v) { toast('写一下会发生什么'); break; } const SV = serimPlan(v); toast('💙 安排好了', `大概 ${String(Math.floor(SV.at / 60)).padStart(2, '0')}:${String(SV.at % 60).padStart(2, '0')} 左右`); closeModal(); render(); break; }
+    case 'serimclear': social().serim = null; save(); openModal(serimCardHTML()); break;
     case 'serimpick': { const SV = social().serim, g = (SV && SV.gen) || { opts: SV && SV.dm ? ['好呀', '哈哈哈', '怎么了？'] : ['笑着回应他', '和他多聊几句', '开个玩笑'] }; serimReply(g.opts[+t.dataset.j]); break; }
     case 'serimwrite': { const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } serimReply(v); break; }
     case 'chlog': openModal(chLogHTML()); break;
