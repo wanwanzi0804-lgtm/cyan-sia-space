@@ -6436,22 +6436,35 @@ function socPromo(g, dk = dkey(Date.now())) {
   const day = Math.floor(parseD(dk).getTime() / 86400e3), cyc = Math.floor(day / 120), off = Math.floor(srng('promo' + g + cyc)() * 92);
   return day - cyc * 120 >= off && day - cyc * 120 < off + 28;
 }
-// 他现在大概在干嘛（只是状态，不是和你的共同经历）
-function socNow(p) {
-  const h = new Date().getHours(), promo = socPromo(p.g), wake = promo ? 8 : 11 + Math.floor(srng('wk' + p.key)() * 2);
-  if (h >= 5 && h < wake) return { busy: 1, sleep: 1, zh: promo ? '活动期，昨晚很晚才收工，现在还在睡' : '空白期，作息比较晚，现在还在睡' };
-  if (promo) return h >= 22 || h < 5 ? { busy: 0, zh: '回归活动期，今天的行程刚结束，在回宿舍的车上或宿舍，有点累但终于能看手机了' } : { busy: 1, zh: '回归活动期，白天在打歌 / 拍摄 / 练习，只能在候场或移动的空隙看手机' };
-  return h >= wake && h < 18 ? { busy: 0, zh: '空白期，白天相对闲（练习、录音、健身或在宿舍）' } : { busy: 0, zh: '空白期，晚上在宿舍或练习室，熬夜是常事' };
+// 每个人每天的作息都不一样：几点睡、几点起、今天忙不忙、多久看一次手机（按人+日期固定，同一天不会变来变去）
+function socDay(p, dk = dkey(Date.now())) {
+  const r = srng('day' + p.key + dk), promo = socPromo(p.g, dk), x = r(), owl = srng('owl' + p.key)() * 90; // owl：这个人天生晚睡多少
+  let sleepS = x < .1 ? r() * 60 : x < .18 ? 420 + r() * 60 : 120 + owl + r() * 180; // 一般 2~6 点睡；偶尔 0 点早睡；偶尔通宵到 7 点
+  const sleepLen = (promo ? 240 + r() * 150 : 360 + r() * 210), wake = sleepS + sleepLen;
+  const light = !promo || r() < .18; // 活动期也有空一点的日子
+  const busyS = Math.max(wake + 30, (promo ? 360 : 600) + r() * 240), busyE = (promo ? 1140 : 1020) + r() * 300;
+  return { promo, sleepS, wake, light, busyS, busyE, check: 35 + r() * 90 + srng('chk' + p.key)() * 60 };
 }
-// KKT 回复不会秒回：看性格、时间（爱豆作息晚）、是不是活动期；聊起来以后会回得快一点
+function socNow(p) {
+  const d = new Date(), nm = d.getHours() * 60 + d.getMinutes(), D = socDay(p), Y = socDay(p, addDays(dkey(Date.now()), -1));
+  const asleep = (nm >= D.sleepS && nm < D.wake) || (Y.wake > 1440 && nm < Y.wake - 1440);
+  if (asleep) return { sleep: 1, busy: 1, wakeIn: (nm < D.sleepS ? Y.wake - 1440 : D.wake) - nm, zh: D.promo ? '活动期，昨晚很晚才收工，现在在睡觉' : '空白期，作息晚，现在在睡觉' };
+  if (!D.light && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: '回归活动期，正在跑行程（打歌 / 拍摄 / 练习），只能在候场或移动的空隙看手机' };
+  if (D.promo) return { busy: 0, zh: nm >= D.busyE || nm < 360 ? '回归活动期，今天的行程结束了，在宿舍或回去的路上，有点累但终于能看手机' : '回归活动期，今天行程不多，相对有空' };
+  return { busy: 0, zh: nm >= 1080 || nm < 360 ? '空白期，晚上在宿舍或练习室，熬夜是常事' : '空白期，白天相对闲（练习、录音、健身或在宿舍）' };
+}
+// KKT 回复：不秒回也不按死规则——作息、忙不忙、多久看一次手机、跟你多熟、是不是正聊着，全都带随机
+const lognorm = (med, spread) => med * Math.exp((Math.random() + Math.random() + Math.random() - 1.5) * spread);
 function dmDelay(p) {
-  const P = socPers(p), T = dms()[p.key], now = Date.now(), d = new Date(), h = d.getHours(), st = socNow(p);
-  let m = rand(P.sp[0], P.sp[1]);
-  if (st.sleep) { const wake = new Date(d); wake.setHours(socPromo(p.g) ? 8 : 11, 0, 0, 0); return Math.max(wake - now, 0) + rand(5, 70) * 60e3; }
-  if (st.busy) { if (Math.random() < .25) { const off = new Date(d); off.setHours(22, 0, 0, 0); if (off > now) return off - now + rand(10, 120) * 60e3; } m = m * 2 + rand(15, 90); } // 行程中：空隙才看手机，有时干脆等收工
-  if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .75) m = Math.min(m, rand(.5, 3)); // 正在看手机：接着聊会快
-  else if (Math.random() < .15) m += rand(30, 180); // 看到了但忙忘了
-  return Math.max(.6, m) * 60e3;
+  const P = socPers(p), T = dms()[p.key], now = Date.now(), st = socNow(p), D = socDay(p);
+  const rel = socBan(p) ? .6 : socStage(p) === 'acq' || socStage(p) === 'new' ? 1.4 : 1; // 熟的人优先回
+  const med = Math.sqrt(P.sp[0] * P.sp[1]); let m;
+  if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
+  else if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .7) m = lognorm(1.5, .8); // 正聊着
+  else if (st.busy) m = Math.random() < .1 ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机，大多等下一次空隙
+  else m = lognorm(med, 1.1) * rel;
+  if (Math.random() < .12) m += lognorm(70, .9); // 看到了但忙忘了
+  return Math.max(.5, m) * 60e3;
 }
 function dmQueue(p, list, delay) { const T = dmThread(p); (T.pend || (T.pend = [])).push({ at: Date.now() + (delay == null ? dmDelay(p) : delay), list }); save(); }
 function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { T.lastOut = Date.now(); d.list.forEach((m, i) => setTimeout(() => dmPush(T.p, m), i * rand(1500, 5000) + String(m.text || '').length * 120)); } save(); } }
