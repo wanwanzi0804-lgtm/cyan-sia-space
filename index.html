@@ -2587,10 +2587,14 @@ function mgrChatter() {
 function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div>${mgrCardHTML()}${dmListHTML()}${socHistHTML()}`; }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
 function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...rulesFor(dk).map(x => toMin(x.end))), from = Math.min(27 * 60, Math.max(21 * 60, last + 20)); return parseD(dk).getTime() + (from + Math.floor(r() * (28 * 60 - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
+// 一整天都在宿舍（或没有行程）就不发日报
+const dormDay = dk => rulesFor(dk).every(r => /宿舍/.test(r.loc || ''));
 function mgrReport() {
   const M = mgrChat(), now = Date.now(), today = dkey(now);
+  if (!M.dormRepFix) { M.dormRepFix = 1; for (let i = 0; i <= 30; i++) { const dk = addDays(today, -i); if (!dormDay(dk)) continue; const tag = `[${kd(dk)} 일정 보고]`; M.chat = M.chat.filter(m => !(m.text || '').startsWith(tag)); } save(); mgrRefresh(); } // 以前发过的「全天在宿舍」日报删掉
   for (const dk of [addDays(today, -1), today]) {
     const at = mgrReportAt(dk); if (M.said['rep' + dk] || now < at || now > at + 10 * 3600e3) continue;
+    if (dormDay(dk)) { M.said['rep' + dk] = 1; continue; }
     M.said['rep' + dk] = 1; const rep = mgrReportText(dk);
     koFix(rep[0]).then(ko => { mgrSay([ko, rep[1]], null, now - at > 30 * 60e3); const last = M.chat[M.chat.length - 1]; if (last && now - at > 30 * 60e3) { last.at = at; M.chat.sort((a, b) => a.at - b.at); } save(); mgrRefresh(); }); // 打开 App 晚了也按原定时间记
   }
