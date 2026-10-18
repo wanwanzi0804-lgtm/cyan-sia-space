@@ -5571,9 +5571,16 @@ const SOCIAL_EVENTS = [
   { id: 'call', grp: '意外', req: 'online', who: 'any', mode: '回复', d: '一位平时不怎么联系的男爱豆突然打电话给你，是{他}，说有件事想当面问你。', o: [['答应找时间见面', 1, .1, '原来他想请你帮忙给团里的新歌提建议'], ['让他先在电话里说', 1, 0, '原来是想问你们公司练习室的事'], ['说最近太忙了', -1, 0, '「好，那不打扰了」']], input: '你在电话里怎么说？' }
 ];
 function social() { return S.social || (S.social = { q: [], hist: [], rp: {}, log: [] }); }
-function socPeople() { return relPeople(); } // 男艺人
+// 圈内交集：男女艺人都有（女艺人 f: 1）
+function socPeople() {
+  const male = relPeople(), mk = new Set(male.map(p => p.key)), out = male.slice();
+  for (const [g, gk, t, ms] of [...CH_SAME, ...CH_OTHERS]) for (const [n, z] of ms) { const key = g + '|' + n; if (!mk.has(key)) out.push({ g, n, z, key, f: 1 }); }
+  return out.filter(p => p.key !== 'CRAVITY|세림'); // 世琳只出现在你自己写的事件里
+}
+// 女艺人时把「他」换成「她」，「男爱豆 / 男艺人」换成「女爱豆 / 女艺人」
+const socG = (t, p) => !p || !p.f ? t : String(t).replace(/(?<!其)他/g, '她').replace(/男爱豆/g, '女爱豆').replace(/男艺人/g, '女艺人');
 function socPick(who) {
-  const all = socPeople(), SO = social(), same = all.filter(p => ['MONSTA X', 'CRAVITY', 'IDID', 'AEN'].includes(p.g));
+  const SO = social(), pool = socPeople(), all = Math.random() < .45 ? pool.filter(p => p.f) : pool.filter(p => !p.f), same = all.filter(p => CH_SAME.some(x => x[0] === p.g));
   const known = all.filter(p => friendOf(p.g, p.n) || (SO.rp[p.key] || 0) > 0), stranger = all.filter(p => !known.includes(p));
   const L = who === 'same' ? same : who === 'known' ? known : who === 'stranger' ? stranger : Math.random() < .4 && known.length ? known : all;
   return L.length ? pick(L) : pick(all);
@@ -5600,7 +5607,8 @@ function socTick() {
     for (let i = 0; i < n; i++) {
       const cands = SOCIAL_EVENTS.filter(e => e.req !== 'live' && !used.has(e.id) && (W[e.req] || []).some(([a, b]) => b > nm + 5)); if (!cands.length) break;
       const e = pick(cands); used.add(e.id); const ws = W[e.req].filter(([a, b]) => b > nm + 5), [a, b] = pick(ws), lo = Math.max(a, nm + 5);
-      SO.q.push({ id: uid(), day: today, ev: e.id, at: Math.round(lo + Math.random() * (b - lo)), until: b + 60, p: socPick(e.who) });
+      let pp = socPick(e.who); for (let k = 0; k < 6 && pp.f && e.id === 'demo'; k++) pp = socPick(e.who); if (pp.f && e.id === 'demo') continue; // 女声 Demo 只给男艺人的歌
+      SO.q.push({ id: uid(), day: today, ev: e.id, at: Math.round(lo + Math.random() * (b - lo)), until: b + 60, p: pp });
     }
   }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
@@ -5613,14 +5621,14 @@ function socTick() {
 }
 const socName = p => p.z && /[一-鿿]/.test(p.z) ? p.z : `${p.n}`;
 const socWho = p => `${p.g} ${socName(p)}`;
-function socText(e, p) { return e.d.split('{他}').join(socWho(p)); }
+function socText(e, p) { return socG(e.d, p).split('{她}').join(socWho(p)).split('{他}').join(socWho(p)); }
 function socPopHTML() {
   const Q = UI.socPop; if (!Q) return '';
   if (Q.serim) return serimPopHTML();
   const x = Q.x, e = SOCIAL_EVENTS.find(y => y.id === x.ev), p = x.p;
   const head = `<div class="row"><h3 style="flex:1">💞 ${esc(e.grp)}</h3><span class="muted" style="font-size:12px">${esc(e.mode)}</span></div>`;
   if (Q.res) return head + `<div style="margin-bottom:10px">${esc(socText(e, p))}</div><div class="card" style="margin:0"><div style="margin-bottom:6px">你：${esc(Q.res.mine)}</div><div class="muted">${esc(Q.res.reply)}</div></div><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn primary" data-act="socclose">好</button></div>`;
-  return head + `<div style="margin-bottom:10px">${esc(socText(e, p))}</div>${e.o.map((o, j) => `<button class="hot-opt" data-act="socpick" data-j="${j}">${esc(o[0].split('{他}').join(socName(p)))}</button>`).join('')}
+  return head + `<div style="margin-bottom:10px">${esc(socText(e, p))}</div>${e.o.map((o, j) => `<button class="hot-opt" data-act="socpick" data-j="${j}">${esc(socG(o[0], p).split('{她}').join(socName(p)).split('{他}').join(socName(p)))}</button>`).join('')}
     ${e.input ? `<div class="row" style="gap:6px;margin-top:6px"><input id="soc-in" placeholder="${esc(e.input)}" style="flex:1;min-width:0"><button class="btn sm" data-act="socwrite">好</button></div>` : ''}
     <div class="row" style="margin-top:8px"><span class="sp"></span><button class="link" data-act="socclose">先不管</button></div>`;
 }
@@ -5646,16 +5654,16 @@ function socResolve(mine, d, risk, reply, act, dmX) {
 }
 // KKT 里的艺人私聊
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
-function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key }, msgs: [], unread: 0 }); }
+function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 function dmPush(p, m) { const T = dmThread(p); T.msgs.push({ id: uid(), at: Date.now(), ...m }); if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socWho(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); else if (UI.tab === 'kkt') render(); }
-function dmEvent(x) { const L = SOC_DM[x.ev]; if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
+function dmEvent(x) { const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && x.p.key === key), e = pend && SOCIAL_EVENTS.find(y => y.id === pend.ev);
   return `<div class="row"><h3 style="flex:1">${esc(socWho(p))}</h3><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="kk-log" id="dm-log">${T.msgs.map(m => m.sys ? `<div class="kk-sep">${esc(m.sys)}</div>` : m.me ? `<div class="kk-row me"><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🙂</div><div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div></div>`).join('')}</div>
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div style="margin-top:8px">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
-    ${e ? `<div style="margin-top:8px">${e.o.map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o[0].split('{他}').join(socName(p)))}</button>`).join('')}</div>` : ''}
+    ${e ? `<div style="margin-top:8px">${e.o.map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(socG(o[0], p).split('{她}').join(socName(p)).split('{他}').join(socName(p)))}</button>`).join('')}</div>` : ''}
     <div class="row" style="gap:6px;margin-top:8px"><input id="dm-in" placeholder="메시지 입력…" style="flex:1;min-width:0"><button class="btn primary sm" data-act="dmsend" data-k="${esc(key)}">发送</button></div>`;
 }
 function dmAnswer(key, mine, d, risk, reply, silent) {
@@ -5691,7 +5699,7 @@ async function serimGen() {
   const SV = social().serim; if (!SV || SV.gen || !aiOn()) return;
   try {
     const schema = { type: 'object', additionalProperties: false, required: ['scene', 'line', 'opts'], properties: { scene: { type: 'string' }, line: { type: 'string' }, opts: { type: 'array', items: { type: 'string' } } } };
-    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）之间会发生这件事：「${SV.text}」。\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，不要加戏到恋爱；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。只按描述扩写，不要改变事件。` }], 800, schema);
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）之间会发生这件事：「${SV.text}」。\n（设定：她和世琳平时在这个模拟器之外还有别的聊天软件，这里的 KKT 只是他们聊天的一小部分，不需要交代前因后果。）\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，不要加戏到恋爱；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。只按描述扩写，不要改变事件。` }], 800, schema);
     SV.gen = { scene: j.scene, line: j.line, opts: (j.opts || []).slice(0, 3) }; save();
   } catch (e) { }
 }
@@ -6184,9 +6192,9 @@ document.addEventListener('click', async e => {
     case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
     case 'dmopen': { const T = dms()[t.dataset.k]; if (!T) break; T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'mgrtr2': UI.mgrTr = UI.mgrTr === false; openModal(dmHTML(t.dataset.k)); break;
-    case 'dmpick': { const k = t.dataset.k, x = social().q.find(y => y.dm && !y.ans && y.p.key === k); if (!x) break; const o = SOCIAL_EVENTS.find(y => y.id === x.ev).o[+t.dataset.j], txt = o[0].split('{他}').join(socName(x.p)); dmAnswer(k, txt, o[1], o[2], o[3], SOC_SILENT.test(txt)); break; }
+    case 'dmpick': { const k = t.dataset.k, x = social().q.find(y => y.dm && !y.ans && y.p.key === k); if (!x) break; const o = SOCIAL_EVENTS.find(y => y.id === x.ev).o[+t.dataset.j], txt = socG(o[0], x.p).split('{她}').join(socName(x.p)).split('{他}').join(socName(x.p)); dmAnswer(k, txt, o[1], o[2] * (x.p.f ? .2 : 1), socG(o[3], x.p), SOC_SILENT.test(txt)); break; }
     case 'dmsend': { const k = t.dataset.k, v = ($('#dm-in').value || '').trim(); if (!v) break; { const SV = social().serim; if (k === 'CRAVITY|세림' && SV && SV.dm && !SV.done) { serimReply(v); break; } } const tn = tone(v); dmAnswer(k, v, tn === 'neg' ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, .03, tn === 'neg' ? '…알겠어요' : pick(['ㅋㅋㅋㅋ 그쵸', '오 고마워요!', 'ㅎㅎ 다음에 또 얘기해요', '헐 진짜요?']), false); break; }
-    case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const e = SOCIAL_EVENTS.find(y => y.id === Q.x.ev), o = e.o[+t.dataset.j]; socResolve(o[0].split('{他}').join(socName(Q.x.p)), o[1], o[2], o[3], o[4]); break; }
+    case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const e = SOCIAL_EVENTS.find(y => y.id === Q.x.ev), o = e.o[+t.dataset.j], P = Q.x.p; socResolve(socG(o[0], P).split('{她}').join(socName(P)).split('{他}').join(socName(P)), o[1], o[2] * (P.f ? .2 : 1), socG(o[3], P), o[4]); break; }
     case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const tn = tone(v); socResolve(v, tn === 'neg' ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, .04, tn === 'neg' ? '他好像有点尴尬' : pick(['他回了个笑脸', '「哈哈好」', '「下次再聊！」', '他认真地回了一大段'])); break; }
     case 'socclose': { const Q = UI.socPop; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(SOCIAL_EVENTS.find(y => y.id === Q.x.ev), Q.x.p), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimset': { const v = ($('#serim-in').value || '').trim(); if (!v) { toast('写一下会发生什么'); break; } const SV = serimPlan(v); toast('💙 安排好了', `大概 ${String(Math.floor(SV.at / 60)).padStart(2, '0')}:${String(SV.at % 60).padStart(2, '0')} 左右`); render(); break; }
