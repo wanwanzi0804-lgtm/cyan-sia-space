@@ -6602,9 +6602,14 @@ async function dmAnswer(key, mine, o, silent) {
   const ai = x.via ? null : await socAiReply(x, mine, o, true), [ko, zh] = String(o.reply).replace(/^「|」$/g, '').split('｜');
   dmQueue(T.p, [ai ? { text: ai.ko, zh: ai.zh } : { text: ko, zh: zh || '' }, ...lvNote]);
 }
+// 好友：没聊过天也显示在 KKT 里（排在有聊天记录的后面）
+function friendP(f) { const c = chFind(f.g, f.n) || {}, key = f.g + '|' + f.n; return { g: f.g, n: f.n, z: f.z || c.z, key, f: !MALE_GROUPS.includes(f.g) && !MALE_EXTRA.some(x => x[0] === f.g && x[1] === f.n) ? 1 : undefined }; }
 function dmListHTML() {
   const D = Object.values(dms()).filter(T => T.msgs.length).sort((a, b) => b.msgs[b.msgs.length - 1].at - a.msgs[a.msgs.length - 1].at);
-  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('');
+  const rank = { best: 0, close: 1, friend: 2, acq: 3 }, has = new Set(D.map(T => T.p.key));
+  const F = chal().friends.filter(f => f.g && !has.has(f.g + '|' + f.n)).sort((a, b) => (rank[a.lv] ?? 4) - (rank[b.lv] ?? 4)).map(friendP);
+  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('')
+    + F.map(p => `<div class="card mgr-card" data-act="dmopen" data-k="${esc(p.key)}">${kAv(p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(p))}</b><div class="muted" style="font-size:13px">还没有聊天</div></div></div>`).join('');
 }
 // 💙 世琳：你自己写今天会发生什么，到了合适的时间弹出来
 function serimPlan(text) {
@@ -7117,7 +7122,7 @@ document.addEventListener('click', async e => {
       if (ok) C.list.push({ id: uid(), date: o.date, p: o.p, song: ['', ''], st: 'book', at: Date.now(), bk: { min: o.min, where: o.where, act: o.act, music: o.music, relMin: o.relMin } });
       mgrReply(ok ? ['네 그날로 잡아둘게요', '好，那天给你安排上'] : ['네 그쪽에 말해둘게요', '好，我跟那边说一声'], true); B.offer = null; save(); render(); break; }
     case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
-    case 'dmopen': { const T = dms()[t.dataset.k]; if (!T) break; T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'dmopen': { let T = dms()[t.dataset.k]; if (!T) { const f = chal().friends.find(f => f.g + '|' + f.n === t.dataset.k); if (!f) break; T = dmThread(friendP(f)); } T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'dmprof': openModal(dmProfHTML(t.dataset.k)); break;
     case 'dmprofav0': { const k = kprof(t.dataset.k); delete k.av; save(); openModal(dmProfHTML(t.dataset.k)); render(); break; }
     case 'dmprofsave': { const key = t.dataset.k, SO = social(), k = kprof(key), f = ($('#dmp-av').files || [])[0];
