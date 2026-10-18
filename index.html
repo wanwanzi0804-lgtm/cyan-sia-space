@@ -2290,13 +2290,22 @@ function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt
 function srng(seed) { let a = hashStr(seed); return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const weekOf = dk => addDays(dk, -((parseD(dk).getDay() + 6) % 7));
 // 现实里这几周真的在打歌的团（周一为 key）：[团, 歌, 档次, 分数下限, 上限]
-const W1 = [['BOYNEXTDOOR', 'Count To Love', 'top', .78, .95], ['PLAVE', 'Star Trace', 'top', .8, .97], ['NCT WISH', 'I SPY', 'mid', .45, .65], ['Hearts2Hearts', 'ICONIC', 'mid', .4, .6], ['MEOVV', 'GO HARD', 'mid', .35, .55], ['CRAVITY', 'LOUDER', 'mid', .3, .5], ['KickFlip', '미완성 (Incomplete)', 'mid', .3, .48], ['Xdinary Heroes', 'Obsessed with Youth', 'mid', .28, .45],
-  ['Sung Hanbin', 'UNDEAD', 'rook', .18, .34], ['MODYSSEY', 'CAN YOU HEAR THAT', 'rook', .05, .2], ['DAILY:DIRECTION', 'WHICH WAY', 'rook', .05, .16], ['FLARE U', 'U Bloom', 'rook', .05, .18]];
+const W1 = [['BOYNEXTDOOR', 'Count To Love (Korean Ver.)', 'top', .78, .95], ['ONEW & ZICO', 'Tic Tac Toe', 'top', .8, .96], ['PLAVE', 'Star Trace', 'top', .8, .97], ['NCT WISH', 'I SPY', 'mid', .45, .65], ['Hearts2Hearts', 'ICONIC HEART (Korean Ver.)', 'mid', .4, .6], ['MEOVV', 'GO HARD', 'mid', .35, .55], ['CRAVITY', 'LOUDER', 'mid', .3, .5], ['KickFlip', 'Puzzle Piece', 'mid', .55, .75], ['Xdinary Heroes', 'Obsessed with Youth', 'mid', .28, .45],
+  ['Sung Hanbin', 'UNDEAD', 'rook', .18, .34], ['MODYSSEY', 'CAN YOU HEAR THAT', 'rook', .05, .2], ['DAILY:DIRECTION', 'WHICH WAY', 'rook', .05, .16], ['FLARE U', 'Bloom', 'rook', .05, .18]];
 const REAL_WEEKS = {
   '2026-10-12': W1,
   '2026-10-19': [['IVE', 'Looks Can Kill', 'top', .85, .98], ['NMIXX', 'Birthday Wish', 'top', .62, .82], ['EVNNE', 'LOOK AT MA', 'rook', .15, .3], ...W1.map(x => [x[0], x[1], x[2], x[3] * .85, x[4] * .85])] // 上周回归的进入后续活动，分数略降
 };
 // 这一周一起打歌的对手（同一周固定，可以提前看到）
+// 真实的各节目结果：一位固定；off = 停播 / 不播出
+const REAL_SHOW = {
+  '2026-10-13|theshow': 'off',
+  '2026-10-14|champ': ['KickFlip', 'Kick Off The Wall'],
+  '2026-10-15|mcd': ['KickFlip', 'Kick Off The Wall'],
+  '2026-10-16|mb': ['KickFlip', 'Puzzle Piece'],
+  '2026-10-17|mc': ['ONEW & ZICO', 'Tic Tac Toe'],
+  '2026-10-18|ink': 'off'
+};
 function weekRivals(dk) {
   const RW = REAL_WEEKS[weekOf(dk)];
   if (RW) { const r = srng('rivals' + weekOf(dk)); return RW.map(([name, song, tier, lo, hi]) => ({ name, song, tier, sc: lo + (hi - lo) * r() })); }
@@ -2323,13 +2332,15 @@ function showResult(sh, dk, trackKey, albumId, follow) {
   const [id, name, , , , w, ease] = sh, c = myShowComps(dk, trackKey, albumId);
   let me = Object.keys(w).reduce((s, k) => s + w[k] * c[k], 0); if (follow) me *= .9;
   const r = srng(id + dk), field = weekRivals(dk).filter(x => !(x.tier === 'top' && ['theshow', 'champ'].includes(id))).map(x => ({ name: x.name, song: x.song, tier: x.tier, sc: x.sc * ease * (.9 + .2 * r()) }));
+  const real = REAL_SHOW[dk + '|' + id];
+  if (Array.isArray(real)) { let w0 = field.find(x => x.name === real[0]); if (!w0) field.push(w0 = { name: real[0], tier: 'top', sc: 0 }); w0.song = real[1]; w0.sc = Math.max(me, ...field.map(x => x.sc)) + .02; } // 真实一位
   const all = field.concat([{ name: S.profile.name, me: true, sc: me }]).sort((a, b) => b.sc - a.sc);
   return { show: id, dk, rank: all.findIndex(x => x.me) + 1, top: all.slice(0, 5).map(x => ({ name: x.name, song: x.song, me: !!x.me, sc: +x.sc.toFixed(3), tier: x.tier })), comps: Object.fromEntries(Object.keys(w).map(k => [k, +c[k].toFixed(3)])), raw: c.raw, song: trackKey.split('|').slice(1).join('|'), at: Date.now() };
 }
 function showsState() { return S.shows || (S.shows = { res: {} }); }
 // 回归期里每天检查：今天有没有节目出结果
 function showsTick() {
-  { const SS = showsState(); if ((SS.realV || 0) < 1 && S.cb && cbAlbum()) { SS.realV = 1; const a0 = cbAlbum(); for (const [key, r] of Object.entries(SS.res)) { const dk = key.split('|')[0]; if (!REAL_WEEKS[weekOf(dk)]) continue; const sh = SHOWS.find(x => x[0] === r.show); if (!sh) continue; const nr = showResult(sh, dk, a0.id + '|' + r.song, a0.id, !!(S.cb.follow && r.song === S.cb.follow)); nr.at = r.at; SS.res[key] = nr; } } } // 现实阵容那几周的结果按真实对手重算
+  { const SS = showsState(); if ((SS.realV || 0) < 2 && S.cb && cbAlbum()) { SS.realV = 2; for (const k of Object.keys(SS.res)) if (REAL_SHOW[k] === 'off') delete SS.res[k]; const a0 = cbAlbum(); for (const [key, r] of Object.entries(SS.res)) { const dk = key.split('|')[0]; if (!REAL_WEEKS[weekOf(dk)]) continue; const sh = SHOWS.find(x => x[0] === r.show); if (!sh) continue; const nr = showResult(sh, dk, a0.id + '|' + r.song, a0.id, !!(S.cb.follow && r.song === S.cb.follow)); nr.at = r.at; SS.res[key] = nr; } } } // 现实阵容那几周的结果按真实对手重算
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return;
   const d = cbDay(); if (d > 0) return;
   const P = cbPlan(), now = new Date(), today = dkey(now), R = showsState().res, f = S.profile.followers;
@@ -2340,7 +2351,7 @@ function showsTick() {
     const song = follow ? c.follow : albTitle(a);
     for (const sh of SHOWS) {
       if (parseD(k).getDay() !== sh[2] || (k === today && now.getHours() < sh[3])) continue;
-      const key = k + '|' + sh[0]; if (R[key]) continue;
+      const key = k + '|' + sh[0]; if (R[key] || REAL_SHOW[key] === 'off') continue; // 停播的那天没有结果
       const res = R[key] = showResult(sh, k, a.id + '|' + song, a.id, follow);
       if (res.rank === 1) {
         const n = Math.round(f * rand(.03, .06)); addFans(n, sh[1] + ' 一位');
