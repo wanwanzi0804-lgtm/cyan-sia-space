@@ -6475,8 +6475,10 @@ function dmDelay(p) {
   if (Math.random() < (rel < .5 ? .05 : rel > 1.2 ? .2 : .12)) m += lognorm(70, .9); // 看到了但忙忘了（不熟的更容易忘）
   return Math.max(.5, m) * 60e3;
 }
-function dmQueue(p, list, delay) { const T = dmThread(p); (T.pend || (T.pend = [])).push({ at: Date.now() + (delay == null ? dmDelay(p) : delay), list }); save(); }
-function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { T.lastOut = Date.now(); d.list.forEach((m, i) => setTimeout(() => dmPush(T.p, m), i * rand(1500, 5000) + String(m.text || '').length * 120)); } save(); } }
+function dmQueue(p, list, delay) { const T = dmThread(p), d = delay == null ? dmDelay(p) : delay, at = Date.now() + d; (T.pend || (T.pend = [])).push({ at, list }); dmWillRead(T, at - Math.min(d * .4, rand(20, 150) * 1e3)); save(); }
+// 对方什么时候点开看（看了「1」才消失）；不回的人也可能已读不回
+function dmWillRead(T, at) { const upto = Date.now(); if (!T.rd || T.rd.at > at) T.rd = { at, upto }; else T.rd.upto = Math.max(T.rd.upto, upto); }
+function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) { if (T.readTo === undefined) { const o = T.msgs.filter(m => !m.me && !m.sys).pop(); T.readTo = T.pend && T.pend.length ? (o ? o.at : 0) : now; } if (T.rd && now >= T.rd.at) { T.readTo = Math.max(T.readTo || 0, T.rd.upto); T.rd = null; save(); if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } } for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { T.lastOut = Date.now(); d.list.forEach((m, i) => setTimeout(() => dmPush(T.p, m), i * rand(1500, 5000) + String(m.text || '').length * 120)); } save(); } }
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
 async function dmChatAi(T, mine) {
   const p = T.p, pers = socPers(p), P = socPX(p);
@@ -6666,13 +6668,21 @@ function dmProfHTML(key) {
 }
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
-function dmPush(p, m) { const T = dmThread(p); T.msgs.push({ id: uid(), at: Date.now(), ...m }); if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); else if (UI.tab === 'kkt') render(); }
+function dmPush(p, m) { const T = dmThread(p); T.msgs.push({ id: uid(), at: Date.now(), ...m }); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
+function dmLogHTML(T, key, tr) {
+  let lastDay = ''; const rd = T.readTo || 0;
+  return T.msgs.map(m => { const t = new Date(m.at), dk = dkey(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
+    const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
+    if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
+    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${m.at > rd ? '<b class="kk-1">1</b>' : ''}${hm}</span><div class="kk-b me">${esc(m.text)}</div></div>`
+      : `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div><span class="kk-t">${hm}</span></div>`); }).join('');
+}
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
   return `<div class="row">${kAv(key, 'mgr-av sm')}<h3 style="flex:1;margin-left:8px">${esc(socDisp(p))}</h3><button class="btn ghost sm" data-act="dmprof" data-k="${esc(key)}">备注</button><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
-    ${socMemHTML(key)}<div class="kk-log" id="dm-log">${T.msgs.map(m => m.sys ? `<div class="kk-sep">${esc(m.sys)}</div>` : m.me ? `<div class="kk-row me"><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div></div>`).join('')}</div>
+    ${socMemHTML(key)}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}</div>
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div style="margin-top:8px">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
     ${e ? `<div style="margin-top:8px">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
     <div class="row" style="gap:6px;margin-top:8px"><input id="dm-in" placeholder="메시지 입력…" style="flex:1;min-width:0"><button class="btn primary sm" data-act="dmsend" data-k="${esc(key)}">发送</button></div>`;
@@ -6680,7 +6690,7 @@ function dmHTML(key) {
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
   if (!silent) dmPush(T.p, { me: true, text: mine });
-  if (!x) { save(); const r = await dmChatAi(T, mine); if (r) dmQueue(T.p, r.list); return; }
+  if (!x) { save(); const r = await dmChatAi(T, mine); if (r) dmQueue(T.p, r.list); else if (Math.random() < .7) { dmWillRead(T, Date.now() + dmDelay(T.p)); save(); } return; }
   x.ans = 1; const res = socApply(x, o, mine); save(); openModal(dmHTML(key));
   const lvNote = res.up ? [{ sys: `你们现在算是${FR_LV[res.up]}了` }] : [];
   if (silent || !o.reply) { if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
@@ -7189,7 +7199,7 @@ document.addEventListener('click', async e => {
     }
     case 'golive': startLive(); break;
     case 'livepost': closeModal(); UI.tab = 'feed'; UI.postId = null; draft = `今天的直播谢谢大家陪我！${'\n'}聊得好开心，下次见～ 🐱💙`; render(); $('#cmp-text')?.focus(); break;
-    case 'close': closeModal(); break;
+    case 'close': { const wasDm = UI.dmOpen; closeModal(); if (wasDm && UI.tab === 'kkt') render(); break; }
     case 'chopen': if (chLimit(t.dataset.k)) { toast(chLimit(t.dataset.k)); break; } UI.chSong = null; openModal(chPickHTML(t.dataset.k)); break;
     case 'chpick': { const p = chFind(t.dataset.g, t.dataset.n), v = ($('#ch-song') || {}).value; if (!p || !v) { toast('还没有可以拍的歌'); break; } const i = v.indexOf('|'), song = [v.slice(0, i), v.slice(i + 1)]; chInvite(t.dataset.k, p, song); closeModal(); toast('🎬 已经让经纪人去问了', `${p.g} ${p.n} · 《${song[1]}》`); render(); break; }
     case 'chpoppick': { const Q = UI.chPop; if (!Q) break; const p = Q.cands[+t.dataset.i], [p1, p2, kind] = chProb(p), ok1 = Math.random() < p1, ok = ok1 && Math.random() < p2; Q.p = p; Q.step = 'wait'; openModal(chPopHTML());
