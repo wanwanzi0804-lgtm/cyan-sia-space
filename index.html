@@ -195,6 +195,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .mgr-card{display:flex;align-items:center;gap:10px;cursor:pointer}
 .mgr-av{width:42px;height:42px;border-radius:15px;background:#ffe24a;display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
 .mgr-av.sm{width:34px;height:34px;border-radius:12px;font-size:18px}
+.mgr-av.big{width:76px;height:76px;border-radius:26px;font-size:38px;margin:0 auto}
 .mgr-u{background:var(--danger);color:#fff;border-radius:10px;font-size:12px;padding:1px 7px;font-weight:700}
 .kk-log{background:var(--accent-soft);border-radius:14px;padding:10px;height:min(60vh,520px);overflow-y:auto;display:flex;flex-direction:column;gap:8px}
 .kk-day{align-self:center;font-size:11.5px;color:var(--muted);background:var(--card);border-radius:10px;padding:2px 10px;margin:4px 0}
@@ -5797,11 +5798,11 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  socExMig(); socDaily(); dmPendTick();
+  socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
-  for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online) { x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } dmEvent(x); } // 线上的直接发到 KKT
+  for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online && dmIsMsg(x.ev)) { x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } dmEvent(x); } // 线上的直接发到 KKT
   if (UI.socPop || UI.chPop || $('#modal').classList.contains('on')) return;
   const due = SO.q.find(x => x.day === today && !x.done && nm >= x.at); if (!due) return;
   if (nm > due.until) { due.done = 1; due.missed = 1; return; }
@@ -6209,6 +6210,10 @@ const PERS_LOCAL = {
   gentle: [['아 그랬구나… 괜찮아요?', '啊原来这样…你还好吗？'], ['ㅎㅎ 다행이다', '呵呵太好了'], ['푹 쉬어요', '好好休息']],
   direct: [['오 좋은데요?', '哦不错啊？'], ['그럼 그렇게 해요', '那就这么办'], ['솔직히 저도 그렇게 생각해요', '说实话我也这么觉得']]
 };
+const PERS_BAN = { '아 그렇군요! 말씀해주셔서 감사해요': ['아 그렇구나! 말해줘서 고마워', '啊原来是这样！谢谢你告诉我'], '네 맞아요ㅎㅎ': ['응 맞아ㅎㅎ', '嗯没错呵呵'], '오늘도 고생 많으셨어요': ['오늘도 고생 많았어', '今天也辛苦了'], '그건 좀 아니지 않아요?ㅋㅋ': ['그건 좀 아니지 않아?ㅋㅋ', '这有点不对吧哈哈'], '그래요': ['그래', '好的'], '아 그랬구나… 괜찮아요?': ['아 그랬구나… 괜찮아?', '啊原来这样…你还好吗？'], '푹 쉬어요': ['푹 쉬어', '好好休息'], '오 좋은데요?': ['오 좋은데?', '哦不错啊？'], '그럼 그렇게 해요': ['그럼 그렇게 하자', '那就这么办'], '솔직히 저도 그렇게 생각해요': ['솔직히 나도 그렇게 생각해', '说实话我也这么觉得'], 'ㅋㅋㅋㅋㅋ 진짜요?? 대박': ['ㅋㅋㅋㅋㅋ 진짜?? 대박', '哈哈哈哈真的吗？？太扯了'], '헐 저도요!!': ['헐 나도!!', '天哪我也是！！'] };
+const PERS_JON = { 'ㅋㅋㅋ 뭐야 그게': ['ㅋㅋㅋ 뭐예요 그게', '哈哈哈那是什么啊'], '아 개웃겨': ['아 진짜 웃겨요ㅋㅋ', '啊笑死'], 'ㅇㅇ': ['넵', '嗯嗯'], 'ㅎㅎ 다행이다': ['ㅎㅎ 다행이에요', '呵呵太好了'] };
+const persFix = (L, ban) => ban ? PERS_BAN[L[0]] || L : PERS_JON[L[0]] || L;
+const persLine = (pers, ban) => persFix(pick(PERS_LOCAL[pers]), ban);
 function socPers(p) { if (p.key === 'CRAVITY|세림') return SOC_PERS[0]; const r = srng('pers' + p.key); return SOC_PERS[Math.floor(r() * SOC_PERS.length)]; }
 function socPX(p) { const P = socP(p); if (!P.ex) P.ex = []; if (!P.cnt) P.cnt = {}; if (!P.todo) P.todo = []; if (!P.lg) P.lg = []; if (P.th == null) P.th = Math.max(0, (P.amb || 0) * (P.spark || 0)); return P; }
 // 记一条真正发生过的共同经历
@@ -6243,7 +6248,7 @@ function socCtx(p) {
   const thL = !socAmbOk(p) ? '' : P.th >= 5 ? '对方对她有明显好感（但没说破）' : P.th >= 2 ? '对方对她有一点好感' : '对方对她没有特别的想法';
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
   return `对方：${p.g} ${socName(p)}（${p.f ? '女' : '男'}，${same ? '和她同公司' : '别家公司'}）。性格和说话方式：${pers.zh}。
-关系阶段：${STAGE_ZH[st]}。${thL ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
+关系阶段：${STAGE_ZH[st]}。语气：${socBan(p) ? '你们已经是很熟的朋友，用半语（반말）' : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
 ${p.key === 'CRAVITY|세림' ? '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。\n' : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
@@ -6292,19 +6297,19 @@ const SOC_TH = {
   mealAsk: { grp: '私聊', on: 1, ok: c => c.P.facts.contact && !socTodoOpen(c.P, 'meal') && !socTodoOpen(c.P, 'coffee'), make: c => {
     const M = socLast(c.P, ['meal']), C = socLast(c.P, ['chal']);
     let ko, zh;
-    if (c.st === 'amb') [ko, zh] = M ? ['저번엔 사람 많았잖아요… 이번엔 우리 둘이서만 갈까요?', '上次人太多了…这次就我们两个去，好不好？'] : ['이번엔 우리 둘이서만 밥 먹을래요?', '这次就我们两个去吃饭，好不好？'];
-    else if (M && (c.st === 'close' || c.st === 'friend')) [ko, zh] = [`저번에 ${M.pk || '거기'}에서 ${M.tk || '얘기한 거'} 얘기했던 거 아직도 생각나요ㅋㅋ 또 가요`, `上次在${M.pz || '那里'}聊的${M.tz || '事'}我到现在还记得哈哈，再去一次吧`];
-    else if (M) [ko, zh] = [`저번에 ${M.pk || '거기'} 맛있었어요ㅎㅎ 다음에 또 같이 가요`, `上次的${M.pz || '那家店'}很好吃呵呵，下次再一起去吧`];
+    if (c.st === 'amb') [ko, zh] = M ? ['저번엔 사람 많았잖아… 이번엔 우리 둘이서만 갈래?', '上次人太多了…这次就我们两个去，好不好？'] : ['이번엔 우리 둘이서만 밥 먹을래?', '这次就我们两个去吃饭，好不好？'];
+    else if (M && (c.st === 'close' || c.st === 'friend')) [ko, zh] = [c.k(`저번에 ${M.pk || '거기'}에서 ${M.tk || '얘기한 거'} 얘기했던 거 아직도 생각나요ㅋㅋ 또 가요`, `저번에 ${M.pk || '거기'}에서 ${M.tk || '얘기한 거'} 얘기했던 거 아직도 생각나ㅋㅋ 또 가자`), `上次在${M.pz || '那里'}聊的${M.tz || '事'}我到现在还记得哈哈，再去一次吧`];
+    else if (M) [ko, zh] = [c.k(`저번에 ${M.pk || '거기'} 맛있었어요ㅎㅎ 다음에 또 같이 가요`, `저번에 ${M.pk || '거기'} 맛있었지ㅎㅎ 다음에 또 같이 가자`), `上次的${M.pz || '那家店'}很好吃呵呵，下次再一起去吧`];
     else if (c.st === 'close') [ko, zh] = ['이번 주 언제 비어? 밥 먹자', '这周哪天有空？一起吃饭吧'];
     else if (c.st === 'friend') [ko, zh] = ['요즘 언제 시간 돼요? 밥 한번 먹어요', '最近什么时候有空？一起吃个饭吧'];
     else if (C) [ko, zh] = ['저번에 챌린지 찍을 때 재밌었어요ㅋㅋ 다음엔 밥이라도 한번 먹어요', '上次拍 challenge 挺开心的哈哈，下次一起吃个饭吧'];
     else [ko, zh] = ['혹시 나중에 시간 맞으면 밥 한번 같이 먹을래요? 부담 갖지 말고요ㅎㅎ', '要是以后时间对得上，要不要一起吃个饭？别有负担哈哈'];
-    const o = c.st === 'amb' ? [O('好，就我们两个', '+', '좋아요ㅎㅎ 시간 맞춰봐요｜好呀呵呵，我们对一下时间', { amb: 2, th: .5, fam: 1, fx: [{ todo: ['meal', '说好两个人单独去吃饭'] }] }),
-      O('叫上别人一起吧', '0', '아 그래요 그럼ㅋㅋ｜啊这样啊，那好吧哈哈', { amb: -1, fx: [{ todo: ['meal', '说好几个人一起吃饭'] }] }),
-      O('最近太忙了', '-', '아 그렇구나… 알겠어요｜啊这样啊…知道了', { amb: -1 })]
-      : [O('好啊，有空就去', '+', c.st === 'acq' ? '좋아요! 그럼 나중에 연락드릴게요｜好！那之后再联系你' : '오케이 시간 맞춰보자｜OK 对一下时间', { fam: 1, th: .3, fx: [{ todo: ['meal', '说好找时间一起吃饭'] }] }),
-        O('最近有点忙，改天吧', '0', c.st === 'acq' ? '아 네네 다음에 시간 될 때요!｜啊好好，下次有时间的时候！' : '그래 바쁘면 다음에｜好，忙的话就下次', {}),
-        O('婉拒', '-', '아 넵 알겠습니다｜啊好的，知道了', { fam: -1 })];
+    const o = c.st === 'amb' ? [O('好，就我们两个', '+', '좋아ㅎㅎ 시간 맞춰보자｜好呀呵呵，我们对一下时间', { amb: 2, th: .5, fam: 1, fx: [{ todo: ['meal', '说好两个人单独去吃饭'] }] }),
+      O('叫上别人一起吧', '0', '아 그래 그럼ㅋㅋ｜啊这样啊，那好吧哈哈', { amb: -1, fx: [{ todo: ['meal', '说好几个人一起吃饭'] }] }),
+      O('最近太忙了', '-', '아 그렇구나… 알겠어｜啊这样啊…知道了', { amb: -1 })]
+      : [O('好啊，有空就去', '+', c.k(c.st === 'acq' ? '좋아요! 그럼 나중에 연락드릴게요｜好！那之后再联系你' : '좋아요! 시간 맞춰봐요｜好！对一下时间', '오케이 시간 맞춰보자｜OK 对一下时间'), { fam: 1, th: .3, fx: [{ todo: ['meal', '说好找时间一起吃饭'] }] }),
+        O('最近有点忙，改天吧', '0', c.k('아 네네 다음에 시간 될 때요!｜啊好好，下次有时间的时候！', '그래 바쁘면 다음에｜好，忙的话就下次'), {}),
+        O('婉拒', '-', c.k('아 넵 알겠습니다｜啊好的，知道了', '아 그래 알겠어｜啊好，知道了'), { fam: -1 })];
     return { ko, zh, o };
   } },
   coffeeAsk: { grp: '私聊', on: 1, ok: c => c.st === 'friend' && c.P.facts.contact && (c.P.cnt.chat || 0) >= 3 && !c.P.facts.alone && !socTodoOpen(c.P), make: c => ({ ko: '맨날 대기실에서만 보네요ㅋㅋ 언제 따로 커피 한잔 할래요?', zh: '每次都只在待机室见哈哈，哪天单独出来喝杯咖啡？', o: [
@@ -6314,11 +6319,11 @@ const SOC_TH = {
   // 约好的事：当天先问时间（对方也可能临时有事）
   planDay: { grp: '私聊', on: 1, ok: c => !!socTodoOpen(c.P, 'meal') || !!socTodoOpen(c.P, 'coffee'), needEve: 1, make: c => {
     const td = socTodoOpen(c.P, 'meal') || socTodoOpen(c.P, 'coffee'), what = td.t === 'coffee' ? ['커피', '咖啡'] : ['밥', '饭'];
-    if (Math.random() < .25) return { ko: `미안해요ㅠ 이번 주 스케줄이 갑자기 꽉 차서… 저번에 말한 ${what[0]}은 다음 주에 다시 연락할게요`, zh: `对不起ㅠ 这周行程突然排满了…之前说的${what[1]}下周再联系你`, o: [] };
-    return { ko: `오늘 저녁에 시간 돼요? 저번에 말한 ${what[0]}${td.t === 'coffee' ? ' 한잔' : ''}`, zh: `今晚有空吗？之前说的那${td.t === 'coffee' ? '杯咖啡' : '顿饭'}`, o: [
-      O('今晚可以', '+', '오 좋아요! 이따 봐요｜哦好！待会见', { fx: [{ plan: td.id }] }),
-      O('今天不行，改天', '0', '그래요 그럼 다음에!｜好，那下次！', {}),
-      O('这个约还是算了吧', '-', '아… 알겠어요｜啊…知道了', { fam: -1, th: -1, fx: [{ lapse: td.id }] })] };
+    if (Math.random() < .25) return { ko: c.k(`미안해요ㅠ 이번 주 스케줄이 갑자기 꽉 차서… 저번에 말한 ${what[0]}은 다음 주에 다시 연락할게요`, `미안ㅠ 이번 주 스케줄이 갑자기 꽉 차서… 저번에 말한 ${what[0]}은 다음 주에 다시 연락할게`), zh: `对不起ㅠ 这周行程突然排满了…之前说的${what[1]}下周再联系你`, o: [] };
+    return { ko: c.k(`오늘 저녁에 시간 돼요? 저번에 말한 ${what[0]}${td.t === 'coffee' ? ' 한잔' : ''}`, `오늘 저녁에 시간 돼? 저번에 말한 ${what[0]}${td.t === 'coffee' ? ' 한잔' : ''}`), zh: `今晚有空吗？之前说的那${td.t === 'coffee' ? '杯咖啡' : '顿饭'}`, o: [
+      O('今晚可以', '+', c.k('오 좋아요! 이따 봐요｜哦好！待会见', '오 좋아! 이따 봐｜哦好！待会见'), { fx: [{ plan: td.id }] }),
+      O('今天不行，改天', '0', c.k('그래요 그럼 다음에!｜好，那下次！', '그래 그럼 다음에!｜好，那下次！'), {}),
+      O('这个约还是算了吧', '-', c.k('아… 알겠어요｜啊…知道了', '아… 알겠어｜啊…知道了'), { fam: -1, th: -1, fx: [{ lapse: td.id }] })] };
   } },
   // 真的见面了（只由约定落实触发）
   planDo: { grp: '约见', manual: 1, ok: c => !!(c.x.todo && c.P.todo.find(t => t.id === c.x.todo && t.st === 'open')), make: c => {
@@ -6332,29 +6337,29 @@ const SOC_TH = {
   } },
   chat: { grp: '私聊', on: 1, ok: c => c.P.facts.contact, make: c => {
     const W = socWins(dkey(Date.now())), stage = W.music.length ? '打歌' : W.show.length ? '节目' : '', L = socLast(c.P, ['meal', 'coffee']);
-    let [ko, zh] = c.st === 'amb' ? (new Date().getHours() >= 22 ? ['자요? 그냥… 갑자기 생각나서요', '睡了吗？就是…突然想到你了'] : ['오늘 뭐 해요? 그냥 궁금해서ㅎㅎ', '今天在干嘛？就是好奇呵呵'])
+    let [ko, zh] = c.st === 'amb' ? (new Date().getHours() >= 22 ? ['자? 그냥… 갑자기 생각나서', '睡了吗？就是…突然想到你了'] : ['오늘 뭐 해? 그냥 궁금해서ㅎㅎ', '今天在干嘛？就是好奇呵呵'])
       : c.st === 'acq' ? (stage ? [`오늘 ${stage === '打歌' ? '음방' : '방송'} 잘 봤어요! 수고했어요`, `今天的${stage === '打歌' ? '打歌舞台' : '节目'}看了！辛苦了`] : ['안녕하세요! 요즘 잘 지내세요?', '你好！最近还好吗？'])
-      : c.st === 'close' ? (L && L.tz && Math.random() < .5 ? [`아 맞다 저번에 말한 ${L.tk} 그거 어떻게 됐어?`, `啊对了，上次说的${L.tz}后来怎么样了？`] : ['야 이거 봐ㅋㅋㅋㅋ', '喂你看这个哈哈哈哈']) : ['뭐해요? 저 방금 연습 끝났어요ㅠ', '在干嘛？我刚练完ㅠ'];
-    const pers = socPers(c.p).id; if (pers === 'cool' && c.st !== 'amb') [ko, zh] = ['뭐해요', '在干嘛'];
-    return { ko, zh, o: [O('认真聊几句', '+', pick(PERS_LOCAL[pers]).join('｜'), { fam: 1, th: c.st === 'amb' ? .3 : .1, fx: [{ ex: ['chat', zh.length < 18 ? `KKT 上他说「${zh}」，聊了一会儿` : 'KKT 上聊了一会儿'] }] }),
-      O('简单回一句', '0', pick(PERS_LOCAL[pers]).join('｜'), { fx: [{ ex: ['chat', 'KKT 上简单聊了两句'] }] }),
+      : c.st === 'close' ? (L && L.tz && Math.random() < .5 ? [`아 맞다 저번에 말한 ${L.tk} 그거 어떻게 됐어?`, `啊对了，上次说的${L.tz}后来怎么样了？`] : ['야 이거 봐ㅋㅋㅋㅋ', '喂你看这个哈哈哈哈']) : c.ban ? ['뭐해? 나 방금 연습 끝났어ㅠ', '在干嘛？我刚练完ㅠ'] : ['뭐해요? 저 방금 연습 끝났어요ㅠ', '在干嘛？我刚练完ㅠ'];
+    const pers = socPers(c.p).id; if (pers === 'cool' && c.st !== 'amb') [ko, zh] = [c.k('뭐해요', '뭐해'), '在干嘛'];
+    return { ko, zh, o: [O('认真聊几句', '+', persLine(pers, c.ban).join('｜'), { fam: 1, th: c.st === 'amb' ? .3 : .1, fx: [{ ex: ['chat', zh.length < 18 ? `KKT 上他说「${zh}」，聊了一会儿` : 'KKT 上聊了一会儿'] }] }),
+      O('简单回一句', '0', persLine(pers, c.ban).join('｜'), { fx: [{ ex: ['chat', 'KKT 上简单聊了两句'] }] }),
       O('已读，先不回', '-', '', { th: -.2 })] };
   } },
   care: { grp: '私聊', on: 1, late: 1, ok: c => c.P.facts.contact && c.st !== 'new' && socWins(dkey(Date.now())).work.length > 0, make: c => {
-    const [ko, zh] = { acq: ['오늘 무대 잘 봤어요! 수고 많았어요', '今天的舞台看了！辛苦了'], friend: ['오늘 고생했어요ㅠ 밥은 먹었어요?', '今天辛苦了ㅠ 吃饭了吗？'], close: ['오늘 눈 좀 부었던데ㅋㅋ 잠 못 잤죠', '今天眼睛有点肿哈哈，没睡好吧'], amb: ['오늘 늦게 끝났죠? 집 도착하면 연락 줘요', '今天结束得很晚吧？到家了跟我说一声'] }[c.st];
-    return { ko, zh, o: [O('道谢', '+', c.st === 'amb' ? '응 기다릴게요｜嗯，我等你' : 'ㅎㅎ 푹 쉬어요｜呵呵好好休息', { fam: 1, th: c.st === 'amb' ? .4 : 0, fx: [{ ex: ['chat', `下班后他发来「${zh}」`] }] }),
-      O('开个玩笑回过去', '+', 'ㅋㅋㅋㅋ 뭐야｜哈哈哈哈什么啊', { fam: 1, fx: [{ ex: ['chat', `下班后他发来「${zh}」，你开玩笑回了`] }] }),
+    const [ko, zh] = { acq: ['오늘 무대 잘 봤어요! 수고 많았어요', '今天的舞台看了！辛苦了'], friend: ['오늘 고생했어요ㅠ 밥은 먹었어요?', '今天辛苦了ㅠ 吃饭了吗？'], close: ['오늘 눈 좀 부었던데ㅋㅋ 잠 못 잤지', '今天眼睛有点肿哈哈，没睡好吧'], amb: ['오늘 늦게 끝났지? 집 도착하면 연락 줘', '今天结束得很晚吧？到家了跟我说一声'] }[c.st];
+    return { ko, zh, o: [O('道谢', '+', c.st === 'amb' ? '응 기다릴게｜嗯，我等你' : c.k('ㅎㅎ 푹 쉬어요｜呵呵好好休息', 'ㅎㅎ 푹 쉬어｜呵呵好好休息'), { fam: 1, th: c.st === 'amb' ? .4 : 0, fx: [{ ex: ['chat', `下班后他发来「${zh}」`] }] }),
+      O('开个玩笑回过去', '+', c.k('ㅋㅋㅋㅋ 뭐예요｜哈哈哈哈什么啊', 'ㅋㅋㅋㅋ 뭐야｜哈哈哈哈什么啊'), { fam: 1, fx: [{ ex: ['chat', `下班后他发来「${zh}」，你开玩笑回了`] }] }),
       O('简单回个表情', '0', '', { fx: [{ ex: ['chat', `下班后他发来「${zh}」`] }] })] };
   } },
   chalAgain: { grp: 'Challenge', on: 1, ok: c => c.P.cnt.chal > 0 && c.P.facts.contact && !socTodoOpen(c.P, 'chal'), make: c => {
-    const [ko, zh] = c.st === 'amb' ? ['다음 챌린지 찍고 나서 밥도 먹을래요?', '下次拍完 challenge 要不要顺便吃个饭？'] : c.st === 'acq' ? ['저번 챌린지 반응 좋던데요ㅎㅎ 다음에 또 찍어요!', '上次的 challenge 反响不错呵呵，下次再一起拍吧！'] : ['저번 챌린지 조회수 봤어?ㅋㅋ 다음 컴백 때 또 찍자', '上次那个 challenge 的播放量你看了吗哈哈，下次回归再拍'];
-    return { ko, zh, o: [O('好啊', '+', '좋아요!｜好！', { fam: 1, fx: [{ todo: ['chal', '说好下次再拍 challenge'] }, ...(c.st === 'amb' ? [{ todo: ['meal', '说好拍完 challenge 一起吃饭'] }] : [])] }),
-      O('看行程再说', '0', '넵넵｜好的好的', {}), O('最近不太方便', '-', '아 알겠어요｜啊好的', {})] };
+    const [ko, zh] = c.st === 'amb' ? ['다음 챌린지 찍고 나서 밥도 먹을래?', '下次拍完 challenge 要不要顺便吃个饭？'] : !c.ban ? ['저번 챌린지 반응 좋던데요ㅎㅎ 다음에 또 찍어요!', '上次的 challenge 反响不错呵呵，下次再一起拍吧！'] : ['저번 챌린지 조회수 봤어?ㅋㅋ 다음 컴백 때 또 찍자', '上次那个 challenge 的播放量你看了吗哈哈，下次回归再拍'];
+    return { ko, zh, o: [O('好啊', '+', c.k('좋아요!｜好！', '좋아!｜好！'), { fam: 1, fx: [{ todo: ['chal', '说好下次再拍 challenge'] }, ...(c.st === 'amb' ? [{ todo: ['meal', '说好拍完 challenge 一起吃饭'] }] : [])] }),
+      O('看行程再说', '0', c.k('넵넵｜好的好的', 'ㅇㅋㅇㅋ｜好好'), {}), O('最近不太方便', '-', c.k('아 알겠어요｜啊好的', '아 알겠어｜啊好的'), {})] };
   } },
-  probe: { grp: '私聊', on: 1, late: 1, ok: c => socAmbOk(c.p) && c.P.spark >= .55 && c.P.th >= 5 && ['close', 'amb', 'friend'].includes(c.st) && !(c.P.cool > dkey(Date.now())), make: c => ({ ko: '물어볼 게 있는데… 저 어떤 사람 같아요?', zh: '问你个问题哦…你觉得我是个什么样的人？', o: [
-    O('认真说他的优点', '+', '…그렇게 말해주니까 좀 설레네요ㅎㅎ｜…你这么说，我有点心动了呵呵', { amb: 2, th: .5, fx: [{ ex: ['chat', '深夜他问你觉得他是什么样的人，你认真说了他的优点'] }] }),
+  probe: { grp: '私聊', on: 1, late: 1, ok: c => socAmbOk(c.p) && c.P.spark >= .55 && c.P.th >= 5 && ['close', 'amb', 'friend'].includes(c.st) && !(c.P.cool > dkey(Date.now())), make: c => ({ ko: c.k('물어볼 게 있는데… 저 어떤 사람 같아요?', '물어볼 게 있는데… 나 어떤 사람 같아?'), zh: '问你个问题哦…你觉得我是个什么样的人？', o: [
+    O('认真说他的优点', '+', c.k('…그렇게 말해주니까 좀 설레네요ㅎㅎ｜…你这么说，我有点心动了呵呵', '…그렇게 말해주니까 좀 설렌다ㅎㅎ｜…你这么说，我有点心动了呵呵'), { amb: 2, th: .5, fx: [{ ex: ['chat', '深夜他问你觉得他是什么样的人，你认真说了他的优点'] }] }),
     O('开玩笑带过', '0', 'ㅋㅋㅋ 뭐야 진지하게 물어본 건데｜哈哈哈什么啊，我是认真问的', { fx: [{ ex: ['chat', '深夜他问你觉得他是什么样的人，你开玩笑带过了'] }] }),
-    O('说他是很好的朋友', '-', '아… 그쵸ㅎㅎ 좋은 친구｜啊…对呵呵，好朋友', { amb: -3, th: -1, fx: [{ cool: 14 }, { ex: ['chat', '深夜他问你觉得他是什么样的人，你说他是很好的朋友'] }] })] }) },
+    O('说他是很好的朋友', '-', c.k('아… 그쵸ㅎㅎ 좋은 친구｜啊…对呵呵，好朋友', '아… 그치ㅎㅎ 좋은 친구｜啊…对呵呵，好朋友'), { amb: -3, th: -1, fx: [{ cool: 14 }, { ex: ['chat', '深夜他问你觉得他是什么样的人，你说他是很好的朋友'] }] })] }) },
   // 朋友察觉：从你身边的朋友那里发来（不是世琳，世琳的日常由你自己写）
   notice: { grp: '私聊', on: 1, ok: c => c.st === 'amb' && !!socObserver(c.p), make: c => {
     const ob = socObserver(c.p); c.x.via = { g: ob.g, n: ob.n, z: ob.z, key: ob.g + '|' + ob.n, f: !MALE_GROUPS.includes(ob.g) };
@@ -6363,7 +6368,9 @@ const SOC_TH = {
   } }
 };
 function socObserver(p) { return (chal().friends || []).filter(f => f.n !== '세림' && ['close', 'best'].includes(f.lv) && !(f.g === p.g && f.n === p.n)).map(f => ({ ...f, g: f.g || '' })).find(f => f.g) || null; }
-function socThCtx(x) { const p = x.p, P = socPX(p); return { x, p, P, st: socStage(p), lv: socLv(p), e: x.e || '行程', w: socWho(p), g: t => socG(t, p) }; }
+// 敬语：成为很熟的朋友以后（很熟 / 暧昧 / 本来就是很熟的朋友）都用半语，之前都用敬语
+function socBan(p) { const fr = friendOf(p.g, p.n); return ['close', 'amb'].includes(socStage(p)) || !!(fr && ['best', 'close'].includes(fr.lv)); }
+function socThCtx(x) { const p = x.p, P = socPX(p), ban = socBan(p); return { x, p, P, st: socStage(p), lv: socLv(p), e: x.e || '行程', w: socWho(p), g: t => socG(t, p), ban, k: (j, b) => ban ? b : j }; }
 // 到时间了才按「当时」的关系生成文字
 function socThFill(x) {
   const e = socEv(x.ev); if (!e || !e.th || x.o) return true;
@@ -6401,7 +6408,7 @@ function dmPendTick() { const now = Date.now(); for (const T of Object.values(dm
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
 async function dmChatAi(T, mine) {
   const p = T.p, pers = socPers(p), P = socPX(p);
-  const local = () => { const n = pers.id === 'warm' && Math.random() < .5 ? 2 : 1; return pickN(PERS_LOCAL[pers.id], n).map(([ko, zh]) => ({ text: ko, zh })); };
+  const local = () => { const n = pers.id === 'warm' && Math.random() < .5 ? 2 : 1; return pickN(PERS_LOCAL[pers.id], n).map(L => persFix(L, socBan(p))).map(([ko, zh]) => ({ text: ko, zh })); };
   if (!aiOn()) { if (pers.id === 'cool' && Math.random() < .25) return null; return { list: local() }; }
   try {
     const j = await aiRaw([{ type: 'text', text: `你在扮演 ${socWho(p)}，和 ${S.profile.name}（女，solo 爱豆，STARSHIP，单身，2025 年出道）用 KKT 私聊。\n${socCtx(p)}\n\n${S.profile.name}刚发来：「${mine}」\n\n${SOC_RULES}\n用韩语回（zh 写中文意思）。按性格决定发 1~3 条，也可以不回（noReply）。\ntodo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，today 表示说好就是今晚。\nmem：用一句中文客观记下这次真正聊到的内容（没聊什么就留空）。\nunsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 500,
@@ -6413,6 +6420,25 @@ async function dmChatAi(T, mine) {
   } catch (err) { return { list: local() }; }
 }
 // 每天：同步真实发生的事（拍过的 challenge、行程表里一起的工作），很久不联系就慢慢淡，约定太久没落实就算了
+// 只有真的是对方发来的 KKT 消息才进聊天；加 Close Friends、点赞、评论这类在弹窗里出现
+const dmIsMsg = id => { const e = socEv(id); return !!(e && (e.th || (SOC_DM[id] && SOC_DM[id][0]))); };
+// 以前把「加进 Close Friends」「给快拍点赞」这类不是 KKT 消息的交集也塞进了聊天里：清掉（交集记录里还在）
+function dmCleanMig() {
+  const SO = social(); if (SO.dmClean) return; SO.dmClean = 1;
+  for (const [key, T] of Object.entries(dms())) {
+    const p = T.p, bad = new Set(ALL_SOC.filter(e => e.online && !dmIsMsg(e.id)).flatMap(e => [socText(e, p), SOC_DM[e.id] && SOC_DM[e.id][2] && socG(SOC_DM[e.id][2], p)]).filter(Boolean));
+    const out = []; let st = 0; // 1 刚删了事件 → 删你的回应；2 已删回应 → 再删对方一句回复和「算是朋友了」
+    for (const m of T.msgs) {
+      if (m.sys && bad.has(m.sys)) { st = 1; continue; }
+      if (st && m.me) { st = 2; continue; }
+      if (st === 2 && !m.me && !m.sys && !m.ev) { st = 3; continue; }
+      if (st && m.sys && /^你们现在算是/.test(m.sys)) continue;
+      st = 0; out.push(m);
+    }
+    T.msgs = out; if (!out.length) delete dms()[key];
+  }
+  save();
+}
 function socDaily() {
   const SO = social(), today = dkey(Date.now()); if (SO.exDay === today) return; SO.exDay = today;
   for (const x of (S.chal && S.chal.list) || []) if (x.st === 'done' && !x.sx) { x.sx = 1; const p = { ...x.p, key: x.p.g + '|' + x.p.n }; const P = socPX(p); P.ex.push({ day: x.date, t: 'chal', d: `一起拍了${x.song && (x.song[1] || x.song[0]) ? '《' + (x.song[1] || x.song[0]) + '》的' : ''} challenge` }); P.cnt.chal = (P.cnt.chal || 0) + 1; P.facts.chal = P.facts.met = 1; const td = socTodoOpen(P, 'chal'); if (td) td.st = 'done'; }
@@ -6537,15 +6563,28 @@ async function socDone(Q, mine, o) {
   const ai = await socAiReply(Q.x, mine, o); if (ai && UI.socPop === Q) { Q.res.reply = ai + (r.up ? `（你们现在算是${FR_LV[r.up]}了）` : ''); openModal(socPopHTML()); }
 }
 // KKT 里的艺人私聊
+// KKT 好友资料：对方自己的 KKT 名称、头像，和你给他的备注（只存在你这里）
+const KKT_PROF0 = { 'MONSTA X|기현': { nm: 'yookihhh', av: 'data:image/jpeg;base64,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' } };
+function kprof(key) { const SO = social(), P = SO.prof || (SO.prof = {}); if (!P[key] && KKT_PROF0[key]) P[key] = { ...KKT_PROF0[key] }; return P[key] || {}; }
+const socDisp = p => { const k = kprof(p.key || p.g + '|' + p.n); return k.rm || k.nm || socWho(p); };
+const kAv = (key, cls) => { const a = kprof(key).av; return a ? `<img class="${cls}" src="${a}" style="object-fit:cover;padding:0" alt="">` : `<div class="${cls}">🙂</div>`; };
+function dmProfHTML(key) {
+  const T = dms()[key]; if (!T) return ''; const k = kprof(key), p = T.p;
+  return `<div class="row"><h3 style="flex:1">好友资料</h3><button class="btn ghost sm" data-act="dmopen" data-k="${esc(key)}">返回</button></div>
+    <div class="card" style="text-align:center"><label style="cursor:pointer;display:inline-block">${kAv(key, 'mgr-av big')}<input type="file" id="dmp-av" accept="image/*" style="display:none"></label><div class="muted" style="font-size:12px;margin-top:4px">点头像换图片</div><div class="muted" style="font-size:12.5px;margin-top:6px">${esc(socWho(p))}</div></div>
+    <div class="muted" style="font-size:12.5px;margin:8px 2px 4px">备注（只有你自己看得到）</div><input id="dmp-rm" value="${esc(k.rm || '')}" placeholder="${esc(k.nm || socWho(p))}">
+    <div class="muted" style="font-size:12.5px;margin:10px 2px 4px">他的 KKT 名称</div><input id="dmp-nm" value="${esc(k.nm || '')}" placeholder="${esc(socWho(p))}">
+    <div class="row" style="margin-top:12px">${k.av ? `<button class="link" data-act="dmprofav0" data-k="${esc(key)}">删除头像</button>` : ''}<span class="sp"></span><button class="btn primary" data-act="dmprofsave" data-k="${esc(key)}">保存</button></div>`;
+}
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
-function dmPush(p, m) { const T = dmThread(p); T.msgs.push({ id: uid(), at: Date.now(), ...m }); if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socWho(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); else if (UI.tab === 'kkt') render(); }
+function dmPush(p, m) { const T = dmThread(p); T.msgs.push({ id: uid(), at: Date.now(), ...m }); if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); else if (UI.tab === 'kkt') render(); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
-  return `<div class="row"><h3 style="flex:1">${esc(socWho(p))}</h3><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
-    ${socMemHTML(key)}<div class="kk-log" id="dm-log">${T.msgs.map(m => m.sys ? `<div class="kk-sep">${esc(m.sys)}</div>` : m.me ? `<div class="kk-row me"><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🙂</div><div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div></div>`).join('')}</div>
+  return `<div class="row">${kAv(key, 'mgr-av sm')}<h3 style="flex:1;margin-left:8px">${esc(socDisp(p))}</h3><button class="btn ghost sm" data-act="dmprof" data-k="${esc(key)}">备注</button><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
+    ${socMemHTML(key)}<div class="kk-log" id="dm-log">${T.msgs.map(m => m.sys ? `<div class="kk-sep">${esc(m.sys)}</div>` : m.me ? `<div class="kk-row me"><div class="kk-b me">${esc(m.text)}</div></div>` : `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div></div>`).join('')}</div>
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div style="margin-top:8px">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
     ${e ? `<div style="margin-top:8px">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
     <div class="row" style="gap:6px;margin-top:8px"><input id="dm-in" placeholder="메시지 입력…" style="flex:1;min-width:0"><button class="btn primary sm" data-act="dmsend" data-k="${esc(key)}">发送</button></div>`;
@@ -6562,7 +6601,7 @@ async function dmAnswer(key, mine, o, silent) {
 }
 function dmListHTML() {
   const D = Object.values(dms()).filter(T => T.msgs.length).sort((a, b) => b.msgs[b.msgs.length - 1].at - a.msgs[a.msgs.length - 1].at);
-  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}"><div class="mgr-av">🙂</div><div style="flex:1;min-width:0"><b>${esc(socWho(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('');
+  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('');
 }
 // 💙 世琳：你自己写今天会发生什么，到了合适的时间弹出来
 function serimPlan(text) {
@@ -7076,10 +7115,16 @@ document.addEventListener('click', async e => {
       mgrReply(ok ? ['네 그날로 잡아둘게요', '好，那天给你安排上'] : ['네 그쪽에 말해둘게요', '好，我跟那边说一声'], true); B.offer = null; save(); render(); break; }
     case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
     case 'dmopen': { const T = dms()[t.dataset.k]; if (!T) break; T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'dmprof': openModal(dmProfHTML(t.dataset.k)); break;
+    case 'dmprofav0': { const k = kprof(t.dataset.k); delete k.av; save(); openModal(dmProfHTML(t.dataset.k)); render(); break; }
+    case 'dmprofsave': { const key = t.dataset.k, SO = social(), k = kprof(key), f = ($('#dmp-av').files || [])[0];
+      k.rm = $('#dmp-rm').value.trim(); k.nm = $('#dmp-nm').value.trim(); if (!k.rm) delete k.rm; if (!k.nm) delete k.nm; SO.prof[key] = k;
+      if (f) { const b = await imageB64(f, 160); if (b) k.av = 'data:image/jpeg;base64,' + b; else toast('这张图片读不了'); }
+      save(); toast('已保存'); openModal(dmHTML(key)); render(); break; }
     case 'mgrtr2': UI.mgrTr = UI.mgrTr === false; openModal(dmHTML(t.dataset.k)); break;
     case 'dmpick': { const k = t.dataset.k, x = social().q.find(y => y.dm && !y.ans && y.p.key === k); if (!x) break; const o = socOpts(socEv(x.ev), x.p, x)[+t.dataset.j]; if (!o) break; dmAnswer(k, o.t, o, SOC_SILENT.test(o.t)); break; }
     case 'dmsend': { const k = t.dataset.k, v = ($('#dm-in').value || '').trim(); if (!v) break; { const SV = social().serim; if (k === 'CRAVITY|세림' && SV && SV.dm && !SV.done) { serimReply(v); break; } } $('#dm-in').value = ''; const x = social().q.find(y => y.dm && !y.ans && (y.via || y.p).key === k), e = x && socEv(x.ev), tn = tone(v), neg = tn === 'neg';
-      { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: neg ? '…알겠어요｜…知道了' : pick(['ㅋㅋㅋㅋ 그쵸｜哈哈哈哈对吧', '오 고마워요!｜哦谢谢！', 'ㅎㅎ 다음에 또 얘기해요｜呵呵下次再聊', '헐 진짜요?｜天哪真的吗？']) };
+      { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: socBan(dms()[k].p) ? (neg ? '…알겠어｜…知道了' : pick(['ㅋㅋㅋㅋ 그치｜哈哈哈哈对吧', '오 고마워!｜哦谢谢！', 'ㅎㅎ 다음에 또 얘기하자｜呵呵下次再聊', '헐 진짜?｜天哪真的吗？'])) : (neg ? '…알겠어요｜…知道了' : pick(['ㅋㅋㅋㅋ 그쵸｜哈哈哈哈对吧', '오 고마워요!｜哦谢谢！', 'ㅎㅎ 다음에 또 얘기해요｜呵呵下次再聊', '헐 진짜요?｜天哪真的吗？'])) };
         if (x && x.o && x.o.length) { const b = neg ? x.o[x.o.length - 1] : x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
         dmAnswer(k, v, o, false); } break; }
     case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const o = socOpts(socEv(Q.x.ev), Q.x.p, Q.x)[+t.dataset.j]; if (!o) break; socDone(Q, o.t, o); break; }
