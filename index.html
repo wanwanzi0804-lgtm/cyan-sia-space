@@ -5802,7 +5802,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -6528,6 +6528,12 @@ async function dmChatAi(T, mine) {
 // 只有真的是对方发来的 KKT 消息才进聊天；加 Close Friends、点赞、评论这类在弹窗里出现
 const dmIsMsg = id => { const e = socEv(id); return !!(e && (e.th || (SOC_DM[id] && SOC_DM[id][0]))); };
 // 以前把「加进 Close Friends」「给快拍点赞」这类不是 KKT 消息的交集也塞进了聊天里：清掉（交集记录里还在）
+// 一次性：世琳那段前后矛盾的回复删掉，按新规则、现在的时间重新回你最后发的消息
+function serimRedoMig() {
+  const SO = social(); if (SO.serimRedo) return; SO.serimRedo = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
+  let i = T.msgs.length - 1; while (i >= 0 && !T.msgs[i].me) i--; if (i < 0) return;
+  T.msgs = T.msgs.slice(0, i + 1); T.pend = []; T.rd = null; T.due = { at: Date.now() + 5e3 }; save();
+}
 function nameMig() { const SO = social(); if (SO.nameV) return; SO.nameV = 1; for (const f of chal().friends) if (f.z === '成珉') f.z = '成民'; for (const T of Object.values(dms())) if (T.p.z === '成珉') T.p.z = '成民'; save(); }
 function soloMig() {
   const SO = social(); if (SO.soloV2) return; SO.soloV2 = 1; const n = 'EVAN|희승';
