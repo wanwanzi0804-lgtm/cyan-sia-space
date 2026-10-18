@@ -5604,7 +5604,7 @@ function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (SO.day !== today && now.getHours() >= 8) {
     SO.day = today; SO.q = SO.q.filter(x => x.day === today);
-    const W = socWins(today), n = Math.random() < .25 ? 0 : Math.random() < .7 ? 1 : 2, used = new Set(SO.hist.slice(-12).map(h => h.ev));
+    const W = socWins(today), n = (r0 => r0 < .05 ? 0 : r0 < .3 ? 1 : r0 < .7 ? 2 : r0 < .95 ? 3 : 4)(Math.random()), used = new Set(SO.hist.slice(-12).map(h => h.ev));
     for (let i = 0; i < n; i++) {
       const cands = SOCIAL_EVENTS.filter(e => e.req !== 'live' && !used.has(e.id) && (W[e.req] || []).some(([a, b]) => b > nm + 5)); if (!cands.length) break;
       const e = pick(cands); used.add(e.id); const ws = W[e.req].filter(([a, b]) => b > nm + 5), [a, b] = pick(ws), lo = Math.max(a, nm + 5);
