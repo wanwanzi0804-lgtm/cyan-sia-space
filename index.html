@@ -505,16 +505,16 @@ video.bv-glow{pointer-events:none}
   <header class="topbar">
     <span class="logo">SIA SPACE</span>
     <span class="sp"></span>
+    <button class="iconbtn" data-act="tab" data-tab="kkt" title="KKT">💬<span class="badge" id="kkt-badge"></span></button>
     <button class="iconbtn" data-act="tab" data-tab="notif" title="通知">🔔<span class="badge" id="bell-badge"></span></button>
     <div id="hot-bar" data-act="hotopen" hidden></div>
   </header>
   <main id="view"></main>
   <nav class="tabbar"><div class="inner">
     <button class="tab" data-act="tab" data-tab="feed"><span class="ic">🏠</span>社区</button>
-    <button class="tab" data-act="tab" data-tab="live"><span class="ic">📹</span>直播</button>
     <button class="tab" data-act="tab" data-tab="bubble"><span class="ic">🫧</span>Bubble<span class="badge" id="bb-badge"></span></button>
     <button class="tab" data-act="tab" data-tab="sched"><span class="ic">🗓</span>行程</button>
-    <button class="tab" data-act="tab" data-tab="kkt"><span class="ic">💬</span>KKT<span class="badge" id="kkt-badge"></span></button>
+    <button class="tab" data-act="tab" data-tab="circle"><span class="ic">💞</span>圈内</button>
     <button class="tab" data-act="tab" data-tab="me"><span class="ic">🐱</span>我的</button>
   </div></nav>
 </div>
@@ -1211,6 +1211,9 @@ const HOT_EVENTS = [
     opts: [{ t: '说说那天的事', task: { where: 'post', need: 'any', hint: '在社区发帖说说那天' }, r: [[.6, .006, .018, '偶遇帖被更多人看到了'], [.4, -.003, .003, '有人担心便利店位置被曝光']] },
       { t: '和粉丝提一句', task: { where: 'bubble', need: 'any', hint: '在泡泡里提一句' }, r: [[.6, .003, .01, '粉丝都很开心'], [.4, 0, .004, '没什么后续']] },
       { t: '不回应', r: [[1, .001, .008, '帖子慢慢沉下去了，但好感留下了']] }] },
+  { id: 'rumor', manual: 1, min: 0, w: 1, au: ['娱乐吃瓜站', '粉丝爆料'], title: '{name} {e}', body: '{q} [图片]',
+    talk: ['又在乱嗑', '就是朋友吧', '这都能扒出来', '我先嗑为敬', '看着挺正常的啊', '同行之间认识很正常', '别乱传了'],
+    opts: [{ t: '大方回应：是认识的朋友', r: [[.6, .002, .01, '大家觉得很坦荡'], [.4, -.006, .002, '有人觉得越描越黑']] }, { t: '不回应', r: [[.6, -.002, .004, '热度慢慢过去了'], [.4, -.008, 0, '猜测越来越多']] }, { t: '发条轻松的帖子带过', task: { where: 'post', need: 'any', hint: '在社区发条帖子' }, r: [[.55, .004, .012, '轻轻带过，大家开始聊别的'], [.45, -.004, .004, '有人在评论区继续追问']] }] },
   { id: 'serimBracelet', min: 0, w: 2, au: ['嗑学家', 'CP 博主'], title: '{name} 世琳 同款手链', body: '只有我注意到了吗？{name} 和世琳戴的是同一款手链！！对比图在下面 [图片]',
     talk: ['同款手链！！', '友谊手链吧', '我先嗑为敬', '对比图做得好细', '就是闺蜜款啦'],
     opts: [{ t: '说说这条手链', task: { where: 'bubble', need: 'any', hint: '在泡泡里聊聊这条手链' }, r: [[.55, .006, .016, '友情粉狂喜，CP 粉也很满足'], [.45, -.004, .004, '有人说别总是捆绑']] },
@@ -1403,7 +1406,7 @@ function hotPick() {
   const songs = (S.profile.songs || []).filter(Boolean);
   const ph = cbPhase(), ctx = {};
   const pool = HOT_EVENTS.filter(e => {
-    if (f < e.min || recent.includes(e.id) || (e.needSong && !songs.length) || (e.needSched && !sched) || (e.phase && e.phase !== ph)) return false;
+    if (e.manual || f < e.min || recent.includes(e.id) || (e.needSong && !songs.length) || (e.needSched && !sched) || (e.phase && e.phase !== ph)) return false;
     if (e.live && !(ctx[e.id] = hotLive(e.live))) return false;
     if (e.sc && !(ctx[e.id] = { e: hotSched(e.sc) }).e) return false;
     return true;
@@ -3682,7 +3685,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -4335,7 +4338,7 @@ const isTextField = el => el && (el.tagName === 'TEXTAREA' || (el.tagName === 'I
 document.addEventListener('focusin', e => { if (isTextField(e.target)) document.body.classList.add('typing'); if (e.target.id === 'bb-in' && UI.bbStk) { UI.bbStk = false; $('#bb-stk').innerHTML = ''; $('.bb-emo')?.classList.remove('on'); } });
 document.addEventListener('focusout', () => setTimeout(() => { if (!isTextField(document.activeElement)) { document.body.classList.remove('typing'); if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0); layoutVars(); } }, 50));
 function render() {
-  $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === UI.tab));
+  $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === (UI.tab === 'live' ? 'feed' : UI.tab)));
   let h = '';
   if (UI.tab === 'feed') h = UI.postId ? viewPost() : viewFeed();
   else if (UI.tab === 'live') h = viewLive();
@@ -4343,6 +4346,7 @@ function render() {
   else if (UI.tab === 'bubble') h = viewBubble();
   else if (UI.tab === 'notif') h = viewNotif();
   else if (UI.tab === 'kkt') h = viewKkt();
+  else if (UI.tab === 'circle') h = viewCircle();
   else h = viewMe();
   view.innerHTML = h;
   view.classList.toggle('flush', UI.tab === 'bubble' && !!S.bubble.welcome);
@@ -4360,6 +4364,7 @@ function render() {
 function viewFeed() {
   const p = S.profile;
   return `
+  <button class="btn ghost" data-act="tab" data-tab="live" style="width:100%;margin-bottom:10px">📹 直播</button>
   <div class="card hero">
     ${avatarHTML('lg')}
     <div style="flex:1;min-width:0">
@@ -5478,6 +5483,7 @@ function relScore(p) {
   const t0 = parseD(from).getTime();
   for (const po of S.posts || []) if (po.createdAt >= t0 && relHit(p, po.text)) sc += 1;
   for (const m of (S.bubble && S.bubble.msgs) || []) if (m.at >= t0 && relHit(p, m.text)) sc += 1;
+  for (const l of (S.social && S.social.log) || []) if (l.key === p.key && l.day >= from) sc += l.pts; // 圈内交集
   const fr = friendOf(p.g, p.n); if (fr && fr.lv === 'best') sc *= .7; // 本来就是最好的朋友，大家习惯了，不太往恋爱想
   return { sc, outings, late };
 }
@@ -5518,6 +5524,171 @@ function relContext() {
   const R = (mgr().rel || {}), list = relPeople().map(p => [p, R[p.key]]).filter(([, s]) => s && s.lv > 0);
   const lvT = ['', '明显比普通同事亲近（经纪人留意到了，但不主动问）', '经纪人怀疑在暧昧（已经私下问过一次）', '被拍到 / 恋情比较明确（公司在协调怎么回应）'];
   return `公司原则：不禁止艺人恋爱，也不要求为了事业牺牲感情，但不能让私人关系影响工作、损害他人利益或造成无法应对的舆论风险。工作人员大概知道谁和谁关系好，但艺人不主动说，大家不拿到台面上讨论。艺人现在是${{ new: '刚出道、还没站稳（公司相对谨慎，提醒注意分寸但不禁止）', mid: '出道一两年、有一定粉丝基础（适度管理，只要求不影响工作、曝光前提前沟通）', senior: '成熟艺人（尊重个人选择）' }[careerStage()]}。你这个经纪人是${{ adult: '把艺人当成年人的类型：只要不影响工作就行', care: '比较操心的类型：担心艺人受伤', knowing: '嘴上不说、其实早就看出来的类型：说话点到为止' }[mgrType()]}。${list.length ? '你注意到的：' + list.map(([p, s]) => `${p.g} ${p.z || p.n}：${lvT[s.lv]}`).join('；') + '。' : ''}被问到恋爱相关的事，按这个态度回答，重点是会不会影响工作、需要公司帮什么，不要说教、不要要求分手。`;
+}
+/* =========================================================
+   💞 圈内：异性艺人的各种随机交集（像真实的娱乐圈社交网络，不是攻略对象）
+   - 不显示好感度；背后悄悄影响熟悉度（拍 challenge 时的好友档）和绯闻热搜
+   - 要看你今天的行程：在宿舍就不会在公司 / 现场碰到人，线上的随时可能
+   ========================================================= */
+// 需要的场合：online 线上随时 / out 不在宿舍的行程中 / work 工作现场（打歌、综艺、物料、活动、公演）/ company 在公司 / show 综艺、活动、颁奖 / music 打歌 / live 正在直播
+// who：any 随机 / same 同公司 / known 已经认识的 / stranger 不熟的
+// 选项 [文字, 熟悉度变化, 绯闻风险, 对方的反应]
+const SOCIAL_EVENTS = [
+  { id: 'chal', grp: '临时起意', req: 'work', who: 'any', mode: '行动', d: '{他}突然走过来问你，要不要一起拍个 Challenge。', o: [['好啊，拍！', 2, .02, '他笑着说「那我先去换个鞋」', 'chal'], ['今天不太方便，下次吧', 0, 0, '「好，那下次一定」'], ['反过来提议拍他的歌', 2, .03, '「真的吗？那我教你」'], ['礼貌拒绝', -1, 0, '他点点头走开了']] },
+  { id: 'chal2', grp: '临时起意', req: 'work', who: 'known', mode: '行动', d: '拍完 Challenge 后，{他}说想再拍一条不发出去的版本，留着自己看。', o: [['好啊，随便跳一条', 2, .05, '他看着视频笑了好久'], ['开玩笑说「要收费的」', 1, 0, '「那我请你喝咖啡抵账」'], ['还是算了，怕流出去', 0, 0, '「也是，你想得周到」']] },
+  { id: 'album', grp: '临时起意', req: 'work', who: 'stranger', mode: '社交', d: '后台碰到{他}，你们不太熟，他主动提出要和你交换专辑。', o: [['好啊！还签了名', 2, 0, '他认真地写了一大段话在专辑上'], ['交换，但只写了名字', 1, 0, '「谢谢，我会好好听的」'], ['说专辑刚好送完了', 0, 0, '「没事没事，下次」']], input: '在专辑上写一句话…' },
+  { id: 'bday', grp: '临时起意', req: 'work', who: 'stranger', mode: '创作', d: '{他}的经纪人临时跑来问你，能不能帮忙给{他}录一段生日祝福。', o: [['爽快答应，认真录', 1, .02, '后来他发消息说谢谢'], ['录一段很搞笑的', 2, .03, '他说笑了一整天'], ['不太熟，婉拒了', 0, 0, '经纪人说没关系']], input: '你在祝福里说了什么？' },
+  { id: 'dm1', grp: '私信', req: 'online', who: 'any', mode: '回复', d: '{他}突然给你发私信：「你们今天的舞台很好看。」', o: [['谢谢！你们的也很棒', 1, 0, '「下次音乐节目见」'], ['只回了一个表情', 0, 0, '他也回了一个表情'], ['已读没回', -1, 0, '他没再发消息']], input: '回复他…' },
+  { id: 'dm2', grp: '私信', req: 'online', who: 'known', mode: '回复', d: '{他}给你发了一个搞笑视频，说「这个好像你」。', o: [['「哪里像了！！」', 2, 0, '他又发来三个类似的视频'], ['「……有点像」', 2, 0, '「哈哈哈你自己也承认了」'], ['回一个生气的表情包', 1, 0, '他发来一个道歉的表情包']], input: '回复他…' },
+  { id: 'cmt', grp: '私信', req: 'online', who: 'known', mode: '突发', d: '你发了一条动态，{他}在评论区留了一句容易引起误会的话，粉丝已经在下面讨论了。', o: [['自然地回复一句，像朋友一样', 1, .15, '他又回了个表情，讨论慢慢平息'], ['不回应，私下让他删掉', 0, .05, '他道歉说没想那么多，删掉了'], ['回得也很暧昧', 2, .45, '评论区炸了'], ['什么都不做', 0, .25, '截图已经传开了']] },
+  { id: 'wrong', grp: '私信', req: 'online', who: 'any', mode: '突发', d: '你收到{他}的一条消息，看起来是发错人了。他撤回之前，你已经看到了内容。', o: [['假装没看到', 0, 0, '他也没再提这件事'], ['开玩笑说「我看到了哦」', 1, 0, '他慌张地发了一连串解释'], ['认真提醒他发错人了', 1, 0, '「谢谢…还好是你」']], input: '回复他…' },
+  { id: 'cf', grp: '私信', req: 'online', who: 'any', mode: '社交', d: '你发现{他}突然把你加进了 Instagram 的 Close Friends。', o: [['什么也不说，默默看', 0, 0, '他的快拍还挺日常的'], ['给他的快拍点了个赞', 1, .05, '他回了一个 👋'], ['私信问他是不是加错了', 1, 0, '「没加错啊ㅎㅎ」']] },
+  { id: 'intro', grp: '熟人局', req: 'online', who: 'any', mode: '社交', d: '你的朋友问你，能不能把{他}的联系方式推给她。', o: [['先问{他}的意见', 1, 0, '他说可以，谢谢你先问他'], ['直接推了', -1, .05, '他有点意外'], ['婉拒，说自己也不太熟', 0, 0, '朋友说那算了']] },
+  { id: 'dinner', grp: '熟人局', req: 'out', who: 'stranger', mode: '社交', d: '你参加朋友组织的聚餐，发现现场有{他}，之前只在电视上见过。', o: [['主动打招呼', 2, .05, '你们聊了半个小时'], ['安静吃饭，没怎么说话', 0, 0, '散场时他礼貌地点了点头'], ['和他交换了联系方式', 2, .08, '回家路上他发来「今天很开心」']], input: '你和他聊了什么？' },
+  { id: 'game', grp: '熟人局', req: 'online', who: 'known', mode: '行动', d: '{他}问你要不要加入他们的游戏局。', o: [['加入！', 2, .02, '你们玩到很晚'], ['今天太累了，下次', 0, 0, '「好，早点休息」'], ['加入，但只玩一局', 1, 0, '「下次多玩几局」']] },
+  { id: 'sub', grp: '熟人局', req: 'out', who: 'stranger', mode: '行动', d: '朋友临时有事，让你代替她去参加一个已经约好的聚会，到了才发现{他}也在。', o: [['大方地坐下来一起聊', 2, .06, '他说「原来你这么好聊」'], ['坐一会儿就找理由先走了', 0, 0, '没有后续'], ['发消息问朋友怎么没说他也在', 0, 0, '朋友回了一串「哈哈哈」']] },
+  { id: 'mutual', grp: '熟人局', req: 'online', who: 'any', mode: '突发', d: '你发现两个平时不认识的艺人竟然都认识你，而且都以为你和对方很熟。其中一个是{他}。', o: [['顺势把他们拉进一个群', 2, .03, '群里热闹了一晚上'], ['澄清自己其实也不太熟', 0, 0, '大家都笑了'], ['什么也不说，看看会怎样', 0, 0, '没有后续']] },
+  { id: 'team', grp: '节目', req: 'show', who: 'any', mode: '行动', d: '综艺节目临时安排你和{他}组队完成任务。', o: [['全力配合，拿第一', 2, .1, '你们赢了，镜头拍到你们击掌'], ['各干各的，按流程走', 0, 0, '顺利完成'], ['拿他开玩笑活跃气氛', 2, .12, '后期把这段剪成了高光']] },
+  { id: 'mc', grp: '节目', req: 'show', who: 'any', mode: '回复', d: '主持人突然问你，最欣赏哪位男艺人。你脑子里第一个冒出来的是{他}。', o: [['说出{他}的名字', 1, .3, '这段被切出来了'], ['说一位很资深的前辈', 0, 0, '主持人说「好安全的回答」'], ['说「我们公司的前辈们」', 0, 0, '大家都笑了']], input: '你怎么回答？' },
+  { id: 'seat', grp: '节目', req: 'show', who: 'any', mode: '突发', d: '颁奖礼座位安排让你和{他}坐在一起，全程都被镜头拍到了。', o: [['自然地聊天、一起鼓掌', 1, .25, '同框截图被转了好多'], ['保持距离，只看舞台', 0, .05, '有人说你们很生疏'], ['一起跟着音乐跳了几下', 2, .35, '这段成了当晚的名场面']] },
+  { id: 'livespam', grp: '节目', req: 'live', who: 'any', mode: '回复', d: '直播时，粉丝不停刷{他}的名字，问你们是不是认识。', o: [['大方说是认识的朋友', 1, .15, '弹幕刷起了「好朋友」'], ['笑着说「不认识哦」', -1, .05, '有人说你在撇清关系'], ['转移话题', 0, .08, '弹幕慢慢转走了']], input: '你在直播里怎么说？' },
+  { id: 'reveal', grp: '节目', req: 'online', who: 'known', mode: '突发', d: '你们参加的同一档综艺播出了，{他}在节目里爆料你们私下认识。', o: [['发帖笑着回应', 1, .2, '粉丝说你们好像很熟'], ['私下吐槽他「你怎么说出来了」', 2, .05, '他回了一串「对不起ㅋㅋㅋ」'], ['不回应', 0, .15, '讨论持续了两天']] },
+  { id: 'promo', grp: '公司内部', req: 'company', who: 'same', mode: '行动', d: '公司安排你和{他}一起录内部活动的宣传视频。', o: [['认真准备台词', 1, 0, '拍得很顺利'], ['即兴发挥，互相吐槽', 2, .05, '工作人员笑翻了'], ['只按台本走', 0, 0, '顺利完成']] },
+  { id: 'borrow', grp: '公司内部', req: 'company', who: 'same', mode: '突发', d: '{他}来你的练习室借设备，结果撞见你正在练他的歌。', o: [['大方承认是在练', 2, .02, '他说「那我来教你」'], ['慌忙关掉音乐', 0, 0, '他笑着假装没听到'], ['邀请他一起跳一遍', 2, .05, '你们跳完都笑了']] },
+  { id: 'meal', grp: '公司内部', req: 'company', who: 'same', mode: '社交', d: '公司聚餐时，工作人员安排你和{他}坐在一起。', o: [['主动给他夹菜', 1, .03, '他也给你倒了饮料'], ['和其他人聊得更多', 0, 0, '没什么交集'], ['聊起各自的练习生时期', 2, 0, '你们聊到散场']] },
+  { id: 'demo', grp: '公司内部', req: 'company', who: 'same', mode: '创作', d: '{他}的新歌需要女声 Demo，制作人问你愿不愿意试唱。', o: [['答应，认真录', 2, .05, '他听完说「比我想象的还好」'], ['答应，但说只是帮忙', 1, 0, '制作人说谢谢'], ['婉拒，行程太满', 0, 0, '制作人说下次']] },
+  { id: 'lounge', grp: '公司内部', req: 'company', who: 'same', mode: '突发', d: '你在公司休息室门口听见有人在讨论你的名字，走进去才发现{他}也在。', o: [['笑着问「在说我什么呢」', 1, 0, '原来大家在夸你的新舞台'], ['假装没听见，拿了水就走', 0, 0, '没有后续'], ['加入聊天', 2, 0, '你们聊了很久']] },
+  { id: 'cvs', grp: '意外', req: 'out', who: 'any', mode: '突发', d: '你在便利店偶遇{他}，发现彼此都穿着拖鞋。', o: [['相视一笑，一起去结账', 1, .15, '有路人拍了张模糊的照片'], ['假装没看到对方', 0, .03, '没有后续'], ['开玩笑说「拖鞋同好会」', 2, .12, '他笑得停不下来']] },
+  { id: 'taxi', grp: '意外', req: 'out', who: 'any', mode: '突发', d: '你打车时发现{他}也在等车，而且你们要去同一个地方。', o: [['一起拼车', 2, .25, '下车时被路人看到了'], ['各打各的', 0, 0, '没有后续'], ['让他先上车', 1, 0, '他发消息说谢谢']] },
+  { id: 'coat', grp: '意外', req: 'out', who: 'known', mode: '突发', d: '{他}不小心拿走了你的外套，直到回宿舍才发现。', o: [['让经纪人帮忙交换回来', 0, 0, '第二天外套送回来了'], ['约他明天在公司门口交换', 1, .15, '他还附带了一杯咖啡'], ['开玩笑说「那件就送你了」', 2, .05, '「那我得穿着去打歌了」']], input: '给他发消息…' },
+  { id: 'van', grp: '意外', req: 'out', who: 'same', mode: '突发', d: '你们被安排坐同一辆保姆车，车上只有你和{他}。', o: [['主动找话题聊', 2, .02, '一路聊到目的地'], ['戴上耳机补觉', 0, 0, '下车时他小声说「辛苦了」'], ['一起听歌', 2, .03, '他给你推荐了几首歌']] },
+  { id: 'call', grp: '意外', req: 'online', who: 'any', mode: '回复', d: '一位平时不怎么联系的男爱豆突然打电话给你，是{他}，说有件事想当面问你。', o: [['答应找时间见面', 1, .1, '原来他想请你帮忙给团里的新歌提建议'], ['让他先在电话里说', 1, 0, '原来是想问你们公司练习室的事'], ['说最近太忙了', -1, 0, '「好，那不打扰了」']], input: '你在电话里怎么说？' }
+];
+function social() { return S.social || (S.social = { q: [], hist: [], rp: {}, log: [] }); }
+function socPeople() { return relPeople(); } // 男艺人
+function socPick(who) {
+  const all = socPeople(), SO = social(), same = all.filter(p => ['MONSTA X', 'CRAVITY', 'IDID', 'AEN'].includes(p.g));
+  const known = all.filter(p => friendOf(p.g, p.n) || (SO.rp[p.key] || 0) > 0), stranger = all.filter(p => !known.includes(p));
+  const L = who === 'same' ? same : who === 'known' ? known : who === 'stranger' ? stranger : Math.random() < .4 && known.length ? known : all;
+  return L.length ? pick(L) : pick(all);
+}
+// 今天什么时段在哪：返回各种场合的时间窗 [开始, 结束]（分钟）
+function socWins(k) {
+  const rs = rulesFor(k), W = { online: [[9 * 60, 24 * 60 - 1]], out: [], work: [], company: [], show: [], music: [] };
+  for (const r of rs) {
+    const a = toMin(r.start), b = Math.max(a + 1, toMin(r.end)), loc = (r.loc || '') + r.title; if (/宿舍/.test(r.loc || '')) continue;
+    W.out.push([a, b]);
+    if (['打歌', '综艺', '物料', '活动', '公演', '电台'].includes(r.cat)) W.work.push([a, b]);
+    if (/公司|练习室|会议室|声乐室|健身房/.test(loc) || ['练习', '上课'].includes(r.cat)) W.company.push([a, b]);
+    if (['综艺', '活动'].includes(r.cat)) W.show.push([a, b]);
+    if (r.cat === '打歌') W.music.push([a, b]);
+  }
+  return W;
+}
+// 每天早上排今天的交集：0~2 个，时间要对得上行程
+function socTick() {
+  const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
+  if (SO.day !== today && now.getHours() >= 8) {
+    SO.day = today; SO.q = SO.q.filter(x => x.day === today);
+    const W = socWins(today), n = Math.random() < .25 ? 0 : Math.random() < .7 ? 1 : 2, used = new Set(SO.hist.slice(-12).map(h => h.ev));
+    for (let i = 0; i < n; i++) {
+      const cands = SOCIAL_EVENTS.filter(e => e.req !== 'live' && !used.has(e.id) && (W[e.req] || []).some(([a, b]) => b > nm + 5)); if (!cands.length) break;
+      const e = pick(cands); used.add(e.id); const ws = W[e.req].filter(([a, b]) => b > nm + 5), [a, b] = pick(ws), lo = Math.max(a, nm + 5);
+      SO.q.push({ id: uid(), day: today, ev: e.id, at: Math.round(lo + Math.random() * (b - lo)), until: b + 60, p: socPick(e.who) });
+    }
+  }
+  // 直播中：偶尔粉丝刷某位男爱豆的名字
+  if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
+  if (UI.socPop || UI.chPop || $('#modal').classList.contains('on')) return;
+  const due = SO.q.find(x => x.day === today && !x.done && nm >= x.at); if (!due) return;
+  if (nm > due.until) { due.done = 1; due.missed = 1; return; }
+  due.done = 1; UI.socPop = { x: due }; openModal(socPopHTML()); save();
+}
+const socName = p => p.z && /[一-鿿]/.test(p.z) ? p.z : `${p.n}`;
+const socWho = p => `${p.g} ${socName(p)}`;
+function socText(e, p) { return e.d.split('{他}').join(socWho(p)); }
+function socPopHTML() {
+  const Q = UI.socPop; if (!Q) return '';
+  if (Q.serim) return serimPopHTML();
+  const x = Q.x, e = SOCIAL_EVENTS.find(y => y.id === x.ev), p = x.p;
+  const head = `<div class="row"><h3 style="flex:1">💞 ${esc(e.grp)}</h3><span class="muted" style="font-size:12px">${esc(e.mode)}</span></div>`;
+  if (Q.res) return head + `<div style="margin-bottom:10px">${esc(socText(e, p))}</div><div class="card" style="margin:0"><div style="margin-bottom:6px">你：${esc(Q.res.mine)}</div><div class="muted">${esc(Q.res.reply)}</div></div><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn primary" data-act="socclose">好</button></div>`;
+  return head + `<div style="margin-bottom:10px">${esc(socText(e, p))}</div>${e.o.map((o, j) => `<button class="hot-opt" data-act="socpick" data-j="${j}">${esc(o[0].split('{他}').join(socName(p)))}</button>`).join('')}
+    ${e.input ? `<div class="row" style="gap:6px;margin-top:6px"><input id="soc-in" placeholder="${esc(e.input)}" style="flex:1;min-width:0"><button class="btn sm" data-act="socwrite">好</button></div>` : ''}
+    <div class="row" style="margin-top:8px"><span class="sp"></span><button class="link" data-act="socclose">先不管</button></div>`;
+}
+// 熟悉度：不显示数值，只体现在好友档（拍 challenge 用）
+function socRp(p, d) {
+  const SO = social(); SO.rp[p.key] = (SO.rp[p.key] || 0) + d; const v = SO.rp[p.key], C = chal(), fr = friendOf(p.g, p.n);
+  const lv = v >= 12 ? 'close' : v >= 7 ? 'friend' : v >= 3 ? 'acq' : null, rank = { acq: 1, friend: 2, close: 3, best: 4 };
+  if (lv && (!fr || rank[lv] > rank[fr.lv || 'friend'])) { if (fr) fr.lv = lv; else C.friends.push({ g: p.g, n: p.n, z: p.z, lv }); return lv; }
+  return null;
+}
+function socResolve(mine, d, risk, reply, act) {
+  const Q = UI.socPop, x = Q.x, e = SOCIAL_EVENTS.find(y => y.id === x.ev), p = x.p, SO = social();
+  const up = d ? socRp(p, d) : null;
+  if (d > 0) SO.log.push({ day: x.day, key: p.key, pts: d + (risk > .1 ? 2 : 0) }); if (SO.log.length > 200) SO.log.splice(0, SO.log.length - 200);
+  let rumor = false;
+  if (risk && Math.random() < risk) { rumor = true; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人扒出 ${S.profile.name} 和 ${socWho(p)} ${{ cmt: '在评论区互动', seat: '颁奖礼全程同框', cvs: '在便利店偶遇，还都穿着拖鞋', taxi: '一起上了同一辆车', coat: '约在公司门口见面', mc: '在节目里点名欣赏对方', reveal: '私下认识', team: '在综艺里配合默契', chal2: '私下多拍了一条视频', dinner: '出现在同一个聚会' }[e.id] || '私下有来往'}，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
+  SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: socText(e, p), mine, reply, up, rumor }); if (SO.hist.length > 80) SO.hist.splice(0, SO.hist.length - 80);
+  Q.res = { mine, reply: reply + (up ? `（你们现在算是${FR_LV[up]}了）` : '') + (rumor ? ' · ⚠ 好像被人注意到了' : '') };
+  save(); openModal(socPopHTML());
+  if (act === 'chal' && chSongs(x.day).length && !chLimit(x.day)) setTimeout(() => { UI.socPop = null; closeModal(); UI.chPop = { k: x.day, where: '', step: 'song', p: chFind(p.g, p.n) || p, onAct: true, music: false }; openModal(chPopHTML()); }, 1400);
+}
+// 💙 世琳：你自己写今天会发生什么，到了合适的时间弹出来
+function serimPlan(text) {
+  const SO = social(), today = dkey(Date.now()), now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), W = socWins(today);
+  let win = /早上|早晨|上午|清晨/.test(text) ? [8 * 60, 11 * 60] : /中午|午饭|午餐/.test(text) ? [11 * 60 + 30, 13 * 60 + 30] : /下午/.test(text) ? [13 * 60, 17 * 60 + 30] : /下班|晚上|晚饭|晚餐|收工/.test(text) ? [18 * 60, 22 * 60] : /深夜|凌晨|半夜|睡前/.test(text) ? [22 * 60, 23 * 60 + 50] : null;
+  const offline = !/私信|消息|电话|视频通话|kkt|微信|ins|线上|发了|发来/i.test(text);
+  let warn = '';
+  if (offline) {
+    const place = /公司|练习室|休息室|会议室/.test(text) ? W.company : /后台|待机室|打歌|音乐节目|现场/.test(text) ? W.work : W.out;
+    let cand = place.filter(([a, b]) => b > nm + 3); if (win) { const f = cand.map(([a, b]) => [Math.max(a, win[0]), Math.min(b, win[1])]).filter(([a, b]) => b > a && b > nm + 3); if (f.length) cand = f; }
+    if (!cand.length) { warn = '你今天的行程里没有对得上的地点和时间（比如一直在宿舍），所以安排在今晚'; cand = [[Math.max(nm + 10, 20 * 60), 23 * 60 + 30]]; }
+    win = pick(cand);
+  } else if (!win || win[1] <= nm + 3) win = [nm + 5, Math.max(nm + 30, 23 * 60 + 30)];
+  const a = Math.max(win[0], nm + 3), at = Math.round(a + Math.random() * Math.max(1, win[1] - a));
+  SO.serim = { day: today, text, at, gen: null, done: false, warn };
+  serimGen(); save(); return SO.serim;
+}
+async function serimGen() {
+  const SV = social().serim; if (!SV || SV.gen || !aiOn()) return;
+  try {
+    const schema = { type: 'object', additionalProperties: false, required: ['scene', 'line', 'opts'], properties: { scene: { type: 'string' }, line: { type: 'string' }, opts: { type: 'array', items: { type: 'string' } } } };
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）之间会发生这件事：「${SV.text}」。\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，不要加戏到恋爱；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。只按描述扩写，不要改变事件。` }], 800, schema);
+    SV.gen = { scene: j.scene, line: j.line, opts: (j.opts || []).slice(0, 3) }; save();
+  } catch (e) { }
+}
+function serimPopHTML() {
+  const SV = social().serim, Q = UI.socPop, tw = m => m < 6 * 60 ? '凌晨' : m < 11 * 60 ? '早上' : m < 14 * 60 ? '中午' : m < 18 * 60 ? '下午' : m < 22 * 60 ? '晚上' : '深夜', g = SV.gen || { scene: `${tw(SV.at)}，${SV.text.replace(/我们/g, '你们').replace(/我/g, '你').replace(/[。.！!]*$/, '')}。`, line: '', opts: ['笑着回应他', '和他多聊几句', '开个玩笑'] };
+  const head = `<div class="row"><h3 style="flex:1">💙 世琳</h3></div>`;
+  if (Q.res) return head + `<div style="margin-bottom:10px">${esc(g.scene)}</div><div class="card" style="margin:0"><div style="margin-bottom:6px">你：${esc(Q.res.mine)}</div><div class="muted">${Q.res.reply ? '世琳：' + esc(Q.res.reply) : '…'}</div></div><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn primary" data-act="socclose">好</button></div>`;
+  return head + `<div style="margin-bottom:8px">${esc(g.scene)}</div>${g.line ? `<div class="card" style="margin:0 0 10px">世琳：${esc(g.line)}</div>` : ''}${g.opts.map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}
+    <div class="row" style="gap:6px;margin-top:6px"><input id="soc-in" placeholder="自己说点什么…" style="flex:1;min-width:0"><button class="btn sm" data-act="serimwrite">好</button></div>`;
+}
+async function serimReply(mine) {
+  const SV = social().serim, Q = UI.socPop; Q.res = { mine, reply: '' }; openModal(socPopHTML());
+  let rep = pick(['ㅋㅋㅋ 진짜? 고마워', '哈哈你今天怎么这么会说', '那下次我请你吃饭', '야 갑자기 왜 그래ㅋㅋ（喂你突然干嘛啦哈哈）', '嘿嘿，你也是']);
+  if (aiOn()) { try { const j = await aiRaw([{ type: 'text', text: `场景：${(SV.gen || {}).scene || SV.text}\n${S.profile.name}对世琳说：「${mine}」\n以世琳（最要好的朋友，男，CRAVITY）的口吻回一句，口语、自然、像好朋友，不要暧昧。可以中韩混，韩语后面括号写中文。` }], 300, { type: 'object', additionalProperties: false, required: ['r'], properties: { r: { type: 'string' } } }); if (j.r) rep = j.r; } catch (e) { } }
+  Q.res.reply = rep; SV.done = true; SV.mine = mine; SV.reply = rep;
+  const SO = social(); SO.hist.push({ id: uid(), day: SV.day, ev: 'serim', who: 'CRAVITY 世琳', text: SV.text, mine, reply: rep }); save(); if (UI.socPop === Q) openModal(socPopHTML());
+}
+function serimTick() {
+  const SV = social().serim, now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
+  if (!SV || SV.day !== today || SV.done || SV.shown || nm < SV.at) return;
+  if (UI.socPop || UI.chPop || $('#modal').classList.contains('on')) return;
+  if (!SV.gen && aiOn() && nm < SV.at + 3) return; // 给 AI 一点时间准备
+  SV.shown = 1; UI.socPop = { serim: 1 }; openModal(socPopHTML()); save();
+}
+function viewCircle() {
+  const SO = social(), today = dkey(Date.now()), SV = SO.serim && SO.serim.day === today ? SO.serim : null, hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  const hist = SO.hist.slice().reverse().slice(0, 30);
+  return `<div class="sec-title">💞 圈内</div>
+  <div class="card"><b style="font-size:14px">💙 今天和世琳</b>
+    ${SV ? `<div style="margin-top:6px">${esc(SV.text)}</div><div class="muted" style="font-size:12.5px;margin-top:4px">${SV.done ? '已经发生了' : SV.shown ? '正在发生…' : `大概 ${hm(SV.at)} 左右`}${SV.warn ? ' · ' + esc(SV.warn) : ''}</div>${!SV.done && !SV.shown ? '<button class="link" data-act="serimclear" style="margin-top:4px">取消</button>' : ''}`
+      : `<div class="muted" style="font-size:12.5px;margin:4px 0 8px">写下今天你和世琳之间会发生的事，到了合适的时间会弹出来。不写的话，今天你们就不会有这种突然的交集。</div><textarea id="serim-in" style="min-height:70px" placeholder="比如：他下班回到公司的时候遇到了，我夸他衣服好看"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">安排</button></div>`}
+  </div>
+  <div class="card"><b style="font-size:14px">最近的交集</b>${hist.length ? hist.map(h => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${h.day.slice(5).replace('-', '/')} · ${esc(h.who)}${h.rumor ? ' · ⚠ 被注意到' : ''}</span><div style="font-size:13.5px">${esc(h.text || '')}</div><div class="muted" style="font-size:12.5px">你：${esc(h.mine)} → ${esc(h.reply)}</div></span></div>`).join('') : '<div class="muted" style="margin-top:6px">还没有。工作、聚会、私信、偶遇时都可能碰到别的艺人。</div>'}</div>`;
 }
 function chalTick() {
   { const C0 = S.chal; if (C0 && !C0.fV) { C0.fV = 1; C0.vV = C0.vV || 0; } }
@@ -5973,6 +6144,13 @@ document.addEventListener('click', async e => {
       if (ok) C.list.push({ id: uid(), date: o.date, p: o.p, song: ['', ''], st: 'book', at: Date.now(), bk: { min: o.min, where: o.where, act: o.act, music: o.music, relMin: o.relMin } });
       mgrReply(ok ? ['네 그날로 잡아둘게요', '好，那天给你安排上'] : ['네 그쪽에 말해둘게요', '好，我跟那边说一声'], true); B.offer = null; save(); render(); break; }
     case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
+    case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const e = SOCIAL_EVENTS.find(y => y.id === Q.x.ev), o = e.o[+t.dataset.j]; socResolve(o[0].split('{他}').join(socName(Q.x.p)), o[1], o[2], o[3], o[4]); break; }
+    case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const tn = tone(v); socResolve(v, tn === 'neg' ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, .04, tn === 'neg' ? '他好像有点尴尬' : pick(['他回了个笑脸', '「哈哈好」', '「下次再聊！」', '他认真地回了一大段'])); break; }
+    case 'socclose': { const Q = UI.socPop; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(SOCIAL_EVENTS.find(y => y.id === Q.x.ev), Q.x.p), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
+    case 'serimset': { const v = ($('#serim-in').value || '').trim(); if (!v) { toast('写一下会发生什么'); break; } const SV = serimPlan(v); toast('💙 安排好了', `大概 ${String(Math.floor(SV.at / 60)).padStart(2, '0')}:${String(SV.at % 60).padStart(2, '0')} 左右`); render(); break; }
+    case 'serimclear': social().serim = null; save(); render(); break;
+    case 'serimpick': { const SV = social().serim, g = (SV && SV.gen) || { opts: ['笑着回应他', '和他多聊几句', '开个玩笑'] }; serimReply(g.opts[+t.dataset.j]); break; }
+    case 'serimwrite': { const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } serimReply(v); break; }
     case 'chlog': openModal(chLogHTML()); break;
     case 'chbfopen': { const l = chBackfillList(); if (l.length) openModal(chBackfillHTML(l)); else toast('没有可以补的日子'); break; }
     case 'chbfskip': { const C = chal(); C.bf = C.bf || {}; for (const el of $$('[data-chbf]')) C.bf[el.dataset.chbf] = 1; S.chBF = 1; save(); closeModal(); render(); break; }
