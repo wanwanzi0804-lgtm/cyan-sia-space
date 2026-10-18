@@ -168,6 +168,12 @@ body.typing .bb-tick.bb-tick2{display:block}
 .sh-cand{color:var(--accent)}
 .cb-warn{margin-top:8px;font-size:12.5px;color:#b35c00;background:#fff4e5;border-radius:10px;padding:6px 10px}
 .cb-warn.ok{color:var(--accent);background:var(--bg)}
+.mz-head{display:flex;gap:10px;align-items:flex-start}.mz-head>div{flex:1;min-width:0}
+.mz-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;margin:5px 0 2px}.mz-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}.mz-bar.o i{background:#ff8a3d}
+.mz-w{padding:10px 0;border-top:1px solid var(--line,#eee);cursor:pointer}.mz-w .chip{white-space:nowrap}
+.mz-eval{display:flex;gap:10px;margin-top:8px}.mz-eval>div{flex:1;background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}.mz-eval b{font-size:22px}.mz-eval span{font-size:12px;color:var(--muted,#888)}
+.mz-acts{display:flex;flex-wrap:wrap;gap:8px}.mz-acts .btn{flex:1 1 auto}
+.pp-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:13.5px;border-top:1px solid var(--line,#eee)}.pp-row.ok{color:var(--muted,#888)}.pp-who{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--bg);white-space:nowrap;margin-top:1px}
 .mv{border-top:1px solid var(--line);padding:10px 0}
 .mv-h{display:flex;gap:10px;align-items:flex-start}
 .mv-th{width:64px;height:40px;border-radius:8px;background:#e5484d;color:#fff;display:grid;place-items:center;flex:none;font-size:16px}
@@ -1610,10 +1616,10 @@ function cbTick() {
   const once = (k, fn) => { if (!done[k]) { done[k] = 1; fn(); } };
   const tp = ALB_TYPE[a.type] || '';
   if (d > 0 && d <= 14) once('t' + today, () => addFans(f * .0015 * heat(), '回归预热'));
-  if (d === 7) once('teaser', () => pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》预告公开`, sub: '粉丝们开始倒计时了' }, true));
+  if (d === 7) once('teaser', () => { const o = prepOn(); if (o && !o.t.mv.done) pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》Trailer 公开`, sub: 'MV 还没拍完，这次先放了概念 Trailer' }, true); else pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》${o ? 'MV 预告' : '预告'}公开`, sub: '粉丝们开始倒计时了' }, true); });
   if (d === 1) once('eve', () => pushNotif({ type: 'cb', text: `💿 明天就是《${a.name}》回归日`, sub: '粉丝们在准备应援' }, true));
   if (d <= 0 && s < P.promoEnd) once('d0', () => {
-    const n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1));
+    const n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1) * prepFanMult());
     addFans(n, '回归：' + a.name);
     const pc = { single: [5e7, 1e8], mini: [1.5e8, 2.5e8], full: [2.5e8, 4e8] }[a.type]; // 专辑制作、MV、宣传费用由公司承担，不扣你的钱
     pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》正式回归！`, sub: `主打《${title}》${a.tracks.length > 1 ? ` · 共 ${a.tracks.length} 首` : ''} · 回归首日涨粉 +${fmtNum(n)}` }, true);
@@ -1637,12 +1643,13 @@ function cbHTML() {
       <button class="btn primary" style="width:100%" data-act="cbnew">＋ 计划一次回归</button>`;
   } else {
     const d = cbDay(), s = -d, P = cbPlan();
-    const ph = p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
-    const steps = ['预热 2 周', `主打《${albTitle(a)}》${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
-    top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${esc(c.date)} 回归 · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
+    const ph = c.tbd ? '先做企划和准备，定了日期再编辑' : p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
+    const steps = ['预热 2 周', a.tracks.length ? `主打《${albTitle(a)}》${c.weeks} 周` : `主打（选曲后确定）${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
+    top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${c.tbd ? '日期待定' : esc(c.date) + ' 回归'} · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
       ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
       ${cbRivalWarn(c.date, c.weeks)}
+      ${prepHTML()}
       ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">${esc(x.label || '第' + x.w + '周')} · 《${esc(x.song || albTitle(a))}》${x.gigs != null ? `<span class="muted" style="font-size:12px"> · 打歌 ${x.gigs} 次</span>` : ''}</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
   }
   return top;
@@ -1662,17 +1669,19 @@ function albHTML() {
     <div class="card">
       <div class="grid2"><div class="field"><label>${cb ? '专辑 / 单曲名' : '作品名'}</label><input id="al-name" value="${esc(A.name)}" placeholder="比如：9.1Hz"></div>
         <div class="field"><label>类型</label><select id="al-type">${Object.entries(ALB_TYPE).map(([k, v]) => `<option value="${k}" ${A.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
-      <div class="grid2"><div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}"></div>
+      <div class="grid2"><div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}" ${cb && A.tbd ? 'disabled' : ''}>${cb ? `<label class="row" style="gap:6px;font-size:13px;margin-top:4px"><input type="checkbox" id="al-tbd" ${A.tbd ? 'checked' : ''} style="width:auto">日期待定（先开始企划）</label>` : ''}</div>
         <div class="field"><label>曲风</label><select id="al-mood">${Object.entries(MOODS).map(([k, v]) => `<option value="${k}" ${(A.mood || 'dance') === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></div></div>
       ${cb ? '' : `<label class="row" style="gap:6px;margin:-2px 0 10px;font-size:14px"><input type="checkbox" id="al-promo" ${A.promo ? 'checked' : ''} style="width:auto">有打歌期</label>`}
       <div class="field"><label>专辑简介 <span class="muted">（概念、故事、想对粉丝说的话，可不填）</span></label><textarea id="al-intro" style="min-height:80px" placeholder="比如：这张专辑讲的是一只猫在城市里迷路又找到家的故事…">${esc(A.intro || '')}</textarea></div>
-      <div class="field"><label>收录曲 <span class="muted">（点 ★ 设为主打）</span></label>
+      ${cb ? `<label class="row" style="gap:6px;margin:-2px 0 6px;font-size:14px"><input type="checkbox" id="al-copick" ${A.copick ? 'checked' : ''} style="width:auto">曲目交给公司选曲（公司歌 + 你的作品一起竞争）</label>` : ''}
+      <div class="field" ${cb && A.copick ? 'style="display:none"' : ''}><label>收录曲 <span class="muted">（点 ★ 设为主打）</span></label>
         ${A.tracks.map((t, i) => `<div class="trk"><button class="trk-star ${t.title ? 'on' : ''}" data-act="alstar" data-i="${i}" title="设为主打">★</button><input class="al-t" value="${esc(t.name)}" placeholder="第 ${i + 1} 首">${A.tracks.length > 1 ? `<button class="link" data-act="aldel" data-i="${i}">✕</button>` : ''}</div>`).join('')}
         ${single && A.tracks.length >= 2 ? '' : '<button class="link" data-act="aladd" style="margin-top:4px">＋ 添加一首</button>'}</div>
     </div>
     ${cb ? `<div class="card">
       <div class="grid2"><div class="field"><label>主打打歌几周</label><select id="al-weeks">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option ${A.weeks === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
         <div class="field"><label>&nbsp;</label><div id="al-warn">${cbRivalWarn(A.date, A.weeks)}</div></div></div>
+      <div id="al-pwarn">${prepDateWarn(A)}</div>
       <div class="field"><label>主打结束后，后续打歌一首收录曲（一周）</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
       <div class="muted" style="font-size:12.5px">打歌日不固定：把你的打歌安排加到「行程」里（类别选「打歌」），每周排得越多，拿一位的机会越大。</div>
     </div>` : ''}
@@ -1683,29 +1692,424 @@ function albCollect() {
   A.name = $('#al-name').value.trim(); A.type = $('#al-type').value; A.date = $('#al-date').value; A.intro = $('#al-intro').value.trim(); A.mood = $('#al-mood').value; if ($('#al-promo')) A.promo = $('#al-promo').checked;
   $$('.al-t').forEach((el, i) => { if (A.tracks[i]) A.tracks[i].name = el.value.trim(); });
   if ($('#al-weeks')) { A.weeks = +$('#al-weeks').value; A.follow = $('#al-follow').value; }
+  if ($('#al-tbd')) A.tbd = $('#al-tbd').checked; if ($('#al-copick')) A.copick = $('#al-copick').checked;
   return A;
 }
 function albOpen(mode, a) {
   const c = S.cb && !S.cb.over && mode === 'cb' && a ? S.cb : null;
   UI.alb = a ? { ...JSON.parse(JSON.stringify(a)), mode } : { mode, name: '', type: mode === 'cb' ? 'mini' : 'single', date: mode === 'cb' ? addDays(dkey(Date.now()), 14) : '', tracks: [{ name: '', title: true }] };
-  if (mode === 'cb') Object.assign(UI.alb, c ? { date: c.date, weeks: c.weeks, rest: c.rest, follow: c.follow || '' } : { weeks: 3, rest: true, follow: '' });
+  if (mode === 'cb') Object.assign(UI.alb, c ? { date: c.date, weeks: c.weeks, rest: c.rest, follow: c.follow || '', tbd: !!c.tbd, copick: !!(c.prep && !c.prep.legacy && !c.prep.t.final.done) } : { weeks: 3, rest: true, follow: '', tbd: false, copick: true, date: addDays(dkey(Date.now()), 45) });
   openModal(albHTML());
 }
 function albSave() {
-  const A = albCollect(), tracks = A.tracks.filter(t => t.name);
+  const A = albCollect(), cb = A.mode === 'cb', co = cb && A.copick;
+  const prev = A.id ? disco().find(x => x.id === A.id) : null, keepP = cb && S.cb && !S.cb.over && prev && S.cb.albumId === A.id ? S.cb : null, P0 = keepP && keepP.prep && !keepP.prep.legacy ? keepP.prep : null;
+  const coPending = co && (!P0 || !P0.t.final.done); // 曲目还在等公司选
+  const tracks = coPending ? (prev ? prev.tracks.map(t => ({ ...t })) : []) : A.tracks.filter(t => t.name);
   if (!A.name && tracks.length) A.name = tracks[0].name;
-  if (!A.name || !tracks.length) return toast('请填写作品名和至少一首歌');
-  if (!tracks.some(t => t.title)) tracks[0].title = true;
-  if (A.mode === 'cb' && !A.date) return toast('请选择回归日期');
-  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', mood: A.mood || 'dance', promo: !!A.promo, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title })) };
+  if (!A.name || (!tracks.length && !coPending)) return toast(coPending ? '请填写专辑名' : '请填写作品名和至少一首歌');
+  if (tracks.length && !tracks.some(t => t.title)) tracks[0].title = true;
+  if (cb && A.tbd) A.date = addDays(dkey(Date.now()), 30);
+  if (cb && !A.date) return toast('请选择回归日期');
+  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', mood: A.mood || 'dance', promo: !!A.promo, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title, ...(t.wid ? { wid: t.wid } : {}) })) };
   const i = disco().findIndex(x => x.id === alb.id); if (i >= 0) disco()[i] = alb; else disco().push(alb);
-  if (A.mode === 'cb') {
-    const keep = S.cb && !S.cb.over && S.cb.albumId === alb.id && S.cb.date === A.date ? S.cb : null;
-    alb.promo = true; S.cb = { albumId: alb.id, date: A.date, weeks: A.weeks, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [] };
+  if (cb) {
+    const keep = keepP && keepP.date === A.date ? keepP : null;
+    let prep = keepP ? (keepP.prep || { legacy: 1 }) : prepNew(alb, A.date, tracks.length > 0 && !co);
+    if (P0) {
+      if (!co && !P0.t.final.done && tracks.length) { P0.t.pick = { done: true, at: dkey(Date.now()), by: 'me' }; P0.t.final = { done: true, at: dkey(Date.now()), by: 'me' }; P0.finalAt = dkey(Date.now()); }
+      const oT = prev && albTitle(prev), nT = albTitle(alb);
+      if (P0.t.final.done && prev && prev.tracks.length && oT !== nT) { // 中途换主打：编舞和 MV 要重来一部分
+        for (const [k, m] of [['dance', .4], ['mv', .3]]) { const T0 = P0.t[k]; if (T0.prog) { T0.prog = Math.round(T0.prog * m * 10) / 10; T0.done = false; } }
+        P0.t.check = { done: false }; pushNotif({ type: 'cb', text: `💿 主打换成了《${nT}》`, sub: '编舞和 MV 要按新主打重新准备一部分' }, true);
+      }
+      if (keepP.date !== A.date) { delete P0.ann.d14; delete P0.ann.photo; delete P0.ann.track; delete P0.ann.hl; }
+    }
+    alb.promo = true; S.cb = { albumId: alb.id, date: A.date, tbd: !!A.tbd, weeks: A.weeks, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [], prep };
   }
   salesState().albV = 0; // 作品信息变了，成绩按新热度重算
   syncSongs(); save(); closeModal(); render();
-  toast(A.mode === 'cb' ? '回归定下了 💿' : '已保存到歌单', `《${alb.name}》`);
+  toast(cb ? (A.tbd ? '回归企划开始了 💿' : '回归定下了 💿') : '已保存到歌单', `《${alb.name}》`);
+}
+
+/* =========================================================
+   🎼 音乐创作：作曲 Demo · 创作熟练度 · 个人作品库 · STARSHIP 投稿 · 著作权费
+   - 用现有行程「其他 → 音乐创作」写歌：行程结束后按时长 / 专注曲线 / 熟练度 / 事件结算进度
+   - 同一行程只结算一次（S.music.log），删掉 / 没开始 / 事后补录的不算
+   ========================================================= */
+const MZ_GENRES = ['抒情 Ballad', '舞曲 Dance', '流行 Pop', 'R&B', 'Hip-hop', '摇滚 / Band', 'City Pop', 'EDM', 'Lo-fi / 氛围'];
+const MZ_LV = [[0, '新手'], [120, '入门'], [350, '逐渐熟练'], [800, '熟练'], [1600, '经验丰富']];
+const MZ_ST = { writing: '创作中', revising: '修改中', demo: '已完成 Demo', submitted: '公司审核中', suggest: '公司建议修改', hold: '公司暂时保留', cand: '未来项目候选', cbcand: '本次回归候选', rejected: '暂未采用', adopted: '已被采用', released: '已发行' };
+const MZ_ST_C = { writing: '#2fb5c4', revising: '#ff8a3d', demo: '#7b61ff', submitted: '#999', suggest: '#ff8a3d', hold: '#8aa', cand: '#4a90e2', cbcand: '#e24a8d', rejected: '#aaa', adopted: '#2fb57a', released: '#1aa260' };
+function mz() { const M = S.music || (S.music = { v: 1, works: [], exp: 0, log: {}, earn: {} }); if (!M.log) M.log = {}; if (!M.earn) M.earn = {}; if (!M.works) M.works = []; return M; }
+function mzLv(exp = mz().exp) { let i = 0; MZ_LV.forEach(([t], j) => { if (exp >= t) i = j; }); return i; }
+const mzName = w => w ? (w.name || w.temp) : '';
+const mzWork = id => mz().works.find(w => w.id === id);
+const isMusicRule = r => !!r && r.cat === '其他' && /音乐创作|作曲|写歌/.test(r.title || '');
+const mzOpen = w => w && ['writing', 'revising'].includes(w.status);
+function mzNew(name, genre) {
+  const M = mz(), lv = mzLv(), x = Math.random();
+  const base = x < .2 ? rand(6, 12) : x < .7 ? rand(15, 30) : x < .92 ? rand(30, 50) : rand(50, 72); // 灵感顺利 / 普通 / 反复修改 / 长期返工
+  const no = M.works.reduce((a, w) => Math.max(a, w.no || 0), 0) + 1;
+  const w = { id: 'w' + uid(), no, name: '', temp: name || `未命名 Demo #${no}`, genre: genre || '', concept: '', note: '', partners: [], share: .5, start: dkey(Date.now()), done: null,
+    prog: 0, need: Math.round(base * (1.3 - .08 * lv) * 10) / 10, pot: clamp(.25 + Math.random() * .5 + (Math.random() < .12 ? .2 : 0), .2, .95), qb: 0, cb: 0, q: null, c: null,
+    status: 'writing', subs: [], sessions: [], events: [], revs: 0, rev: null, adopted: null, released: null };
+  M.works.push(w); save(); return w;
+}
+// 连续专注曲线：第 1 小时进入状态，3~4 小时最好，之后慢慢累（熟练了进入状态更快）
+function mzFocus(hours, lv) {
+  const curve = [.55, .85, 1.05, 1.12, 1, .88, .72, .6, .5, .45]; let g = 0;
+  for (let h = 0; h < hours - 1e-9; h += .5) g += curve[Math.min(curve.length - 1, Math.floor(h + (lv >= 2 ? .4 : 0)))] * Math.min(.5, hours - h) * rand(.85, 1.15);
+  return g;
+}
+const mzQLabel = q => q >= 85 ? '出色' : q >= 72 ? '优秀' : q >= 58 ? '不错' : q >= 45 ? '普通' : '还很稚嫩';
+const mzCLabel = c => c >= 80 ? '很有爆款潜力' : c >= 65 ? '大众接受度高' : c >= 50 ? '中规中矩' : '比较小众';
+function mzComplete(w, k) {
+  const lv = mzLv(), gfit = /舞曲|Pop|EDM/.test(w.genre) ? 4 : /Lo-fi|摇滚/.test(w.genre) ? -4 : 0;
+  w.q = Math.round(clamp(w.pot * 55 + 15 + lv * 4 + w.qb + rand(-8, 8), 15, 98));
+  w.c = Math.round(clamp(35 + rand(-15, 25) + w.cb + (w.q - 50) * .25 + gfit, 10, 97));
+  w.prog = w.need; w.done = k; w.status = 'demo';
+}
+// 本次创作事件的效果（通告卡）
+function mzCardFx(card) {
+  if (!card || !card.done || !card.mz) return {};
+  if (card.kind === 'choice') return card.pj != null ? (card.fxs[card.pj] || {}) : { q: 1 };
+  if (card.kind === 'write') return { ...(card.wfx || { q: 1 }), text: card.pickText };
+  if (card.kind === 'multi') { const fx = {}; (card.mj || []).forEach((j, i) => { const f = (card.fxss[i] || [])[j] || {}; for (const [a, b] of Object.entries(f)) fx[a] = a === 'p' ? (fx.p || 1) * b : a === 'partner' ? b : (fx[a] || 0) + b; }); return fx; }
+  return {};
+}
+function mzSettle(k, r, key, s, e, card) {
+  const M = mz(), lv = mzLv(), R = S.schedule.res || (S.schedule.res = {});
+  const iv = Object.entries(M.log).filter(([kk, v]) => kk.startsWith(k + '|') && v.iv).map(([, v]) => v.iv);
+  let mins = 0; for (let t = s; t < e; t += 5) if (!iv.some(([a, b]) => t >= a && t < b)) mins += 5; // 同一天重叠的创作时间只算一次
+  const hrs = Math.min(mins / 60, 12), w = mzWork(r.workId), fx = mzCardFx(card), lv0 = lv;
+  const fin = (note, more) => { M.log[key] = { iv: [s, e], hrs: +hrs.toFixed(2), at: Date.now(), wid: w ? w.id : '', note, ...(more || {}) }; R[key] = { grade: '🎼', note, at: Date.now() }; pushNotif({ type: 'sched', text: `🎼 「${r.title}」结束`, sub: note }, false); const lv1 = mzLv(); if (lv1 > lv0) pushNotif({ type: 'system', text: `🎼 创作熟练度提升：${MZ_LV[lv1][1]}`, sub: '写歌更顺手了，进入状态也更快' }, true); save(); };
+  if (hrs < .25) return fin('和别的创作行程时间重叠，没有额外进展');
+  if (!mzOpen(w)) { const ex = hrs * 5; M.exp += ex; return fin(w ? `《${mzName(w)}》已经完成了，这次算是随手练习，创作经验 +${Math.round(ex)}` : `没有选作品，这次算是自由练习，创作经验 +${Math.round(ex)}`, { exp: ex }); }
+  let gain = Math.min(mzFocus(hrs, lv) * (.75 + .07 * lv) * (fx.p || 1), hrs * 1.2) - (fx.back || 0);
+  const ex = hrs * 10; let note = '', doneNow = false;
+  if (fx.text && card && card.wact === 'concept' && !w.concept) w.concept = fx.text.slice(0, 120);
+  if (fx.text && card && card.wact === 'name' && !w.name) w.name = fx.text.replace(/[《》「」"]/g, '').slice(0, 30);
+  if (fx.partner && !w.partners.includes(fx.partner)) { w.partners.push(fx.partner); w.share = .35; }
+  w.qb += fx.q || 0; w.cb += fx.c || 0;
+  if (fx.d) (w.events || (w.events = [])).push({ date: k, d: fx.d });
+  if (card && card.done) w.events.push({ date: k, d: `${String(card.d).split('\n')[0].slice(0, 40)} → ${String(card.pickText || '').slice(0, 30)}` });
+  if (w.events.length > 30) w.events.splice(0, w.events.length - 30);
+  if (w.status === 'revising') {
+    w.rev.prog = Math.max(0, w.rev.prog + gain);
+    if (w.rev.prog >= w.rev.need) { // 返工完成：质量小幅提升，越改越难再提高
+      const dq = Math.round((rand(3, 9) + lv + (fx.q || 0)) * (1 - w.q / 110) / (1 + w.revs * .6)), dc = Math.round((rand(1, 6) + (fx.c || 0)) * (1 - w.c / 110) / (1 + w.revs * .6));
+      w.q = clamp(w.q + dq, 10, 98); w.c = clamp(w.c + dc, 10, 97); w.revs++; w.status = 'demo'; w.rev = null; doneNow = true;
+      note = `《${mzName(w)}》修改完成：质量 +${dq}，商业潜力 +${dc}`;
+    } else note = `修改《${mzName(w)}》${hrs.toFixed(1)} 小时，修改进度 ${Math.round(w.rev.prog / w.rev.need * 100)}%`;
+  } else {
+    const before = w.prog; w.prog = clamp(w.prog + gain, 0, w.need);
+    const pct = Math.round(w.prog / w.need * 100), dp = Math.round((w.prog - before) / w.need * 100);
+    if (w.prog >= w.need) { mzComplete(w, k); doneNow = true; note = `《${mzName(w)}》作曲 Demo 完成！质量「${mzQLabel(w.q)}」，${mzCLabel(w.c)}`; }
+    else note = `${hrs >= 3.5 ? pick(['连续写了很久，慢慢进入了状态', '越写越顺，找到了想要的感觉', '中途卡了一下，后面又找回了方向']) : hrs >= 2 ? pick(['写得还算顺利', '整理了几段旋律', '慢慢摸到了一点方向']) : pick(['时间有点短，刚进入状态就结束了', '只来得及整理一下思路'])} · 《${mzName(w)}》进度 ${pct}%${dp > 0 ? `（+${dp}%）` : dp < 0 ? `（返工 ${dp}%）` : ''}`;
+  }
+  if (k < w.start) w.start = k;
+  w.sessions.push({ date: k, hrs: +hrs.toFixed(2), gain: +gain.toFixed(2) }); if (w.sessions.length > 80) w.sessions.splice(0, w.sessions.length - 80);
+  M.exp += ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0);
+  fin(note + ` · 创作经验 +${Math.round(ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0))}`, { gain: +gain.toFixed(2), exp: ex });
+  if (doneNow) pushNotif({ type: 'system', text: `🎼 ${note.split('：')[0].split('！')[0]}`, sub: '去「音乐 → 作品库」看看评价，可以修改或提交 STARSHIP 评估' }, true);
+}
+// 每隔一会儿：结算结束了的创作行程 / 回归准备行程，处理投稿结果和著作权费
+function mzTick() {
+  const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
+  for (let i = 45; i >= 0; i--) {
+    const k = addDays(today, -i);
+    for (const r of rulesFor(k)) {
+      if (!isMusicRule(r)) continue; const key = k + '|' + r.id; if (M.log[key]) continue;
+      const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440;
+      const endAt = parseD(k).getTime() + e * 60e3; if (now < endAt) continue;
+      if (r.createdAt && r.createdAt > endAt) { M.log[key] = { skip: 'late', at: now }; continue; } // 事后补录的不算
+      const card = T.cards[key]; if (card && !card.done && k === today) continue; // 创作事件还没做，等今天结束
+      try { mzSettle(k, r, key, s, e, card); } catch (err) { console.error('mz', err); M.log[key] = { err: 1 }; }
+    }
+  }
+  for (const kk of Object.keys(M.log)) if (kk.slice(0, 10) < addDays(today, -60)) delete M.log[kk];
+  mzSubTick(); prepTick(); mzRoyalty();
+}
+/* ---------- 创作事件（接在现有通告卡里：60% 正常创作，30% 普通事件，10% 特殊事件） ---------- */
+// s：作品进度区间（0~1）；co：要在公司 / 工作室；fr：要有熟的朋友；sp：特殊事件
+const MZ_EV = [
+  { s: [0, .35], d: '你打开工作软件，脑子里有好几个零碎的旋律片段。今天先从哪里开始？', o: [['先把所有片段都哼一遍录下来', { p: 1.05 }], ['只挑最喜欢的一段深挖', { q: 2, p: .95 }], ['先找几首喜欢的歌听听氛围', { c: 2 }]] },
+  { s: [0, .5], w: 'concept', d: '你想为这首歌定一个核心概念。用一两句话说说它想讲什么吧（比如：失眠的夜里想念一个人）。', ph: '这首歌想讲……', wfx: { q: 2 } },
+  { s: [0, .4], d: '你在纠结这首歌的速度：慢一点更有情绪，快一点更适合舞台。', o: [['慢一点，先把情绪写出来', { q: 2, c: -1 }], ['快一点，想象它在舞台上的样子', { c: 3 }], ['两种都做一版对比', { p: .85, q: 1, c: 1 }]] },
+  { s: [0, 1], dorm: 1, d: '宿舍突然跳闸，电脑没保存，刚写的一段没了。', o: [['凭记忆重新做一遍', { back: .5, q: 1 }], ['干脆出去散散步再回来', { p: .9 }], ['先把自动保存打开，再慢慢补', { p: .95 }]] },
+  { s: [0, .6], d: '路上听到一段街头艺人的吉他，节奏很特别，你一直在脑子里循环。', o: [['马上用手机录下来', { c: 2, q: 1 }], ['回去试着放进前奏', { q: 2 }], ['只是听听，不想被别人的旋律带跑', {}]] },
+  { s: [.1, .5], d: '主歌旋律写好了，可你越听越觉得像某首很红的歌。', o: [['推翻重写', { back: 1, q: 3 }], ['改几个音，保留原来的感觉', { c: 1 }], ['先放着，继续往下写', { p: 1.05, q: -1 }]] },
+  { s: [.25, .8], d: '副歌旋律已经完成，但进入副歌时总觉得缺少冲击力，你打算怎么处理？', o: [['副歌前加一个短暂的停顿', { c: 3 }], ['把副歌整体抬高一点', { q: 2, c: 1 }], ['让节奏在副歌突然变满', { c: 2, q: 1 }], ['先不管，往下写', { p: 1.1, q: -1 }]] },
+  { s: [.3, .8], d: '你卡在桥段，两个小时只写出两小节。', o: [['换个地方继续写', { p: .9, q: 1 }], ['跳过桥段，先写结尾', { p: 1.05 }], ['听听自己以前写的东西找感觉', { q: 2 }]] },
+  { s: [.3, .9], d: '你给 Demo 搭了一个简单的伴奏，但听起来有点空。', o: [['加一层合成器铺底', { c: 2 }], ['加一把木吉他', { q: 2 }], ['就保留这种空空的感觉', { q: 1, c: -1 }]] },
+  { s: [.3, .9], w: 'line', d: '如果这首歌只能让人记住一个画面，你希望是什么？', ph: '比如：凌晨的便利店门口 / 下雨天的公交车窗', wfx: { q: 2, c: 1 } },
+  { s: [.35, .85], d: '把主歌和副歌连起来听，你发现衔接得有点突兀。', o: [['重写过渡的那几小节', { back: .8, q: 3 }], ['用一个小转音带过去', { q: 1, c: 1 }], ['保留这种突兀，当作特色', { c: -1, q: 1 }]] },
+  { s: [.3, .8], d: '你突然开始怀疑：这首歌是不是该换个曲风？', o: [['坚持原来的方向', { p: 1.05 }], ['改编一版对比看看', { p: .8, q: 2, c: 2 }], ['旋律不动，只换伴奏的感觉', { q: 1, c: 1 }]] },
+  { s: [0, 1], d: '写着写着已经很晚了，有点累，但手感正好。', o: [['再坚持一会儿', { p: 1.1, q: -1 }], ['先存档，明天再来', { p: .9, q: 1 }], ['冲杯咖啡继续', { p: 1.05 }]] },
+  { s: [.2, .9], fr: 1, d: '{f}发来消息问你在干嘛，听说你在写歌，想听听小样。', o: [['发给{f}听听', { q: 1, c: 2 }], ['等写完了再给你听', { p: 1.05 }], ['只发一小段', { c: 1 }]] },
+  { s: [.6, 1], d: 'Demo 快完成了，你从头听了一遍，觉得结尾有点草率。', o: [['重新写一个完整的结尾', { back: .6, q: 3 }], ['用副歌重复收尾', { c: 2 }], ['加一段安静的尾奏', { q: 2 }]] },
+  { s: [.5, 1], d: '你用手机外放听了一遍，低音几乎听不见。', o: [['调整一下各个声部的音量', { q: 1, c: 1 }], ['先不管，这只是 Demo', { p: 1.05 }]] },
+  { s: [.5, 1], co: 1, d: '公司的制作人路过工作室，听了几秒你的 Demo，说「副歌不错，主歌可以再抓耳一点」。', o: [['当场请教怎么改', { q: 2, c: 2, p: .9 }], ['先道谢，回去自己琢磨', { q: 1 }], ['坚持自己原来的想法', {}]] },
+  { s: [.6, 1], w: 'name', d: 'Demo 快写完了，给它起一个暂定的歌名吧。', ph: '暂定歌名', wfx: {} },
+  { s: [.3, 1], d: '你在纠结要不要在 Demo 里留一段 Rap。', o: [['留一段，展现自己的特色', { c: 2, q: 1 }], ['不加，保持旋律完整', { q: 1 }], ['先空出位置，以后再说', { p: 1.05 }]] },
+  { s: [.4, 1], d: 'Demo 里有一段听起来不太舒服，但你说不出哪里不对。', o: [['一点点试，直到顺耳', { back: .5, q: 2 }], ['换成更常见、更顺的走向', { c: 2 }], ['记下来，之后问问别人', {}]] },
+  { s: [0, 1], d: '戴着耳机写了很久，耳朵有点累。', o: [['休息十分钟再继续', { p: .95, q: 1 }], ['调小音量继续', {}], ['换音箱听一遍', { q: 1 }]] },
+  { s: [0, .7], d: '你翻到手机里很久以前录的一段哼唱。', o: [['把它加进这首歌', { q: 2, c: 1, back: .3 }], ['存进灵感文件夹，以后用', {}]] },
+  { s: [0, 1], d: '今天状态很好，旋律一个接一个冒出来。', o: [['趁热全部记下来', { p: 1.15 }], ['只挑最好的几段', { q: 2 }]] },
+  { s: [.2, 1], d: '你想到粉丝们听这首歌的样子。', o: [['加一段适合大家一起唱的部分', { c: 3 }], ['写自己真正想写的', { q: 2 }], ['两边都兼顾一下', { c: 1, q: 1 }]] },
+  { s: [0, 1], d: '写到一半，你想起明天的行程很早。', o: [['早点收工', { p: .85 }], ['再写一会儿就睡', { p: 1.05, q: -1 }]] },
+  { s: [.2, 1], w: 'words', d: '用三个词形容这首歌现在给你的感觉。', ph: '比如：潮湿、温柔、倔强', wfx: { q: 1 } },
+  // 特殊事件
+  { sp: 1, s: [.2, .9], multi: [['凌晨灵感突然来了，脑子里响起了一段完整的副歌。', [['立刻爬起来录', { p: 1.2, q: 2 }], ['在手机上哼一遍再睡', { q: 1 }]]], ['录完一听，这段比原来的副歌好太多了。', [['换掉原来的副歌', { back: 1, q: 5, c: 3 }], ['两个版本都留着对比', { q: 2 }]]]] },
+  { sp: 1, s: [.3, .9], fr: 1, d: '{f}听了你发的片段，说想和你一起改一版。', o: [['好，一起改，加上{f}的想法', { q: 3, c: 3, partner: '{f}' }], ['谢谢，但这首想自己完成', { q: 1 }]] },
+  { sp: 1, s: [.2, .8], d: '整理文件时你发现，几个月前写的一段旋律和这首歌意外地很搭。', o: [['合进来', { q: 4, back: .5 }], ['留给下一首', {}]] },
+  { sp: 1, s: [.3, 1], co: 1, d: '公司 A&R 听说你在写歌，约你下次带着 Demo 去聊聊。', o: [['好，加快进度', { p: 1.15 }], ['慢慢来，先把歌写好', { q: 3 }]] },
+  { sp: 1, s: [.5, 1], d: '你把 Demo 发给声乐老师，老师说「这首很适合你的声音」。', o: [['按自己最舒服的音域再调整一下', { q: 2, c: 2 }], ['保持原样', {}]] },
+  { sp: 1, s: [.6, 1], d: '你突然觉得整首歌的结构都不对，想推翻重来。', o: [['推翻重来', { back: 3, q: 6 }], ['只改最不满意的一段', { back: 1, q: 3 }], ['冷静一下，明天再决定', { p: .9 }]] }
+];
+function mzFriend() { const L = chal().friends.filter(f => ['close', 'best'].includes(f.lv) && !(f.g === 'CRAVITY' && f.n === '세림')); return L.length ? L[Math.floor(Math.random() * L.length)] : null; }
+function mzCard(k, r, key) {
+  const T = tgState(); if (T.cards[key]) return T.cards[key]; if (k < T.start) return null;
+  const w = mzWork(r.workId); if (!mzOpen(w)) return null;
+  const rr = srng('mz' + key), x = rr(); if (x < .6) return null; // 60% 正常创作，没有事件
+  const frac = w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
+  const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
+  let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr));
+  const want = x >= .9 ? pool.filter(p => p.e.sp) : pool.filter(p => !p.e.sp); if (want.length) pool = want; pool = pool.filter(p => !used.has('mz#' + p.i));
+  let fresh = pool.filter(p => !seen.has('mz#' + p.i)); if (!fresh.length) { cyc.mz = []; fresh = pool; } if (!fresh.length) return null;
+  const { e, i } = fresh[Math.floor(rr() * fresh.length)], fn = fr ? (fr.z && /[一-鿿]/.test(fr.z) ? fr.z : fr.n) : '朋友', F = t => String(t).split('{f}').join(fn);
+  (cyc.mz || (cyc.mz = [])).push('mz#' + i);
+  const fxF = fx => { const o = { ...fx }; if (o.partner) o.partner = F(o.partner) + (fr ? `（${fr.g}）` : ''); return o; };
+  const base = { key, cat: r.cat, title: r.title, mz: 1, sp: !!e.sp, sig: 'mz#' + i, csig: 'mz#' + i, ck: 'mz', done: false };
+  if (e.multi) return T.cards[key] = { ...base, kind: 'multi', d: F(e.multi[0][0]), steps: e.multi.map(([d, os]) => [F(d), os.map(([t]) => [F(t), .5, 1])]), fxss: e.multi.map(([, os]) => os.map(([, f]) => fxF(f))) };
+  if (e.w) return T.cards[key] = { ...base, kind: 'write', d: F(e.d), ph: e.ph, wact: e.w, wfx: e.wfx };
+  return T.cards[key] = { ...base, kind: 'choice', d: F(e.d), opts: e.o.map(([t]) => [F(t), .5, 1]), fxs: e.o.map(([, f]) => fxF(f)) };
+}
+/* ---------- STARSHIP 内部投稿 ---------- */
+const MZ_FB = {
+  adopted: ['这首我们想要。A&R 会和你约时间聊后续怎么用', '制作团队听完都很喜欢，决定采用'],
+  cbcand: ['正好在找这个方向的歌，先放进这次回归的候选里，最后还要和别的歌一起比', '这次回归的选曲会议会听这首'],
+  cand: ['不错，先放进公司的曲库，以后有合适的项目会再拿出来', '完成度可以，先列为未来项目的候选'],
+  hold: ['方向还可以，但现在没有适合的项目，先替你保留着', '我们先留着，等有合适的企划再说'],
+  suggest: ['有亮点，但还不够完整，改一改再交一次吧', '旋律有记忆点，可结构还有点散，建议再修改'],
+  rejected: ['这次先不采用。不是不好，只是和公司现在要的方向不太一样', '这首暂时用不上，继续写，下一首可能就对了']
+};
+function mzSubmitOk(w) {
+  if (!w) return '找不到作品';
+  if (['writing', 'revising'].includes(w.status)) return '作品还没完成，完成后才能提交';
+  if (w.status === 'submitted') return '公司还在审核这首';
+  if (['adopted', 'released', 'cbcand'].includes(w.status)) return '这首已经被采用 / 在候选里了';
+  if (['hold', 'cand'].includes(w.status)) return '这首已经在公司的曲库里了，有合适的项目会自动拿出来';
+  const last = w.subs[w.subs.length - 1];
+  if (last && ['suggest', 'rejected'].includes(last.res) && w.revs <= (last.revs || 0)) return '上次公司给了意见，先修改一次再交';
+  return '';
+}
+function mzSubmit(id, forCb) {
+  const w = mzWork(id), why = mzSubmitOk(w); if (why) return toast(why);
+  const P = prepOn(); if (forCb && !(P && !P.t.pick.done)) return toast('现在没有在选曲的回归');
+  w.subs.push({ at: Date.now(), revs: w.revs, decideAt: Date.now() + rand(forCb ? 1 : 2, forCb ? 3 : 5) * 86400e3, res: null, fb: '', cb: forCb ? S.cb.albumId : '' });
+  w.status = 'submitted'; save(); toast('已提交 STARSHIP 评估', `《${mzName(w)}》· 几天后会有结果`);
+}
+function mzSubTick() {
+  const now = Date.now(), P = prepOn();
+  for (const w of mz().works) {
+    const s = w.subs[w.subs.length - 1]; if (w.status !== 'submitted' || !s || s.res || now < s.decideAt) continue;
+    const a = cbAlbum(), fit = a && s.cb && ((a.mood === 'dance' && /舞曲|Pop|EDM|Hip/.test(w.genre)) || (a.mood === 'ballad' && /抒情|R&B|Lo-fi/.test(w.genre))) ? 6 : 0;
+    const sc = w.q * .55 + w.c * .45 + fit + rand(-12, 12);
+    let res = sc >= 84 && !s.cb && Math.random() < .5 ? 'adopted' : sc >= 72 ? 'cand' : sc >= 62 ? 'hold' : sc >= 50 ? 'suggest' : 'rejected';
+    if (s.cb && ['cand', 'adopted'].includes(res)) res = P && P.a.id === s.cb && !P.t.pick.done ? 'cbcand' : 'cand';
+    s.res = res; s.fb = pick(MZ_FB[res]) + (res === 'suggest' || res === 'rejected' ? (w.c < w.q - 10 ? '（大众记忆点还可以再强一点）' : w.q < w.c - 10 ? '（旋律和编排还可以再打磨）' : '') : '');
+    w.status = res; if (res === 'adopted') w.adopted = { for: 'company', at: now };
+    pushNotif({ type: 'system', text: `🎼 《${mzName(w)}》STARSHIP 评估结果：${MZ_ST[res]}`, sub: s.fb }, true);
+  }
+}
+/* ---------- 著作权费：Cyan 作曲、正式发行后按月结（和歌手的音源分成分开算） ---------- */
+function mzRoyalty() {
+  const M = mz(), today = dkey(Date.now()); if (+today.slice(8) < 20) return; // 每月 20 号左右结上个月
+  const mon = addMonths(today.slice(0, 7), -1), SS = salesState(), W = wallet();
+  for (const w of M.works) {
+    if (w.status !== 'released' || !w.released) continue; const key = mon + '|' + w.id; if (M.earn[key] != null) continue;
+    const a = disco().find(x => x.id === w.released.album), t = a && a.tracks.find(x => x.wid === w.id || x.name === mzName(w)); if (!a || !t) { M.earn[key] = 0; continue; }
+    const days = o => Object.entries((o || {}).days || {}).filter(([d]) => d.startsWith(mon)).reduce((s, [, v]) => s + v, 0);
+    const st = days(SS.trk[a.id + '|' + t.name]), al = days(SS.alb[a.id]), amt = Math.round((st * .35 + al * 600 / Math.max(1, a.tracks.length)) * (w.share || .5));
+    M.earn[key] = amt; if (amt <= 0) continue;
+    W.bal += amt; W.tx.unshift({ id: uid(), at: Date.now(), amt, cat: '著作权费', note: `《${t.name}》作曲 · ${+mon.slice(5)} 月`, auto: true });
+    pushNotif({ type: 'system', text: `🎼 著作权费到账 ${won(amt)}`, sub: `《${t.name}》作曲（你的份额 ${Math.round((w.share || .5) * 100)}%）· ${+mon.slice(5)} 月` }, true);
+  }
+  save();
+}
+/* ---------- 个人作品库 ---------- */
+function worksHTML() {
+  const M = mz(), lv = mzLv(), nx = MZ_LV[lv + 1], demos = M.works.filter(w => w.done).length;
+  const ws = M.works.slice().sort((a, b) => (mzOpen(b) - mzOpen(a)) || b.no - a.no);
+  return `<div class="mz-head"><div><b>创作熟练度 · ${MZ_LV[lv][1]}</b><div class="muted" style="font-size:12.5px">经验 ${Math.round(M.exp)}${nx ? ` / ${nx[0]}（下一阶段：${nx[1]}）` : ''} · 完成 Demo ${demos} 首</div>${nx ? `<div class="mz-bar"><i style="width:${Math.round((M.exp - MZ_LV[lv][0]) / (nx[0] - MZ_LV[lv][0]) * 100)}%"></i></div>` : ''}</div><button class="btn primary sm" data-act="mznew">＋ 新作品</button></div>
+    <div class="muted" style="font-size:12.5px;margin:4px 0 8px">写歌：在行程后台加「其他 → 音乐创作」，选这次写哪首。这里只收你自己写的歌。</div>
+    ${ws.length ? ws.map(w => `<div class="mz-w" data-act="mzopen" data-id="${w.id}"><div class="row" style="gap:6px"><b style="flex:1;min-width:0">《${esc(mzName(w))}》</b><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span></div>
+      <div class="muted" style="font-size:12.5px">${esc(w.genre || '曲风未定')} · ${w.start.slice(5).replace('-', '/')} 开始${w.done ? ` · ${w.done.slice(5).replace('-', '/')} 完成` : ''}</div>
+      ${w.status === 'writing' ? `<div class="mz-bar"><i style="width:${Math.round(w.prog / w.need * 100)}%"></i></div><div class="muted" style="font-size:12px">作曲进度 ${Math.round(w.prog / w.need * 100)}%</div>` : w.status === 'revising' ? `<div class="mz-bar o"><i style="width:${Math.round(w.rev.prog / w.rev.need * 100)}%"></i></div><div class="muted" style="font-size:12px">修改进度 ${Math.round(w.rev.prog / w.rev.need * 100)}%</div>` : w.q != null ? `<div style="font-size:13px;margin-top:2px">质量 <b>${w.q}</b>（${mzQLabel(w.q)}）· 商业潜力 <b>${w.c}</b>（${mzCLabel(w.c)}）</div>` : ''}</div>`).join('') : '<div class="muted" style="padding:10px 0">还没有作品。点「＋ 新作品」，再去行程后台安排音乐创作。</div>'}`;
+}
+function mzNewHTML() {
+  return `<div class="row"><h3 style="flex:1">🎼 新作品</h3><button class="btn ghost sm" data-act="close">取消</button></div>
+    <div class="card"><div class="field"><label>暂定名称</label><input id="mz-n" placeholder="可以先空着，比如：凌晨三点"></div>
+    <div class="field"><label>曲风</label><select id="mz-g"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div>
+    <div class="row"><span class="sp"></span><button class="btn primary" data-act="mznewok">创建</button></div></div>`;
+}
+function mzDetailHTML(id) {
+  const w = mzWork(id); if (!w) return '';
+  const hrs = w.sessions.reduce((a, x) => a + x.hrs, 0), why = mzSubmitOk(w), P = prepOn(), canCb = P && !P.t.pick.done && !why;
+  const revOk = ['demo', 'suggest', 'hold', 'cand', 'rejected'].includes(w.status) && w.revs < 3;
+  const relA = w.released && disco().find(a => a.id === w.released.album), adA = w.adopted && w.adopted.album && disco().find(a => a.id === w.adopted.album);
+  return `<div class="row"><h3 style="flex:1">《${esc(mzName(w))}》</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card"><div class="row" style="gap:6px"><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span><span class="muted" style="font-size:12.5px">作品编号 #${w.no}</span></div>
+      <div class="field" style="margin-top:8px"><label>作品名称${w.name ? '' : '（还没定，现在显示的是暂定名）'}</label><input id="mz-name" value="${esc(w.name)}" placeholder="${esc(w.temp)}"></div>
+      <div class="grid2"><div class="field"><label>曲风</label><select id="mz-genre"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option ${w.genre === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div><div class="field"><label>创作参与</label><div style="padding:8px 2px;font-size:13.5px">${esc(['Cyan', ...w.partners].join('、'))}</div></div></div>
+      <div class="field"><label>作品概念 / 描述</label><textarea id="mz-concept" style="min-height:60px" placeholder="这首歌想讲什么">${esc(w.concept)}</textarea></div>
+      <div class="row"><span class="sp"></span><button class="btn ghost sm" data-act="mzsave" data-id="${w.id}">保存修改</button></div></div>
+    <div class="card"><b>创作情况</b>
+      <div style="font-size:13.5px;margin-top:6px">${w.start} 开始${w.done ? ` · ${w.done} 完成作曲 Demo` : ''} · 累计创作 ${hrs.toFixed(1)} 小时（${w.sessions.length} 次）${w.revs ? ` · 修改过 ${w.revs} 次` : ''}</div>
+      ${w.status === 'writing' ? `<div class="mz-bar"><i style="width:${Math.round(w.prog / w.need * 100)}%"></i></div><div class="muted" style="font-size:12.5px">作曲进度 ${Math.round(w.prog / w.need * 100)}% · 去行程后台安排「音乐创作」继续写。作品评价完成后才会出来。</div>` : ''}
+      ${w.status === 'revising' ? `<div class="mz-bar o"><i style="width:${Math.round(w.rev.prog / w.rev.need * 100)}%"></i></div><div class="muted" style="font-size:12.5px">修改进度 ${Math.round(w.rev.prog / w.rev.need * 100)}% · 安排「音乐创作」并选这首继续改</div>` : ''}
+      ${w.q != null ? `<div class="mz-eval"><div><b>${w.q}</b><span>质量 · ${mzQLabel(w.q)}</span></div><div><b>${w.c}</b><span>商业潜力 · ${mzCLabel(w.c)}</span></div></div>` : ''}
+      ${w.events.length ? `<details class="me-more"><summary>创作过程（${w.events.length}）</summary>${w.events.slice().reverse().map(e => `<div style="font-size:13px;margin:4px 0"><span class="muted">${e.date.slice(5).replace('-', '/')}</span> ${esc(e.d)}</div>`).join('')}</details>` : ''}</div>
+    ${w.subs.length ? `<div class="card"><b>投稿记录</b>${w.subs.slice().reverse().map(s => `<div class="rule" style="align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-size:13px">${dkey(s.at).slice(5).replace('-', '/')} 提交${s.cb ? '（回归候选）' : ''} · ${s.res ? `<b>${MZ_ST[s.res]}</b>` : '审核中…'}</div>${s.fb ? `<div class="muted" style="font-size:12.5px">「${esc(s.fb)}」</div>` : ''}</div></div>`).join('')}</div>` : ''}
+    ${adA || relA ? `<div class="card"><b>采用 / 发行</b><div style="font-size:13.5px;margin-top:6px">${relA ? `收录在${ALB_TYPE[relA.type] || ''}《${esc(relA.name)}》（${relA.date} 发行）· 你的作曲份额 ${Math.round((w.share || .5) * 100)}%，著作权费每月 20 号左右结上个月` : `已选入《${esc(adA.name)}》，正在进行正式制作（作词、编曲完善、录音、后期由公司安排）`}</div></div>` : w.status === 'adopted' ? `<div class="card"><b>采用</b><div style="font-size:13.5px;margin-top:6px">公司已采用，会在合适的项目里使用。正式发行后才会有著作权费。</div></div>` : ''}
+    <div class="card"><div class="mz-acts">
+      ${w.status === 'writing' || w.status === 'revising' ? '<button class="btn ghost" data-act="admin">去安排音乐创作</button>' : ''}
+      ${revOk ? `<button class="btn ghost" data-act="mzrev" data-id="${w.id}">返工修改</button>` : ''}
+      ${!why ? `<button class="btn primary" data-act="mzsub" data-id="${w.id}">提交 STARSHIP 评估</button>` : ''}
+      ${canCb ? `<button class="btn primary" data-act="mzsubcb" data-id="${w.id}">提交为《${esc(P.a.name)}》回归候选</button>` : ''}
+    </div>${why && !['writing', 'revising'].includes(w.status) ? `<div class="muted" style="font-size:12.5px;margin-top:6px">${esc(why)}</div>` : ''}${revOk ? '<div class="muted" style="font-size:12.5px;margin-top:6px">修改需要再安排几个小时的「音乐创作」，每次能提升的会越来越少（最多改 3 次）。</div>' : ''}</div>`;
+}
+function mzRevise(id) {
+  const w = mzWork(id); if (!w || !['demo', 'suggest', 'hold', 'cand', 'rejected'].includes(w.status) || w.revs >= 3) return;
+  w.rev = { need: Math.round(rand(3, 8) * (1.15 - .06 * mzLv()) * 10) / 10, prog: 0, from: w.status }; w.status = 'revising'; save();
+  toast('开始修改', `《${mzName(w)}》· 去行程后台安排「音乐创作」并选这首`);
+}
+
+/* =========================================================
+   💿 回归准备：企划 → 制作 → 公开预热 → 发行活动（接在现有「计划回归」上）
+   ========================================================= */
+const PREP_T = [
+  ['concept', '确定专辑概念', 'co'], ['pick', '候选歌曲筛选', 'co'], ['final', '确定最终曲目', 'co'], ['prod', '正式制作（作词 · 编曲 · 混音）', 'co'],
+  ['rec', '正式录音', 'me'], ['dance', '舞蹈学习及排练', 'me'], ['mv', 'MV 拍摄', 'me'], ['photo', '概念照拍摄', 'me'], ['promo', '宣传物料拍摄', 'me'], ['check', '发行前最终确认', 'co']
+];
+const PREP_KEY = ['final', 'prod', 'rec']; // 关键：没完成就不能发行
+const PREP_CAT = { 其他: ['rec', 'meet'], 练习: ['dance'], 物料: ['mv', 'photo', 'promo'] };
+const PREP_NAME = { rec: '正式录音', meet: '回归企划会议', dance: '舞蹈学习及排练', mv: 'MV 拍摄', photo: '概念照拍摄', promo: '宣传物料拍摄' };
+const PREP_NEED = { rec: { single: 4, mini: 10, full: 20 }, dance: { single: 10, mini: 14, full: 18 }, mv: { single: 10, mini: 14, full: 16 }, photo: { single: 3, mini: 4, full: 5 }, promo: { single: 2, mini: 3, full: 4 } };
+const PREP_SLOTS = { single: 2, mini: 5, full: 10, other: 2 };
+function prepDateWarn(A) {
+  if (!A || A.tbd || !A.date) return ''; const d = Math.round((parseD(A.date).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3), min = { single: 21, mini: 35, full: 50 }[A.type] || 21;
+  const o = S.cb && S.cb.albumId === A.id && prepOn(); if (o && PREP_KEY.every(k => o.t[k].done)) return '';
+  return d < min ? `<div class="cb-warn">⚠ 离回归只有 ${d} 天。${ALB_TYPE[A.type] || ''}一般要准备 ${min} 天以上（选曲、录音、编舞、MV），太赶的话公司会延期</div>` : '';
+}
+function prepOn() { const c = S.cb, a = cbAlbum(); if (!c || c.over || !a || !c.prep || c.prep.legacy) return null; return { c, a, P: c.prep, t: c.prep.t }; }
+const prepSongName = () => pick(['Midnight Call', 'Paper Moon', 'Static', 'Blue Hour', 'Signal', 'Afterglow', 'Overdrive', 'Daydream', 'Echo', 'Firefly', 'Neon Rain', 'Undertow', 'Lullaby', 'Gravity', 'Runaway', 'Halo', 'Mirage', 'Cherry Soda', 'Starlight', 'Velvet', 'Riptide', 'Glitch', 'Snow Globe', 'Crush']);
+const PREP_SRC = ['STARSHIP 内部制作团队', '外部制作人', '海外作曲营', '合作创作者'];
+function prepNew(a, date, tracksGiven) {
+  const today = dkey(Date.now()), d0 = Math.max(1, Math.round((parseD(date).getTime() - parseD(today).getTime()) / 86400e3)), sc = clamp((d0 - 10) / 40, .35, 1);
+  const n = PREP_SLOTS[a.type] || 2, used = new Set(), cands = [];
+  for (let i = 0; i < n * 2 + 1; i++) { let nm; do nm = prepSongName(); while (used.has(nm)); used.add(nm); cands.push({ id: 'c' + uid(), name: nm, src: pick(PREP_SRC), q: Math.round(rand(55, 92)), c: Math.round(rand(50, 95)), dance: Math.random() < .6 }); }
+  const t = {}; for (const [k] of PREP_T) t[k] = { done: false };
+  for (const k of ['rec', 'dance', 'mv', 'photo', 'promo']) Object.assign(t[k], { need: PREP_NEED[k][a.type] || PREP_NEED[k].single, prog: 0 });
+  if (a.mood === 'ballad') t.dance.need = Math.round(t.dance.need * .35); // 抒情主打不需要高强度编舞
+  const P = { v: 1, created: today, scale: sc, t, cands, pref: '', dance: a.mood !== 'ballad', log: {}, delays: 0, ann: {} };
+  P.conceptAt = addDays(today, Math.round(4 * sc)); P.pickAt = addDays(today, Math.max(2, Math.round(10 * sc))); P.finalDays = Math.max(1, Math.round(2 * sc)); P.prodDays = Math.max(3, Math.round(({ single: 7, mini: 12, full: 18 }[a.type] || 7) * sc));
+  if (tracksGiven) { t.pick = { done: true, at: today, by: 'me' }; t.final = { done: true, at: today, by: 'me' }; P.finalAt = today; }
+  return P;
+}
+function prepFit(a, genre) { return a.mood === 'dance' ? (/舞曲|Pop|EDM|Hip/.test(genre || '') ? 8 : 0) : a.mood === 'ballad' ? (/抒情|R&B|Lo-fi/.test(genre || '') ? 8 : 0) : 3; }
+function prepPool(o) { const { a, P } = o; return [...P.cands.map(x => ({ ...x, mine: false })), ...mz().works.filter(w => ['cbcand', 'cand', 'hold'].includes(w.status) || (w.status === 'adopted' && w.adopted && w.adopted.for === 'company' && !w.adopted.album)).map(w => ({ id: w.id, name: mzName(w), src: 'Cyan（你的作品库）', q: w.q, c: w.c, genre: w.genre, mine: true }))]; }
+function prepSelect(o) {
+  const { a, P } = o, n = PREP_SLOTS[a.type] || 2, pool = prepPool(o);
+  const sc = x => x.q * .45 + x.c * .4 + (x.mine ? prepFit(a, x.genre) : 5) + rand(0, 12) + (x.id === P.pref ? 4 : 0);
+  const ranked = pool.map(x => ({ ...x, s: sc(x) })).sort((p, q) => q.s - p.s), sel = ranked.slice(0, n);
+  const ts = sel.map(x => ({ ...x, ts: x.c * .6 + x.q * .3 + (x.mine ? (x.c >= 70 && x.q >= 65 ? 0 : -40) : 0) + rand(0, 8) + (x.id === P.pref ? 3 : 0) })).sort((p, q) => q.ts - p.ts); // 主打更严格
+  P.sel = { at: dkey(Date.now()), list: sel.map(x => ({ id: x.id, name: x.name, src: x.src, mine: x.mine, title: x.id === ts[0].id })), out: ranked.slice(n).filter(x => x.mine).map(x => x.id) };
+  for (const w of mz().works) {
+    if (P.sel.list.some(x => x.mine && x.id === w.id)) { w.status = 'adopted'; w.adopted = { for: 'cb', album: a.id, at: Date.now() }; }
+    else if (w.status === 'cbcand') { w.status = 'hold'; const s = w.subs[w.subs.length - 1]; if (s) s.fb += '（这次回归最后没选上，先放回公司曲库）'; }
+  }
+}
+function prepFinalize(o) {
+  const { a, P } = o; if (!P.sel) prepSelect(o);
+  a.tracks = P.sel.list.map(x => ({ name: x.name, title: x.title, ...(x.mine ? { wid: x.id } : {}) })); syncSongs();
+  P.finalAt = dkey(Date.now());
+}
+// 完成的准备行程 → 对应任务；公司任务按时间推进；发行前检查 / 延期 / 预热物料
+function prepTick() {
+  const o = prepOn(); if (!o) return; const { c, a, P, t } = o, now = Date.now(), today = dkey(now), d = cbDay();
+  // ① 关联了回归准备的行程（结束后结算一次）
+  for (let i = 45; i >= 0; i--) {
+    const k = addDays(today, -i); if (k < P.created) continue;
+    for (const r of rulesFor(k)) {
+      if (!r.cbTask || r.cbAlbum !== a.id) continue; const key = k + '|' + r.id; if (P.log[key]) continue;
+      const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; const endAt = parseD(k).getTime() + e * 60e3; if (now < endAt) continue;
+      if (r.createdAt && r.createdAt > endAt) { P.log[key] = { skip: 'late' }; continue; }
+      const res = (S.schedule.res || {})[key]; if (['练习', '物料'].includes(r.cat) && !res && k === today) continue; // 等通告结果
+      if (res && ['旷', '缺'].includes(res.grade)) { P.log[key] = { skip: 'absent' }; continue; }
+      const hrs = Math.min((e - s) / 60, 10), tk = r.cbTask;
+      if (tk === 'meet') { P.log[key] = { hrs, tk }; if (!t.concept.done) { t.concept = { done: true, at: k }; pushNotif({ type: 'cb', text: `💿 《${a.name}》专辑概念定下来了`, sub: '企划会议上和制作团队一起敲定了方向' }, true); } continue; }
+      const T0 = t[tk]; if (!T0 || T0.done) { P.log[key] = { hrs, tk, note: 'done' }; continue; }
+      const need = tk === 'photo' || tk === 'promo' ? t.concept.done : t.final.done;
+      if (!need) { P.log[key] = { hrs, tk, blocked: 1 }; pushNotif({ type: 'cb', text: `💿 「${r.title}」没算进回归准备`, sub: tk === 'photo' || tk === 'promo' ? '专辑概念还没定，先开企划会议' : '最终曲目还没定，正式录音 / 编舞 / MV 要等选曲结束' }, true); continue; }
+      T0.prog = Math.min(T0.need, T0.prog + hrs); P.log[key] = { hrs, tk };
+      if (T0.prog >= T0.need) { T0.done = true; T0.at = k; pushNotif({ type: 'cb', text: `💿 《${a.name}》${PREP_NAME[tk]}完成`, sub: tk === 'rec' ? '录音结束，接下来交给公司做后期' : tk === 'dance' ? '主打编舞已经练熟了' : tk === 'mv' ? 'MV 拍完了，进入后期剪辑' : '物料拍好了' }, true); }
+      else pushNotif({ type: 'cb', text: `💿 ${PREP_NAME[tk]} ${Math.round(T0.prog / T0.need * 100)}%`, sub: `「${r.title}」${hrs.toFixed(1)} 小时，算进了《${a.name}》的回归准备` }, false);
+    }
+  }
+  // ② 公司负责的任务
+  if (!t.concept.done && today >= P.conceptAt) { t.concept = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》专辑概念定下来了`, sub: '企划团队整理好了这次的概念方向' }, true); }
+  if (t.concept.done && !t.pick.done && today >= P.pickAt) { prepSelect(o); t.pick = { done: true, at: today }; const mine = P.sel.list.filter(x => x.mine); pushNotif({ type: 'cb', text: `💿 STARSHIP 制作团队完成了《${a.name}》的选曲`, sub: mine.length ? `你的作品入选了：${mine.map(x => '《' + x.name + '》' + (x.title ? '（主打）' : '')).join('、')}` : `从 ${prepPool(o).length} 首候选里选了 ${P.sel.list.length} 首` }, true); }
+  if (t.pick.done && !t.final.done && today >= addDays(t.pick.at, P.finalDays)) { prepFinalize(o); t.final = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》最终曲目确定`, sub: `主打《${albTitle(a)}》· 共 ${a.tracks.length} 首。可以开始正式录音和练舞了` }, true); }
+  if (t.final.done && !t.prod.done && t.rec.done && today >= addDays(P.finalAt || t.final.at, P.prodDays) && today >= addDays(t.rec.at, 2)) { t.prod = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》正式制作完成`, sub: '作词、编曲、混音和母带都完成了' }, true); }
+  if (t.final.done) for (const w of mz().works) if (w.status === 'cbcand') w.status = 'hold'; // 曲目定了，没选上的候选放回曲库
+  if (!P.dance && !t.dance.done) { t.dance = { ...t.dance, done: true, at: today, skip: 1 }; }
+  // ③ 公开预热物料（只公开已经做好的）
+  const ann = (k, ok, txt, alt) => { if (P.ann[k]) return; P.ann[k] = 1; if (ok) pushNotif({ type: 'cb', text: txt[0], sub: txt[1] }, true); else if (alt) pushNotif({ type: 'cb', text: alt[0], sub: alt[1] }, true); };
+  if (d <= 14 && d > 0) ann('d14', true, [`💿 ${ALB_TYPE[a.type] || ''}《${a.name}》回归官宣`, `${c.date} 发行 · 公开预热开始`]);
+  if (d <= 12 && d > 0) ann('photo', t.photo.done, [`💿 《${a.name}》概念照公开`, '粉丝都在讨论这次的造型'], [`💿 《${a.name}》放出了 Logo 预告`, '概念照还没拍完，先公开了 Logo']);
+  if (d <= 10 && d > 0) ann('track', t.final.done, [`💿 《${a.name}》曲目表公开`, `主打《${albTitle(a)}》`]);
+  if (d <= 4 && d > 0) ann('hl', t.prod.done, [`💿 《${a.name}》Highlight Medley 公开`, '每首歌都放了一小段']);
+  // ④ 发行前检查：关键事项没完成就延期（D-3）
+  if (d <= 3 && d >= 0 && !P.ann['chk' + c.date]) {
+    P.ann['chk' + c.date] = 1; const miss = PREP_KEY.filter(k => !t[k].done);
+    if (miss.length) {
+      P.delays++; const nd = addDays(c.date, 7), old = c.date; c.date = nd; a.date = nd; c.done = {}; delete P.ann.d14; delete P.ann.photo; delete P.ann.track; delete P.ann.hl;
+      pushNotif({ type: 'cb', text: `⚠️ 《${a.name}》回归延期一周（${old} → ${nd}）`, sub: `还没完成：${miss.map(k => PREP_T.find(x => x[0] === k)[1]).join('、')}。${miss.includes('rec') ? '记得安排「专辑录音」并关联这次回归' : ''}` }, true);
+    } else if (!t.check.done) { t.check = { done: true, at: today }; const lack = ['mv', 'photo', 'dance'].filter(k => !t[k].done); pushNotif({ type: 'cb', text: `💿 《${a.name}》发行前确认完成`, sub: lack.length ? `${lack.map(k => PREP_NAME[k]).join('、')}没赶上，会影响首发效果` : '一切就绪，准备回归！' }, true); }
+  }
+  // ⑤ 发行：被采用的原创作品同步成「已发行」
+  if (d <= 0) for (const w of mz().works) if (w.adopted && w.adopted.album === a.id && w.status === 'adopted') { w.status = 'released'; w.released = { album: a.id, date: c.date }; pushNotif({ type: 'system', text: `🎼 你作曲的《${mzName(w)}》正式发行了`, sub: `收录在《${a.name}》· 著作权费按月结算` }, true); }
+  // 日期待定：一直往后顺延，不会自己进入预热
+  if (c.tbd && d < 21) { c.date = a.date = addDays(today, 30); }
+  save();
+}
+// 首发效果：MV / 概念照 / 舞蹈没赶上会打折
+function prepFanMult() { const o = prepOn(); if (!o) return 1; const t = o.t; return (t.mv.done ? 1 : .85) * (t.photo.done ? 1 : .95) * (t.dance.done ? 1 : .92); }
+function prepCancel() {
+  const c = S.cb; if (!c) return;
+  for (const w of mz().works) {
+    if (w.adopted && w.adopted.album === c.albumId && w.status === 'adopted') { w.status = 'cand'; w.adopted = null; }
+    if (w.status === 'cbcand') w.status = 'hold';
+  }
+}
+function prepStage(o) { const d = cbDay(); return d <= 0 ? '正式发行与活动期' : d <= 14 ? '公开预热期' : o.t.final.done ? '回归制作期' : '回归企划期'; }
+function prepHTML() {
+  const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return '';
+  if (!c.prep || c.prep.legacy) return '<div class="muted" style="font-size:12.5px;margin-top:8px">这次回归是在回归准备系统上线前定的，制作流程视为已经完成。</div>';
+  const o = prepOn(), { P, t } = o, d = cbDay(), lack = PREP_KEY.filter(k => !t[k].done), short = d < ({ single: 21, mini: 35, full: 50 }[a.type] || 21);
+  const row = ([k, nm, who]) => { const T0 = t[k]; if (k === 'dance' && T0.skip) return ''; const pct = T0.need ? Math.round(T0.prog / T0.need * 100) : T0.done ? 100 : 0;
+    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}${PREP_KEY.includes(k) ? ' <span class="muted" style="font-size:11px">关键</span>' : ''}</div>${T0.need && !T0.done ? `<div class="mz-bar"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:11.5px">${T0.prog.toFixed(1)} / ${T0.need} 小时</div>` : !T0.done ? `<div class="muted" style="font-size:11.5px">${k === 'concept' ? `预计 ${P.conceptAt} 前定下（开一次「回归企划会议」能更快）` : k === 'pick' ? `预计 ${P.pickAt} 选曲` : k === 'final' ? '选曲后公司确认' : k === 'prod' ? '最终曲目 + 录音完成后，公司做后期' : k === 'check' ? '回归前 3 天检查' : ''}</div>` : ''}</div></div>`; };
+  const pool = !t.pick.done ? prepPool(o) : [];
+  return `<div class="pp"><div class="row" style="margin-top:10px"><b style="flex:1">🛠 回归准备 · ${prepStage(o)}</b><span class="muted" style="font-size:12.5px">${c.tbd ? '日期待定' : d > 0 ? `D-${d}` : '已发行'}${P.delays ? ` · 延期 ${P.delays} 次` : ''}</span></div>
+    ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 离回归只有 ${d} 天，准备时间偏紧：${lack.map(k => PREP_T.find(x => x[0] === k)[1]).join('、')}还没完成，可能延期</div>` : ''}
+    ${PREP_T.map(row).join('')}
+    <div class="muted" style="font-size:12px;margin-top:6px">本人任务：在行程后台加「专辑录音」（其他）、「舞蹈练习」（练习）、「MV 拍摄 / 预告照拍摄 / Dance Practice」（物料），并在「关联回归准备」里选这次回归。公司任务会按时间自动推进。</div>
+    ${!t.pick.done ? `<details class="me-more"><summary>候选歌曲（${pool.length}）· 公司做最终决定</summary>${pool.map(x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${esc(x.src)}</div></div>${x.mine ? `<button class="link" data-act="pppref" data-id="${x.id}">${P.pref === x.id ? '★ 想做主打' : '☆ 想做主打'}</button>` : ''}</div>`).join('')}<div class="muted" style="font-size:12px;margin-top:4px">你的作品可以在「作品库」里提交为本次回归候选。表达想法能加一点分，但不保证采用。</div></details>`
+      : P.sel ? `<details class="me-more"><summary>选曲结果</summary>${P.sel.list.map(x => `<div class="rule"><span style="flex:1">${x.title ? '★ ' : ''}${esc(x.name)}</span><span class="muted" style="font-size:12px">${esc(x.src)}</span></div>`).join('')}</details>` : ''}
+    ${!t.final.done || a.mood !== 'ballad' ? '' : ''}<label class="row" style="gap:6px;font-size:13px;margin-top:6px"><input type="checkbox" data-act="ppdance" ${P.dance ? 'checked' : ''} style="width:auto">主打需要编舞（抒情曲可以关掉）</label></div>`;
 }
 
 /* =========================================================
@@ -3632,6 +4036,7 @@ function tgTrivia() {
   return pickN(qs, 3);
 }
 function tgCard(k, r) {
+  if (isMusicRule(r)) return mzCard(k, r, k + '|' + r.id); // 音乐创作：用作品库里的创作事件
   const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
   const evs = r.cat === '公演' && UNIV_RE.test(r.title) ? TG_EVENTS['校庆'] : TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
@@ -3901,7 +4306,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [dailyFans, schedFans, hotTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [dailyFans, schedFans, hotTick, mzTick, cbTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -5352,7 +5757,7 @@ PRESETS['物料'] = PRESETS['物料'].filter(([t]) => !/画报|广告/.test(t));
 PRESETS['公演'] = [...UNIV_FEST, ...PRESETS['公演'].filter(([t]) => !/歌谣大祝祭|歌谣大战|歌谣大祭典/.test(t))];
 const CAT_ORDER = ['练习', '签售', '上课', '电台', '公演', '综艺', '活动', '物料', '打歌', '演唱会', '其他'];
 // 其他：艺人自己在宿舍 / 工作室处理的个人工作（没有通告卡、收入和罚款）
-PRESETS['其他'] = [['音乐创作', '宿舍'], ['线上会议', '宿舍'], ['个人内容制作', '宿舍'], ['个人工作', '宿舍'], ['个人学习', '宿舍']];
+PRESETS['其他'] = [['音乐创作', '宿舍'], ['专辑录音', '公司 录音室'], ['回归企划会议', '公司 会议室'], ['线上会议', '宿舍'], ['个人内容制作', '宿舍'], ['个人工作', '宿舍'], ['个人学习', '宿舍']];
 { const P = { ...PRESETS }; for (const k of Object.keys(PRESETS)) delete PRESETS[k]; for (const c of CAT_ORDER) PRESETS[c] = P[c]; }
 // 经纪人接下来的行程：后台只能看，不能改 / 删
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
@@ -5388,7 +5793,7 @@ function viewSched() {
     else if (done) st = '<span class="status" style="color:var(--accent)">已完成</span>';
     return `<div class="sched ${done ? 'done' : ''}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${CATS[r.cat] || '#999'}"></div>
       <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
-      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && TG_EVENTS[r.cat] ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
+      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
   }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
 }
@@ -6960,6 +7365,7 @@ function adminHTML(edit) {
       <div class="field"><label>开始时间</label><input type="time" id="r-start" value="${r.start}"></div>
       <div class="field"><label>结束时间</label><input type="time" id="r-end" value="${r.end}"></div>
     </div>
+    ${ruleExtraHTML(r)}
     <div class="field"><label>重复</label><select id="r-rep">
       <option value="once" ${r.repeat === 'once' ? 'selected' : ''}>仅一次（指定日期）</option>
       <option value="weekly" ${r.repeat === 'weekly' ? 'selected' : ''}>每周（选择星期）</option>
@@ -6979,7 +7385,24 @@ function adminHTML(edit) {
       ${mgrLocked(x) ? '<span class="muted" style="font-size:12px;white-space:nowrap">经纪人安排</span>' : `<button class="link" data-act="redit" data-id="${x.id}">编辑</button><button class="link" data-act="rdel" data-id="${x.id}">删除</button>`}</div>`).join('') : ''}` : ''}
   </div>`;
 }
+// 音乐创作：选这次写哪首；回归准备：关联到这次回归的任务（只在编辑器里选，不显示进度）
+function ruleExtraHTML(r) {
+  const ws = mz().works.filter(w => mzOpen(w) || w.id === r.workId), cur = r.workId || (ws.find(mzOpen) || {}).id || '__new', o = prepOn();
+  const guess = r.cbTask != null && r.cbTask !== undefined && r.id ? r.cbTask : prepGuess(r.title, r.cat);
+  return `<div class="field" id="r-work-f" style="display:none"><label>本次创作的作品</label><select id="r-work">${ws.map(w => `<option value="${w.id}" ${cur === w.id ? 'selected' : ''}>《${esc(mzName(w))}》${mzOpen(w) ? (w.status === 'revising' ? '（修改）' : '') : '（已完成）'}</option>`).join('')}<option value="__new" ${cur === '__new' ? 'selected' : ''}>＋ 开始一首新歌</option><option value="" ${r.id && !r.workId ? 'selected' : ''}>不指定（自由练习）</option></select>
+      <div id="r-wnew" class="grid2" style="margin-top:6px"><input id="r-wn" placeholder="暂定名称（可不填）"><select id="r-wg"><option value="">曲风还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div></div>
+    <div class="field" id="r-cbt-f" style="display:none"><label>关联回归准备${o ? ` · 《${esc(o.a.name)}》` : ''}</label><select id="r-cbt" ${r.id ? 'data-touched="1"' : ''}><option value="">不关联</option>${Object.entries(PREP_NAME).map(([k, v]) => `<option value="${k}" data-c="${Object.keys(PREP_CAT).find(c => PREP_CAT[c].includes(k))}" ${guess === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`;
+}
+function prepGuess(title, cat) { const t = title || ''; return /录音|녹음/.test(t) ? 'rec' : /企划|回归.*会议|会议.*回归/.test(t) ? 'meet' : cat === '练习' && /舞|编舞|안무|回归/.test(t) ? 'dance' : /MV|뮤비/.test(t) ? 'mv' : /概念照|预告照|封面|画报/.test(t) && cat === '物料' ? 'photo' : cat === '物料' && /Dance Practice|花絮|宣传|物料|预告/.test(t) ? 'promo' : ''; }
+function syncWorkField() {
+  const f = $('#r-work-f'); if (!f) return; const cat = $('#r-cat').value, title = $('#r-title').value;
+  const on = isMusicRule({ cat, title }); f.style.display = on ? '' : 'none';
+  $('#r-wnew').style.display = on && $('#r-work').value === '__new' ? '' : 'none';
+  const g = $('#r-cbt-f'), sel = $('#r-cbt'), ok = !!prepOn() && PREP_CAT[cat] && !on; g.style.display = ok ? '' : 'none';
+  if (ok) { [...sel.options].forEach(op => { if (op.value) op.hidden = op.dataset.c !== cat; }); if (!sel.dataset.touched) { const v = prepGuess(title, cat); sel.value = v && PREP_CAT[cat].includes(v) ? v : ''; } else if (sel.selectedOptions[0]?.hidden) sel.value = ''; }
+}
 function syncRepFields() {
+  syncWorkField();
   const v = $('#r-rep')?.value; if (!v) return;
   $('#r-days-f').style.display = v === 'weekly' ? '' : 'none';
   $('#r-date-f').style.display = v === 'once' ? '' : 'none';
@@ -7050,6 +7473,8 @@ function saveRule() {
   if (r.repeat === 'once' && !r.date) return toast('请选择日期');
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
   r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now(); r.gift = giftMultiVal('r');
+  if (isMusicRule(r)) { const v = $('#r-work').value; r.workId = v === '__new' ? mzNew(($('#r-wn').value || '').trim(), $('#r-wg').value).id : v; } else r.workId = '';
+  { const o = prepOn(), v = $('#r-cbt-f').style.display !== 'none' ? $('#r-cbt').value : ''; r.cbTask = o && v ? v : ''; r.cbAlbum = o && v ? o.a.id : ''; }
   if (i >= 0) S.schedule.rules[i] = { ...S.schedule.rules[i], ...r }; else S.schedule.rules.push(r);
   save(); UI.presetQ = ''; openModal(adminHTML()); syncRepFields(); render(); toast(i >= 0 ? '已保存' : '已添加行程', `${r.title} · ${r.start}-${r.end}`);
 }
@@ -7102,13 +7527,13 @@ function viewMe() {
   <div class="card">${hotPanelHTML()}</div>`,
   wallet: () => walletHTML(),
   music: () => `
-  <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['cb', '📅 回归'], ['disco', '🎵 歌单']].map(([k, v]) => `<button class="pcat ${(UI.musicTab || 'chart') === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
+  <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['cb', '📅 回归'], ['works', '🎼 作品库'], ['disco', '🎵 歌单']].map(([k, v]) => `<button class="pcat ${(UI.musicTab || 'chart') === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
   ${{ chart: () => `<div class="card">${chartsHTML()}</div>`,
     sales: () => `<div class="sec-title">💿 专辑销量</div><div class="card">${albumSalesHTML()}</div><div class="sec-title">▶️ YouTube MV</div><div class="card">${mvHTML()}</div>`,
     shows: () => `<div class="card">${showsCardHTML()}</div>`,
     awards: () => `<div class="card">${awardsHTML()}</div>`,
     cb: () => `<div class="card">${cbHTML()}</div>`,
-    disco: () => `<div class="card">${discoHTML()}</div>` }[UI.musicTab || 'chart']()}`,
+    disco: () => `<div class="card">${discoHTML()}</div>`, works: () => `<div class="card">${worksHTML()}</div>` }[UI.musicTab || 'chart']()}`,
   persona: () => `
   <div class="sec-title">💪 能力</div>
   <div class="card">${skillsHTML()}</div>
@@ -7342,14 +7767,14 @@ document.addEventListener('click', async e => {
     case 'prand': {
       const list = presetMatches(); if (!list.length) break;
       let it = pick(list); for (let i = 0; i < 5 && it[1] === $('#r-title').value; i++) it = pick(list);
-      $('#r-title').value = it[1]; $('#r-cat').value = it[0]; $('#r-loc').value = it[0] === '其他' ? pick(['宿舍', '工作室']) : it[2] || ''; locQSync();
+      $('#r-title').value = it[1]; $('#r-cat').value = it[0]; $('#r-loc').value = it[0] === '其他' ? pick(['宿舍', '工作室']) : it[2] || ''; locQSync(); syncWorkField();
       $$('.preset').forEach(x => x.classList.toggle('on', x.dataset.t === it[1] && x.dataset.l === (it[2] || '')));
       toast('🎲 随机到：' + it[1], it[2] ? '📍 ' + it[2] : '记得填时间');
       $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
     }
     case 'rlocq': $('#r-loc').value = t.dataset.l; locQSync(); break;
     case 'preset': {
-      $('#r-title').value = t.dataset.t; $('#r-cat').value = t.dataset.c; $('#r-loc').value = t.dataset.l; locQSync();
+      $('#r-title').value = t.dataset.t; $('#r-cat').value = t.dataset.c; $('#r-loc').value = t.dataset.l; locQSync(); syncWorkField();
       $$('.preset').forEach(x => x.classList.toggle('on', x === t));
       $('#r-form').scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => $('#r-start').focus(), 350); break;
     }
@@ -7376,7 +7801,7 @@ document.addEventListener('click', async e => {
     case 'tglist': UI.tgKey = null; TGG = null; openModal(tgListHTML()); break;
     case 'tgopen': { const c0 = tgState().cards[t.dataset.k]; if (c0) c0.opened = 1; const _x = 0, r0 = c0 && S.schedule.rules.find(x => x.id === t.dataset.k.split('|')[1]); if (c0 && r0) c0._start = r0.start; if (c0 && !c0.done && !tgOpen(c0)) { toast('还没到时间', '行程开始前 10 分钟才能做'); break; } }
       UI.tgKey = t.dataset.k; UI.tgPh = []; UI.tgOrd = []; TGG = null; openModal(tgCardHTML(t.dataset.k)); break;
-    case 'tgpick': { const c = tgState().cards[UI.tgKey], o = c.opts[+t.dataset.j]; tgFinish(rand(o[1], o[2]), o[0]); break; }
+    case 'tgpick': { const c = tgState().cards[UI.tgKey], o = c.opts[+t.dataset.j]; c.pj = +t.dataset.j; tgFinish(rand(o[1], o[2]), o[0]); break; }
     case 'tgwrite': { const v = ($('#tg-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const n = v.replace(/\s/g, '').length; let sc = n < 4 ? .25 : n < 10 ? .5 : n <= 100 ? .75 : .6; if (tone(v) === 'neg') sc -= .35; if (tone(v) === 'pos') sc += .1; tgFinish(sc + rand(-.15, .2), v); break; }
     case 'tghours': { const c = tgState().cards[UI.tgKey], h = +t.dataset.h; c.hours = h; c.hurt = h === 3 && skills().stamina < 55 && Math.random() < .3; tgFinish({ 1: .5, 2: .7, 3: .9 }[h], ['', '轻松练', '正常强度', '全力冲刺'][h]); break; }
     case 'tgsong': { const c = tgState().cards[UI.tgKey], [n, ti] = c.songs[+t.dataset.j]; tgFinish((ti ? .75 : .5) + rand(-.2, .25), n); break; }
@@ -7392,7 +7817,7 @@ document.addEventListener('click', async e => {
       break;
     }
     case 'tgmem': tgMem(+t.dataset.j); break;
-    case 'tgmulti': { const c = tgState().cards[UI.tgKey], si = c.si || 0, o = c.steps[si][1][+t.dataset.j]; (c.ms || (c.ms = [])).push(rand(o[1], o[2])); (c.mp || (c.mp = [])).push(o[0]); if (si + 1 < c.steps.length) { c.si = si + 1; openModal(tgCardHTML(c.key)); } else tgFinish(c.ms.reduce((a, b) => a + b, 0) / c.ms.length, c.mp.join(' / ')); break; }
+    case 'tgmulti': { const c = tgState().cards[UI.tgKey], si = c.si || 0, o = c.steps[si][1][+t.dataset.j]; (c.ms || (c.ms = [])).push(rand(o[1], o[2])); (c.mp || (c.mp = [])).push(o[0]); (c.mj || (c.mj = [])).push(+t.dataset.j); if (si + 1 < c.steps.length) { c.si = si + 1; openModal(tgCardHTML(c.key)); } else tgFinish(c.ms.reduce((a, b) => a + b, 0) / c.ms.length, c.mp.join(' / ')); break; }
     case 'tgtime': tgTiming(); break;
     case 'tgreact': tgReact(); break;
     case 'tgmash': tgMash(); break;
@@ -7421,6 +7846,17 @@ document.addEventListener('click', async e => {
  mgrRefresh(); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
+    case 'mznew': openModal(mzNewHTML()); break;
+    case 'mznewok': { const w = mzNew(($('#mz-n').value || '').trim(), $('#mz-g').value); render(); openModal(mzDetailHTML(w.id)); toast('新作品已创建', '去行程后台安排「音乐创作」并选这首'); break; }
+    case 'mzopen': openModal(mzDetailHTML(t.dataset.id)); break;
+    case 'mzsave': { const w = mzWork(t.dataset.id); if (!w) break; const nm = $('#mz-name').value.trim().replace(/[《》]/g, '').slice(0, 30), old = mzName(w); w.name = nm; w.genre = $('#mz-genre').value; w.concept = $('#mz-concept').value.trim().slice(0, 300);
+      if (w.adopted && w.adopted.album && w.status !== 'released' && old !== mzName(w)) { const a = disco().find(x => x.id === w.adopted.album), tr = a && a.tracks.find(x => x.wid === w.id); if (tr) { tr.name = mzName(w); syncSongs(); } const P = S.cb && S.cb.prep; if (P && P.sel) P.sel.list.forEach(x => { if (x.id === w.id) x.name = mzName(w); }); }
+      save(); render(); openModal(mzDetailHTML(w.id)); toast('已保存'); break; }
+    case 'mzrev': mzRevise(t.dataset.id); render(); openModal(mzDetailHTML(t.dataset.id)); break;
+    case 'mzsub': mzSubmit(t.dataset.id, false); render(); openModal(mzDetailHTML(t.dataset.id)); break;
+    case 'mzsubcb': mzSubmit(t.dataset.id, true); render(); openModal(mzDetailHTML(t.dataset.id)); break;
+    case 'pppref': { const o = prepOn(); if (!o) break; o.P.pref = o.P.pref === t.dataset.id ? '' : t.dataset.id; save(); render(); toast(o.P.pref ? '已经告诉公司你的想法' : '已取消'); break; }
+    case 'ppdance': { const o = prepOn(); if (!o) break; o.P.dance = t.checked; if (t.checked && o.t.dance.skip) o.t.dance = { need: o.t.dance.need, prog: 0, done: false }; save(); render(); break; }
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
@@ -7437,7 +7873,7 @@ document.addEventListener('click', async e => {
       const id = UI.alb.id; if (S.cb && !S.cb.over && S.cb.albumId === id) { toast('这张正在回归中，先取消回归才能删除'); break; }
       bbConfirm('删除作品？', `《${UI.alb.name}》会从歌单里删除`, () => { S.disco = disco().filter(x => x.id !== id); syncSongs(); save(); closeModal(); render(); }); break;
     }
-    case 'cbcancel': bbConfirm('取消回归？', `《${cbAlbum()?.name || ''}》的回归计划会被取消（歌会留在歌单里）`, () => { S.cb = null; save(); render(); }); break;
+    case 'cbcancel': bbConfirm('取消回归？', `《${cbAlbum()?.name || ''}》的回归计划会被取消（歌会留在歌单里）`, () => { prepCancel(); S.cb = null; save(); render(); }); break;
     case 'psave': {
       const p = S.profile;
       p.name = $('#p-name').value.trim() || p.name; p.fandom = $('#p-fandom').value.trim() || p.fandom;
@@ -7469,7 +7905,10 @@ document.addEventListener('click', async e => {
   }
 });
 document.addEventListener('change', async e => {
-  if (e.target.id === 'r-cat') locQSync();
+  if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
+  if (e.target.id === 'r-work') syncWorkField();
+  if (e.target.id === 'r-cbt') e.target.dataset.touched = 1;
+  if ((e.target.id === 'al-tbd' || e.target.id === 'al-copick') && UI.alb) { albCollect(); openModal(albHTML()); return; }
   if (e.target.classList && e.target.classList.contains('chbf-g')) { const row = e.target.parentElement, ps = row.querySelector('.chbf-p'), ss = row.querySelector('.chbf-s'); ps.innerHTML = chMemberOpts(e.target.value); ps.style.display = ss.style.display = e.target.value ? '' : 'none'; return; }
   if (e.target.dataset && e.target.dataset.gtype !== undefined) { const t = e.target, box = t.closest('.gpick'); box.outerHTML = giftPickHTML(t.dataset.gtype, t.dataset.gcat, t.value ? t.value + ':0' : ''); return; }
   const t = e.target;
@@ -7507,9 +7946,10 @@ document.addEventListener('change', async e => {
   }
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'r-title') syncWorkField();
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
   if (e.target.id === 'w-in' || e.target.id === 'w-cur') walletPreview();
-  if ((e.target.id === 'al-date' || e.target.id === 'al-weeks') && $('#al-warn')) $('#al-warn').innerHTML = cbRivalWarn($('#al-date').value, +$('#al-weeks').value);
+  if ((e.target.id === 'al-date' || e.target.id === 'al-weeks') && $('#al-warn')) { $('#al-warn').innerHTML = cbRivalWarn($('#al-date').value, +$('#al-weeks').value); if ($('#al-pwarn')) $('#al-pwarn').innerHTML = prepDateWarn({ ...UI.alb, date: $('#al-date').value, type: $('#al-type').value }); }
   if (e.target.id === 'cmp-text') draft = e.target.value;
   if (e.target.id === 'cmp-desc') draftDesc = e.target.value;
   if (e.target.id === 'bb-in') { UI.bbDraft = e.target.value; e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }
