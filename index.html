@@ -6272,11 +6272,12 @@ ${p.key === 'CRAVITY|세림' ? '世琳是她最要好的朋友，两人在这个
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
+${socWho(p)}现在：${socNow(p).zh}。
 ${S.profile.name} 今天的行程：${today}
 最近的 KKT 聊天：
 ${chat || '（还没聊过）'}`;
 }
-const SOC_RULES = `规则：只引用上面记录里真实发生过的事；不确定的事不要当作事实，可以自然地问或者用不依赖它的说法。答应了不等于已经落实。暧昧不是目标，没有足够的基础就保持普通聊天，可以冷淡、忙、拒绝、误会，但要符合这个人的性格和情境。回复要自然、简短，像真人发 KKT，不用每句都推进关系，不要每次都问问题。`;
+const SOC_RULES = `规则：只引用上面记录里真实发生过的事；不确定的事不要当作事实，可以自然地问或者用不依赖它的说法。答应了不等于已经落实。暧昧不是目标，没有足够的基础就保持普通聊天，可以冷淡、忙、拒绝、误会，但要符合这个人的性格和情境。回复要像真人发 KKT：有内容、有自己的态度和想法，不空洞、不客套；长短看情况，不用每句都推进关系，不要每次都问问题。`;
 // 晚上有空的时间（线下吃饭 / 喝咖啡要在这里面）
 function socEve(k) {
   const busy = rulesFor(k).filter(r => !/宿舍/.test(r.loc || '') && r.cat !== 'other').map(r => [toMin(r.start), Math.max(toMin(r.start) + 1, toMin(r.end))]);
@@ -6427,16 +6428,46 @@ function socPlanTonight(p, todoId) {
   SO.q.push({ id: uid(), day: today, ev: 'th_planDo', at: Math.round(at + Math.random() * Math.min(60, b - at)), until: b + 120, p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, todo: todoId }); save(); return true;
 }
 // KKT 回复不保证马上来：按性格 + 时间排队（关掉页面也会接着来）
-function dmDelay(p) { const P = socPers(p), h = new Date().getHours(); let m = rand(P.sp[0], P.sp[1]); if (Math.random() < .18) m += rand(20, 120); if (h >= 2 && h < 8) m += (9 - h) * 60; return m * 60e3; }
+// 对方是不是在回归 / 活动期：本周打歌名单里有就是；CRAVITY 按真实回归；其他团按固定的伪随机回归周期（每 ~4 个月活动 4 周左右）
+const REAL_PROMO = { CRAVITY: ['2026-09-30', '2026-10-26'] };
+function socPromo(g, dk = dkey(Date.now())) {
+  const RW = REAL_WEEKS[weekOf(dk)]; if (RW && RW.some(x => x[0] === g)) return true;
+  const R0 = REAL_PROMO[g]; if (R0) return dk >= R0[0] && dk <= R0[1];
+  const day = Math.floor(parseD(dk).getTime() / 86400e3), cyc = Math.floor(day / 120), off = Math.floor(srng('promo' + g + cyc)() * 92);
+  return day - cyc * 120 >= off && day - cyc * 120 < off + 28;
+}
+// 他现在大概在干嘛（只是状态，不是和你的共同经历）
+function socNow(p) {
+  const h = new Date().getHours(), promo = socPromo(p.g), wake = promo ? 8 : 11 + Math.floor(srng('wk' + p.key)() * 2);
+  if (h >= 5 && h < wake) return { busy: 1, sleep: 1, zh: promo ? '活动期，昨晚很晚才收工，现在还在睡' : '空白期，作息比较晚，现在还在睡' };
+  if (promo) return h >= 22 || h < 5 ? { busy: 0, zh: '回归活动期，今天的行程刚结束，在回宿舍的车上或宿舍，有点累但终于能看手机了' } : { busy: 1, zh: '回归活动期，白天在打歌 / 拍摄 / 练习，只能在候场或移动的空隙看手机' };
+  return h >= wake && h < 18 ? { busy: 0, zh: '空白期，白天相对闲（练习、录音、健身或在宿舍）' } : { busy: 0, zh: '空白期，晚上在宿舍或练习室，熬夜是常事' };
+}
+// KKT 回复不会秒回：看性格、时间（爱豆作息晚）、是不是活动期；聊起来以后会回得快一点
+function dmDelay(p) {
+  const P = socPers(p), T = dms()[p.key], now = Date.now(), d = new Date(), h = d.getHours(), st = socNow(p);
+  let m = rand(P.sp[0], P.sp[1]);
+  if (st.sleep) { const wake = new Date(d); wake.setHours(socPromo(p.g) ? 8 : 11, 0, 0, 0); return Math.max(wake - now, 0) + rand(5, 70) * 60e3; }
+  if (st.busy) { if (Math.random() < .25) { const off = new Date(d); off.setHours(22, 0, 0, 0); if (off > now) return off - now + rand(10, 120) * 60e3; } m = m * 2 + rand(15, 90); } // 行程中：空隙才看手机，有时干脆等收工
+  if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .75) m = Math.min(m, rand(.5, 3)); // 正在看手机：接着聊会快
+  else if (Math.random() < .15) m += rand(30, 180); // 看到了但忙忘了
+  return Math.max(.6, m) * 60e3;
+}
 function dmQueue(p, list, delay) { const T = dmThread(p); (T.pend || (T.pend = [])).push({ at: Date.now() + (delay == null ? dmDelay(p) : delay), list }); save(); }
-function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) d.list.forEach((m, i) => setTimeout(() => dmPush(T.p, m), i * rand(1200, 3500))); save(); } }
+function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { T.lastOut = Date.now(); d.list.forEach((m, i) => setTimeout(() => dmPush(T.p, m), i * rand(1500, 5000) + String(m.text || '').length * 120)); } save(); } }
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
 async function dmChatAi(T, mine) {
   const p = T.p, pers = socPers(p), P = socPX(p);
   const local = () => { const n = pers.id === 'warm' && Math.random() < .5 ? 2 : 1; return pickN(PERS_LOCAL[pers.id], n).map(L => persFix(L, socBan(p))).map(([ko, zh]) => ({ text: ko, zh })); };
   if (!aiOn()) { if (pers.id === 'cool' && Math.random() < .25) return null; return { list: local() }; }
   try {
-    const j = await aiRaw([{ type: 'text', text: `你在扮演 ${socWho(p)}，和 ${S.profile.name}（女，solo 爱豆，STARSHIP，单身，2025 年出道）用 KKT 私聊。\n${socCtx(p)}\n\n${S.profile.name}刚发来：「${mine}」\n\n${SOC_RULES}\n用韩语回（zh 写中文意思）。按性格决定发 1~3 条，也可以不回（noReply）。\ntodo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，today 表示说好就是今晚。\nmem：用一句中文客观记下这次真正聊到的内容（没聊什么就留空）。\nunsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 500,
+    const j = await aiRaw([{ type: 'text', text: `你在扮演 ${socWho(p)}，和 ${S.profile.name}（女，solo 爱豆，STARSHIP，单身，2025 年出道）用 KKT 私聊。\n${socCtx(p)}\n\n${S.profile.name}刚发来：「${mine}」\n\n${SOC_RULES}\n怎么回（重要）：
+- 像真人在 KKT 上回朋友，要有内容、有自己的想法，不要空洞的客套话。不要只回「좋아요」「화이팅」「그렇구나」这种。
+- 她问意见：给出明确的看法和理由（「我觉得 A 更好，因为…」「说实话 B 有点…」），可以不同意她、可以犹豫，但要说出自己怎么想；结合他自己的经验、喜好和工作（只能用档案里有的或很普通的爱豆日常，不编和她的共同经历）。
+- 她分享事情：针对她说的具体内容回应，接着她的话往下聊，可以分享一点自己相关的近况或感受（符合「现在」的状态，比如活动期很累、刚收工），可以吐槽、开玩笑、损她一句。
+- 不是每条都要反问；有时一句就够，有时会连发几条。不要每次都用同一种结构。
+- 不确定的事就说不知道或问她，但仍然给出自己的直觉。
+用韩语回（zh 写中文意思）。按性格决定发 1~4 条，也可以不回（noReply）。\ntodo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，today 表示说好就是今晚。\nmem：用一句中文客观记下这次真正聊到的内容（没聊什么就留空）。\nunsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 800,
       { type: 'object', additionalProperties: false, required: ['msgs', 'noReply', 'todo', 'today', 'mem', 'unsure'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, noReply: { type: 'boolean' }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal'] }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } });
     if (j.mem && !j.unsure) { const today = dkey(Date.now()), L = socLast(P, ['chat']); if (L && L.day === today && L.ai) L.d = (L.d + '；' + j.mem).slice(-120); else socEx(p, 'chat', j.mem, '', { ai: 1 }); }
     if (j.todo) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
