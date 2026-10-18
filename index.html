@@ -5802,7 +5802,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); serimMemFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -6533,6 +6533,15 @@ function serimRedoMig() {
   const SO = social(); if (SO.serimRedo) return; SO.serimRedo = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
   let i = T.msgs.length - 1; while (i >= 0 && !T.msgs[i].me) i--; if (i < 0) return;
   T.msgs = T.msgs.slice(0, i + 1); T.pend = []; T.rd = null; T.due = { at: Date.now() + 5e3 }; save();
+}
+// 一次性：删掉世琳那段被重做的旧回复留在「你们之间发生过的事」里的记录，按现在留下的聊天重新记一条
+function serimMemFix() {
+  const SO = social(); if (SO.serimMemFix) return; SO.serimMemFix = 1; const T = dms()['CRAVITY|세림'], P = (SO.ppl || {})['CRAVITY|세림']; if (!T || !P || !P.ex) return;
+  let i = T.msgs.length - 1; while (i >= 0 && !T.msgs[i].me) i--; let j = i; while (j > 0 && T.msgs[j - 1].me) j--; if (j < 0) return;
+  const day = dkey(T.msgs[j].at); P.ex = P.ex.filter(e => !(e.t === 'chat' && e.ai && e.day >= day));
+  const mine = T.msgs.slice(j, i + 1).map(m => m.text).join(' '), his = T.msgs.slice(i + 1).filter(m => !m.me && !m.sys).map(m => m.zh || m.text).join(' ');
+  if (his) P.ex.push({ day: dkey(Date.now()), t: 'chat', d: `KKT 上你发「${mine.slice(0, 20)}」，他回：${his.slice(0, 60)}`, ai: 1 });
+  save();
 }
 function nameMig() { const SO = social(); if (SO.nameV) return; SO.nameV = 1; for (const f of chal().friends) if (f.z === '成珉') f.z = '成民'; for (const T of Object.values(dms())) if (T.p.z === '成珉') T.p.z = '成民'; save(); }
 function soloMig() {
