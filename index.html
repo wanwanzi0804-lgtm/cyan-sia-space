@@ -6457,13 +6457,16 @@ function socNow(p) {
 const lognorm = (med, spread) => med * Math.exp((Math.random() + Math.random() + Math.random() - 1.5) * spread);
 function dmDelay(p) {
   const P = socPers(p), T = dms()[p.key], now = Date.now(), st = socNow(p), D = socDay(p);
-  const rel = socBan(p) ? .6 : socStage(p) === 'acq' || socStage(p) === 'new' ? 1.4 : 1; // 熟的人优先回
+  const stg = socStage(p), fr = friendOf(p.g, p.n), Pp = socPX(p);
+  // 关系越好越优先回：最要好 > 暧昧 > 很熟 > 普通朋友 > 刚认识；最近拒绝过 / 冷下来的会更慢
+  let rel = fr && fr.lv === 'best' ? .4 : stg === 'amb' ? .45 : stg === 'close' ? .6 : stg === 'friend' ? .85 : stg === 'acq' ? 1.8 : 3;
+  if (Pp.cool && Pp.cool > dkey(now)) rel *= 1.8;
   const med = Math.sqrt(P.sp[0] * P.sp[1]); let m;
   if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
   else if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .7) m = lognorm(1.5, .8); // 正聊着
-  else if (st.busy) m = Math.random() < .1 ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机，大多等下一次空隙
+  else if (st.busy) m = Math.random() < (rel < .5 ? .3 : rel < .9 ? .15 : .06) ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机（越亲的人越会偷偷回），大多等下一次空隙
   else m = lognorm(med, 1.1) * rel;
-  if (Math.random() < .12) m += lognorm(70, .9); // 看到了但忙忘了
+  if (Math.random() < (rel < .5 ? .05 : rel > 1.2 ? .2 : .12)) m += lognorm(70, .9); // 看到了但忙忘了（不熟的更容易忘）
   return Math.max(.5, m) * 60e3;
 }
 function dmQueue(p, list, delay) { const T = dmThread(p); (T.pend || (T.pend = [])).push({ at: Date.now() + (delay == null ? dmDelay(p) : delay), list }); save(); }
