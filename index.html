@@ -6443,6 +6443,7 @@ function socDay(p, dk = dkey(Date.now())) {
   const sleepLen = (promo ? 240 + r() * 150 : 360 + r() * 210), wake = sleepS + sleepLen;
   const light = !promo || r() < .18; // 活动期也有空一点的日子
   const busyS = Math.max(wake + 30, (promo ? 360 : 600) + r() * 240), busyE = (promo ? 1140 : 1020) + r() * 300;
+  if (promo && !light && busyS < 540 && r() < .45) { sleepS = r() * 100; } // 第二天行程很早：今晚早点睡
   return { promo, sleepS, wake, light, busyS, busyE, check: 35 + r() * 90 + srng('chk' + p.key)() * 60 };
 }
 function socNow(p) {
@@ -6465,7 +6466,12 @@ function dmDelay(p) {
   if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
   else if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .7) m = lognorm(1.5, .8); // 正聊着
   else if (st.busy) m = Math.random() < (rel < .5 ? .3 : rel < .9 ? .15 : .06) ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机（越亲的人越会偷偷回），大多等下一次空隙
-  else m = lognorm(med, 1.1) * rel;
+  else {
+    const nm = new Date().getHours() * 60 + new Date().getMinutes(), late = nm < 300 || nm >= 1380;
+    if (late && D.promo && Math.random() < .2) m = (D.wake - nm + (nm >= 1380 ? 1440 : 0)) + lognorm(25, 1); // 太累了，消息没看就睡着了
+    else if (Math.random() < (P.id === 'warm' ? .45 : .35) + (rel < .5 ? .1 : 0)) m = Math.max(lognorm(med, .8) * rel, lognorm(1.2, .5)); // 正好在看手机（看完、打字也要一会儿）
+    else m = lognorm(22, 1) * (rel < .5 ? .7 : rel > 1.2 ? 1.5 : 1); // 醒着但在忙别的：洗澡、吃夜宵、打游戏、跟成员闹
+  }
   if (Math.random() < (rel < .5 ? .05 : rel > 1.2 ? .2 : .12)) m += lognorm(70, .9); // 看到了但忙忘了（不熟的更容易忘）
   return Math.max(.5, m) * 60e3;
 }
