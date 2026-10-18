@@ -5397,7 +5397,7 @@ const CH_OTHERS = [
   ['ITZY', '있지', 8.5, [['예지', '黄礼志'], ['리아', 'Lia'], ['류진', '申留真'], ['채령', '李彩领'], ['유나', '申有娜']]],
   ['NMIXX', '엔믹스', 8.5, [['릴리', 'Lily'], ['해원', '吴海媛'], ['설윤', '薛允'], ['배이', 'BAE'], ['지우', '智友'], ['규진', '张圭真']]],
   ['TREASURE', '트레저', 8.5, [['현석', '崔玹硕'], ['지훈', '朴志训'], ['요시', 'Yoshi'], ['준규', '金俊奎'], ['재혁', '尹材赫'], ['아사히', 'Asahi'], ['도영', '金到永'], ['하루토', 'Haruto'], ['정우', '朴正雨'], ['정환', '苏正焕']]],
-  ['THE BOYZ', '더보이즈', 8, [['상연', '李尚渊'], ['제이콥', 'Jacob'], ['영훈', '金英勋'], ['현재', '李玹在'], ['주연', '李柱延'], ['케빈', 'Kevin'], ['뉴', 'New'], ['큐', 'Q'], ['선우', '金善宇'], ['에릭', 'Eric']]],
+  ['THE BOYZ', '더보이즈', 8, [['상연', '李尚渊'], ['제이콥', 'Jacob'], ['영훈', '金英勋'], ['현재', '李玹在'], ['주연', '李柱延'], ['케빈', 'Kevin'], ['큐', 'Q'], ['선우', '金善宇'], ['에릭', 'Eric']]],
   ['PLAVE', '플레이브', 9, [['예준', 'Yejun'], ['노아', 'Noah'], ['밤비', 'Bamby'], ['은호', 'Eunho'], ['하민', 'Hamin']]],
   ['P1Harmony', '피원하모니', 8, [['기호', 'Keeho'], ['테오', 'Theo'], ['지웅', 'Jiung'], ['인탁', 'Intak'], ['소울', 'Soul'], ['종섭', 'Jongseob']]],
   ['WayV', '웨이션브이', 7.5, [['쿤', '钱锟'], ['텐', '李永钦'], ['윈윈', '董思成'], ['샤오쥔', '肖德俊'], ['헨드리', '黄冠亨'], ['양양', '刘扬扬']]],
@@ -5435,6 +5435,9 @@ function friendOf(g, n) { return chal().friends.find(x => x.n === n && (!x.g || 
 function chDayOk(k) { return k >= dkey(Date.now()) && rulesFor(k).some(r => CH_DAY_CATS.includes(r.cat)); }
 // 我的咖位：粉丝体量 + 热度 + 一位次数
 function myTier() { const f = S.profile.followers, wins = Object.values(showsState().res).filter(x => x.rank === 1).length; return clamp(2 + 2.2 * Math.log10(Math.max(f, 1000) / 5000) + 1.2 * (heat() - 1) + .25 * wins, 1, 10); }
+// 服役中（还没退伍）的艺人：暂时不出现在 challenge、圈内交集、KKT 新事件里，退伍后从这里删掉就回来了
+const MIL_OUT = ['MONSTA X|아이엠'];
+for (const G of [...CH_SAME, ...CH_OTHERS]) G[3] = G[3].filter(([n]) => !MIL_OUT.includes(G[0] + '|' + n));
 function chFind(g, n) { for (const [kind, L] of [['same', CH_SAME], ['other', CH_OTHERS]]) { const G = L.find(x => x[0] === g); if (G) { const m = G[3].find(x => x[0] === n); if (m) return { kind, g, gk: G[1], tier: G[2], n, z: m[1] }; } } const fr = chal().friends.find(x => x.g === g && x.n === n); return fr ? { kind: 'friend', g, gk: g, tier: 5, n, z: fr.z || '' } : null; }
 function chKind(p) { return friendOf(p.g, p.n) ? 'friend' : p.kind; }
 function chSongs(ref) { ref = ref || dkey(Date.now()); const out = []; for (const a of relList().slice().reverse().filter(a => a.date <= ref && a.date >= addDays(ref, -183))) for (const t of a.tracks) out.push([a.id, t.name, !!t.title]); return out.sort((x, y) => y[2] - x[2]); }
