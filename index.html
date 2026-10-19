@@ -7034,14 +7034,22 @@ function dmQueue(p, list, delay) { const T = dmThread(p), d = delay == null ? dm
 function dmWillRead(T, at) { const upto = Date.now(); if (!T.rd || T.rd.at > at) T.rd = { at, upto }; else T.rd.upto = Math.max(T.rd.upto, upto); }
 // 到点了：他看了你发的所有消息，一次性回（不会每条各回一遍、前后矛盾）
 async function dmDueReply(T) {
-  T.gen = 1; save(); const when = Math.min(T.due.at, Date.now()); let keep = null; // 他是在这个时间看到并回的（就算你那时没开着页面）
+  T.gen = 1; T.genAt = Date.now(); save(); const when = Math.min(T.due.at, Date.now()); let keep = null; // 他是在这个时间看到并回的（就算你那时没开着页面）
   try { const last = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) last.unshift(T.msgs[i].text);
     const later = !!T.due.later, r = last.length ? await dmChatAi(T, last.join('\n'), when, later) : null;
-    if (r && r.later) { const at = when + Math.max(15, lognorm(socNow(T.p, when).busy ? 120 : 70, .7)) * 60e3; keep = { at, later: 1 }; T.readTo = Math.max(T.readTo || 0, when); return; } // 已读，过一阵再回
+    if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1 }; T.readTo = Math.max(T.readTo || 0, when); return; } // 已读，过一阵再回
     if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: r.list }); } else T.readTo = Math.max(T.readTo || 0, when); // 不回也已经读过了
   } finally { T.due = keep; T.gen = 0; save(); }
 }
-function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) if (T.due && !T.gen && now >= T.due.at) dmDueReply(T); for (const T of Object.values(dms())) { if (T.readTo === undefined) { const o = T.msgs.filter(m => !m.me && !m.sys).pop(); T.readTo = T.pend && T.pend.length ? (o ? o.at : 0) : now; } if (T.rd && now >= T.rd.at) { T.readTo = Math.max(T.readTo || 0, T.rd.upto); T.rd = null; save(); if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } } for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { if (now - d.at > 60e3) { let t = d.at; d.list.forEach((m, i) => { if (i) t += rand(.8, 2.5) * 1e3 + String(m.text || '').length / 3.5 * 1e3; dmPush(T.p, { ...m, at: Math.min(t, now) }); }); T.msgs.sort((a, b) => a.at - b.at); T.lastOut = d.at; T.readTo = Math.max(T.readTo || 0, d.at); continue; }
+// 好朋友：看了你的消息（不是晚安这种收尾）却一直没回 → 过一阵还是会回（关掉页面导致生成中断也会补上）
+const dmClose = p => { const fr = friendOf(p.g, p.n); return (fr && ['best', 'close'].includes(fr.lv)) || ['close', 'amb'].includes(socStage(p)); };
+function dmRescue(T, now) {
+  if (T.gen && now - (T.genAt || 0) > 120e3) T.gen = 0; // 生成到一半页面被关了
+  const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || m.rescued || T.due || (T.pend && T.pend.length) || T.gen) return;
+  if (!dmClose(T.p) || (T.readTo || 0) < m.at || now - m.at < 40 * 60e3 || (dmBye(m.text) && !dmAsk(m.text))) return;
+  m.rescued = 1; T.due = { at: now + rand(1, 6) * 60e3, later: 1 }; save();
+}
+function dmPendTick() { const now = Date.now(); for (const T of Object.values(dms())) { dmRescue(T, now); if (T.due && !T.gen && now >= T.due.at) dmDueReply(T); } for (const T of Object.values(dms())) { if (T.readTo === undefined) { const o = T.msgs.filter(m => !m.me && !m.sys).pop(); T.readTo = T.pend && T.pend.length ? (o ? o.at : 0) : now; } if (T.rd && now >= T.rd.at) { T.readTo = Math.max(T.readTo || 0, T.rd.upto); T.rd = null; save(); if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } } for (const T of Object.values(dms())) if (T.pend && T.pend.length) { const due = T.pend.filter(x => x.at <= now); if (!due.length) continue; T.pend = T.pend.filter(x => x.at > now); for (const d of due) { if (now - d.at > 60e3) { let t = d.at; d.list.forEach((m, i) => { if (i) t += rand(.8, 2.5) * 1e3 + String(m.text || '').length / 3.5 * 1e3; dmPush(T.p, { ...m, at: Math.min(t, now) }); }); T.msgs.sort((a, b) => a.at - b.at); T.lastOut = d.at; T.readTo = Math.max(T.readTo || 0, d.at); continue; }
         { T.lastOut = Date.now(); let t = 0; const cps = { warm: 4.5, funny: 4.5, direct: 4, gentle: 3, polite: 2.6, cool: 3, neutral: 3.2 }[socPers(T.p).id] || 3.2;
           d.list.forEach((m, i) => { if (i) t += rand(.8, 2.5) * 1e3 + String(m.text || '').length / cps * 1e3 * rand(.8, 1.3); UI.typing = { ...(UI.typing || {}), [T.p.key]: Date.now() + t }; setTimeout(() => { dmPush(T.p, m); if (i === d.list.length - 1 && UI.typing) { delete UI.typing[T.p.key]; if (UI.dmOpen === T.p.key) openModal(dmHTML(T.p.key)); } }, t); }); } } save(); } }
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
@@ -7072,7 +7080,7 @@ async function dmChatAi(T, mine, when, later) {
   const p = T.p, pers = socPers(p), P = socPX(p), ban = socBan(p), vibe = socVibe(p, when);
   const local = () => {
     if (dmBye(mine)) { const L = /잘\s*자|굿나잇|좋은\s*꿈|자러|잘게|晚安|睡了/.test(mine) ? (ban ? [['웅 잘자', '嗯晚安'], ['ㅇㅇ 굿나잇', '嗯嗯晚安'], ['잘자~', '晚安~']] : [['네 잘 자요', '好的，晚安'], ['굿나잇이에요ㅎㅎ', '晚安呵呵']]) : /고마|감사|谢/.test(mine) ? (ban ? [['ㅋㅋ 뭘', '哈哈谢什么'], ['웅웅', '嗯嗯']] : [['아니에요ㅎㅎ', '没事呵呵'], ['넵ㅎㅎ', '好的呵呵']]) : /화이팅|파이팅|加油/.test(mine) ? (ban ? [['너두', '你也是'], ['ㅇㅇ', '嗯嗯']] : [['감사해요!', '谢谢！'], ['네 같이 화이팅해요', '嗯一起加油']]) : (ban ? [['ㅇㅋ', 'OK'], ['웅웅', '嗯嗯']] : [['넵!', '好的！']]); const [ko, zh] = pick(L); return Math.random() < .15 ? null : { list: [{ text: ko, zh }] }; }
-    if (!dmAsk(mine) && Math.random() < (vibe === 'tired' ? .4 : vibe === 'brief' ? .25 : .1)) return null;
+    if (!dmAsk(mine) && !dmClose(p) && Math.random() < (vibe === 'tired' ? .4 : vibe === 'brief' ? .25 : .1)) return null;
     return { list: [persFix(pick(PERS_LOCAL[pers.id]), ban)].map(([ko, zh]) => ({ text: ko, zh })) };
   };
   if (!aiOn()) return local();
@@ -7103,7 +7111,7 @@ ${S.profile.name}发来、他还没回的消息（合在一起回，不要一条
 
 ${SOC_RULES}
 
-act：reply（正常回）/ react（只回一个很短的反应或表情，msgs 里放 1 条）/ read（已读，觉得不用回了。只用在话题已经结束或者只是个表情的时候，不要用在她问了问题或说了重要的事的时候，也不要太常用）/ later（已读，现在不方便或不想打字，过一阵再回；msgs 留空）。
+act：${dmClose(p) ? '（你们很要好，基本不会已读不回：没空就选 later，晚点回）' : ''}reply（正常回）/ react（只回一个很短的反应或表情，msgs 里放 1 条）/ read（已读，觉得不用回了。只用在话题已经结束或者只是个表情的时候，不要用在她问了问题或说了重要的事的时候，也不要太常用）/ later（已读，现在不方便或不想打字，过一阵再回；msgs 留空）。
 msgs：韩语 ko + 中文 zh（zh 是准确自然的翻译，不要加原文没有的情绪）。
 todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，today 表示说好就是今晚。
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
@@ -7112,9 +7120,11 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
     if (j.todo) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
     let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
-    if (act === 'read' && dmAsk(mine)) act = 'later'; // 问了问题不会就这么不回
+    const close = dmClose(p), bye = dmBye(mine) && !dmAsk(mine);
+    if (act === 'read' && (dmAsk(mine) || (close && !bye))) act = 'later'; // 问了问题 / 好朋友：不会就这么已读不回
     if (later && act === 'later') act = msgs.length ? 'reply' : 'read';
     if (act === 'later') return { later: 1 };
+    if ((act === 'read' || !msgs.length) && close && !bye) return local() || { list: [{ text: ban ? 'ㅋㅋ 웅' : '네ㅎㅎ', zh: ban ? '哈哈嗯' : '嗯呵呵' }] }; // 好朋友至少回一句
     if (act === 'read' || !msgs.length) return null;
     return { list: (act === 'react' ? msgs.slice(0, 1) : msgs.slice(0, 5)).map(m => ({ text: m.ko, zh: m.zh })) };
   } catch (err) { return local(); }
@@ -7324,7 +7334,7 @@ function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
-async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友，用半语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
