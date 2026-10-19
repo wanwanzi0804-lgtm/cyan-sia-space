@@ -1768,7 +1768,9 @@ function albSave() {
     }
     alb.promo = true; S.cb = { albumId: alb.id, date: A.date, tbd: !!A.tbd, weeks: A.weeks, rest: A.rest, follow: alb.tracks.some(t => t.name === A.follow && !t.title) ? A.follow : '', done: keep ? keep.done : {}, res: keep ? keep.res : [], prep };
   }
-  salesState().albV = 0; // 作品信息变了，成绩按新热度重算
+  { // 编辑作品不再把所有成绩按公式重算（会把真实累计的播放 / 销量冲掉）；只把改了名的歌的数据跟过去，新歌 / 改了发行日的由补数据处理
+    const SS = salesState(); if (prev) prev.tracks.forEach((t, i) => { const nt = alb.tracks[i], o = alb.id + '|' + t.name; if (nt && nt.name !== t.name && SS.trk[o] && !SS.trk[alb.id + '|' + nt.name]) { SS.trk[alb.id + '|' + nt.name] = SS.trk[o]; delete SS.trk[o]; } });
+  }
   syncSongs(); save(); closeModal(); render();
   toast(cb ? (A.tbd ? '回归企划开始了 💿' : '回归定下了 💿') : '已保存到歌单', `《${alb.name}》`);
 }
