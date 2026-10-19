@@ -3051,6 +3051,15 @@ function mgrChat() {
   return M;
 }
 // t：韩语字符串，或 [韩语, 中文]
+// 一次性：把 10/19 那两条多余叮嘱的经纪人消息改短
+function mgrTrimMig() {
+  const M = mgrChat(); if (M.trim1) return; M.trim1 = 1;
+  for (const m of M.chat) {
+    if (/무리하지 말고 몸 풀면서/.test(m.text || '')) { m.text = m.text.replace(/\s*오늘 저녁 무대 준비 잘 해요!?\s*/, ' ').replace(/\s*연습실 가서 무리하지 말고 몸 풀면서 해요~?/, '').trim(); m.zh = (m.zh || '').replace(/\s*今晚的舞台好好准备！?\s*/, ' ').replace(/\s*去练习室别太勉强，热身着来哦～?~?/, '').trim(); }
+    if (/컨디션 안 좋으면 바로 말해/.test(m.text || '')) { m.text = m.text.replace(/\s*혹시 연습 끝나고.*$/, '').trim(); m.zh = (m.zh || '').replace(/[。.]?\s*练习完如果.*$/, '。').trim(); }
+  }
+  save();
+}
 function mgrSay(t, card, silent) {
   const [ko0, zh] = Array.isArray(t) ? t : [t, ''], ko = toKo(ko0), M = mgrChat(); // 经纪人的韩语里不夹中文
   M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, card: card || null });
@@ -6323,7 +6332,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
