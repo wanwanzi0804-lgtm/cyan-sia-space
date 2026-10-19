@@ -1610,8 +1610,17 @@ function cbLine() {
   const c = S.cb, p = cbPhase(), a = cbAlbum(); if (!c || !a || !CB_TALK[p]) return null;
   const won = (c.res || []).some(x => x.rank === 1 && Date.now() - x.at < 2 * 86400e3);
   if (a.intro && !won && ['tease', 'promo'].includes(p) && Math.random() < .2) return fill(pick(['专辑简介看哭了', '这次的概念好特别', '简介里那句好戳我', '读完简介更期待了', '《{album}》的故事好好']).replace(/\{album\}/g, a.name));
+  if (!won && a.recep != null && a.recep < 55 && ['promo', 'rest', 'follow'].includes(p) && Math.random() < (a.recep < 45 ? .55 : .3)) return fill(pick(['这次的歌我真的听不进去…', '人是好看的，歌就……', '还是更喜欢之前的风格', '副歌有点吵', '死忠粉表示照样打榜', '不管歌怎么样我都会支持的', '这次的概念我没get到', '路人朋友听完说一般'])).replace(/\{album\}/g, a.name);
   return fill(pick(won ? CB_TALK.win : CB_TALK[p])).replace(/\{song\}/g, cbSong() || a.name).replace(/\{album\}/g, a.name).replace(/\{type\}/g, ALB_TYPE[a.type] || '新歌');
 }
+// 回归口碑：主打好不好听、合不合大众口味（自己写的歌看作品质量 / 商业潜力；公司选的歌看候选评分；手填的歌按专辑随机）
+function cbRecep(a) {
+  if (a.recep != null) return a.recep;
+  const t = a.tracks.find(x => x.title) || a.tracks[0] || {}, w = t.wid && mzWork(t.wid), P = S.cb && S.cb.albumId === a.id && S.cb.prep, cd = P && P.cands && P.cands.find(x => x.name === t.name);
+  const r = srng('recep' + a.id), q = w && w.q != null ? w.q : cd ? cd.q : 50 + r() * 40, c = w && w.c != null ? w.c : cd ? cd.c : (r() < .15 ? 25 + r() * 25 : 45 + r() * 45);
+  return a.recep = Math.round(clamp(c * .6 + q * .4 + rand(-8, 8), 5, 99));
+}
+const RECEP_ZH = r => r >= 75 ? '新歌口碑很好，路人也在听' : r >= 55 ? '' : r >= 45 ? '新歌反响一般，有人说没以前好听' : '新歌口碑不太好，不少人说听不下去，路人粉在流失（死忠粉还在）';
 function cbTick() {
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return;
   const d = cbDay(), f = S.profile.followers, today = dkey(Date.now()), done = c.done || (c.done = {}), P = cbPlan(), s = -d, title = albTitle(a);
@@ -1621,13 +1630,17 @@ function cbTick() {
   if (d === 7) once('teaser', () => { const o = prepOn(); if (o && !o.t.mv.done) pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》Trailer 公开`, sub: 'MV 还没拍完，这次先放了概念 Trailer' }, true); else pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》${o ? 'MV 预告' : '预告'}公开`, sub: '粉丝们开始倒计时了' }, true); });
   if (d === 1) once('eve', () => pushNotif({ type: 'cb', text: `💿 明天就是《${a.name}》回归日`, sub: '粉丝们在准备应援' }, true));
   if (d <= 0 && s < P.promoEnd) once('d0', () => {
-    const n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1) * prepFanMult());
+    const rc = cbRecep(a), n = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1) * prepFanMult() * (rc >= 75 ? 1.25 : rc >= 55 ? 1 : rc >= 45 ? .6 : .3));
     addFans(n, '回归：' + a.name);
     const pc = { single: [5e7, 1e8], mini: [1.5e8, 2.5e8], full: [2.5e8, 4e8] }[a.type]; // 专辑制作、MV、宣传费用由公司承担，不扣你的钱
-    pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》正式回归！`, sub: `主打《${title}》${a.tracks.length > 1 ? ` · 共 ${a.tracks.length} 首` : ''} · 回归首日涨粉 +${fmtNum(n)}` }, true);
+    pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》正式回归！`, sub: `主打《${title}》${a.tracks.length > 1 ? ` · 共 ${a.tracks.length} 首` : ''} · 回归首日涨粉 +${fmtNum(n)}${RECEP_ZH(rc) ? ' · ' + RECEP_ZH(rc) : ''}` }, true);
   });
   if (c.rest && s >= P.promoEnd && s < P.followStart) once('rest', () => pushNotif({ type: 'cb', text: `💿 《${title}》主打活动结束`, sub: '这周是休息周，好好休息一下吧' }, true));
   if (c.follow && s >= P.followStart && s < P.followEnd) once('follow', () => pushNotif({ type: 'cb', text: `💿 后续打歌《${c.follow}》开始`, sub: '粉丝们很期待收录曲的舞台' }, true));
+  if (a.recep != null && a.recep < 55 && s >= 1 && s <= 14) once('flop' + today, () => { // 难听 / 不合大众口味：前两周陆续掉粉（掉的大多是路人粉，死忠粉跑得少）
+    const rate = a.recep < 45 ? rand(.025, .05) : rand(.006, .015); addFans(-Math.round(f * rate / 14), '回归口碑');
+    if (s === 3) pushNotif({ type: 'cb', text: `💿 《${title}》${a.recep < 45 ? '口碑不太好' : '反响一般'}`, sub: a.recep < 45 ? '「听不下去」「这次的概念好怪」的评论变多了，有一部分粉丝在脱粉，死忠粉还在打榜' : '有人说「没以前好听」，粉丝数涨得慢，还有一点流失' }, true);
+  });
   showsTick(); // 六大打歌节目每周各自出结果
   if (cbPhase() === 'end') once('end', () => { c.over = true; pushNotif({ type: 'cb', text: `💿 《${a.name}》活动期结束`, sub: '辛苦了！空窗期热度会慢慢回落' }, true); });
 }
@@ -1712,7 +1725,7 @@ function albSave() {
   if (tracks.length && !tracks.some(t => t.title)) tracks[0].title = true;
   if (cb && A.tbd) A.date = addDays(dkey(Date.now()), 30);
   if (cb && !A.date) return toast('请选择回归日期');
-  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', mood: A.mood || 'dance', promo: !!A.promo, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title, ...(t.wid ? { wid: t.wid } : {}) })) };
+  const alb = { id: A.id || uid(), name: A.name.replace(/[《》]/g, ''), type: A.type, date: A.date, intro: A.intro || '', mood: A.mood || 'dance', promo: !!A.promo, tracks: tracks.map(t => ({ name: t.name.replace(/[《》]/g, ''), title: !!t.title, ...(t.wid ? { wid: t.wid } : {}) })), ...(prev && prev.recep != null ? { recep: prev.recep } : {}) };
   const i = disco().findIndex(x => x.id === alb.id); if (i >= 0) disco()[i] = alb; else disco().push(alb);
   if (cb) {
     const keep = keepP && keepP.date === A.date ? keepP : null;
@@ -2580,11 +2593,11 @@ function albumDay(a, dk, f, h, bz, out) {
   const d = a.date ? Math.round((parseD(dk).getTime() - parseD(a.date).getTime()) / 86400e3) : 999;
   if (d < 0) return;
   const boost = (d < 999 ? 1 + 4 * Math.exp(-d / 12) : 1) * momMult(a, dk);
-  const R = relHeat(a).H;
-  a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz * R; });
+  const R = relHeat(a).H, QR = a.recep != null ? clamp(.45 + a.recep / 90, .7, 1.35) : 1; // 口碑：音源 / MV 受影响大，实体专辑主要是粉丝买，受影响小
+  a.tracks.forEach(t => { out.trk[a.id + '|' + t.name] = f * .5 * (t.title ? 1 : .25) * boost * h * bz * R * QR; });
   if (a.type === 'other' || d >= 999) return;
-  const T = f * (ALB_PHYS[a.type] || .1) * Math.pow(R, .6); // 实体主要靠粉丝买，受热度影响小一点
-  out.mv[a.id] = momMult(a, dk) * f * h * bz * R * 2.1 * (2 * Math.exp(-d / 5) + .15 * Math.exp(-d / 60) + .012); out.tt[a.id] = momMult(a, dk) * R * f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
+  const T = f * (ALB_PHYS[a.type] || .1) * Math.pow(R, .6) * Math.sqrt(QR); // 实体主要靠粉丝买，受热度影响小一点
+  out.mv[a.id] = momMult(a, dk) * f * h * bz * R * QR * 2.1 * (2 * Math.exp(-d / 5) + .15 * Math.exp(-d / 60) + .012); out.tt[a.id] = momMult(a, dk) * R * f * .008 * h * bz * (1 + 5 * Math.exp(-d / 7));
   out.alb[a.id] = Math.sqrt(momMult(a, dk)) * (.7 + .3 * h) * (d < 7 ? 1 : bz) * (d < 7 ? T * [.4, .16, .11, .09, .08, .08, .08][d] : T * (.006 * Math.exp(-(d - 7) / 25) + .0008));
 }
 function salesTargets(dk) {
