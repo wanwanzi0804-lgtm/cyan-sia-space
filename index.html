@@ -6763,7 +6763,7 @@ ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
 ${socWho(p)}在 ${socClock(when)} 的状态：${socNow(p, when).zh}；${when && Date.now() - when > 30 * 60e3 ? '' : `此刻具体在${socAct(p, socNow(p))}（这是事实，回复要和它一致，`}${when && Date.now() - when > 30 * 60e3 ? '回复' : ''}也要和他自己在下面聊天里已经说过的话一致，不要前后矛盾${when && Date.now() - when > 30 * 60e3 ? '' : '）'}。
-${cm ? `以前聊天里她提过的事（背景，知道就行，除非正好聊到，否则不要主动提）：\n${cm}\n` : ''}${S.profile.name} 今天的行程（他并不知道，只用来判断约今晚有没有空；不要主动提起）：${today}
+${cm ? `以前聊天里她提过的事（背景，知道就行，除非正好聊到，否则不要主动提）：\n${cm}\n` : ''}${gigCtx(p.g, dkey(when || Date.now()))}${gigCtx(p.g, dkey(when || Date.now())) ? '\n' : ''}${S.profile.name} 今天的行程（他并不知道，只用来判断约今晚有没有空；不要主动提起）：${today}
 最近的 KKT 聊天（带时间，注意中间隔了多久）：
 ${chat || '（还没聊过）'}`;
 }
@@ -6920,6 +6920,15 @@ function socPlanTonight(p, todoId) {
 // KKT 回复不保证马上来：按性格 + 时间排队（关掉页面也会接着来）
 // 对方是不是在回归 / 活动期：本周打歌名单里有就是；CRAVITY 按真实回归；其他团按固定的伪随机回归周期（每 ~4 个月活动 4 周左右）
 const REAL_PROMO = { CRAVITY: ['2026-09-30', '2026-10-26'] };
+// 真实公开日程（演唱会等）：[团, 日期, 开演时间(分钟), 中文说明]；前两周算准备期
+const REAL_GIGS = [
+  ['CRAVITY', '2026-11-14', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第一场'],
+  ['CRAVITY', '2026-11-15', 16 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第二场（同时线上直播）'],
+  ['CRAVITY', '2026-11-21', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉釜山 KBS Hall']
+];
+const gigOn = (g, dk) => REAL_GIGS.find(x => x[0] === g && x[1] === dk);
+const gigPrep = (g, dk) => REAL_GIGS.some(x => x[0] === g && dk < x[1] && dk >= addDays(x[1], -14));
+function gigCtx(g, dk) { const L = REAL_GIGS.filter(x => x[0] === g && x[1] >= addDays(dk, -3) && x[1] <= addDays(dk, 45)); return L.length ? `${g} 近期公开日程（真实，粉丝都知道）：${L.map(x => `${+x[1].slice(5, 7)}/${+x[1].slice(8)} ${hhmm(x[2])} ${x[3]}`).join('；')}。只在聊到时自然提，不用主动讲。` : ''; }
 function socPromo(g, dk = dkey(Date.now())) {
   const RW = REAL_WEEKS[weekOf(dk)]; if (RW && RW.some(x => x[0] === g)) return true;
   const R0 = REAL_PROMO[g]; if (R0) return dk >= R0[0] && dk <= R0[1];
@@ -6934,6 +6943,9 @@ function socDay(p, dk = dkey(Date.now())) {
   const light = !promo || r() < .18; // 活动期也有空一点的日子
   const busyS = Math.max(wake + 30, (promo ? 360 : 600) + r() * 240), busyE = (promo ? 1140 : 1020) + r() * 300;
   if (promo && !light && busyS < 540 && r() < .45) { sleepS = r() * 100; } // 第二天行程很早：今晚早点睡
+  const gig = gigOn(p.g, dk);
+  if (gig) { const s0 = 60 + r() * 120; return { promo: true, gig, sleepS: s0, wake: Math.min(s0 + sleepLen, 540), light: false, busyS: 600, busyE: gig[2] + 210 + r() * 90, check: 120 + r() * 60 }; } // 演唱会当天：上午彩排到演出结束
+  if (gigPrep(p.g, dk)) return { promo: true, prep: 1, sleepS, wake, light: r() < .15, busyS: Math.max(wake + 30, 660 + r() * 120), busyE: 1260 + r() * 180, check: 60 + r() * 90 }; // 演唱会准备期：每天合练到很晚
   return { promo, sleepS, wake, light, busyS, busyE, check: 35 + r() * 90 + srng('chk' + p.key)() * 60 };
 }
 const NOW_ACT = {
@@ -6955,6 +6967,9 @@ function socNow(p, ts) {
   const d = ts ? new Date(ts) : new Date(), nm = d.getHours() * 60 + d.getMinutes(), dk0 = dkey(d.getTime()), D = socDay(p, dk0), Y = socDay(p, addDays(dk0, -1));
   const asleep = (nm >= D.sleepS && nm < D.wake) || (Y.wake > 1440 && nm < Y.wake - 1440);
   if (asleep) return { sleep: 1, busy: 1, wakeIn: (nm < D.sleepS ? Y.wake - 1440 : D.wake) - nm, zh: D.promo ? '活动期，昨晚很晚才收工，现在在睡觉' : '空白期，作息晚，现在在睡觉' };
+  if (D.gig && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: nm < D.gig[2] ? `今天是${D.gig[3]}，现在在场馆彩排 / 准备，几乎没空看手机` : nm < D.gig[2] + 180 ? `正在演唱会（${D.gig[3]}）上，看不了手机` : '演唱会刚结束，在后台 / 庆功，很累但很兴奋' };
+  if (D.gig) return { busy: 0, zh: nm < D.busyS ? `今天是${D.gig[3]}，还没出发去场馆` : '今天的演唱会结束了，回到宿舍，累但很满足' };
+  if (D.prep && !D.light && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: '在准备演唱会，正在合练，只能休息时看手机' };
   if (!D.light && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: '回归活动期，正在跑行程（打歌 / 拍摄 / 练习），只能在候场或移动的空隙看手机' };
   if (D.promo) return { busy: 0, zh: nm >= D.busyE || nm < 360 ? '回归活动期，今天的行程结束了，在宿舍或回去的路上，有点累但终于能看手机' : '回归活动期，今天行程不多，相对有空' };
   return { busy: 0, zh: nm >= 1080 || nm < 360 ? '空白期，晚上在宿舍或练习室，熬夜是常事' : '空白期，白天相对闲（练习、录音、健身或在宿舍）' };
