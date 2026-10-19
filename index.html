@@ -2661,8 +2661,8 @@ function salesBackfill() {
 }
 // 一次性：之前编辑作品时成绩被按公式重算，404 的 MV（上周约 115 万）和音源被压低了，按同一比例恢复
 function salesFix404() {
-  const SS = salesState(); if (SS.fix404) return; SS.fix404 = 1;
-  const a = disco().find(x => /^404$/i.test((x.name || '').trim())), m = a && SS.mv && SS.mv[a.id]; if (!m || m.total >= 1150000 || m.total <= 0) return;
+  const SS = salesState(); if (SS.fix404b) return; SS.fix404b = 1; // 第一次按专辑名没找到（MV 标题用的是主打歌名），按主打 / 收录曲名再找
+  const is404 = n => /^\s*《?404》?\s*$/i.test(n || ''), a = disco().find(x => is404(albTitle(x))) || disco().find(x => is404(x.name) || x.tracks.some(t => is404(t.name))), m = a && SS.mv && SS.mv[a.id]; if (!m || m.total >= 1150000 || m.total <= 0) return;
   const k = 1200000 / m.total, sc = o => { if (!o) return; o.total *= k; for (const d of Object.keys(o.days)) o.days[d] *= k; };
   sc(m); for (const t of a.tracks) sc(SS.trk[a.id + '|' + t.name]);
   save();
