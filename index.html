@@ -2659,6 +2659,14 @@ function salesBackfill() {
     bf[a.id] = a.date;
   }
 }
+// 一次性：之前编辑作品时成绩被按公式重算，404 的 MV（上周约 115 万）和音源被压低了，按同一比例恢复
+function salesFix404() {
+  const SS = salesState(); if (SS.fix404) return; SS.fix404 = 1;
+  const a = disco().find(x => /^404$/i.test((x.name || '').trim())), m = a && SS.mv && SS.mv[a.id]; if (!m || m.total >= 1150000 || m.total <= 0) return;
+  const k = 1200000 / m.total, sc = o => { if (!o) return; o.total *= k; for (const d of Object.keys(o.days)) o.days[d] *= k; };
+  sc(m); for (const t of a.tracks) sc(SS.trk[a.id + '|' + t.name]);
+  save();
+}
 function salesAdd(map, key, dk, n) { const x = map[key] || (map[key] = { total: 0, days: {} }); x.total += n; x.days[dk] = (x.days[dk] || 0) + n; const ks = Object.keys(x.days).sort(); while (ks.length > 40) delete x.days[ks.shift()]; }
 // 专辑销量按现在的规则整体重算一遍（出道红利、首周和之后的数据前后对得上）
 function salesRebuildAlb() {
@@ -2684,7 +2692,7 @@ function salesRebuildAlb() {
   SS.albV = 6; // 之后照常从 SS.last 往后累计
 }
 function salesAdvance() {
-  salesBackfill(); salesRebuildAlb(); momTick();
+  salesBackfill(); salesRebuildAlb(); salesFix404(); momTick();
   const SS = salesState(), W = wallet(), now = Date.now();
   let t = Math.max(SS.last || now, now - 14 * 86400e3);
   for (let guard = 0; t < now && guard < 20; guard++) {
