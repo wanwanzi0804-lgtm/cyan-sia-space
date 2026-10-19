@@ -1834,8 +1834,23 @@ function mzRetro1019() {
   }
   save();
 }
+// 一次性：概率调整后，10/19 的音乐创作重新抽一次事件（已经结算的先撤回）
+function mzReroll1019() {
+  const M = mz(); if (M.reroll1019) return; M.reroll1019 = 1; const k = '2026-10-19', T = tgState();
+  for (const r of rulesFor(k)) {
+    if (!isMusicRule(r)) continue; const key = k + '|' + r.id, L = M.log[key], c = T.cards[key];
+    if (c && c.done) continue; // 已经做过事件的不动
+    if (L && !L.skip) {
+      const w = mzWork(L.wid); if (w && w.status === 'writing' && L.gain) { w.prog = Math.max(0, w.prog - L.gain); const i = w.sessions.map(x => x.date).lastIndexOf(k); if (i >= 0) w.sessions.splice(i, 1); }
+      if (L.exp) M.exp = Math.max(0, M.exp - L.exp); delete M.log[key]; delete (S.schedule.res || {})[key];
+    }
+    if (c) delete T.cards[key];
+    for (let n = 1; n < 50; n++) { r.mzSalt = 'r' + n; if (mzCard(k, r, key)) break; delete T.cards[key]; } // 这次一定抽到事件
+  }
+  save();
+}
 function mzTick() {
-  mzRetro1019();
+  mzRetro1019(); mzReroll1019();
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
   for (let i = 45; i >= 0; i--) {
     const k = addDays(today, -i);
@@ -1925,7 +1940,7 @@ function mzFriend() { const L = chal().friends.filter(f => ['close', 'best'].inc
 function mzCard(k, r, key) {
   const T = tgState(); if (T.cards[key]) return T.cards[key]; if (k < T.start) return null;
   const w = mzRuleWork(r), open = mzOpen(w);
-  const rr = srng('mz' + key), x = rr(); if (x < .4) return null; // 40% 正常创作，没有事件
+  const rr = srng('mz' + (r.mzSalt ? r.mzSalt + '|' : '') + key), x = rr(); if (x < .4) return null; // 40% 正常创作，没有事件
   const frac = !open ? .5 : w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
   const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
   let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr) && (!e.need || ((open && w.flags) || {})[e.need]) && (open || !['name', 'concept', 'desc'].includes(e.w)));
