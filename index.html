@@ -1747,6 +1747,8 @@ function mzLv(exp = mz().exp) { let i = 0; MZ_LV.forEach(([t], j) => { if (exp >
 const mzName = w => w ? (w.name || w.temp || `Demo #${String(w.no).padStart(3, '0')}`) : '';
 const mzTitle = w => `Demo #${String(w.no).padStart(3, '0')} · ${w.name || w.temp || '未命名'}`;
 const mzWork = id => mz().works.find(w => w.id === id);
+// 这次创作写哪首：没选过作品的旧行程（workId 不存在）默认写最新一首没写完的；选了「不指定」就是自由练习
+const mzRuleWork = r => r.workId === undefined ? mz().works.filter(w => ['writing', 'revising'].includes(w.status)).sort((a, b) => b.no - a.no)[0] : mzWork(r.workId);
 const isMusicRule = r => !!r && r.cat === '其他' && /音乐创作|作曲|写歌/.test(r.title || '');
 const mzOpen = w => w && ['writing', 'revising'].includes(w.status);
 function mzNew(name, genre) {
@@ -1784,7 +1786,7 @@ function mzSettle(k, r, key, s, e, card) {
   const M = mz(), lv = mzLv(), R = S.schedule.res || (S.schedule.res = {});
   const iv = Object.entries(M.log).filter(([kk, v]) => kk.startsWith(k + '|') && v.iv).map(([, v]) => v.iv);
   let mins = 0; for (let t = s; t < e; t += 5) if (!iv.some(([a, b]) => t >= a && t < b)) mins += 5; // 同一天重叠的创作时间只算一次
-  const hrs = Math.min(mins / 60, 12), w = mzWork(r.workId), fx = mzCardFx(card), lv0 = lv;
+  const hrs = Math.min(mins / 60, 12), w = mzRuleWork(r), fx = mzCardFx(card), lv0 = lv;
   const fin = (note, more) => { M.log[key] = { iv: [s, e], hrs: +hrs.toFixed(2), at: Date.now(), wid: w ? w.id : '', note, ...(more || {}) }; R[key] = { grade: '🎼', note, at: Date.now() }; pushNotif({ type: 'sched', text: `🎼 「${r.title}」结束`, sub: note }, false); save(); };
   if (hrs < .25) return fin('和别的创作行程时间重叠，没有额外进展');
   if (!mzOpen(w)) { const ex = hrs * 5; M.exp += ex; return fin(w ? `《${mzName(w)}》已经完成了，这次算是随手练习` : '自由练习', { exp: ex }); }
@@ -1922,11 +1924,11 @@ const MZ_EV = [
 function mzFriend() { const L = chal().friends.filter(f => ['close', 'best'].includes(f.lv) && !(f.g === 'CRAVITY' && f.n === '세림')); return L.length ? L[Math.floor(Math.random() * L.length)] : null; }
 function mzCard(k, r, key) {
   const T = tgState(); if (T.cards[key]) return T.cards[key]; if (k < T.start) return null;
-  const w = mzWork(r.workId); if (!mzOpen(w)) return null;
+  const w = mzRuleWork(r), open = mzOpen(w);
   const rr = srng('mz' + key), x = rr(); if (x < .6) return null; // 60% 正常创作，没有事件
-  const frac = w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
+  const frac = !open ? .5 : w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
   const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
-  let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr) && (!e.need || (w.flags || {})[e.need]));
+  let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr) && (!e.need || ((open && w.flags) || {})[e.need]) && (open || !['name', 'concept', 'desc'].includes(e.w)));
   const want = x >= .9 ? pool.filter(p => p.e.sp) : pool.filter(p => !p.e.sp); if (want.length) pool = want; pool = pool.filter(p => !used.has('mz#' + p.i));
   let fresh = pool.filter(p => !seen.has('mz#' + p.i)); if (!fresh.length) { cyc.mz = []; fresh = pool; } if (!fresh.length) return null;
   const { e, i } = fresh[Math.floor(rr() * fresh.length)], fn = fr ? (fr.z && /[一-鿿]/.test(fr.z) ? fr.z : fr.n) : '朋友', F = t => String(t).split('{f}').join(fn);
