@@ -1787,7 +1787,7 @@ function mzSettle(k, r, key, s, e, card) {
   const hrs = Math.min(mins / 60, 12), w = mzWork(r.workId), fx = mzCardFx(card), lv0 = lv;
   const fin = (note, more) => { M.log[key] = { iv: [s, e], hrs: +hrs.toFixed(2), at: Date.now(), wid: w ? w.id : '', note, ...(more || {}) }; R[key] = { grade: '🎼', note, at: Date.now() }; pushNotif({ type: 'sched', text: `🎼 「${r.title}」结束`, sub: note }, false); const lv1 = mzLv(); if (lv1 > lv0) pushNotif({ type: 'system', text: `🎼 创作熟练度提升：${MZ_LV[lv1][1]}`, sub: '写歌更顺手了，进入状态也更快' }, true); save(); };
   if (hrs < .25) return fin('和别的创作行程时间重叠，没有额外进展');
-  if (!mzOpen(w)) { const ex = hrs * 5; M.exp += ex; return fin(w ? `《${mzName(w)}》已经完成了，这次算是随手练习，创作经验 +${Math.round(ex)}` : `没有选作品，这次算是自由练习，创作经验 +${Math.round(ex)}`, { exp: ex }); }
+  if (!mzOpen(w)) { const ex = hrs * 5; M.exp += ex; return fin(w ? `《${mzName(w)}》已经完成了，这次算是随手练习` : '自由练习', { exp: ex }); }
   let gain = Math.min(mzFocus(hrs, lv) * (.75 + .07 * lv) * (fx.p || 1), hrs * 1.2) - (fx.back || 0);
   const ex = hrs * 10; let note = '', doneNow = false;
   if (fx.text && card && card.wact === 'concept' && !w.concept) w.concept = fx.text.slice(0, 120);
@@ -1815,11 +1815,25 @@ function mzSettle(k, r, key, s, e, card) {
   if (k < w.start) w.start = k;
   w.sessions.push({ date: k, hrs: +hrs.toFixed(2), gain: +gain.toFixed(2) }); if (w.sessions.length > 80) w.sessions.splice(0, w.sessions.length - 80);
   M.exp += ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0);
-  fin(note + ` · 创作经验 +${Math.round(ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0))}`, { gain: +gain.toFixed(2), exp: ex });
+  fin(note, { gain: +gain.toFixed(2), exp: ex });
   if (doneNow) pushNotif({ type: 'system', text: `🎼 ${note.split('：')[0].split('！')[0]}`, sub: '去「音乐 → 作品 → 个人作品库」看看评价，可以修改或提交 STARSHIP 评估' }, true);
 }
 // 每隔一会儿：结算结束了的创作行程 / 回归准备行程，处理投稿结果和著作权费
+// 一次性：10/19 的音乐创作行程补算进作品（之前因为是事后补录被跳过 / 没选作品）
+function mzRetro1019() {
+  const M = mz(); if (M.retro1019) return; M.retro1019 = 1;
+  for (const k of ['2026-10-19']) for (const r of rulesFor(k)) {
+    if (!isMusicRule(r)) continue; const key = k + '|' + r.id, L = M.log[key];
+    if (L && !L.skip && L.wid) continue; // 已经算进作品了
+    if (L && !L.skip && L.exp) M.exp = Math.max(0, M.exp - L.exp); // 之前按自由练习算过，撤回重算
+    if (L) { delete M.log[key]; delete (S.schedule.res || {})[key]; }
+    if (!mzOpen(mzWork(r.workId))) { const w = M.works.filter(mzOpen).sort((a, b) => b.no - a.no)[0] || mzNew('', ''); r.workId = w.id; }
+    r.retroOk = k;
+  }
+  save();
+}
 function mzTick() {
+  mzRetro1019();
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
   for (let i = 45; i >= 0; i--) {
     const k = addDays(today, -i);
@@ -1827,7 +1841,7 @@ function mzTick() {
       if (!isMusicRule(r)) continue; const key = k + '|' + r.id; if (M.log[key]) continue;
       const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440;
       const endAt = parseD(k).getTime() + e * 60e3; if (now < endAt) continue;
-      if (r.createdAt && r.createdAt > endAt) { M.log[key] = { skip: 'late', at: now }; continue; } // 事后补录的不算
+      if (r.createdAt && r.createdAt > endAt && r.retroOk !== k) { M.log[key] = { skip: 'late', at: now }; continue; } // 事后补录的不算
       const card = T.cards[key]; if (card && !card.done && k === today) continue; // 创作事件还没做，等今天结束
       try { mzSettle(k, r, key, s, e, card); } catch (err) { console.error('mz', err); M.log[key] = { err: 1 }; }
     }
@@ -3047,7 +3061,7 @@ function mgrChatter() {
   if (win) once('win' + win.at, () => mgrSay(['1위 축하해요 🎉', '恭喜一位 🎉']));
   const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay(['연습생 비용 정산 끝났어요.', '练习生费用结清了。']));
 }
-function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div>${mgrCardHTML()}${dmListHTML()}${socHistHTML()}`; }
+function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div>${dmListHTML(true)}${socHistHTML()}`; }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
 function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...rulesFor(dk).map(x => toMin(x.end))), from = Math.min(27 * 60, Math.max(21 * 60, last + 20)); return parseD(dk).getTime() + (from + Math.floor(r() * (28 * 60 - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
 // 一整天都在宿舍（或没有行程）就不发日报
@@ -7293,11 +7307,13 @@ async function dmAnswer(key, mine, o, silent) {
 }
 // 好友：没聊过天也显示在 KKT 里（排在有聊天记录的后面）
 function friendP(f) { const c = chFind(f.g, f.n) || {}, key = f.g + '|' + f.n; return { g: f.g, n: f.n, z: f.z || c.z, key, f: !MALE_GROUPS.includes(f.g) && !MALE_EXTRA.some(x => x[0] === f.g && x[1] === f.n) ? 1 : undefined }; }
-function dmListHTML() {
+function dmListHTML(withMgr) {
   const D = Object.values(dms()).filter(T => T.msgs.length).sort((a, b) => b.msgs[b.msgs.length - 1].at - a.msgs[a.msgs.length - 1].at);
+  const mc = withMgr ? mgrChat().chat : null, mAt = mc && mc.length ? mc[mc.length - 1].at : 0; // 经纪人也按最后一条消息的时间排
   const rank = { best: 0, close: 1, friend: 2, acq: 3 }, has = new Set(D.map(T => T.p.key));
   const F = chal().friends.filter(f => f.g && !has.has(f.g + '|' + f.n)).sort((a, b) => (rank[a.lv] ?? 4) - (rank[b.lv] ?? 4)).map(friendP);
-  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('')
+  let mDone = !withMgr; const mg = at => !mDone && mAt >= at ? (mDone = true, mgrCardHTML()) : '';
+  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return mg(m.at) + `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('') + mg(-1)
     + F.map(p => `<div class="card mgr-card" data-act="dmopen" data-k="${esc(p.key)}">${kAv(p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(p))}</b><div class="muted" style="font-size:13px">还没有聊天</div></div></div>`).join('');
 }
 // 💙 世琳：你自己写今天会发生什么，到了合适的时间弹出来
