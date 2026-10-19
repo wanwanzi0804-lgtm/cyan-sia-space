@@ -1851,7 +1851,7 @@ function mzTick() {
   for (const kk of Object.keys(M.log)) if (kk.slice(0, 10) < addDays(today, -60)) delete M.log[kk];
   mzSubTick(); prepTick(); mzRoyalty();
 }
-/* ---------- 创作事件（接在现有通告卡里：60% 正常创作，30% 普通事件，10% 特殊事件） ---------- */
+/* ---------- 创作事件（接在现有通告卡里：40% 正常创作，45% 普通事件，15% 特殊事件） ---------- */
 // s：作品进度区间（0~1）；co：要在公司 / 工作室；fr：要有熟的朋友；sp：特殊事件
 const MZ_EV = [
   // 一、灵感与创作方向（创作初期）
@@ -1925,11 +1925,11 @@ function mzFriend() { const L = chal().friends.filter(f => ['close', 'best'].inc
 function mzCard(k, r, key) {
   const T = tgState(); if (T.cards[key]) return T.cards[key]; if (k < T.start) return null;
   const w = mzRuleWork(r), open = mzOpen(w);
-  const rr = srng('mz' + key), x = rr(); if (x < .6) return null; // 60% 正常创作，没有事件
+  const rr = srng('mz' + key), x = rr(); if (x < .4) return null; // 40% 正常创作，没有事件
   const frac = !open ? .5 : w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
   const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
   let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr) && (!e.need || ((open && w.flags) || {})[e.need]) && (open || !['name', 'concept', 'desc'].includes(e.w)));
-  const want = x >= .9 ? pool.filter(p => p.e.sp) : pool.filter(p => !p.e.sp); if (want.length) pool = want; pool = pool.filter(p => !used.has('mz#' + p.i));
+  const want = x >= .85 ? pool.filter(p => p.e.sp) : pool.filter(p => !p.e.sp); if (want.length) pool = want; pool = pool.filter(p => !used.has('mz#' + p.i));
   let fresh = pool.filter(p => !seen.has('mz#' + p.i)); if (!fresh.length) { cyc.mz = []; fresh = pool; } if (!fresh.length) return null;
   const { e, i } = fresh[Math.floor(rr() * fresh.length)], fn = fr ? (fr.z && /[一-鿿]/.test(fr.z) ? fr.z : fr.n) : '朋友', F = t => String(t).split('{f}').join(fn);
   (cyc.mz || (cyc.mz = [])).push('mz#' + i);
