@@ -4272,7 +4272,7 @@ function tgCustomScore(v) { const n = v.replace(/\s/g, '').length; let sc = n < 
 function tgCardHTML(key) {
   const c = tgState().cards[key]; if (!c) return ''; const R0 = S.schedule.rules.find(x => x.id === key.split('|')[1]), F = x => tgFill(x, key.split('|')[0], R0);
   const head = `<div class="row"><button class="link" data-act="tglist">‹ 返回</button><span class="sp"></span><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span></div><h3 style="margin:8px 0 4px">${esc(c.title)}</h3>${tgCtxHTML(c)}`;
-  if (c.done) return head + `<div class="card"><div class="tg-d">${esc(F(c.d))}</div><div style="margin-top:10px">你的选择：<b>${esc(c.pickText || '')}</b></div><div class="muted" style="margin-top:6px">完成度 ${Math.round(c.score * 100)}%，行程结束后出结果。</div></div>`;
+  if (c.done) return head + `<div class="card"><div class="tg-d">${esc(F(c.d))}</div><div style="margin-top:10px">你的选择：<b>${esc(c.pickText || '')}</b></div></div>`;
   let body = '';
   if (c.kind === 'choice') body = c.opts.map((o, j) => `<button class="hot-opt" data-act="tgpick" data-j="${j}">${esc(F(o[0]))}</button>`).join('') + tgCustomHTML();
   else if (c.kind === 'write') body = `<textarea id="tg-in" placeholder="${esc(c.ph || '')}" style="min-height:90px"></textarea><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary" data-act="tgwrite">完成</button></div>`;
