@@ -1849,8 +1849,25 @@ function mzReroll1019() {
   }
   save();
 }
+// 一次性：10/18（你那边的今天）的音乐创作：算进作品 + 撤回之前的结算 + 重新抽一次事件（一定有）
+function mzFix1018() {
+  const M = mz(); if (M.fix1018) return; M.fix1018 = 1; const k = '2026-10-18', T = tgState();
+  for (const r of rulesFor(k)) {
+    if (!isMusicRule(r)) continue; const key = k + '|' + r.id, L = M.log[key], c = T.cards[key];
+    if (c && c.done) continue;
+    if (L && !L.skip) {
+      const w = mzWork(L.wid); if (w && w.status === 'writing' && L.gain) { w.prog = Math.max(0, w.prog - L.gain); const i = w.sessions.map(x => x.date).lastIndexOf(k); if (i >= 0) w.sessions.splice(i, 1); }
+      if (L.exp) M.exp = Math.max(0, M.exp - L.exp);
+    }
+    delete M.log[key]; delete (S.schedule.res || {})[key]; if (c) delete T.cards[key];
+    if (!mzOpen(mzWork(r.workId))) { const w = M.works.filter(mzOpen).sort((a, b) => b.no - a.no)[0] || mzNew('', ''); r.workId = w.id; }
+    r.retroOk = k;
+    for (let n = 1; n < 50; n++) { r.mzSalt = 'f' + n; if (mzCard(k, r, key)) break; }
+  }
+  save();
+}
 function mzTick() {
-  mzRetro1019(); mzReroll1019();
+  mzRetro1019(); mzReroll1019(); mzFix1018();
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
   for (let i = 45; i >= 0; i--) {
     const k = addDays(today, -i);
