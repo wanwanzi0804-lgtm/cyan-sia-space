@@ -1635,7 +1635,7 @@ function cbRivalWarn(date, weeks) {
   if (!date) return '';
   const ws = []; for (let w = 0; w < (weeks || 3); w++) { const t = weekRivals(addDays(date, w * 7)).find(x => x.tier === 'top'); if (t) ws.push(`第 ${w + 1} 周 ${t.name}`); }
   const ms = []; for (let w = 0; w < (weeks || 3); w++) { const m = weekRivals(addDays(date, w * 7)).find(x => LABELMATES.includes(x.name)); if (m) ms.push(`第 ${w + 1} 周 ${m.name}`); }
-  return (ws.length ? `<div class="cb-warn">⚠ 撞上 TOP 团回归：${ws.join('、')}（那几周拿一位会更难，The Show 和 Show Champion 不受影响）</div>` : '<div class="cb-warn ok">✓ 打歌期间没有 TOP 团回归，是好时机</div>') + (ms.length ? `<div class="cb-warn">🏢 同公司 ${ms.join('、')} 也在活动，公司资源会被分走一些</div>` : '');
+  return (ws.length ? `<div class="cb-warn">⚠ 撞上 TOP 团回归：${ws.join('、')}</div>` : '<div class="cb-warn ok">✓ 打歌期间没有 TOP 团回归</div>') + (ms.length ? `<div class="cb-warn">🏢 同公司 ${ms.join('、')} 也在活动</div>` : '');
 }
 function cbHTML() {
   const c = S.cb, a = cbAlbum(), p = cbPhase();
@@ -1645,8 +1645,8 @@ function cbHTML() {
       <button class="btn primary" style="width:100%" data-act="cbnew">＋ 计划一次回归</button>`;
   } else {
     const d = cbDay(), s = -d, P = cbPlan();
-    const ph = c.tbd ? '先做企划和准备，定了日期再编辑' : p === 'plan' ? `还有 ${d} 天回归，前两周开始预热` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
-    const steps = ['预热 2 周', a.tracks.length ? `主打《${albTitle(a)}》${c.weeks} 周` : `主打（选曲后确定）${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
+    const ph = c.tbd ? '企划中' : p === 'plan' ? `还有 ${d} 天` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
+    const steps = ['预热 2 周', a.tracks.length ? `主打《${albTitle(a)}》${c.weeks} 周` : `主打待定 ${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
     top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${c.tbd ? '日期待定' : esc(c.date) + ' 回归'} · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
       ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
@@ -1661,7 +1661,7 @@ function discoHTML() {
   return `<div class="row" style="margin-bottom:4px"><span class="sp"></span><button class="link" data-act="albnew">＋ 添加作品</button></div>
     ${list.length ? list.map(x => `<div class="alb"><div class="alb-h"><span class="chip" style="background:${x.type === 'full' ? '#7b61ff' : x.type === 'mini' ? '#2fb5c4' : x.type === 'single' ? '#ff8a3d' : '#999'}">${ALB_TYPE[x.type] || '其他'}</span><b>${esc(x.name)}</b><span class="muted" style="font-size:12px">${esc(x.date || '')}</span><span class="sp"></span><button class="link" data-act="albedit" data-id="${x.id}">编辑</button></div>
       ${x.intro ? `<details class="alb-intro"><summary>专辑简介</summary><div>${esc(x.intro).replace(/\n/g, '<br>')}</div></details>` : ''}
-      <ol class="alb-t">${x.tracks.map(t => `<li>${t.title ? '<b>' + esc(t.name) + '</b> <span class="alb-star">主打</span>' : esc(t.name)}${S.cb && !S.cb.over && S.cb.albumId === x.id && S.cb.follow === t.name ? ' <span class="alb-star" style="background:#7b61ff">后续</span>' : ''}</li>`).join('')}</ol></div>`).join('') : '<div class="muted" style="padding:6px 0">还没有歌，添加你发过的作品吧（粉丝点歌、聊天时会提到）</div>'}`;
+      <ol class="alb-t">${x.tracks.map(t => `<li>${t.title ? '<b>' + esc(t.name) + '</b> <span class="alb-star">主打</span>' : esc(t.name)}${S.cb && !S.cb.over && S.cb.albumId === x.id && S.cb.follow === t.name ? ' <span class="alb-star" style="background:#7b61ff">后续</span>' : ''}</li>`).join('')}</ol></div>`).join('') : '<div class="muted" style="padding:6px 0">还没有作品</div>'}`;
 }
 // 作品编辑（加歌单 / 计划回归共用）
 function albHTML() {
@@ -1671,12 +1671,12 @@ function albHTML() {
     <div class="card">
       <div class="grid2"><div class="field"><label>${cb ? '专辑 / 单曲名' : '作品名'}</label><input id="al-name" value="${esc(A.name)}" placeholder="比如：9.1Hz"></div>
         <div class="field"><label>类型</label><select id="al-type">${Object.entries(ALB_TYPE).map(([k, v]) => `<option value="${k}" ${A.type === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div></div>
-      <div class="grid2"><div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}" ${cb && A.tbd ? 'disabled' : ''}>${cb ? `<label class="row" style="gap:6px;font-size:13px;margin-top:4px"><input type="checkbox" id="al-tbd" ${A.tbd ? 'checked' : ''} style="width:auto">日期待定（先开始企划）</label>` : ''}</div>
+      <div class="grid2"><div class="field"><label>${cb ? '回归日期' : '发行日期（可不填）'}</label><input type="date" id="al-date" value="${esc(A.date || '')}" ${cb && A.tbd ? 'disabled' : ''}>${cb ? `<label class="row" style="gap:6px;font-size:13px;margin-top:4px"><input type="checkbox" id="al-tbd" ${A.tbd ? 'checked' : ''} style="width:auto">日期待定</label>` : ''}</div>
         <div class="field"><label>曲风</label><select id="al-mood">${Object.entries(MOODS).map(([k, v]) => `<option value="${k}" ${(A.mood || 'dance') === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></div></div>
       ${cb ? '' : `<label class="row" style="gap:6px;margin:-2px 0 10px;font-size:14px"><input type="checkbox" id="al-promo" ${A.promo ? 'checked' : ''} style="width:auto">有打歌期</label>`}
-      <div class="field"><label>专辑简介 <span class="muted">（概念、故事、想对粉丝说的话，可不填）</span></label><textarea id="al-intro" style="min-height:80px" placeholder="比如：这张专辑讲的是一只猫在城市里迷路又找到家的故事…">${esc(A.intro || '')}</textarea></div>
-      ${cb ? `<label class="row" style="gap:6px;margin:-2px 0 6px;font-size:14px"><input type="checkbox" id="al-copick" ${A.copick ? 'checked' : ''} style="width:auto">曲目交给公司选曲（公司歌 + 你的作品一起竞争）</label>` : ''}
-      <div class="field" ${cb && A.copick ? 'style="display:none"' : ''}><label>收录曲 <span class="muted">（点 ★ 设为主打）</span></label>
+      <div class="field"><label>专辑简介</label><textarea id="al-intro" style="min-height:80px">${esc(A.intro || '')}</textarea></div>
+      ${cb ? `<label class="row" style="gap:6px;margin:-2px 0 6px;font-size:14px"><input type="checkbox" id="al-copick" ${A.copick ? 'checked' : ''} style="width:auto">公司选曲</label>` : ''}
+      <div class="field" ${cb && A.copick ? 'style="display:none"' : ''}><label>收录曲</label>
         ${A.tracks.map((t, i) => `<div class="trk"><button class="trk-star ${t.title ? 'on' : ''}" data-act="alstar" data-i="${i}" title="设为主打">★</button><input class="al-t" value="${esc(t.name)}" placeholder="第 ${i + 1} 首">${A.tracks.length > 1 ? `<button class="link" data-act="aldel" data-i="${i}">✕</button>` : ''}</div>`).join('')}
         ${single && A.tracks.length >= 2 ? '' : '<button class="link" data-act="aladd" style="margin-top:4px">＋ 添加一首</button>'}</div>
     </div>
@@ -1684,8 +1684,7 @@ function albHTML() {
       <div class="grid2"><div class="field"><label>主打打歌几周</label><select id="al-weeks">${[1, 2, 3, 4, 5, 6, 8].map(n => `<option ${A.weeks === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
         <div class="field"><label>&nbsp;</label><div id="al-warn">${cbRivalWarn(A.date, A.weeks)}</div></div></div>
       <div id="al-pwarn">${prepDateWarn(A)}</div>
-      <div class="field"><label>主打结束后，后续打歌一首收录曲（一周）</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
-      <div class="muted" style="font-size:12.5px">打歌日不固定：把你的打歌安排加到「行程」里（类别选「打歌」），每周排得越多，拿一位的机会越大。</div>
+      <div class="field"><label>后续打歌</label><select id="al-follow"><option value="">不打后续</option>${others.map(t => `<option ${A.follow === t.name ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}</select></div>
     </div>` : ''}
     <div class="row">${A.id && !cb ? '<button class="btn ghost" data-act="albdel" style="color:var(--danger)">删除作品</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="alsave">${cb ? '定下回归' : '保存'}</button></div>`;
 }
@@ -1988,8 +1987,8 @@ function worksHTML() {
     return `<div class="mz-w" data-act="mzopen" data-id="${w.id}"><div class="mz-r"><div style="flex:1;min-width:0"><b>${esc(mzTitle(w))}</b><div class="muted">${sub.filter(Boolean).join(' · ')}</div></div>${open ? `<span class="mz-pct">${pct}%</span>` : `<span class="mz-pill">${w.status === 'released' ? '已发行' : '100%'}</span>`}</div>
       ${open ? `<div class="mz-bar${w.status === 'revising' ? ' o' : ''}"><i style="width:${pct}%"></i></div>` : ''}${hint ? `<div class="mz-hint">${hint}</div>` : ''}</div>`;
   };
-  return `<div class="row" style="margin-bottom:2px"><span class="muted" style="flex:1;font-size:12.5px">创作熟练度 · ${MZ_LV[lv][1]}</span><button class="link" data-act="mznew">＋ 新作品</button></div>
-    ${ws.length ? ws.map(row).join('') : '<div class="muted" style="padding:12px 0 4px;font-size:13.5px">还没有作品。在行程后台加「其他 → 音乐创作」就能开始写。</div>'}`;
+  return `<div class="row" style="margin-bottom:2px"><span class="sp"></span><button class="link" data-act="mznew">＋ 新作品</button></div>
+    ${ws.length ? ws.map(row).join('') : '<div class="muted" style="padding:12px 0 4px;font-size:13.5px">还没有作品</div>'}`;
 }
 // 音乐 → 作品：已发行 / 个人作品库 / 回归企划
 const mTab = () => { const t = UI.musicTab || 'chart'; if (['cb', 'works', 'disco'].includes(t)) { UI.makeTab = t; UI.musicTab = 'make'; } return UI.musicTab || 'chart'; };
@@ -2001,7 +2000,7 @@ function makeHTML() {
 }
 function mzNewHTML() {
   return `<div class="row"><h3 style="flex:1">🎼 新作品</h3><button class="btn ghost sm" data-act="close">取消</button></div>
-    <div class="card"><div class="field"><label>暂定名称</label><input id="mz-n" placeholder="可以先空着，比如：凌晨三点"></div>
+    <div class="card"><div class="field"><label>暂定名称</label><input id="mz-n" ></div>
     <div class="field"><label>曲风</label><select id="mz-g"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div>
     <div class="row"><span class="sp"></span><button class="btn primary" data-act="mznewok">创建</button></div></div>`;
 }
@@ -2010,26 +2009,25 @@ function mzDetailHTML(id) {
   const hrs = w.sessions.reduce((a, x) => a + x.hrs, 0), why = mzSubmitOk(w), P = prepOn(), canCb = P && !P.t.pick.done && !why;
   const revOk = ['demo', 'suggest', 'hold', 'cand', 'rejected'].includes(w.status) && w.revs < 3;
   const relA = w.released && disco().find(a => a.id === w.released.album), adA = w.adopted && w.adopted.album && disco().find(a => a.id === w.adopted.album);
-  return `<div class="row"><h3 style="flex:1">《${esc(mzName(w))}》</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="card"><div class="row" style="gap:6px"><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span><span class="muted" style="font-size:12.5px">作品编号 #${w.no}</span></div>
-      <div class="field" style="margin-top:8px"><label>作品名称${w.name ? '' : '（还没定，现在显示的是暂定名）'}</label><input id="mz-name" value="${esc(w.name)}" placeholder="${esc(w.temp || '未命名')}"></div>
+  return `<div class="row"><h3 style="flex:1">${esc(mzTitle(w))}</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card"><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span>
+      <div class="field" style="margin-top:8px"><label>作品名称</label><input id="mz-name" value="${esc(w.name)}" placeholder="${esc(w.temp || '未命名')}"></div>
       <div class="grid2"><div class="field"><label>曲风</label><select id="mz-genre"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option ${w.genre === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div><div class="field"><label>创作参与</label><div style="padding:8px 2px;font-size:13.5px">${esc(['Cyan', ...w.partners].join('、'))}</div></div></div>
-      <div class="field"><label>作品概念 / 描述</label><textarea id="mz-concept" style="min-height:60px" placeholder="这首歌想讲什么">${esc(w.concept)}</textarea></div>
+      <div class="field"><label>作品概念 / 描述</label><textarea id="mz-concept" style="min-height:60px">${esc(w.concept)}</textarea></div>
       <div class="row"><span class="sp"></span><button class="btn ghost sm" data-act="mzsave" data-id="${w.id}">保存修改</button></div></div>
     <div class="card"><b>创作情况</b>
       <div style="font-size:13.5px;margin-top:6px">${w.start} 开始${w.done ? ` · ${w.done} 完成作曲 Demo` : ''} · 累计创作 ${hrs.toFixed(1)} 小时（${w.sessions.length} 次）${w.revs ? ` · 修改过 ${w.revs} 次` : ''}</div>
-      ${w.status === 'writing' ? `<div class="mz-bar"><i style="width:${Math.round(w.prog / w.need * 100)}%"></i></div><div class="muted" style="font-size:12.5px">作曲进度 ${Math.round(w.prog / w.need * 100)}% · 去行程后台安排「音乐创作」继续写。作品评价完成后才会出来。</div>` : ''}
-      ${w.status === 'revising' ? `<div class="mz-bar o"><i style="width:${Math.round(w.rev.prog / w.rev.need * 100)}%"></i></div><div class="muted" style="font-size:12.5px">修改进度 ${Math.round(w.rev.prog / w.rev.need * 100)}% · 安排「音乐创作」并选这首继续改</div>` : ''}
+      ${w.status === 'writing' ? `<div class="mz-bar"><i style="width:${Math.round(w.prog / w.need * 100)}%"></i></div><div class="muted" style="font-size:12.5px">${Math.round(w.prog / w.need * 100)}%</div>` : ''}
+      ${w.status === 'revising' ? `<div class="mz-bar o"><i style="width:${Math.round(w.rev.prog / w.rev.need * 100)}%"></i></div><div class="muted" style="font-size:12.5px">修改 ${Math.round(w.rev.prog / w.rev.need * 100)}%</div>` : ''}
       ${w.q != null ? `<div class="mz-eval"><div><b>${w.q}</b><span>质量 · ${mzQLabel(w.q)}</span></div><div><b>${w.c}</b><span>商业潜力 · ${mzCLabel(w.c)}</span></div></div>` : ''}
       ${w.events.length ? `<details class="me-more"><summary>创作过程（${w.events.length}）</summary>${w.events.slice().reverse().map(e => `<div style="font-size:13px;margin:4px 0"><span class="muted">${e.date.slice(5).replace('-', '/')}</span> ${esc(e.d)}</div>`).join('')}</details>` : ''}</div>
     ${w.subs.length ? `<div class="card"><b>投稿记录</b>${w.subs.slice().reverse().map(s => `<div class="rule" style="align-items:flex-start"><div style="flex:1;min-width:0"><div style="font-size:13px">${dkey(s.at).slice(5).replace('-', '/')} 提交${s.cb ? '（回归候选）' : ''} · ${s.res ? `<b>${MZ_ST[s.res]}</b>` : '审核中…'}</div>${s.fb ? `<div class="muted" style="font-size:12.5px">「${esc(s.fb)}」</div>` : ''}</div></div>`).join('')}</div>` : ''}
-    ${adA || relA ? `<div class="card"><b>采用 / 发行</b><div style="font-size:13.5px;margin-top:6px">${relA ? `收录在${ALB_TYPE[relA.type] || ''}《${esc(relA.name)}》（${relA.date} 发行）· 你的作曲份额 ${Math.round((w.share || .5) * 100)}%，著作权费每月 20 号左右结上个月` : `已选入《${esc(adA.name)}》，正在进行正式制作（作词、编曲完善、录音、后期由公司安排）`}</div></div>` : w.status === 'adopted' ? `<div class="card"><b>采用</b><div style="font-size:13.5px;margin-top:6px">公司已采用，会在合适的项目里使用。正式发行后才会有著作权费。</div></div>` : ''}
-    <div class="card"><div class="mz-acts">
-      ${w.status === 'writing' || w.status === 'revising' ? '<button class="btn ghost" data-act="admin">去安排音乐创作</button>' : ''}
-      ${revOk ? `<button class="btn ghost" data-act="mzrev" data-id="${w.id}">返工修改</button>` : ''}
+    ${adA || relA ? `<div class="card"><b>采用 / 发行</b><div style="font-size:13.5px;margin-top:6px">${relA ? `收录在${ALB_TYPE[relA.type] || ''}《${esc(relA.name)}》（${relA.date} 发行）· 作曲份额 ${Math.round((w.share || .5) * 100)}%` : `已选入《${esc(adA.name)}》`}</div></div>` : w.status === 'adopted' ? `<div class="card"><b>公司已采用</b></div>` : ''}
+    <div class="card" ${revOk || !why || canCb || !['writing', 'revising'].includes(w.status) ? '' : 'hidden'}><div class="mz-acts">
+            ${revOk ? `<button class="btn ghost" data-act="mzrev" data-id="${w.id}">返工修改</button>` : ''}
       ${!why ? `<button class="btn primary" data-act="mzsub" data-id="${w.id}">提交 STARSHIP 评估</button>` : ''}
       ${canCb ? `<button class="btn primary" data-act="mzsubcb" data-id="${w.id}">提交为《${esc(P.a.name)}》回归候选</button>` : ''}
-    </div>${why && !['writing', 'revising'].includes(w.status) ? `<div class="muted" style="font-size:12.5px;margin-top:6px">${esc(why)}</div>` : ''}${revOk ? '<div class="muted" style="font-size:12.5px;margin-top:6px">修改需要再安排几个小时的「音乐创作」，每次能提升的会越来越少（最多改 3 次）。</div>' : ''}</div>`;
+    </div>${why && !['writing', 'revising'].includes(w.status) ? `<div class="muted" style="font-size:12.5px;margin-top:6px">${esc(why)}</div>` : ''}</div>`;
 }
 function mzRevise(id) {
   const w = mzWork(id); if (!w || !['demo', 'suggest', 'hold', 'cand', 'rejected'].includes(w.status) || w.revs >= 3) return;
@@ -2052,7 +2050,7 @@ const PREP_SLOTS = { single: 2, mini: 5, full: 10, other: 2 };
 function prepDateWarn(A) {
   if (!A || A.tbd || !A.date) return ''; const d = Math.round((parseD(A.date).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3), min = { single: 21, mini: 35, full: 50 }[A.type] || 21;
   const o = S.cb && S.cb.albumId === A.id && prepOn(); if (o && PREP_KEY.every(k => o.t[k].done)) return '';
-  return d < min ? `<div class="cb-warn">⚠ 离回归只有 ${d} 天。${ALB_TYPE[A.type] || ''}一般要准备 ${min} 天以上（选曲、录音、编舞、MV），太赶的话公司会延期</div>` : '';
+  return d < min ? `<div class="cb-warn">⚠ 准备时间偏紧，可能延期</div>` : '';
 }
 function prepOn() { const c = S.cb, a = cbAlbum(); if (!c || c.over || !a || !c.prep || c.prep.legacy) return null; return { c, a, P: c.prep, t: c.prep.t }; }
 const prepSongName = () => pick(['Midnight Call', 'Paper Moon', 'Static', 'Blue Hour', 'Signal', 'Afterglow', 'Overdrive', 'Daydream', 'Echo', 'Firefly', 'Neon Rain', 'Undertow', 'Lullaby', 'Gravity', 'Runaway', 'Halo', 'Mirage', 'Cherry Soda', 'Starlight', 'Velvet', 'Riptide', 'Glitch', 'Snow Globe', 'Crush']);
@@ -2148,18 +2146,17 @@ function prepCancel() {
 function prepStage(o) { const d = cbDay(); return d <= 0 ? '正式发行与活动期' : d <= 14 ? '公开预热期' : o.t.final.done ? '回归制作期' : '回归企划期'; }
 function prepHTML() {
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return '';
-  if (!c.prep || c.prep.legacy) return '<div class="muted" style="font-size:12.5px;margin-top:8px">这次回归是在回归准备系统上线前定的，制作流程视为已经完成。</div>';
+  if (!c.prep || c.prep.legacy) return '';
   const o = prepOn(), { P, t } = o, d = cbDay(), lack = PREP_KEY.filter(k => !t[k].done), short = d < ({ single: 21, mini: 35, full: 50 }[a.type] || 21);
   const row = ([k, nm, who]) => { const T0 = t[k]; if (k === 'dance' && T0.skip) return ''; const pct = T0.need ? Math.round(T0.prog / T0.need * 100) : T0.done ? 100 : 0;
-    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}${PREP_KEY.includes(k) ? ' <span class="muted" style="font-size:11px">关键</span>' : ''}</div>${T0.need && !T0.done ? `<div class="mz-bar"><i style="width:${pct}%"></i></div><div class="muted" style="font-size:11.5px">${T0.prog.toFixed(1)} / ${T0.need} 小时</div>` : !T0.done ? `<div class="muted" style="font-size:11.5px">${k === 'concept' ? `预计 ${P.conceptAt} 前定下（开一次「回归企划会议」能更快）` : k === 'pick' ? `预计 ${P.pickAt} 选曲` : k === 'final' ? '选曲后公司确认' : k === 'prod' ? '最终曲目 + 录音完成后，公司做后期' : k === 'check' ? '回归前 3 天检查' : ''}</div>` : ''}</div></div>`; };
+    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? `<div class="mz-bar"><i style="width:${pct}%"></i></div>` : !T0.done ? `<div class="muted" style="font-size:11.5px">${k === 'concept' ? `预计 ${P.conceptAt.slice(5).replace('-', '/')}` : k === 'pick' ? `预计 ${P.pickAt.slice(5).replace('-', '/')}` : ''}</div>` : ''}</div></div>`; };
   const pool = !t.pick.done ? prepPool(o) : [];
   return `<div class="pp"><div class="row" style="margin-top:10px"><b style="flex:1">🛠 回归准备 · ${prepStage(o)}</b><span class="muted" style="font-size:12.5px">${c.tbd ? '日期待定' : d > 0 ? `D-${d}` : '已发行'}${P.delays ? ` · 延期 ${P.delays} 次` : ''}</span></div>
-    ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 离回归只有 ${d} 天，准备时间偏紧：${lack.map(k => PREP_T.find(x => x[0] === k)[1]).join('、')}还没完成，可能延期</div>` : ''}
+    ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 时间偏紧，可能延期</div>` : ''}
     ${PREP_T.map(row).join('')}
-    <div class="muted" style="font-size:12px;margin-top:6px">本人任务：在行程后台加「专辑录音」（其他）、「舞蹈练习」（练习）、「MV 拍摄 / 预告照拍摄 / Dance Practice」（物料），并在「关联回归准备」里选这次回归。公司任务会按时间自动推进。</div>
-    ${!t.pick.done ? `<details class="me-more"><summary>候选歌曲（${pool.length}）· 公司做最终决定</summary>${pool.map(x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${esc(x.src)}</div></div>${x.mine ? `<button class="link" data-act="pppref" data-id="${x.id}">${P.pref === x.id ? '★ 想做主打' : '☆ 想做主打'}</button>` : ''}</div>`).join('')}<div class="muted" style="font-size:12px;margin-top:4px">你的作品可以在「作品库」里提交为本次回归候选。表达想法能加一点分，但不保证采用。</div></details>`
+    ${!t.pick.done ? `<details class="me-more"><summary>候选歌曲（${pool.length}）</summary>${pool.map(x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${esc(x.src)}</div></div>${x.mine ? `<button class="link" data-act="pppref" data-id="${x.id}">${P.pref === x.id ? '★ 想做主打' : '☆ 想做主打'}</button>` : ''}</div>`).join('')}</details>`
       : P.sel ? `<details class="me-more"><summary>选曲结果</summary>${P.sel.list.map(x => `<div class="rule"><span style="flex:1">${x.title ? '★ ' : ''}${esc(x.name)}</span><span class="muted" style="font-size:12px">${esc(x.src)}</span></div>`).join('')}</details>` : ''}
-    ${!t.final.done || a.mood !== 'ballad' ? '' : ''}<label class="row" style="gap:6px;font-size:13px;margin-top:6px"><input type="checkbox" data-act="ppdance" ${P.dance ? 'checked' : ''} style="width:auto">主打需要编舞（抒情曲可以关掉）</label></div>`;
+    ${!t.final.done || a.mood !== 'ballad' ? '' : ''}<label class="row" style="gap:6px;font-size:13px;margin-top:6px"><input type="checkbox" data-act="ppdance" ${P.dance ? 'checked' : ''} style="width:auto">主打有编舞</label></div>`;
 }
 
 /* =========================================================
@@ -7505,7 +7502,7 @@ function ruleExtraHTML(r) {
   const ws = mz().works.filter(w => mzOpen(w) || w.id === r.workId), cur = r.workId || (ws.find(mzOpen) || {}).id || '__new', o = prepOn();
   const guess = r.cbTask != null && r.cbTask !== undefined && r.id ? r.cbTask : prepGuess(r.title, r.cat);
   return `<div class="field" id="r-work-f" style="display:none"><label>本次创作的作品</label><select id="r-work">${ws.map(w => `<option value="${w.id}" ${cur === w.id ? 'selected' : ''}>《${esc(mzName(w))}》${mzOpen(w) ? (w.status === 'revising' ? '（修改）' : '') : '（已完成）'}</option>`).join('')}<option value="__new" ${cur === '__new' ? 'selected' : ''}>＋ 开始一首新歌</option><option value="" ${r.id && !r.workId ? 'selected' : ''}>不指定（自由练习）</option></select>
-      <div id="r-wnew" class="grid2" style="margin-top:6px"><input id="r-wn" placeholder="暂定名称（可不填）"><select id="r-wg"><option value="">曲风还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div></div>
+      <div id="r-wnew" class="grid2" style="margin-top:6px"><input id="r-wn" placeholder="暂定名称"><select id="r-wg"><option value="">曲风还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div></div>
     <div class="field" id="r-cbt-f" style="display:none"><label>关联回归准备${o ? ` · 《${esc(o.a.name)}》` : ''}</label><select id="r-cbt" ${r.id ? 'data-touched="1"' : ''}><option value="">不关联</option>${Object.entries(PREP_NAME).map(([k, v]) => `<option value="${k}" data-c="${Object.keys(PREP_CAT).find(c => PREP_CAT[c].includes(k))}" ${guess === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`;
 }
 function prepGuess(title, cat) { const t = title || ''; return /录音|녹음/.test(t) ? 'rec' : /企划|回归.*会议|会议.*回归/.test(t) ? 'meet' : cat === '练习' && /舞|编舞|안무|回归/.test(t) ? 'dance' : /MV|뮤비/.test(t) ? 'mv' : /概念照|预告照|封面|画报/.test(t) && cat === '物料' ? 'photo' : cat === '物料' && /Dance Practice|花絮|宣传|物料|预告/.test(t) ? 'promo' : ''; }
