@@ -3317,8 +3317,11 @@ function mgrCancel(t) {
   const today = dkey(Date.now()), day = mgrParseDay(t);
   // 说的是哪类行程、哪个时段（中韩都认）
   const CAT_HINT = [[/签售|팬싸|팬사인|사인회|영통/, '签售'], [/打歌|音乐节目|음방|뮤뱅|인가|엠카|쇼챔|더쇼|음중/, '打歌'], [/电台|라디오/, '电台'], [/综艺|예능/, '综艺'], [/拍摄|画报|촬영|화보|광고/, '物料'], [/演出|公演|庆典|공연|축제|버스킹/, '公演'], [/演唱会|콘서트/, '演唱会'], [/课|수업|레슨/, '上课'], [/练习|연습/, '练习'], [/活动|快闪|见面会|행사|팝업|팬미팅/, '活动']];
-  const ch = (CAT_HINT.find(([re]) => re.test(t)) || [])[1], tm = /晚上|傍晚|저녁|밤/.test(t) ? r => toMin(r.start) >= 17 * 60 : /上午|早上|아침|오전/.test(t) ? r => toMin(r.start) < 12 * 60 : /下午|오후/.test(t) ? r => toMin(r.start) >= 12 * 60 : null;
-  let pool = S.schedule.rules.filter(r => r.repeat === 'once' && r.date >= today && (!day || r.date === day));
+  // 说了具体几点（10시 / 10点）就按几点找；没说才看「晚上 / 上午」这类词（「晚上有舞台」这种理由里的词不算数）
+  const hm = t.match(/(오전|오후|아침|저녁|밤|上午|早上|中午|下午|晚上|傍晚)?\s*(\d{1,2})\s*(?:시|点|點|:\d{2})/), H = hm ? +hm[2] : null, pm = hm && /오후|저녁|밤|下午|晚上|傍晚/.test(hm[1] || '');
+  const ch = (CAT_HINT.find(([re]) => re.test(t)) || [])[1], tm = H != null ? r => { const h = Math.floor(toMin(r.start) / 60); return pm ? h === (H % 12) + 12 : hm[1] && /오전|아침|上午|早上/.test(hm[1]) ? h === H % 12 : h === H || h === H + 12; } : /晚上|傍晚|저녁|밤/.test(t) ? r => toMin(r.start) >= 17 * 60 : /上午|早上|아침|오전/.test(t) ? r => toMin(r.start) < 12 * 60 : /下午|오후/.test(t) ? r => toMin(r.start) >= 12 * 60 : null;
+  const occ = []; for (let i = 0; i < 14; i++) { const k = addDays(today, i); if (day && k !== day) continue; for (const r of rulesFor(k)) if (r.repeat === 'once' || k === (day || today)) occ.push(Object.assign(Object.create(r), { _r: r, date: k })); } // 每周 / 每天重复的行程只取消那一天
+  let pool = occ;
   if (ch) pool = pool.filter(r => r.cat === ch); if (tm) pool = pool.filter(tm);
   const kw = t.replace(/帮我|麻烦|把|那个|这个|的|行程|日程|通告|活动|退掉|推掉|取消|不去了?|去不了|不想去|今天|明天|后天|下周.|周.|星期.|吧|一下|了|呢|啊|일정|스케줄|빼\S*|취소\S*|못 가\S*|안 갈\S*|빠질\S*|오늘|내일|모레|다음 ?주|[월화수목금토일]요일|\d{1,2}\s*[月/.월]\s*\d{1,2}\s*[日号일]?|[，。,.!！~\s]/g, '');
   let hit = (ch || tm) && pool.length === 1 ? pool : kw.length >= 2 ? pool.filter(r => r.title.includes(kw) || [...new Set(kw.match(/.{2}/g) || [])].some(p => r.title.toLowerCase().includes(p.toLowerCase()))) : [];
@@ -3326,7 +3329,7 @@ function mgrCancel(t) {
   if (!hit.length) { const c = pool.filter(r => !['练习', '上课'].includes(r.cat)).slice(0, 4); return c.length ? [[`어떤 거요? ${c.map(r => `${+r.date.slice(5, 7)}/${+r.date.slice(8)} ${r.title}`).join(', ')} 중에요?`, `哪个？${c.map(r => `${+r.date.slice(5, 7)}/${+r.date.slice(8)} ${r.title}`).join('、')}？`]] : [['빼야 할 일정이 안 보이는데요?', '没看到要推的行程哎？']]; }
   if (hit.length > 2) hit = hit.slice(0, 2);
   const big = hit.some(r => ['打歌', '综艺', '演唱会', '校庆', '公演', '物料', '签售'].includes(r.cat)), soon = hit.some(r => r.date === today);
-  S.schedule.rules = S.schedule.rules.filter(r => !hit.includes(r)); const M = mgr(); M.mood = Math.max(0, M.mood - (big ? 6 : 2) * hit.length - (soon ? 4 : 0)); // 心情只影响后续邀约，不表现在对话里
+  for (const o of hit) { const r = o._r; if (r.repeat === 'once') S.schedule.rules = S.schedule.rules.filter(x => x !== r); else (r.skip || (r.skip = [])).push(o.date); } const M = mgr(); M.mood = Math.max(0, M.mood - (big ? 6 : 2) * hit.length - (soon ? 4 : 0)); // 心情只影响后续邀约，不表现在对话里
   const f = S.profile.followers, notes = [], items = [];
   for (const r of hit) {
     if (['练习', '上课', '个人'].includes(r.cat)) { notes.push(r.title); items.push({ title: r.title }); continue; }
@@ -5867,7 +5870,7 @@ PRESETS['其他'] = [['音乐创作', '宿舍'], ['专辑录音', '公司 录音
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
 function rulesFor(k) {
   const dow = parseD(k).getDay();
-  return S.schedule.rules.filter(r => r.repeat === 'daily' || (r.repeat === 'weekly' && (r.days || []).includes(dow)) || (r.repeat === 'once' && r.date === k))
+  return S.schedule.rules.filter(r => !(r.skip || []).includes(k)).filter(r => r.repeat === 'daily' || (r.repeat === 'weekly' && (r.days || []).includes(dow)) || (r.repeat === 'once' && r.date === k))
     .sort((a, b) => a.start.localeCompare(b.start));
 }
 const toMin = t => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m; };
