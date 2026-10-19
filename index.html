@@ -170,7 +170,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .cb-warn.ok{color:var(--accent);background:var(--bg)}
 .mz-head{display:flex;gap:10px;align-items:flex-start}.mz-head>div{flex:1;min-width:0}
 .mz-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;margin:5px 0 2px}.mz-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}.mz-bar.o i{background:#ff8a3d}
-.mz-w{padding:10px 0;border-top:1px solid var(--line,#eee);cursor:pointer}.mz-w .chip{white-space:nowrap}
+.mz-head .mz-bar{max-width:160px}.mz-w{display:flex;align-items:baseline;gap:8px;padding:11px 0;border-top:1px solid var(--line,#eee);cursor:pointer}.mz-w b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mz-w .muted{font-size:12.5px;white-space:nowrap}.mz-st{margin-left:auto;font-size:12.5px;white-space:nowrap}
 .mz-eval{display:flex;gap:10px;margin-top:8px}.mz-eval>div{flex:1;background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}.mz-eval b{font-size:22px}.mz-eval span{font-size:12px;color:var(--muted,#888)}
 .mz-acts{display:flex;flex-wrap:wrap;gap:8px}.mz-acts .btn{flex:1 1 auto}
 .pp-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:13.5px;border-top:1px solid var(--line,#eee)}.pp-row.ok{color:var(--muted,#888)}.pp-who{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--bg);white-space:nowrap;margin-top:1px}
@@ -1941,13 +1941,12 @@ function mzRoyalty() {
 }
 /* ---------- 个人作品库 ---------- */
 function worksHTML() {
-  const M = mz(), lv = mzLv(), nx = MZ_LV[lv + 1], demos = M.works.filter(w => w.done).length;
+  const M = mz(), lv = mzLv(), nx = MZ_LV[lv + 1];
   const ws = M.works.slice().sort((a, b) => (mzOpen(b) - mzOpen(a)) || b.no - a.no);
-  return `<div class="mz-head"><div><b>创作熟练度 · ${MZ_LV[lv][1]}</b><div class="muted" style="font-size:12.5px">经验 ${Math.round(M.exp)}${nx ? ` / ${nx[0]}（下一阶段：${nx[1]}）` : ''} · 完成 Demo ${demos} 首</div>${nx ? `<div class="mz-bar"><i style="width:${Math.round((M.exp - MZ_LV[lv][0]) / (nx[0] - MZ_LV[lv][0]) * 100)}%"></i></div>` : ''}</div><button class="btn primary sm" data-act="mznew">＋ 新作品</button></div>
-    <div class="muted" style="font-size:12.5px;margin:4px 0 8px">写歌：在行程后台加「其他 → 音乐创作」，选这次写哪首。这里只收你自己写的歌。</div>
-    ${ws.length ? ws.map(w => `<div class="mz-w" data-act="mzopen" data-id="${w.id}"><div class="row" style="gap:6px"><b style="flex:1;min-width:0">《${esc(mzName(w))}》</b><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span></div>
-      <div class="muted" style="font-size:12.5px">${esc(w.genre || '曲风未定')} · ${w.start.slice(5).replace('-', '/')} 开始${w.done ? ` · ${w.done.slice(5).replace('-', '/')} 完成` : ''}</div>
-      ${w.status === 'writing' ? `<div class="mz-bar"><i style="width:${Math.round(w.prog / w.need * 100)}%"></i></div><div class="muted" style="font-size:12px">作曲进度 ${Math.round(w.prog / w.need * 100)}%</div>` : w.status === 'revising' ? `<div class="mz-bar o"><i style="width:${Math.round(w.rev.prog / w.rev.need * 100)}%"></i></div><div class="muted" style="font-size:12px">修改进度 ${Math.round(w.rev.prog / w.rev.need * 100)}%</div>` : w.q != null ? `<div style="font-size:13px;margin-top:2px">质量 <b>${w.q}</b>（${mzQLabel(w.q)}）· 商业潜力 <b>${w.c}</b>（${mzCLabel(w.c)}）</div>` : ''}</div>`).join('') : '<div class="muted" style="padding:10px 0">还没有作品。点「＋ 新作品」，再去行程后台安排音乐创作。</div>'}`;
+  const sub = w => w.status === 'writing' ? `写了 ${Math.round(w.prog / w.need * 100)}%` : w.status === 'revising' ? `修改中 ${Math.round(w.rev.prog / w.rev.need * 100)}%` : w.q != null ? mzQLabel(w.q) : '';
+  return `<div class="mz-head"><div><span class="muted" style="font-size:12.5px">创作熟练度</span> <b>${MZ_LV[lv][1]}</b>${nx ? `<div class="mz-bar"><i style="width:${Math.round((M.exp - MZ_LV[lv][0]) / (nx[0] - MZ_LV[lv][0]) * 100)}%"></i></div>` : ''}</div><button class="btn primary sm" data-act="mznew">＋ 新作品</button></div>
+    ${ws.length ? ws.map(w => `<div class="mz-w" data-act="mzopen" data-id="${w.id}"><b>${esc(mzName(w))}</b><span class="muted">${sub(w)}</span><span class="mz-st" style="color:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span></div>`).join('')
+      : '<div class="muted" style="padding:12px 0 4px;font-size:13.5px">还没有作品。在行程后台加「其他 → 音乐创作」就能开始写。</div>'}`;
 }
 function mzNewHTML() {
   return `<div class="row"><h3 style="flex:1">🎼 新作品</h3><button class="btn ghost sm" data-act="close">取消</button></div>
