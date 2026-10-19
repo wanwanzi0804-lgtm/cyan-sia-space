@@ -170,7 +170,9 @@ body.typing .bb-tick.bb-tick2{display:block}
 .cb-warn.ok{color:var(--accent);background:var(--bg)}
 .mz-head{display:flex;gap:10px;align-items:flex-start}.mz-head>div{flex:1;min-width:0}
 .mz-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;margin:5px 0 2px}.mz-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}.mz-bar.o i{background:#ff8a3d}
-.mz-head .mz-bar{max-width:160px}.mz-w{display:flex;align-items:baseline;gap:8px;padding:11px 0;border-top:1px solid var(--line,#eee);cursor:pointer}.mz-w b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mz-w .muted{font-size:12.5px;white-space:nowrap}.mz-st{margin-left:auto;font-size:12.5px;white-space:nowrap}
+.mz-w{padding:14px 0;border-top:1px solid var(--line);cursor:pointer}.mz-r{display:flex;align-items:center;gap:10px}.mz-w b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mz-w .muted{font-size:13px;margin-top:2px}
+.mz-pct{font-size:20px;font-weight:700}.mz-pill{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--bg);white-space:nowrap}.mz-w .mz-bar{height:7px;margin-top:10px}.mz-hint{text-align:right;font-size:12.5px;color:var(--muted);margin-top:8px}
+.mk-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.mk-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px;border-radius:14px;border:1.5px solid transparent;background:var(--card);color:var(--text);box-shadow:var(--shadow);cursor:pointer;font:inherit;text-align:center;min-width:0}.mk-card b{font-size:14px}.mk-card span{font-size:11.5px;color:var(--muted)}.mk-card.on{border-color:var(--accent);color:var(--accent)}.mk-card.on b{color:var(--text)}
 .mz-eval{display:flex;gap:10px;margin-top:8px}.mz-eval>div{flex:1;background:var(--bg);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}.mz-eval b{font-size:22px}.mz-eval span{font-size:12px;color:var(--muted,#888)}
 .mz-acts{display:flex;flex-wrap:wrap;gap:8px}.mz-acts .btn{flex:1 1 auto}
 .pp-row{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:13.5px;border-top:1px solid var(--line,#eee)}.pp-row.ok{color:var(--muted,#888)}.pp-who{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--bg);white-space:nowrap;margin-top:1px}
@@ -1743,7 +1745,8 @@ const MZ_ST = { writing: '创作中', revising: '修改中', demo: '已完成 De
 const MZ_ST_C = { writing: '#2fb5c4', revising: '#ff8a3d', demo: '#7b61ff', submitted: '#999', suggest: '#ff8a3d', hold: '#8aa', cand: '#4a90e2', cbcand: '#e24a8d', rejected: '#aaa', adopted: '#2fb57a', released: '#1aa260' };
 function mz() { const M = S.music || (S.music = { v: 1, works: [], exp: 0, log: {}, earn: {} }); if (!M.log) M.log = {}; if (!M.earn) M.earn = {}; if (!M.works) M.works = []; return M; }
 function mzLv(exp = mz().exp) { let i = 0; MZ_LV.forEach(([t], j) => { if (exp >= t) i = j; }); return i; }
-const mzName = w => w ? (w.name || w.temp) : '';
+const mzName = w => w ? (w.name || w.temp || `Demo #${String(w.no).padStart(3, '0')}`) : '';
+const mzTitle = w => `Demo #${String(w.no).padStart(3, '0')} · ${w.name || w.temp || '未命名'}`;
 const mzWork = id => mz().works.find(w => w.id === id);
 const isMusicRule = r => !!r && r.cat === '其他' && /音乐创作|作曲|写歌/.test(r.title || '');
 const mzOpen = w => w && ['writing', 'revising'].includes(w.status);
@@ -1751,7 +1754,7 @@ function mzNew(name, genre) {
   const M = mz(), lv = mzLv(), x = Math.random();
   const base = x < .2 ? rand(6, 12) : x < .7 ? rand(15, 30) : x < .92 ? rand(30, 50) : rand(50, 72); // 灵感顺利 / 普通 / 反复修改 / 长期返工
   const no = M.works.reduce((a, w) => Math.max(a, w.no || 0), 0) + 1;
-  const w = { id: 'w' + uid(), no, name: '', temp: name || `未命名 Demo #${no}`, genre: genre || '', concept: '', note: '', partners: [], share: .5, start: dkey(Date.now()), done: null,
+  const w = { id: 'w' + uid(), no, name: '', temp: name || '', genre: genre || '', concept: '', note: '', partners: [], share: .5, start: dkey(Date.now()), done: null,
     prog: 0, need: Math.round(base * (1.3 - .08 * lv) * 10) / 10, pot: clamp(.25 + Math.random() * .5 + (Math.random() < .12 ? .2 : 0), .2, .95), qb: 0, cb: 0, q: null, c: null,
     status: 'writing', subs: [], sessions: [], events: [], revs: 0, rev: null, adopted: null, released: null };
   M.works.push(w); save(); return w;
@@ -1790,6 +1793,8 @@ function mzSettle(k, r, key, s, e, card) {
   const ex = hrs * 10; let note = '', doneNow = false;
   if (fx.text && card && card.wact === 'concept' && !w.concept) w.concept = fx.text.slice(0, 120);
   if (fx.text && card && card.wact === 'name' && !w.name) w.name = fx.text.replace(/[《》「」"]/g, '').slice(0, 30);
+  if (fx.text && card && card.wact === 'desc') w.concept = fx.text.slice(0, 200);
+  if (fx.fl) (w.flags || (w.flags = {}))[fx.fl] = 1; if (card && card.clr && w.flags) delete w.flags[card.clr]; // 连续剧情：记下前因 / 用掉
   if (fx.partner && !w.partners.includes(fx.partner)) { w.partners.push(fx.partner); w.share = .35; }
   w.qb += fx.q || 0; w.cb += fx.c || 0;
   if (fx.d) (w.events || (w.events = [])).push({ date: k, d: fx.d });
@@ -1812,7 +1817,7 @@ function mzSettle(k, r, key, s, e, card) {
   w.sessions.push({ date: k, hrs: +hrs.toFixed(2), gain: +gain.toFixed(2) }); if (w.sessions.length > 80) w.sessions.splice(0, w.sessions.length - 80);
   M.exp += ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0);
   fin(note + ` · 创作经验 +${Math.round(ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0))}`, { gain: +gain.toFixed(2), exp: ex });
-  if (doneNow) pushNotif({ type: 'system', text: `🎼 ${note.split('：')[0].split('！')[0]}`, sub: '去「音乐 → 作品库」看看评价，可以修改或提交 STARSHIP 评估' }, true);
+  if (doneNow) pushNotif({ type: 'system', text: `🎼 ${note.split('：')[0].split('！')[0]}`, sub: '去「音乐 → 作品 → 个人作品库」看看评价，可以修改或提交 STARSHIP 评估' }, true);
 }
 // 每隔一会儿：结算结束了的创作行程 / 回归准备行程，处理投稿结果和著作权费
 function mzTick() {
@@ -1834,39 +1839,72 @@ function mzTick() {
 /* ---------- 创作事件（接在现有通告卡里：60% 正常创作，30% 普通事件，10% 特殊事件） ---------- */
 // s：作品进度区间（0~1）；co：要在公司 / 工作室；fr：要有熟的朋友；sp：特殊事件
 const MZ_EV = [
-  { s: [0, .35], d: '你打开工作软件，脑子里有好几个零碎的旋律片段。今天先从哪里开始？', o: [['先把所有片段都哼一遍录下来', { p: 1.05 }], ['只挑最喜欢的一段深挖', { q: 2, p: .95 }], ['先找几首喜欢的歌听听氛围', { c: 2 }]] },
-  { s: [0, .5], w: 'concept', d: '你想为这首歌定一个核心概念。用一两句话说说它想讲什么吧（比如：失眠的夜里想念一个人）。', ph: '这首歌想讲……', wfx: { q: 2 } },
-  { s: [0, .4], d: '你在纠结这首歌的速度：慢一点更有情绪，快一点更适合舞台。', o: [['慢一点，先把情绪写出来', { q: 2, c: -1 }], ['快一点，想象它在舞台上的样子', { c: 3 }], ['两种都做一版对比', { p: .85, q: 1, c: 1 }]] },
-  { s: [0, 1], dorm: 1, d: '宿舍突然跳闸，电脑没保存，刚写的一段没了。', o: [['凭记忆重新做一遍', { back: .5, q: 1 }], ['干脆出去散散步再回来', { p: .9 }], ['先把自动保存打开，再慢慢补', { p: .95 }]] },
-  { s: [0, .6], d: '路上听到一段街头艺人的吉他，节奏很特别，你一直在脑子里循环。', o: [['马上用手机录下来', { c: 2, q: 1 }], ['回去试着放进前奏', { q: 2 }], ['只是听听，不想被别人的旋律带跑', {}]] },
-  { s: [.1, .5], d: '主歌旋律写好了，可你越听越觉得像某首很红的歌。', o: [['推翻重写', { back: 1, q: 3 }], ['改几个音，保留原来的感觉', { c: 1 }], ['先放着，继续往下写', { p: 1.05, q: -1 }]] },
-  { s: [.25, .8], d: '副歌旋律已经完成，但进入副歌时总觉得缺少冲击力，你打算怎么处理？', o: [['副歌前加一个短暂的停顿', { c: 3 }], ['把副歌整体抬高一点', { q: 2, c: 1 }], ['让节奏在副歌突然变满', { c: 2, q: 1 }], ['先不管，往下写', { p: 1.1, q: -1 }]] },
-  { s: [.3, .8], d: '你卡在桥段，两个小时只写出两小节。', o: [['换个地方继续写', { p: .9, q: 1 }], ['跳过桥段，先写结尾', { p: 1.05 }], ['听听自己以前写的东西找感觉', { q: 2 }]] },
-  { s: [.3, .9], d: '你给 Demo 搭了一个简单的伴奏，但听起来有点空。', o: [['加一层合成器铺底', { c: 2 }], ['加一把木吉他', { q: 2 }], ['就保留这种空空的感觉', { q: 1, c: -1 }]] },
-  { s: [.3, .9], w: 'line', d: '如果这首歌只能让人记住一个画面，你希望是什么？', ph: '比如：凌晨的便利店门口 / 下雨天的公交车窗', wfx: { q: 2, c: 1 } },
-  { s: [.35, .85], d: '把主歌和副歌连起来听，你发现衔接得有点突兀。', o: [['重写过渡的那几小节', { back: .8, q: 3 }], ['用一个小转音带过去', { q: 1, c: 1 }], ['保留这种突兀，当作特色', { c: -1, q: 1 }]] },
-  { s: [.3, .8], d: '你突然开始怀疑：这首歌是不是该换个曲风？', o: [['坚持原来的方向', { p: 1.05 }], ['改编一版对比看看', { p: .8, q: 2, c: 2 }], ['旋律不动，只换伴奏的感觉', { q: 1, c: 1 }]] },
-  { s: [0, 1], d: '写着写着已经很晚了，有点累，但手感正好。', o: [['再坚持一会儿', { p: 1.1, q: -1 }], ['先存档，明天再来', { p: .9, q: 1 }], ['冲杯咖啡继续', { p: 1.05 }]] },
-  { s: [.2, .9], fr: 1, d: '{f}发来消息问你在干嘛，听说你在写歌，想听听小样。', o: [['发给{f}听听', { q: 1, c: 2 }], ['等写完了再给你听', { p: 1.05 }], ['只发一小段', { c: 1 }]] },
-  { s: [.6, 1], d: 'Demo 快完成了，你从头听了一遍，觉得结尾有点草率。', o: [['重新写一个完整的结尾', { back: .6, q: 3 }], ['用副歌重复收尾', { c: 2 }], ['加一段安静的尾奏', { q: 2 }]] },
-  { s: [.5, 1], d: '你用手机外放听了一遍，低音几乎听不见。', o: [['调整一下各个声部的音量', { q: 1, c: 1 }], ['先不管，这只是 Demo', { p: 1.05 }]] },
-  { s: [.5, 1], co: 1, d: '公司的制作人路过工作室，听了几秒你的 Demo，说「副歌不错，主歌可以再抓耳一点」。', o: [['当场请教怎么改', { q: 2, c: 2, p: .9 }], ['先道谢，回去自己琢磨', { q: 1 }], ['坚持自己原来的想法', {}]] },
-  { s: [.6, 1], w: 'name', d: 'Demo 快写完了，给它起一个暂定的歌名吧。', ph: '暂定歌名', wfx: {} },
-  { s: [.3, 1], d: '你在纠结要不要在 Demo 里留一段 Rap。', o: [['留一段，展现自己的特色', { c: 2, q: 1 }], ['不加，保持旋律完整', { q: 1 }], ['先空出位置，以后再说', { p: 1.05 }]] },
-  { s: [.4, 1], d: 'Demo 里有一段听起来不太舒服，但你说不出哪里不对。', o: [['一点点试，直到顺耳', { back: .5, q: 2 }], ['换成更常见、更顺的走向', { c: 2 }], ['记下来，之后问问别人', {}]] },
-  { s: [0, 1], d: '戴着耳机写了很久，耳朵有点累。', o: [['休息十分钟再继续', { p: .95, q: 1 }], ['调小音量继续', {}], ['换音箱听一遍', { q: 1 }]] },
-  { s: [0, .7], d: '你翻到手机里很久以前录的一段哼唱。', o: [['把它加进这首歌', { q: 2, c: 1, back: .3 }], ['存进灵感文件夹，以后用', {}]] },
-  { s: [0, 1], d: '今天状态很好，旋律一个接一个冒出来。', o: [['趁热全部记下来', { p: 1.15 }], ['只挑最好的几段', { q: 2 }]] },
-  { s: [.2, 1], d: '你想到粉丝们听这首歌的样子。', o: [['加一段适合大家一起唱的部分', { c: 3 }], ['写自己真正想写的', { q: 2 }], ['两边都兼顾一下', { c: 1, q: 1 }]] },
-  { s: [0, 1], d: '写到一半，你想起明天的行程很早。', o: [['早点收工', { p: .85 }], ['再写一会儿就睡', { p: 1.05, q: -1 }]] },
-  { s: [.2, 1], w: 'words', d: '用三个词形容这首歌现在给你的感觉。', ph: '比如：潮湿、温柔、倔强', wfx: { q: 1 } },
-  // 特殊事件
-  { sp: 1, s: [.2, .9], multi: [['凌晨灵感突然来了，脑子里响起了一段完整的副歌。', [['立刻爬起来录', { p: 1.2, q: 2 }], ['在手机上哼一遍再睡', { q: 1 }]]], ['录完一听，这段比原来的副歌好太多了。', [['换掉原来的副歌', { back: 1, q: 5, c: 3 }], ['两个版本都留着对比', { q: 2 }]]]] },
-  { sp: 1, s: [.3, .9], fr: 1, d: '{f}听了你发的片段，说想和你一起改一版。', o: [['好，一起改，加上{f}的想法', { q: 3, c: 3, partner: '{f}' }], ['谢谢，但这首想自己完成', { q: 1 }]] },
-  { sp: 1, s: [.2, .8], d: '整理文件时你发现，几个月前写的一段旋律和这首歌意外地很搭。', o: [['合进来', { q: 4, back: .5 }], ['留给下一首', {}]] },
-  { sp: 1, s: [.3, 1], co: 1, d: '公司 A&R 听说你在写歌，约你下次带着 Demo 去聊聊。', o: [['好，加快进度', { p: 1.15 }], ['慢慢来，先把歌写好', { q: 3 }]] },
-  { sp: 1, s: [.5, 1], d: '你把 Demo 发给声乐老师，老师说「这首很适合你的声音」。', o: [['按自己最舒服的音域再调整一下', { q: 2, c: 2 }], ['保持原样', {}]] },
-  { sp: 1, s: [.6, 1], d: '你突然觉得整首歌的结构都不对，想推翻重来。', o: [['推翻重来', { back: 3, q: 6 }], ['只改最不满意的一段', { back: 1, q: 3 }], ['冷静一下，明天再决定', { p: .9 }]] }
+  // 一、灵感与创作方向（创作初期）
+  { s: [0, .4], d: '刚开始创作，你脑海里同时出现了两种截然不同的歌曲风格。', o: [['选更有感觉的那一个', { q: 2 }], ['选更适合舞台的那一个', { c: 3 }], ['两个都先记下来，之后再决定', { p: .9, q: 1, c: 1 }]] },
+  { s: [0, .4], w: 'concept', d: '今天突然有了写歌的灵感，你想把什么样的心情写进这首歌？', ph: '比如：凌晨睡不着、想念一个人的心情', wfx: { q: 2, p: 1.05 } },
+  { s: [0, .4], d: '你原本想写一首抒情歌，但随手弹出的旋律却更适合轻快的曲风。', o: [['顺着旋律改成轻快的', { c: 3, p: .95 }], ['坚持写抒情歌，把这段放慢', { q: 2 }], ['这段先存起来，留给下一首', {}]] },
+  { s: [0, .45], sp: 1, d: '你听到一段自己以前录下的旋律，觉得或许可以重新利用。', o: [['把它放进这首歌', { q: 3, back: .5 }], ['只借用其中的一小段', { q: 1, c: 1 }], ['还是写全新的', { p: 1.05 }]] },
+  { s: [0, .5], w: 'words', d: '如果要用三个关键词概括这首歌，你会选择什么？', ph: '比如：潮湿、温柔、倔强', wfx: { q: 1 } },
+  { s: [0, .45], d: '你想到了两个不错的副歌旋律，但它们的风格完全不同。', o: [['选更好记的那个', { c: 3 }], ['选更有情绪的那个', { q: 3 }], ['都录下来，明天再听一遍决定', { p: .9, q: 1, c: 1 }]] },
+  { s: [.3, .65], d: '写到一半，你发现现在的歌曲氛围和最初设想的差别越来越大。', o: [['顺着现在的感觉写下去', { p: 1.05, q: 1 }], ['拉回最初的方向', { back: 1, q: 2 }], ['停下来重新理一下思路', { p: .85, q: 1 }]] },
+  { s: [0, .6], w: 'name', d: '你决定先为这首还没有名字的 Demo 取一个暂定名称。', ph: '暂定名称', wfx: {} },
+  { s: [.1, .6], d: '你突然想到一段很喜欢的旋律，却不知道应该放在主歌还是副歌。', o: [['放进副歌，让它最显眼', { c: 3 }], ['放进主歌，副歌另写', { q: 2, p: .95 }], ['当作前奏', { q: 1, c: 1 }]] },
+  { s: [0, .5], d: '今天状态不错，你想尝试一种以前没有写过的音乐风格。', o: [['大胆试一下', { q: 3, p: .85 }], ['只加一点新元素', { q: 1, c: 1 }], ['还是写自己熟悉的', { p: 1.1 }]] },
+  // 二、作词与情感表达
+  { s: [.2, .85], d: '副歌的旋律已经写好了，但歌词怎么填都觉得不够自然。', o: [['先哼成无意义的音节，以后再填', { p: 1.05, fl: 'shelve' }], ['换一个说法从头填', { back: .5, q: 2 }], ['改几个音迁就歌词', { q: 1, c: 1 }]] },
+  { s: [.2, .85], w: 'line', d: '你想为这首歌写一句最能表达主题的歌词。', ph: '写下这句歌词', wfx: { q: 2, c: 1 } },
+  { s: [.2, .85], d: '你发现某句歌词虽然很喜欢，但唱起来有些拗口。', o: [['改成好唱的说法', { c: 2 }], ['保留，练到唱顺为止', { q: 1, p: .95 }], ['调整旋律来配合这句', { q: 2, back: .3 }]] },
+  { s: [.2, .85], d: '歌词写得太直白，你犹豫要不要改成更含蓄的表达。', o: [['改得含蓄一点', { q: 2, c: -1 }], ['直白也挺好，大家一听就懂', { c: 2 }], ['只改最直白的那一句', { q: 1, c: 1 }]] },
+  { s: [.2, .85], w: 'line', d: '你想为这首歌设计一句反复出现的核心歌词。', ph: '那句会反复出现的歌词', wfx: { c: 3 } },
+  { s: [.2, .85], d: '你写出了一段很私人的歌词，开始犹豫是否要保留。', o: [['保留，这就是我想写的', { q: 3, c: -1 }], ['改得没那么私人', { c: 1, q: 1 }], ['删掉', { back: .5 }]] },
+  { s: [.3, .85], d: '主歌和副歌的歌词分别很好，但放在一起却缺少连贯性。', o: [['在中间加一句过渡', { q: 2 }], ['改写主歌去配合副歌', { back: .8, q: 3 }], ['先放着，之后再说', { p: 1.05, fl: 'shelve' }]] },
+  { s: [.5, 1], w: 'line', d: '你想为歌曲的最后一句歌词设计一个特别的结尾。', ph: '最后一句', wfx: { q: 2 } },
+  { s: [.2, .85], d: '你发现歌词的某个词语很难与旋律的重音配合。', o: [['换一个词', { q: 1 }], ['调整旋律的节奏', { q: 1, back: .3 }], ['唱的时候带过去就行', { p: 1.05 }]] },
+  { s: [.3, .9], d: '一段韩语歌词已经写好，你考虑是否加入少量英文歌词。', o: [['在副歌加一句英文', { c: 2 }], ['全部保留韩语', { q: 1 }], ['加在桥段，当作点缀', { q: 1, c: 1 }]] },
+  // 三、作曲与编曲
+  { s: [.3, .9], d: '你写出了一个很抓耳的 Hook，但不知道该不该让它在整首歌里反复出现。', o: [['反复出现，让人记住', { c: 4, q: -1 }], ['只在副歌出现', { c: 2, q: 1 }], ['最后才完整出现一次', { q: 2 }]] },
+  { s: [.3, .9], d: '主歌旋律很流畅，进入副歌时却总觉得缺少爆发力。', o: [['副歌前加一个短暂的停顿', { c: 3 }], ['把副歌整体抬高一点', { q: 2, c: 1 }], ['先跳过，之后再想办法', { p: 1.1, fl: 'shelve' }]] },
+  { s: [.3, .9], d: '你尝试加入一段新的和声，却发现歌曲整体听起来变得拥挤。', o: [['删掉和声', { p: 1.05 }], ['只在副歌保留', { q: 2 }], ['减掉别的乐器，给和声留位置', { q: 2, back: .5 }]] },
+  { s: [.3, .9], d: '编曲时，你犹豫应该保留简单的伴奏还是加入更多乐器。', o: [['保持简单', { q: 1, p: 1.05 }], ['加乐器，让它更丰满', { c: 2, p: .9 }], ['只在副歌加', { q: 1, c: 1 }]] },
+  { s: [.3, .9], d: '你觉得歌曲的节奏有点平淡，想尝试调整鼓点。', o: [['换成更有律动的鼓点', { c: 3, back: .3 }], ['只在副歌加强', { c: 1, q: 1 }], ['保持原样', { p: 1.05 }]] },
+  { s: [.4, .9], d: '第二段主歌听起来和第一段太相似，你考虑增加一点变化。', o: [['改一下旋律走向', { q: 2, back: .3 }], ['换伴奏', { q: 1, c: 1 }], ['相似也没关系', { p: 1.05 }]] },
+  { s: [.4, .85], d: '你尝试加入一段 Bridge，却发现它影响了整首歌的流畅度。', o: [['删掉 Bridge', { p: 1.05 }], ['重写一段更顺的', { back: 1, q: 3 }], ['缩短它', { q: 1 }]] },
+  { s: [.3, .9], d: '副歌的音域有些偏高，你犹豫要不要调整旋律。', o: [['降一点，唱得更稳', { c: 2 }], ['保留高音，这是亮点', { q: 2, c: -1 }], ['只在最后一遍用高音', { q: 2, c: 1 }]] },
+  { s: [.5, 1], d: '你发现歌曲长度比预期长了不少，需要决定删减哪个部分。', o: [['删掉前奏的一部分', { c: 2 }], ['删掉重复的副歌', { q: 1, c: 1 }], ['不删，就这么长', { q: 1, c: -1 }]] },
+  { s: [.6, 1], d: '歌曲的结尾听起来太突然，你考虑重新设计 Outro。', o: [['加一段安静的尾奏', { q: 2 }], ['用副歌重复收尾', { c: 2 }], ['突然结束也挺有特色', { q: 1, c: -1 }]] },
+  // 四、创作瓶颈与突发状况
+  { s: [0, 1], d: '你已经连续修改同一段旋律很久，却始终不满意。', o: [['先搁置，去写别的部分', { p: .95, fl: 'shelve' }], ['继续死磕', { p: .8, q: 2 }], ['回到最早的版本', { back: .5, q: 1 }]] },
+  { s: [0, 1], d: '今天的创作状态不太好，写出的内容几乎都被自己否定了。', o: [['提早收工', { p: .6 }], ['硬写下去', { p: .85, q: -1 }], ['换个方式，只整理之前的素材', { p: .8, q: 1 }]] },
+  { s: [.15, .8], d: '你突然发现前几天写下的旋律和某首熟悉的歌曲有些相似。', o: [['推翻重写这段', { back: 1.5, q: 3 }], ['改几个音，避开相似的地方', { q: 1, back: .3 }], ['先继续写，之后再处理', { p: 1.05, q: -2 }]] },
+  { s: [.4, 1], d: '你保存的两个 Demo 版本听起来各有优点，一时不知道该留下哪个。', o: [['留完成度高的', { p: 1.05 }], ['留更有特色的', { q: 2 }], ['把两个版本的优点合在一起', { back: 1, q: 2, c: 2 }]] },
+  { s: [0, 1], d: '你在创作中途感到疲惫，但距离原定结束时间还有一段时间。', o: [['休息一下再继续', { p: .9, q: 1 }], ['坚持写完', { p: 1.05, q: -1 }], ['提前结束', { p: .7 }]] },
+  { s: [.2, .8], d: '你发现自己一直在修改细节，却迟迟没有推进歌曲的主体部分。', o: [['先把整首歌的框架写完', { p: 1.15 }], ['细节也很重要，继续', { p: .85, q: 2 }]] },
+  { s: [0, 1], d: '今天的灵感特别多，但新的想法不断打断当前的创作。', o: [['全部记下来，继续写手上这首', { p: 1.05 }], ['挑一个最好的用进这首歌', { q: 2, back: .3 }], ['顺着新想法写', { p: .85, q: 1 }]] },
+  { s: [.4, 1], d: '你反复听自己的 Demo，开始分不清哪些地方真的需要修改。', o: [['今天先不听了', { p: .9 }], ['只改自己最确定的地方', { q: 1 }], ['发给信任的人听听', { q: 1, c: 1 }]] },
+  { s: [.3, 1], d: '你发现刚写好的旋律在实际试唱时没有想象中自然。', o: [['照着唱起来舒服的方式改', { q: 2, c: 1 }], ['练几遍再判断', { p: .95 }], ['先保留', { p: 1.05 }]] },
+  { s: [.3, 1], d: '你原本很满意的一段编曲，隔了几天再听却觉得不太合适。', o: [['重新编这段', { back: 1, q: 2 }], ['小改一下', { q: 1 }], ['相信当时的判断', { p: 1.05 }]] },
+  // 五、Demo 录制与作品完善
+  { s: [.6, 1], d: '你准备录制导唱，但发现某段旋律连续唱下来有些吃力。', o: [['调整旋律，让它好唱一点', { c: 2 }], ['分段录', { p: .95 }], ['多练几遍再录', { q: 1, p: .9 }]] },
+  { s: [.6, 1], d: '录制 Demo 时，你尝试了两种不同的演唱情绪。', o: [['留克制一点的版本', { q: 2 }], ['留情绪更满的版本', { c: 2 }], ['前半克制，后半爆发', { q: 1, c: 1 }]] },
+  { s: [.6, 1], d: '你发现 Demo 的人声和伴奏比例不太协调。', o: [['调整一下各部分的音量', { q: 1, c: 1 }], ['先这样，正式制作时再说', { p: 1.05 }]] },
+  { s: [.6, 1], d: '你已经录了好几遍副歌，却总觉得缺少想要的情绪。', o: [['休息一下再录', { p: .9, q: 1 }], ['用其中最好的一遍', { p: 1.05 }], ['换个方式唱，比如更轻一点', { q: 2 }]] },
+  { s: [.65, 1], d: '你想在最后一遍副歌加入一些即兴和声。', o: [['加，让结尾更丰富', { q: 2, c: 1 }], ['不加，保持简单', { p: 1.05 }]] },
+  { s: [.7, 1], d: 'Demo 已经接近完成，你犹豫是否还需要修改编曲。', o: [['再改一版', { back: 1, q: 2 }], ['就这样，先完成', { p: 1.1 }], ['只改最不满意的一小段', { q: 1 }]] },
+  { s: [.75, 1], w: 'desc', d: '你准备为这首 Demo 写一段简短的作品介绍。', ph: '这首歌是……', wfx: { c: 1 } },
+  { s: [.6, 1], sp: 1, d: '你听完完整 Demo 后，发现整首歌最出彩的部分并不是原本设想的副歌。', o: [['把那一段改成副歌', { back: 1.5, q: 3, c: 3 }], ['让它在歌里多出现一次', { c: 2 }], ['保持原来的结构', {}]] },
+  { s: [.5, 1], d: '你发现歌曲中有一段较长的空白，需要决定是否加入新的音乐元素。', o: [['加一段乐器 Solo', { q: 2 }], ['加一句念白', { c: 2 }], ['保留空白，制造停顿', { q: 1 }]] },
+  { s: [.8, 1], d: '作品已经基本完成，但你对最后的整体效果仍有一点不满意。', o: [['再打磨一下', { back: .8, q: 2 }], ['先完成，以后再改', { p: 1.1 }], ['找人听听意见再决定', { q: 1, c: 1 }]] },
+  // 六、合作交流与连续剧情（要地点 / 人物 / 前置事件）
+  { s: [.2, .95], co: 1, sp: 1, d: '你在公司工作室创作时，一位制作人听到了正在播放的 Demo，并提出了一点建议。', o: [['当场请教该怎么改', { q: 2, c: 2, p: .9, fl: 'askProd' }], ['道谢，说回去好好考虑', { q: 1, fl: 'prodSug' }], ['礼貌听完，坚持自己的想法', {}]] },
+  { s: [.1, .9], co: 1, w: 'concept', d: '一位熟悉的制作人问你，这首歌最想表达的是什么。', ph: '这首歌最想表达的是……', wfx: { q: 2, fl: 'askProd' } },
+  { s: [.3, .95], sp: 1, d: '你邀请一位熟悉的创作者试听未完成的 Demo，对方指出了一个值得修改的地方。', o: [['照着建议修改', { q: 3, back: .5, fl: 'cr' }], ['记下来，之后再判断', { q: 1, fl: 'cr' }], ['谢谢，但想保留原样', {}]] },
+  { s: [.2, 1], need: 'askProd', clr: 'askProd', d: '你之前向制作人请教过的编曲问题，在今天的创作中再次遇到了。', o: [['用制作人教的方法解决', { p: 1.15, q: 2 }], ['试试自己的办法', { q: 1, p: .95 }]] },
+  { s: [.3, .95], need: 'cr', sp: 1, d: '一位合作过的创作者提出了与你原本想法不同的旋律修改建议。', o: [['采用对方的建议', { c: 3, q: 1, back: .5 }], ['折中一下', { q: 1, c: 1 }], ['坚持原本的想法', { q: 1 }]] },
+  { s: [.3, .95], fr: 1, w: 'ask', d: '你准备把一小段 Demo 发给{f}试听，想问对方什么？', ph: '想问{f}的问题', wfx: { q: 1, c: 2 } },
+  { s: [0, 1], need: 'shelve', clr: 'shelve', d: '你上次暂时搁置的那段修改方案，今天有了新的解决思路。', o: [['马上改', { q: 3, p: 1.05 }], ['先记下来，写完这段再改', { q: 1, p: 1.1 }]] },
+  { s: [.2, .95], co: 1, sp: 1, d: '你在公司工作室遇到一位同样正在写歌的艺人，对方提出可以互相试听作品。', o: [['好，互相听听', { q: 2, c: 2, fl: 'cr' }], ['今天先不了，还没准备好', {}]] },
+  { s: [.3, 1], co: 1, need: 'prodSug', clr: 'prodSug', d: '之前试听过你 Demo 的制作人再次询问，你是否考虑过他提出的修改方向。', o: [['已经按他的建议改了', { q: 2, c: 2 }], ['说明自己为什么想保留原样', { q: 2 }], ['还在考虑，想再试试', { p: .95, q: 1 }]] },
+  { s: [.3, 1], co: 1, sp: 1, w: 'concept', d: '你准备向一位可能合作的创作者介绍自己的歌曲构想。', ph: '用几句话介绍这首歌', wfx: { q: 1, c: 2, fl: 'cr' } }
 ];
 function mzFriend() { const L = chal().friends.filter(f => ['close', 'best'].includes(f.lv) && !(f.g === 'CRAVITY' && f.n === '세림')); return L.length ? L[Math.floor(Math.random() * L.length)] : null; }
 function mzCard(k, r, key) {
@@ -1875,15 +1913,15 @@ function mzCard(k, r, key) {
   const rr = srng('mz' + key), x = rr(); if (x < .6) return null; // 60% 正常创作，没有事件
   const frac = w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
   const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
-  let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr));
+  let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr) && (!e.need || (w.flags || {})[e.need]));
   const want = x >= .9 ? pool.filter(p => p.e.sp) : pool.filter(p => !p.e.sp); if (want.length) pool = want; pool = pool.filter(p => !used.has('mz#' + p.i));
   let fresh = pool.filter(p => !seen.has('mz#' + p.i)); if (!fresh.length) { cyc.mz = []; fresh = pool; } if (!fresh.length) return null;
   const { e, i } = fresh[Math.floor(rr() * fresh.length)], fn = fr ? (fr.z && /[一-鿿]/.test(fr.z) ? fr.z : fr.n) : '朋友', F = t => String(t).split('{f}').join(fn);
   (cyc.mz || (cyc.mz = [])).push('mz#' + i);
   const fxF = fx => { const o = { ...fx }; if (o.partner) o.partner = F(o.partner) + (fr ? `（${fr.g}）` : ''); return o; };
-  const base = { key, cat: r.cat, title: r.title, mz: 1, sp: !!e.sp, sig: 'mz#' + i, csig: 'mz#' + i, ck: 'mz', done: false };
+  const base = { key, cat: r.cat, title: r.title, mz: 1, sp: !!e.sp, clr: e.clr || '', sig: 'mz#' + i, csig: 'mz#' + i, ck: 'mz', done: false };
   if (e.multi) return T.cards[key] = { ...base, kind: 'multi', d: F(e.multi[0][0]), steps: e.multi.map(([d, os]) => [F(d), os.map(([t]) => [F(t), .5, 1])]), fxss: e.multi.map(([, os]) => os.map(([, f]) => fxF(f))) };
-  if (e.w) return T.cards[key] = { ...base, kind: 'write', d: F(e.d), ph: e.ph, wact: e.w, wfx: e.wfx };
+  if (e.w) return T.cards[key] = { ...base, kind: 'write', d: F(e.d), ph: F(e.ph), wact: e.w, wfx: e.wfx };
   return T.cards[key] = { ...base, kind: 'choice', d: F(e.d), opts: e.o.map(([t]) => [F(t), .5, 1]), fxs: e.o.map(([, f]) => fxF(f)) };
 }
 /* ---------- STARSHIP 内部投稿 ---------- */
@@ -1941,12 +1979,25 @@ function mzRoyalty() {
 }
 /* ---------- 个人作品库 ---------- */
 function worksHTML() {
-  const M = mz(), lv = mzLv(), nx = MZ_LV[lv + 1];
-  const ws = M.works.slice().sort((a, b) => (mzOpen(b) - mzOpen(a)) || b.no - a.no);
-  const sub = w => w.status === 'writing' ? `写了 ${Math.round(w.prog / w.need * 100)}%` : w.status === 'revising' ? `修改中 ${Math.round(w.rev.prog / w.rev.need * 100)}%` : w.q != null ? mzQLabel(w.q) : '';
-  return `<div class="mz-head"><div><span class="muted" style="font-size:12.5px">创作熟练度</span> <b>${MZ_LV[lv][1]}</b>${nx ? `<div class="mz-bar"><i style="width:${Math.round((M.exp - MZ_LV[lv][0]) / (nx[0] - MZ_LV[lv][0]) * 100)}%"></i></div>` : ''}</div><button class="btn primary sm" data-act="mznew">＋ 新作品</button></div>
-    ${ws.length ? ws.map(w => `<div class="mz-w" data-act="mzopen" data-id="${w.id}"><b>${esc(mzName(w))}</b><span class="muted">${sub(w)}</span><span class="mz-st" style="color:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span></div>`).join('')
-      : '<div class="muted" style="padding:12px 0 4px;font-size:13.5px">还没有作品。在行程后台加「其他 → 音乐创作」就能开始写。</div>'}`;
+  const M = mz(), lv = mzLv(), ws = M.works.slice().sort((a, b) => (mzOpen(b) - mzOpen(a)) || b.no - a.no);
+  const gz = w => (w.genre || '').split(' ')[0];
+  const row = w => {
+    const open = mzOpen(w), pct = w.status === 'revising' ? Math.round(w.rev.prog / w.rev.need * 100) : Math.round(w.prog / w.need * 100);
+    const sub = w.status === 'writing' ? ['创作中', gz(w)] : w.status === 'revising' ? ['修改中', gz(w)] : w.status === 'demo' ? [w.subs.length ? '已修改完成' : '作曲小样已完成', w.subs.length ? '' : '尚未投稿'] : [MZ_ST[w.status], gz(w)];
+    const hint = !mzSubmitOk(w) ? '可提交 STARSHIP 评估' : w.status === 'suggest' && w.revs < 3 ? '可以返工修改' : '';
+    return `<div class="mz-w" data-act="mzopen" data-id="${w.id}"><div class="mz-r"><div style="flex:1;min-width:0"><b>${esc(mzTitle(w))}</b><div class="muted">${sub.filter(Boolean).join(' · ')}</div></div>${open ? `<span class="mz-pct">${pct}%</span>` : `<span class="mz-pill">${w.status === 'released' ? '已发行' : '100%'}</span>`}</div>
+      ${open ? `<div class="mz-bar${w.status === 'revising' ? ' o' : ''}"><i style="width:${pct}%"></i></div>` : ''}${hint ? `<div class="mz-hint">${hint}</div>` : ''}</div>`;
+  };
+  return `<div class="row" style="margin-bottom:2px"><span class="muted" style="flex:1;font-size:12.5px">创作熟练度 · ${MZ_LV[lv][1]}</span><button class="link" data-act="mznew">＋ 新作品</button></div>
+    ${ws.length ? ws.map(row).join('') : '<div class="muted" style="padding:12px 0 4px;font-size:13.5px">还没有作品。在行程后台加「其他 → 音乐创作」就能开始写。</div>'}`;
+}
+// 音乐 → 作品：已发行 / 个人作品库 / 回归企划
+const mTab = () => { const t = UI.musicTab || 'chart'; if (['cb', 'works', 'disco'].includes(t)) { UI.makeTab = t; UI.musicTab = 'make'; } return UI.musicTab || 'chart'; };
+function makeHTML() {
+  const sub = UI.makeTab || 'works', c = S.cb, live = c && !c.over && cbAlbum(), d = live && cbDay();
+  const cards = [['disco', '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 6a6 6 0 0 1 6 6"/>', '已发行作品', '专辑 / 单曲'], ['works', '<path d="M9 18V5l10-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="16" cy="16" r="3"/>', '个人作品库', '创作中的 Demo'], ['cb', '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>', '回归企划', live ? (c.tbd ? '企划中' : d > 0 ? `D-${d}` : '活动中') : '制作 / 预热']];
+  return `<div class="mk-cards">${cards.map(([k, ic, t, s2]) => `<button class="mk-card ${sub === k ? 'on' : ''}" data-act="mksub" data-k="${k}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ic}</svg><b>${t}</b><span>${s2}</span></button>`).join('')}</div>
+    <div class="card">${{ disco: discoHTML, works: worksHTML, cb: cbHTML }[sub]()}</div>`;
 }
 function mzNewHTML() {
   return `<div class="row"><h3 style="flex:1">🎼 新作品</h3><button class="btn ghost sm" data-act="close">取消</button></div>
@@ -1961,7 +2012,7 @@ function mzDetailHTML(id) {
   const relA = w.released && disco().find(a => a.id === w.released.album), adA = w.adopted && w.adopted.album && disco().find(a => a.id === w.adopted.album);
   return `<div class="row"><h3 style="flex:1">《${esc(mzName(w))}》</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="card"><div class="row" style="gap:6px"><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span><span class="muted" style="font-size:12.5px">作品编号 #${w.no}</span></div>
-      <div class="field" style="margin-top:8px"><label>作品名称${w.name ? '' : '（还没定，现在显示的是暂定名）'}</label><input id="mz-name" value="${esc(w.name)}" placeholder="${esc(w.temp)}"></div>
+      <div class="field" style="margin-top:8px"><label>作品名称${w.name ? '' : '（还没定，现在显示的是暂定名）'}</label><input id="mz-name" value="${esc(w.name)}" placeholder="${esc(w.temp || '未命名')}"></div>
       <div class="grid2"><div class="field"><label>曲风</label><select id="mz-genre"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option ${w.genre === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div><div class="field"><label>创作参与</label><div style="padding:8px 2px;font-size:13.5px">${esc(['Cyan', ...w.partners].join('、'))}</div></div></div>
       <div class="field"><label>作品概念 / 描述</label><textarea id="mz-concept" style="min-height:60px" placeholder="这首歌想讲什么">${esc(w.concept)}</textarea></div>
       <div class="row"><span class="sp"></span><button class="btn ghost sm" data-act="mzsave" data-id="${w.id}">保存修改</button></div></div>
@@ -7591,13 +7642,12 @@ function viewMe() {
   <div class="card">${hotPanelHTML()}</div>`,
   wallet: () => walletHTML(),
   music: () => `
-  <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['cb', '📅 回归'], ['works', '🎼 作品库'], ['disco', '🎵 歌单']].map(([k, v]) => `<button class="pcat ${(UI.musicTab || 'chart') === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
+  <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['make', '🎼 作品']].map(([k, v]) => `<button class="pcat ${mTab() === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
   ${{ chart: () => `<div class="card">${chartsHTML()}</div>`,
     sales: () => `<div class="sec-title">💿 专辑销量</div><div class="card">${albumSalesHTML()}</div><div class="sec-title">▶️ YouTube MV</div><div class="card">${mvHTML()}</div>`,
     shows: () => `<div class="card">${showsCardHTML()}</div>`,
     awards: () => `<div class="card">${awardsHTML()}</div>`,
-    cb: () => `<div class="card">${cbHTML()}</div>`,
-    disco: () => `<div class="card">${discoHTML()}</div>`, works: () => `<div class="card">${worksHTML()}</div>` }[UI.musicTab || 'chart']()}`,
+    make: makeHTML }[mTab()]()}`,
   persona: () => `
   <div class="sec-title">💪 能力</div>
   <div class="card">${skillsHTML()}</div>
@@ -7910,6 +7960,7 @@ document.addEventListener('click', async e => {
  mgrRefresh(); save(); break; }
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
+    case 'mksub': UI.makeTab = t.dataset.k; render(); break;
     case 'mznew': openModal(mzNewHTML()); break;
     case 'mznewok': { const w = mzNew(($('#mz-n').value || '').trim(), $('#mz-g').value); render(); openModal(mzDetailHTML(w.id)); toast('新作品已创建', '去行程后台安排「音乐创作」并选这首'); break; }
     case 'mzopen': openModal(mzDetailHTML(t.dataset.id)); break;
