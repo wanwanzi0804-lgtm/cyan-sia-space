@@ -6773,11 +6773,31 @@ function socStage(p) {
 const STAGE_ZH = { new: '还不认识', acq: '刚认识，只是见过 / 打过招呼的同行', friend: '普通朋友，会私聊', close: '很熟的朋友', amb: '暧昧阶段（多次单独见面，互相会主动联系，但谁都没说破）' };
 const EX_ZH = { meet: '见面聊过', greet: '打过招呼', contact: '交换了联系方式', chal: '拍过 challenge', meal: '一起吃过饭', coffee: '单独喝过咖啡', party: '一起聚会', work: '一起工作', chat: 'KKT 聊过', call: '打过电话', gift: '送过东西', ev: '交集' };
 // 给 AI 的人物档案：只给真实记录，没发生的明确写没发生
+// 私下打字的习惯：从档案的风格 / 打字速度 / 主动程度推出来；没资料的人按 key 固定一组普通习惯（只是打字方式，不涉及私事）
+const VOICE_STYLE = {
+  warm: '话不算少，情绪外放，开心或激动时会连发几条；熟了以后会很自然地分享自己的事',
+  funny: '爱接梗、爱吐槽，反应快，偶尔一句话就把话题带歪；但不是每句都在开玩笑',
+  cool: '话少，回得短，表情和语气词都用得少；不太主动开话题，熟了也一样，只是更随便',
+  polite: '说话收着、比较有分寸，句子相对完整；不太会过界开玩笑',
+  gentle: '语气温和、慢热，不太开玩笑也不太激动；话不多但不冷',
+  direct: '说话直接，不绕弯也不客套，有意见就直说'
+};
+function socVoice(p) {
+  const c = socCard(p) || {}, r = srng('voice' + (p.key || p.g + '|' + p.n)), L = [];
+  if (VOICE_STYLE[c.style]) L.push(VOICE_STYLE[c.style]);
+  else { const a = r(), b = r(), d = r(); L.push(a < .4 ? '回消息偏短，几个字就回' : a < .8 ? '回消息长短普通，看内容' : '有时会一次打一长段'); L.push(b < .5 ? '表情、语气词用得少，语气比较平' : '偶尔会用表情或语气词'); L.push(d < .35 ? '说话有点冷幽默' : d < .7 ? '性格比较普通，不特别搞笑也不特别冷' : '比较随和好说话'); }
+  if (c.speed === 'fast') L.push('打字快，常常一句话拆成几个气泡'); else if (c.speed === 'slow') L.push('打字慢，喜欢一次打完一整句再发');
+  if (c.init != null && c.init >= 1.15) L.push('比较主动，会自己说起自己的事或者丢一个话题'); else if (c.init != null && c.init < .9) L.push('很少主动找话题');
+  return L.join('；');
+}
 function socCardTxt(p) {
-  const c = socCard(p);
-  if (!c || c.conf === '基线' || !(c.tone || c.pers || c.like)) return '性格档案：公开资料不足（基线）。按礼貌、普通长度、没有明显口头禅的同行来说话，不要自己给他加强烈的个性。';
-  const tone = c.toneAmb && socStage(p) === 'amb' ? c.toneAmb : c.tone;
-  return `性格档案（公开形象整理，可信度${c.conf}；只是公开场合的样子，但请保持一致，不要每次变）：${tone ? `说话/打字：${tone}。` : ''}${c.pers ? `性格：${c.pers}。` : ''}${c.like ? `喜好：${c.like}。` : ''}${c.lang ? `会的外语：${c.lang}。` : ''}${c.extra ? `补充：${c.extra}。` : ''}档案里没写的不要自己发挥；${c.conf === '低' ? '可信度低，只当作很轻的倾向。' : ''}性格只决定他怎么说话，不决定你们有多熟。`;
+  const c = socCard(p), voice = socVoice(p);
+  if (!c || c.conf === '基线' || !(c.tone || c.pers || c.like)) return `这个人：公开资料不多。私下打字的习惯：${voice}。不要给他加强烈的个性或口头禅。`;
+  const tone = c.toneAmb && socStage(p) === 'amb' ? c.toneAmb : c.tone, priv = p.key === 'CRAVITY|세림';
+  return `这个人（公开形象整理，可信度${c.conf}${c.conf === '低' ? '，只当很轻的倾向' : ''}）：
+- 性格：${c.pers || '（没有资料）'}
+- 私下打字的习惯：${voice}${priv && tone ? `。另外，他和朋友私聊的样子：${tone}` : ''}
+${!priv && tone ? `- 公开场合（对粉丝的泡泡 / 直播 / 综艺）的说话方式：${tone}。这是对粉丝的样子，私下跟同行朋友聊天会收很多，只保留底下的感觉，不要照搬里面的表情、语气词和卖萌。\n` : ''}${c.like ? `- 喜欢的东西（只是背景，聊到相关的才会自然提，不要硬塞）：${c.like}\n` : ''}${c.lang ? `- 会的外语：${c.lang}\n` : ''}${c.extra ? `- 补充：${c.extra}\n` : ''}档案里没写的不要自己发挥。性格只决定他怎么说话，不决定你们有多熟。`;
 }
 const socClock = ts => { const d = ts ? new Date(ts) : new Date(); return `${d.getMonth() + 1}月${d.getDate()}日 周${WD[d.getDay()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
 function socCtx(p, when) {
@@ -6796,7 +6816,7 @@ ${p.key === 'CRAVITY|세림' ? '世琳是她最要好的朋友，两人在这个
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
-${socWho(p)}在 ${socClock(when)} 的状态：${socNow(p, when).zh}；${when && Date.now() - when > 30 * 60e3 ? '' : `此刻具体在${socAct(p, socNow(p))}（这是事实，回复要和它一致，`}${when && Date.now() - when > 30 * 60e3 ? '回复' : ''}也要和他自己在下面聊天里已经说过的话一致，不要前后矛盾${when && Date.now() - when > 30 * 60e3 ? '' : '）'}。
+${socWho(p)}在 ${socClock(when)} 的状态：${socNow(p, when).zh}；${when && Date.now() - when > 30 * 60e3 ? '' : `此刻具体在${socAct(p, socNow(p, when))}（这是事实，回复要和它一致，`}${when && Date.now() - when > 30 * 60e3 ? '回复' : ''}也要和他自己在下面聊天里已经说过的话一致，不要前后矛盾${when && Date.now() - when > 30 * 60e3 ? '' : '）'}。
 ${cm ? `以前聊天里她提过的事（背景，知道就行，除非正好聊到，否则不要主动提）：\n${cm}\n` : ''}${gigCtx(p.g, dkey(when || Date.now()))}${gigCtx(p.g, dkey(when || Date.now())) ? '\n' : ''}${S.profile.name} 今天的行程（他并不知道，只用来判断约今晚有没有空；不要主动提起）：${today}
 最近的 KKT 聊天（带时间，注意中间隔了多久）：
 ${chat || '（还没聊过）'}`;
@@ -7038,7 +7058,7 @@ async function dmDueReply(T) {
   try { const last = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) last.unshift(T.msgs[i].text);
     const later = !!T.due.later, r = last.length ? await dmChatAi(T, last.join('\n'), when, later) : null;
     if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1 }; T.readTo = Math.max(T.readTo || 0, when); return; } // 已读，过一阵再回
-    if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: dmLaughCap(T, r.list) }); } else T.readTo = Math.max(T.readTo || 0, when); // 不回也已经读过了
+    if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: r.list }); } else T.readTo = Math.max(T.readTo || 0, when); // 不回也已经读过了
   } finally { T.due = keep; T.gen = 0; save(); }
 }
 // 好朋友：看了你的消息（不是晚安这种收尾）却一直没回 → 过一阵还是会回（关掉页面导致生成中断也会补上）
@@ -7055,7 +7075,7 @@ function dmPendTick() { const now = Date.now(); for (const T of Object.values(dm
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
 // 这阵子聊天的意愿（临时状态，不是数值）：有时想聊、有时懒得打字、有时很累
 // 艺人 KKT 私聊用自己的设定（不用粉丝评论那套写作要求）
-const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁）在 KakaoTalk 上私聊。像现实中的韩国年轻艺人那样发消息：有自己的生活和情绪，不刻意表现性格，不当聊天助手。只按要求输出 JSON。`;
+const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁）在 KakaoTalk 上私聊。你写的是这个人自己会发出的消息：每个人说话方式都不一样，不要写成同一种「AI 聊天」的语气。只按要求输出 JSON。`;
 const VIBE_ZH = { chatty: '这会儿心情不错，有点想聊，有话会多说几句', normal: '状态普通，看内容回', brief: '手上有事 / 懒得打字，倾向简短回一下', tired: '很累，只想简单回或者干脆先不回，除非是重要的事' };
 function socVibe(p, when) {
   const SO = social(), V = SO.vibe || (SO.vibe = {}), now = when || Date.now(), cur = V[p.key];
@@ -7075,52 +7095,45 @@ function socVibe(p, when) {
 const dmAsk = t => /[?？]|\b(뭐|어디|언제|왜|어때|어떻게|할래|갈래|될까|있어|돼\?)|(吗|呢|什么|怎么|要不要|能不能|几点|哪)/.test(t || '');
 // 结束性的话（晚安 / 我去忙了 / 谢谢 / 加油）：本地兜底时只回一句收尾
 const dmBye = t => /잘\s*자|굿나잇|좋은\s*꿈|자러|잘게|먼저\s*(잘|갈|가볼)|일하러|작업하러|다음에\s*(얘기|연락)|고마워|감사|화이팅|파이팅|晚安|睡了|去忙|先这样|下次聊|谢谢|加油/.test(t || '');
-// ㅋㅋ / ㅎㅎ 不要句句都带：一次回复最多留一处；他最近三条里已经用过两次以上，这次就去掉（只剩 ㅋㅋ 的气泡也删掉）
-const LAUGH = /[ㅋㅎ]{2,}[~!.]*/g, LAUGH_ZH = /(哈哈+|呵呵+|嘿嘿+|嘻嘻+)[~～！!。.]*/g;
-function dmLaughCap(T, list) {
-  const recent = T.msgs.filter(m => !m.me && !m.sys).slice(-3).filter(m => /[ㅋㅎ]{2,}/.test(m.text || '')).length;
-  let keep = recent >= 2 ? 0 : 1; const out = [];
-  for (const m of list) {
-    if (!/[ㅋㅎ]{2,}/.test(m.text)) { out.push(m); continue; }
-    if (keep > 0) { keep--; out.push(m); continue; }
-    const t = m.text.replace(LAUGH, ' ').replace(/\s{2,}/g, ' ').trim(); if (!t) continue;
-    out.push({ text: t, zh: String(m.zh || '').replace(LAUGH_ZH, ' ').replace(/\s{2,}/g, ' ').replace(/^[，,\s]+|[，,\s]+$/g, '').trim() || m.zh });
-  }
-  return out.length ? out : list.slice(0, 1);
-}
+// 没开 AI 时的备用回复：按性格分开，平常的短句，不重复他最近说过的（[半语, 敬语, 中文]）
+const DM_FB = {
+  warm: [['헐 진짜?', '헐 진짜요?', '天哪真的？'], ['오 대박', '오 대박이에요', '哇厉害'], ['아 뭐야', '아 뭐예요', '啊什么嘛'], ['나도 그거 좋아', '저도 그거 좋아요', '我也喜欢那个']],
+  funny: [['뭐야 ㅋㅋ', '뭐예요 ㅋㅋ', '什么啊哈哈'], ['아 그건 좀', '아 그건 좀..', '啊那有点…'], ['갑자기?', '갑자기요?', '怎么突然？']],
+  cool: [['ㅇㅇ', '넵', '嗯'], ['그래', '네', '好'], ['오', '오', '哦']],
+  polite: [['아 그렇구나', '아 그렇군요', '啊原来这样'], ['좋다', '좋네요', '挺好'], ['맞아', '맞아요', '对']],
+  gentle: [['아 그랬구나', '아 그랬군요', '啊原来是这样'], ['다행이다', '다행이에요', '那就好'], ['그치', '그쵸', '对吧']],
+  direct: [['오 괜찮은데', '오 괜찮은데요', '哦不错'], ['그럼 그렇게 해', '그럼 그렇게 해요', '那就这么办'], ['음 난 별로', '음 저는 별로요', '嗯我觉得一般']],
+  neutral: [['오 그래?', '오 그래요?', '哦是吗？'], ['그렇구나', '그렇군요', '原来如此'], ['좋네', '좋네요', '不错']],
+  ask: [['음 글쎄', '음 글쎄요', '嗯…不好说'], ['잠깐만 이따 말해줄게', '잠시만요 이따 말씀드릴게요', '等下跟你说'], ['나도 잘 모르겠어', '저도 잘 모르겠어요', '我也不太清楚']]
+};
 // 自由聊天：先判断要不要回、想不想回、话题是不是已经结束，再决定回多少
 async function dmChatAi(T, mine, when, later) {
   const p = T.p, pers = socPers(p), P = socPX(p), ban = socBan(p), vibe = socVibe(p, when);
   const local = () => {
     if (dmBye(mine)) { const L = /잘\s*자|굿나잇|좋은\s*꿈|자러|잘게|晚安|睡了/.test(mine) ? (ban ? [['웅 잘자', '嗯晚安'], ['ㅇㅇ 굿나잇', '嗯嗯晚安'], ['잘자~', '晚安~']] : [['네 잘 자요', '好的，晚安'], ['굿나잇이에요ㅎㅎ', '晚安呵呵']]) : /고마|감사|谢/.test(mine) ? (ban ? [['뭘', '谢什么'], ['웅웅', '嗯嗯']] : [['아니에요ㅎㅎ', '没事呵呵'], ['넵ㅎㅎ', '好的呵呵']]) : /화이팅|파이팅|加油/.test(mine) ? (ban ? [['너두', '你也是'], ['ㅇㅇ', '嗯嗯']] : [['감사해요!', '谢谢！'], ['네 같이 화이팅해요', '嗯一起加油']]) : (ban ? [['ㅇㅋ', 'OK'], ['웅웅', '嗯嗯']] : [['넵!', '好的！']]); const [ko, zh] = pick(L); return Math.random() < .15 ? null : { list: [{ text: ko, zh }] }; }
     if (!dmAsk(mine) && !dmClose(p) && Math.random() < (vibe === 'tired' ? .4 : vibe === 'brief' ? .25 : .1)) return null;
-    return { list: [persFix(pick(PERS_LOCAL[pers.id]), ban)].map(([ko, zh]) => ({ text: ko, zh })) };
+    const pool = (dmAsk(mine) ? DM_FB.ask : DM_FB[pers.id] || DM_FB.neutral).filter(x => !T.msgs.slice(-6).some(m => !m.me && m.text === x[ban ? 0 : 1]));
+    const L = pick(pool.length ? pool : DM_FB.neutral); return { list: [{ text: L[ban ? 0 : 1], zh: L[2] }] };
   };
   if (!aiOn()) return local();
   const gap = when && Date.now() - when > 30 * 60e3, lastMe = (T.msgs.filter(m => m.me).pop() || {}).at || when, seenLate = when - lastMe > 90 * 60e3;
   try {
-    const j = await aiRaw([{ type: 'text', text: `你在扮演 ${socWho(p)}，和 ${S.profile.name}（女，solo 爱豆，STARSHIP，2025 年出道）在 KKT 上私聊。你是一个有自己生活和情绪的真人，不是聊天助手，不负责照顾她的情绪，也不负责让聊天继续下去。
+    const j = await aiRaw([{ type: 'text', text: `你要写的是 ${socWho(p)} 本人在 KKT 上发给 ${S.profile.name}（女，solo 爱豆，STARSHIP，2025 年出道）的消息。他是一个有自己生活、脾气和说话习惯的人，不是聊天助手。
 ${socCtx(p, when)}
-他此刻的聊天意愿（临时的，别说出来）：${VIBE_ZH[vibe]}。
-${later ? `他之前已经点开看过这些消息，当时没回，现在（${socClock(when)}）才回。可以很自然地接着回，不用道歉或解释为什么晚回（关系一般的话可以简单说一句刚才在忙）。这次要回（act 只能是 reply / react，除非话题本来就已经结束）。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回（比如她深夜说晚安、他早上才看到，就按早上看到来回，不要假装还在深夜实时聊）。` : ''}`}
+他此刻的状态和心情（临时的，别说出来）：${VIBE_ZH[vibe]}。
+${later ? `他之前已经点开看过这些消息，当时没回，现在（${socClock(when)}）才回。这次要回（act 只能是 reply / react，除非话题本来就已经结束）。熟的人不用解释为什么晚回。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回，不要假装还在她发消息的那个时间实时聊。` : ''}`}
 
-${S.profile.name}发来、他还没回的消息（合在一起回，不要一条一条回）：「${mine}」
+${S.profile.name}发来、他还没回的消息（合在一起回）：「${mine}」
 
-先判断，再写：
-1. 这几条消息需要回吗？她在问问题、在约事情、说了重要的事 → 要回，而且认真回。只是晚安 / 我去忙了 / 谢谢 / 加油 / 下次聊 → 话题已经在收尾，回一句收尾的话或者一个表情就够了，不要再问新问题、不要重新开话题（别问吃饭了吗、今天怎么样）。一个表情、ㅋㅋ、嗯 这种 → 可以不回，也可以回个表情。
-2. 他现在想不想聊、方不方便（看上面的状态和聊天意愿）。累了、忙的时候就简短，或者先已读、晚点再回。
-3. 回多少由真正想说的内容决定：大多数日常只要一句或几个字（ㅇㅇ / 그니까 / 헐 / 웅 잘자）；真的有话说或者兴奋时才连发两三条；认真的事才写长一点。不要为了显得热情硬加内容。
-
-语气（很重要）：
-- 像韩国二十岁上下的熟人之间发 KKT：口语、短句、可以省略、可以不完整，不要书面语、翻译腔，也不要堆网络用语。ㅋㅋ、ㅎㅎ 只在真的觉得好笑、或者不加语气会显得冷淡时才用：大多数消息不带；一次回复里最多一处；他最近几条已经带过的话这次就别带了。不要把 ㅋㅋ 当成句尾标点。表情也一样，偶尔才用。
-- 不要把普通的累、抱怨、日常分享当成需要安慰的情绪问题：朋友说「好累」，正常反应是「나도」「헐 오늘 뭐 했는데」「고생했네」这种，而不是「你累这件事最让我在意」。
-- 不要表白式地强调自己多担心、多在意她；不要习惯性叮嘱吃饭、休息、别太累、加油。真遇到严重的事（生病、受伤、被骂上热搜、很难过地来找他）才认真关心，力度要和事情大小、你们的关系相称。
-- 越熟越随便：少客套、会调侃、会损她、简单回也不尴尬、不用解释为什么没回。熟不等于更深情、更长、更温柔。
-- 你们之间没有恋爱关系。除非上面写了明确的暧昧阶段，否则不要有任何暧昧的、恋爱式的说法；就算是暧昧阶段也只是偶尔一点，不要刻意。
-- 性格档案是长期的说话习惯，不是每句都要表现的标签：温柔的人不必每句都温柔，幽默的人不必每句都开玩笑。
-- 主要回应眼前这几条消息和刚才在聊的内容。记得的事情不用每次都提，更不要一次提好几件她生活里的事（比如她在写歌，不代表她说谢谢或晚安时你要提醒她写歌别太累）。
-- 他也有自己的生活，有时可以顺口说一句自己的状态，但不要编具体的私人经历和行程。
-- 不是每次都要问问题。
+怎么写：
+- 先想清楚「他」此刻看到这几条消息，真实的第一反应是什么、想不想说点什么，再按他的说话习惯写出来。不要想「怎么回才得体 / 才显得有在聊」。
+- 长短、条数、语气词（ㅋㅋ、ㅎㅎ、ㅠㅠ、感叹号、表情）全部由他这个人的习惯、此刻的心情和这件事本身决定。没有固定格式；平平淡淡的一句话也是很正常的回复。不要刻意随意，也不要刻意可爱。
+- 他不负责把她的每句话都接住：不用每次都回应所有内容、不用提问、不用鼓励或安慰，除非他真的想或者事情真的需要。可以只回其中一句、可以吐槽、可以说自己的事、可以把话题岔开，也可以让聊天在这里停下。她只是在收尾（晚安 / 去忙了 / 谢谢 / 加油）的话，就跟着收尾。
+- 关系决定分寸：不熟就有不熟的距离感，很熟就随便、不客套。熟不等于更热情、更长、更温柔。没有暧昧阶段就不要有任何暧昧的说法。
+- 真正严重的事（生病受伤、出事、很难过地来找他）才会认真关心，关心的程度和你们的关系相称；普通的累和抱怨就是普通聊天。
+- 记得的事只在正好相关时才提；他自己的近况可以顺口说，但不要编具体的私人经历和行程。
+- 别重复他自己在上面聊天里用过的说法、句式和开头。
+- 韩语要像韩国二十岁左右的年轻人私下发 KKT 那样自然，不是翻译出来的韩语，也不是网络段子。
 
 ${SOC_RULES}
 
@@ -7139,7 +7152,7 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
     if (act === 'later') return { later: 1 };
     if ((act === 'read' || !msgs.length) && close && !bye) return local() || { list: [{ text: ban ? '웅' : '네', zh: '嗯' }] }; // 好朋友至少回一句
     if (act === 'read' || !msgs.length) return null;
-    return { list: dmLaughCap(T, (act === 'react' ? msgs.slice(0, 1) : msgs.slice(0, 5)).map(m => ({ text: m.ko, zh: m.zh }))) };
+    return { list: (act === 'react' ? msgs.slice(0, 1) : msgs.slice(0, 5)).map(m => ({ text: m.ko.trim(), zh: m.zh })) };
   } catch (err) { return local(); }
 }
 // 每天：同步真实发生的事（拍过的 challenge、行程表里一起的工作），很久不联系就慢慢淡，约定太久没落实就算了
