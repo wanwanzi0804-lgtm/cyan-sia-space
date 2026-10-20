@@ -6283,10 +6283,14 @@ function mgrCollab(t) {
   return [...pre, ...body];
 }
 // 播放量 / 点赞量按对方咖位：[播放下限, 上限, 点赞下限, 上限]，拍得好不好（事件）再乘 0.7～1.3
-function chViews(tier, mult = 1) {
+// 个人人气：同一个团里也有特别火的成员（没列出的按 1）
+const CH_POP = { 'BOYNEXTDOOR|명재현': 1.4, 'BOYNEXTDOOR|성호': 1.1, 'BOYNEXTDOOR|태산': 1.15, 'IVE|장원영': 1.6, 'IVE|안유진': 1.45, 'IVE|레이': 1.2, 'aespa|카리나': 1.6, 'aespa|윈터': 1.45, 'aespa|닝닝': 1.15, 'Stray Kids|필릭스': 1.45, 'Stray Kids|현진': 1.35, 'Stray Kids|방찬': 1.15, 'LE SSERAFIM|김채원': 1.35, 'LE SSERAFIM|사쿠라': 1.25, 'LE SSERAFIM|카즈하': 1.25, 'ENHYPEN|성훈': 1.25, 'ENHYPEN|니키': 1.2, 'ENHYPEN|정원': 1.15, 'TOMORROW X TOGETHER|연준': 1.35, 'TOMORROW X TOGETHER|범규': 1.15, 'ATEEZ|산': 1.2, 'ATEEZ|우영': 1.15, 'i-dle|민니': 1.15, 'i-dle|우기': 1.15, 'EVAN|희승': 1.3, 'MONSTA X|기현': 1.1 };
+// challenge 播放：先看团的体量和这个人的人气，再有一定随机（偶尔小爆），拍得好不好再乘上去
+function chViews(tier, mult = 1, p) {
   const R = tier <= 2 ? [1000, 8000, 50, 500] : tier <= 4 ? [3000, 20000, 150, 1500] : tier <= 6 ? [5000, 40000, 300, 3000] : tier <= 8 ? [10000, 100000, 500, 8000] : tier < 10 ? [20000, 200000, 1000, 15000] : [30000, 500000, 2000, 40000];
-  const q = Math.pow(Math.random(), 1.4), q2 = clamp(q + rand(-.12, .12), 0, 1), h = clamp(heat(), .85, 1.2);
-  return [Math.round(R[0] * Math.pow(R[1] / R[0], q) * mult * h), Math.round(R[2] * Math.pow(R[3] / R[2], q2) * mult * h)];
+  const pop = p ? CH_POP[p.g + '|' + p.n] || 1 : 1, h = clamp(heat(), .85, 1.2);
+  const q = clamp(.45 + (Math.random() + Math.random() + Math.random() - 1.5) * .22 + (Math.random() < .05 ? .35 : 0), 0, 1), q2 = clamp(q + rand(-.08, .08), 0, 1);
+  return [Math.round(R[0] * Math.pow(R[1] / R[0], q) * mult * h * pop), Math.round(R[2] * Math.pow(R[3] / R[2], q2) * mult * h * pop)];
 }
 /* =========================================================
    💞 和异性艺人走得近：公司不禁止恋爱，只在影响工作 / 有曝光风险时介入
@@ -7571,7 +7575,8 @@ function socHistHTML() {
 }
 function chalTick() {
   { const C0 = S.chal; if (C0 && !C0.fV) { C0.fV = 1; C0.vV = C0.vV || 0; } }
-  { const C0 = S.chal; if (C0 && !C0.vV) { C0.vV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1); x.views = v; x.likes = l; } } } // 旧记录按新标准重算播放 / 点赞
+  { const C0 = S.chal; if (C0 && !C0.jhV) { C0.jhV = 1; for (const x of C0.list) if (x.st === 'done' && x.p.g === 'BOYNEXTDOOR' && x.p.n === '명재현') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p), nf = Math.round(Math.min(v * rand(.002, .006), S.profile.followers * .03)); if (v > x.views) { if (nf > (x.fans || 0)) addFans(nf - (x.fans || 0), 'Challenge：' + x.p.g + ' ' + x.p.n); x.views = v; x.likes = Math.max(l, x.likes || 0); x.fans = Math.max(nf, x.fans || 0); } } } } // 明宰铉那条按新的人气重算（只往上调）
+  { const C0 = S.chal; if (C0 && !C0.vV) { C0.vV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p); x.views = v; x.likes = l; } } } // 旧记录按新标准重算播放 / 点赞
   { const C0 = S.chal; if (C0 && C0.fV === 1) { C0.fV = 2; let d = 0; for (const x of C0.list) if (x.st === 'done') { const nf = Math.round(Math.min(x.views * rand(.002, .006), S.profile.followers * .03)); d += nf - (x.fans || 0); x.fans = nf; } if (d) addFans(d, 'Challenge 涨粉校正'); } } // 已发布的涨粉也按新播放量重算，多涨的扣回
   const C = S.chal; if (!C) return; const now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   for (const x of C.list) {
@@ -7586,7 +7591,7 @@ function chalTick() {
     if (x.st === 'ok') {
       const rs = rulesFor(x.date).filter(r => CH_DAY_CATS.includes(r.cat)), end = x.relMin != null ? x.relMin : rs.length ? Math.max(...rs.map(r => toMin(r.end))) : 18 * 60;
       if (x.date < today || (x.date === today && nm >= end + 60)) {
-        const f = S.profile.followers, [views, likes] = chViews(x.p.tier, x.mult || 1);
+        const f = S.profile.followers, [views, likes] = chViews(x.p.tier, x.mult || 1, x.p);
         const fans = Math.round(Math.min(views * rand(.002, .006), f * .03));
         x.st = 'done'; x.views = views; x.likes = likes; x.fans = fans; addFans(fans, 'Challenge：' + x.p.g + ' ' + x.p.n);
         const M = salesState().mom || {}, m = M[x.song[0]]; if (m) m.v = clamp(m.v + Math.min(.35, x.p.tier / 30), -.5, 2.3); // 带一下这首歌
