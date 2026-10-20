@@ -4248,6 +4248,17 @@ const mkOn = () => false; // 10/19 的通告已经做完，关掉
 function mkCards() { if (!mkOn()) return []; const L = rulesFor(MK_DAY).map(r => { const c = tgCard(MK_DAY, r); if (c) delete c._start; if (c && c.mk) mkUnnotif(r); return c; }).filter(Boolean); return L; }
 // 做完了的那天的通告：把当时那条「旷工了」的通知也删掉
 function mkUnnotif(r) { const t = `⚠️ 「${r.title}」旷工了`, n = S.notifs.length; S.notifs = S.notifs.filter(x => x.text !== t); if (S.notifs.length !== n) { save(); updBadges(); } }
+// 一次性：涨粉来源里去掉那天的「旷工：…」，退回的粉丝原来记在「行程：…」里，一起扣回去（总数不变）
+function mkSrcFix() {
+  const F = fanState(); if (F.mkSrc) return; F.mkSrc = 1; const T = tgState();
+  for (const r of rulesFor(MK_DAY)) {
+    const c = T.cards[MK_DAY + '|' + r.id]; if (!c || !c.mk) continue; const kp = '旷工：' + r.title, kg = '行程：' + r.title; let pen = 0;
+    for (const d of Object.values(F.days)) if (d.src[kp] != null) { pen += d.src[kp]; delete d.src[kp]; }
+    if (!pen) continue;
+    for (const d of Object.values(F.days)) if ((d.src[kg] || 0) >= -pen) { d.src[kg] += pen; if (!d.src[kg]) delete d.src[kg]; break; }
+  }
+  save();
+}
 function mkApply(key) {
   const rid = key.split('|')[1], r = S.schedule.rules.find(x => x.id === rid), R = S.schedule.res || {}, x = R[key];
   if (x && ['旷', '缺'].includes(x.grade)) {
@@ -4490,7 +4501,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [mkSrcFix, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
