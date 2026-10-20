@@ -4238,7 +4238,7 @@ function tgToday() {
 const tgOpen = c => { const n = new Date(); return !c._start || n.getHours() * 60 + n.getMinutes() >= toMin(c._start) - 10; }; // 开始前 10 分钟出现
 // 一次性：10/19 那天的通告还能做（做完照常结算，之前记的旷工 / 缺勤撤掉，不留任何标记）
 const MK_DAY = '2026-10-19';
-const mkOn = () => dkey(Date.now()) <= '2026-10-22';
+const mkOn = () => false; // 10/19 的通告已经做完，关掉
 function mkCards() { if (!mkOn()) return []; const L = rulesFor(MK_DAY).map(r => { const c = tgCard(MK_DAY, r); if (c) delete c._start; if (c && c.mk) mkUnnotif(r); return c; }).filter(Boolean); return L; }
 // 做完了的那天的通告：把当时那条「旷工了」的通知也删掉
 function mkUnnotif(r) { const t = `⚠️ 「${r.title}」旷工了`, n = S.notifs.length; S.notifs = S.notifs.filter(x => x.text !== t); if (S.notifs.length !== n) { save(); updBadges(); } }
@@ -5957,7 +5957,6 @@ function viewSched() {
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
   <div style="margin:-2px 4px 8px"><button class="link" data-act="chlog">🎬 Challenge 记录${chal().list.length ? `（${chal().list.filter(x => x.st !== 'no').length}）` : ''} ›</button></div>
   ${chBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="chbfopen">🎬 有 ${chBackfillList().length} 个有活动的日子可以补 challenge ›</button></div>` : ''}
-  ${giftBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="gbfopen">🎁 有 ${giftBackfillList().length} 个已结束的行程可以补选粉丝回礼 ›</button></div>` : ''}
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
     ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
@@ -8306,7 +8305,6 @@ render();
 hotBar();
 setInterval(tick, 1500);
 setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; openModal(chBackfillHTML(l)); }, 6000); // 补 challenge 只弹一次
-setTimeout(() => { if (S.giftBF2) return; const l = giftBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; openModal(giftBackfillHTML(l)); }, 2500);
 setInterval(flushAgg, 6000);
 setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
 window.addEventListener('beforeunload', () => { S.sim.lastTick = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } });
