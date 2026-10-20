@@ -7585,6 +7585,7 @@ function socHistHTML() {
 }
 function chalTick() {
   { const C0 = S.chal; if (C0 && !C0.fV) { C0.fV = 1; C0.vV = C0.vV || 0; } }
+  { const C0 = S.chal; if (C0 && !C0.popV1) { C0.popV1 = 1; C0.jhV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p), nf = Math.round(Math.min(v * rand(.002, .006), S.profile.followers * .03)); if (nf !== (x.fans || 0)) addFans(nf - (x.fans || 0), 'Challenge：' + x.p.g + ' ' + x.p.n); x.views = v; x.likes = l; x.fans = nf; } } } // 按新的个人人气把已发布的 challenge 全部重算一遍
   { const C0 = S.chal; if (C0 && !C0.jhV) { C0.jhV = 1; for (const x of C0.list) if (x.st === 'done' && x.p.g === 'BOYNEXTDOOR' && x.p.n === '명재현') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p), nf = Math.round(Math.min(v * rand(.002, .006), S.profile.followers * .03)); if (v > x.views) { if (nf > (x.fans || 0)) addFans(nf - (x.fans || 0), 'Challenge：' + x.p.g + ' ' + x.p.n); x.views = v; x.likes = Math.max(l, x.likes || 0); x.fans = Math.max(nf, x.fans || 0); } } } } // 明宰铉那条按新的人气重算（只往上调）
   { const C0 = S.chal; if (C0 && !C0.vV) { C0.vV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p); x.views = v; x.likes = l; } } } // 旧记录按新标准重算播放 / 点赞
   { const C0 = S.chal; if (C0 && C0.fV === 1) { C0.fV = 2; let d = 0; for (const x of C0.list) if (x.st === 'done') { const nf = Math.round(Math.min(x.views * rand(.002, .006), S.profile.followers * .03)); d += nf - (x.fans || 0); x.fans = nf; } if (d) addFans(d, 'Challenge 涨粉校正'); } } // 已发布的涨粉也按新播放量重算，多涨的扣回
