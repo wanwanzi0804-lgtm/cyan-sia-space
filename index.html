@@ -1374,7 +1374,9 @@ const HOT_NONE = [[.5, -.004, .004, '你没有回应，话题慢慢过去了'], 
 const HOT_PASSER = ['路过，这是谁？', '第一次知道这个人', '有点好看', '关注了', '什么时候出道的', '求介绍', '刷到好几次了', '这个人我有印象', '首页一直推', '感觉挺可爱的'];
 const HOT_HATER = ['也就那样吧', '粉丝别控评了', '这也能上热门？', '买的吧', '没感觉', '新人还是低调点'];
 const HOT_FANC = ['{n}最棒！！', '路人们去看看她的舞台', '我们{n}就是很好', '超话见！', '快去听歌！'];
-const HOT_AFTER = { pos: ['看到回应了，好可爱', '被这个回应圈粉了', '路人转粉', '这波回应满分', '正主回应了！'], neg: ['这回应有点…', '越描越黑了', '还是别回应比较好', '粉丝也很难做'], none: ['正主没回应', '热度过去了吧', '已经没人讨论了'] };
+// 正主公开表态之后的评论：说的是对这件事 / 对她本人的看法，不去点评「这个回应怎么样」
+const HOT_AFTER = { pos: ['好可爱啊她', '路人转粉', '原来是这样，懂了', '真的好真诚', '笑死 好有梗', '这下放心了', '越来越喜欢她了'], neg: ['还是没说清楚吧', '越描越黑了', '粉丝也很难做', '算了，别再说了', '我还是有点不理解'], none: ['热度过去了吧', '已经没人讨论了'] };
+const HOT_AFTER_OLD = ['看到回应了，好可爱', '被这个回应圈粉了', '这波回应满分', '正主回应了！', '这回应有点…', '还是别回应比较好', '正主没回应'];
 const HOT_WHERE = { post: '社区', bubble: '泡泡', any: '泡泡或社区', live: '直播' };
 function hotState() {
   const H = S.hot || (S.hot = { next: 0, cur: null, hist: [], fx: [], talk: null, posts: {} });
@@ -1453,6 +1455,7 @@ function hotNewPost(p, ev) {
 }
 function hotTick() {
   const H = hotState(), now = Date.now();
+  if (!H.cmFix2) { H.cmFix2 = 1; const old = new Set(HOT_AFTER_OLD); for (const post of Object.values(H.posts || {})) post.cm = (post.cm || []).filter(c => !old.has(c.text)); } // 之前那些点评「回应」的评论删掉
   if (!H.cmFix) { H.cmFix = 1; const after = new Set(Object.values(HOT_AFTER).flat()); for (const [k, post] of Object.entries(H.posts || {})) { const h = H.hist.find(x => x.key === k); if (!h || h.choice === '没有回应' || !/回应|澄清|声明|公开|发|直播|泡泡/.test(h.choice)) post.cm = post.cm.filter(c => !after.has(c.text)); } } // 之前没公开回应的热搜，删掉那些在评论「回应」的话
   if (!H.qFix) { H.qFix = 1; const c = H.cur, ev = c && HOT_EVENTS.find(e => e.id === c.id);
     if (ev && HOT_Q[ev.id] && !c.q) { c.q = pick(HOT_Q[ev.id](c.e)); c.title = hotFill(ev.title, { ...c, at: 0 }); const post = H.posts[c.key]; if (post) { post.p.q = c.q; post.body = hotFill(ev.body, { ...c, at: 0 }).replace(/\s*\[(视频|图片)\]/g, ''); } }
