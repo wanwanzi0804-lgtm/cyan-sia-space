@@ -6284,7 +6284,15 @@ function mgrCollab(t) {
 }
 // 播放量 / 点赞量按对方咖位：[播放下限, 上限, 点赞下限, 上限]，拍得好不好（事件）再乘 0.7～1.3
 // 个人人气：同一个团里也有特别火的成员（没列出的按 1）
-const CH_POP = { 'BOYNEXTDOOR|명재현': 1.4, 'BOYNEXTDOOR|성호': 1.1, 'BOYNEXTDOOR|태산': 1.15, 'IVE|장원영': 1.6, 'IVE|안유진': 1.45, 'IVE|레이': 1.2, 'aespa|카리나': 1.6, 'aespa|윈터': 1.45, 'aespa|닝닝': 1.15, 'Stray Kids|필릭스': 1.45, 'Stray Kids|현진': 1.35, 'Stray Kids|방찬': 1.15, 'LE SSERAFIM|김채원': 1.35, 'LE SSERAFIM|사쿠라': 1.25, 'LE SSERAFIM|카즈하': 1.25, 'ENHYPEN|성훈': 1.25, 'ENHYPEN|니키': 1.2, 'ENHYPEN|정원': 1.15, 'TOMORROW X TOGETHER|연준': 1.35, 'TOMORROW X TOGETHER|범규': 1.15, 'ATEEZ|산': 1.2, 'ATEEZ|우영': 1.15, 'i-dle|민니': 1.15, 'i-dle|우기': 1.15, 'EVAN|희승': 1.3, 'MONSTA X|기현': 1.1 };
+const CH_POP = {
+  'BOYNEXTDOOR|명재현': 1.6, 'BOYNEXTDOOR|태산': 1.25, 'BOYNEXTDOOR|이한': 1.2, 'BOYNEXTDOOR|운학': 1.1, 'BOYNEXTDOOR|성호': 1.0, 'BOYNEXTDOOR|리우': .95,
+  'IVE|장원영': 1.8, 'IVE|안유진': 1.35, 'IVE|레이': 1.25, 'IVE|리즈': 1.0, 'IVE|이서': .95, 'IVE|가을': .9,
+  'aespa|카리나': 1.7, 'aespa|윈터': 1.25, 'aespa|닝닝': 1.15, 'aespa|지젤': 1.05,
+  'Stray Kids|필릭스': 1.4, 'Stray Kids|현진': 1.4, 'Stray Kids|방찬': 1.15, 'Stray Kids|아이엔': 1.15, 'Stray Kids|창빈': 1.15, 'Stray Kids|승민': 1.15, 'Stray Kids|리노': 1.05, 'Stray Kids|한': 1.05,
+  'LE SSERAFIM|김채원': 1.35, 'LE SSERAFIM|사쿠라': 1.35, 'LE SSERAFIM|카즈하': 1.2, 'LE SSERAFIM|허윤진': 1.2, 'LE SSERAFIM|홍은채': 1.0,
+  'ENHYPEN|성훈': 1.5, 'ENHYPEN|니키': 1.2, 'ENHYPEN|정원': 1.2, 'ENHYPEN|제이크': 1.05, 'ENHYPEN|선우': 1.05, 'ENHYPEN|제이': 1.05,
+  'TOMORROW X TOGETHER|연준': 1.4, 'TOMORROW X TOGETHER|수빈': 1.3, 'TOMORROW X TOGETHER|범규': 1.2, 'TOMORROW X TOGETHER|태현': 1.1, 'TOMORROW X TOGETHER|휴닝카이': 1.0,
+  'ATEEZ|산': 1.2, 'ATEEZ|우영': 1.15, 'i-dle|민니': 1.15, 'i-dle|우기': 1.15, 'EVAN|희승': 1.3, 'MONSTA X|기현': 1.1 };
 // challenge 播放：先看团的体量和这个人的人气，再有一定随机（偶尔小爆），拍得好不好再乘上去
 function chViews(tier, mult = 1, p) {
   const R = tier <= 2 ? [1000, 8000, 50, 500] : tier <= 4 ? [3000, 20000, 150, 1500] : tier <= 6 ? [5000, 40000, 300, 3000] : tier <= 8 ? [10000, 100000, 500, 8000] : tier < 10 ? [20000, 200000, 1000, 15000] : [30000, 500000, 2000, 40000];
