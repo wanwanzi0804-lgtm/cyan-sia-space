@@ -3113,6 +3113,12 @@ function mgrTrimMig() {
   }
   save();
 }
+// 一次性：10/19 的通告后来做完了，那天的日报按现在的结果重写（不再写未参加）
+function mgrRep1019() {
+  const M = mgrChat(); if (M.rep1019) return; M.rep1019 = 1; const dk = '2026-10-19';
+  for (const m of M.chat) if (!m.me && /^\[10\/19\(.\) 일정 보고\]/.test(m.text || '')) { const r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; }
+  save();
+}
 function mgrSay(t, card, silent) {
   const [ko0, zh] = Array.isArray(t) ? t : [t, ''], ko = toKo(ko0), M = mgrChat(); // 经纪人的韩语里不夹中文
   M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, card: card || null });
@@ -6412,7 +6418,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
