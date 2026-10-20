@@ -4236,9 +4236,24 @@ function tgToday() {
 }
 // 行程开始后才能做这张通告
 const tgOpen = c => { const n = new Date(); return !c._start || n.getHours() * 60 + n.getMinutes() >= toMin(c._start) - 10; }; // 开始前 10 分钟出现
+// 一次性：10/19 那天的通告还能做（做完照常结算，之前记的旷工 / 缺勤撤掉，不留任何标记）
+const MK_DAY = '2026-10-19';
+const mkOn = () => dkey(Date.now()) <= '2026-10-22';
+function mkCards() { if (!mkOn()) return []; return rulesFor(MK_DAY).map(r => { const c = tgCard(MK_DAY, r); if (c) delete c._start; return c; }).filter(Boolean); }
+function mkApply(key) {
+  const rid = key.split('|')[1], r = S.schedule.rules.find(x => x.id === rid), R = S.schedule.res || {}, x = R[key];
+  if (x && ['旷', '缺'].includes(x.grade)) {
+    if (x.fans < 0) addFans(-x.fans, '行程：' + (r ? r.title : ''));
+    const W = wallet(), i = (W.recv || []).findIndex(y => y.src === '旷工罚款' && r && y.title === r.title && y.st === 'pend' && y.date >= MK_DAY); if (i >= 0) W.recv.splice(i, 1);
+  }
+  const M = mz(), L = M.log[key];
+  if (L && !L.skip) { const w = mzWork(L.wid); if (w && w.status === 'writing' && L.gain) { w.prog = Math.max(0, w.prog - L.gain); const j = w.sessions.map(s => s.date).lastIndexOf(MK_DAY); if (j >= 0) w.sessions.splice(j, 1); } if (L.exp) M.exp = Math.max(0, M.exp - L.exp); }
+  delete M.log[key]; delete R[key]; delete fanState().credited[key]; save();
+}
 function tgListHTML() {
-  const cs = tgToday();
+  const cs = tgToday(), mk = mkCards().filter(c => !c.done || c.mk);
   return `<div class="row"><h3 style="flex:1">📋 今天的通告</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    ${mk.length ? `<div class="muted" style="font-size:12.5px;margin:6px 2px">${+MK_DAY.slice(5, 7)}月${+MK_DAY.slice(8)}日</div>${mk.map(c => `<div class="tg-row" data-act="tgopen" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? '<span class="tg-ok">✓</span>' : '<span class="tg-todo">去完成 ›</span>'}</div>`).join('')}<div class="muted" style="font-size:12.5px;margin:10px 2px 6px">今天</div>` : ''}
     ${cs.length ? cs.map(c => `<div class="tg-row${!c.done && !tgOpen(c) ? ' lock' : ''}" data-act="${!c.done && !tgOpen(c) ? '' : 'tgopen'}" data-k="${c.key}"><span class="chip" style="background:${CATS[c.cat] || '#999'}">${c.cat}</span><div style="flex:1;min-width:0"><b>${esc(c.title)}</b><div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.d.split('\n')[0])}</div></div>${c.done ? `<span class="tg-ok">✓ ${c.grade || ''}</span>` : tgOpen(c) ? '<span class="tg-todo">去完成 ›</span>' : `<span class="muted" style="font-size:12px">${hhmm(Math.max(0, toMin(c._start) - 10))} 可做</span>`}</div>`).join('') : '<div class="empty">今天的行程没有通告</div>'}`;
 }
 // 合作品牌：按新人体量能接到的真实韩国品牌（[名字, 类别]）
@@ -4347,6 +4362,7 @@ function tgCardHTML(key) {
 function tgFinish(score, pickText) {
   const c = tgState().cards[UI.tgKey]; if (!c || c.done) return;
   c.done = true; c.score = clamp(score, 0, 1); c.pickText = pickText; c.at = Date.now();
+  if (c.key.startsWith(MK_DAY + '|') && mkOn() && dkey(Date.now()) > MK_DAY) { c.mk = 1; mkApply(c.key); }
   save(); openModal(tgCardHTML(c.key)); toast('通告完成 ✓', c.title); updTgBadge();
 }
 // 小游戏状态
@@ -4423,7 +4439,7 @@ function tgOrd(j) {
 }
 document.addEventListener('pointerdown', e => { if (e.target.id === 'tg-hold') { e.preventDefault(); TGG = { kind: 'hold', t: performance.now() }; e.target.classList.add('go'); e.target.textContent = '数到 4…'; } });
 document.addEventListener('pointerup', e => { if (TGG && TGG.kind === 'hold') { const d = performance.now() - TGG.t, b = $('#tg-hold'); TGG = null; if (b) { b.classList.remove('go'); b.textContent = (d / 1000).toFixed(2) + ' 秒'; } const sc = clamp(1 - Math.abs(d - 4000) / 2000, 0, 1); setTimeout(() => tgFinish(sc, `按了 ${(d / 1000).toFixed(2)} 秒`), 500); } });
-function updTgBadge() { const n = tgToday().filter(c => !c.done && tgOpen(c)).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
+function updTgBadge() { const n = tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
 // 结算：行程结束 + 通告完成 → 结果卡片；当天没做完 → 旷工
 function tgSettle(k, r, key, today) {
   const c = tgCard(k, r); if (!c) return 'old';
@@ -5935,7 +5951,7 @@ function viewSched() {
   return `
   <div class="row" style="margin:4px 4px 8px"><b style="font-size:16px;white-space:nowrap">${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}</b>${k === today ? '<span class="chip" style="background:var(--accent)">今天</span>' : ''}<span class="sp"></span>
     ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
-    <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${tgToday().filter(c => !c.done && tgOpen(c)).length || ''}</span></button>
+    <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${(tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length) || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
   <div style="margin:-2px 4px 8px"><button class="link" data-act="chlog">🎬 Challenge 记录${chal().list.length ? `（${chal().list.filter(x => x.st !== 'no').length}）` : ''} ›</button></div>
   ${chBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="chbfopen">🎬 有 ${chBackfillList().length} 个有活动的日子可以补 challenge ›</button></div>` : ''}
