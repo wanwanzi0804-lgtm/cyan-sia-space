@@ -6052,8 +6052,13 @@ function chProb(p) {
   return [clamp(base + .1 + promo, .02, .99), kind === 'same' ? .9 : kind === 'friend' ? .8 : .75, kind];
 }
 // 🎬 活动现场随机碰到三位艺人：活动进行中（含前后 10 分钟）随机弹一次
-function chPopCands() {
-  const pool = [], add = (p, w) => { if (p && !chCooling(p)) pool.push([p, w]); };
+// 哪些团这周在打歌（节目阵容 + 真实活动期）；名字统一大写去符号比较
+const grpKey = g => { const k = String(g || '').toUpperCase().replace(/[^A-Z0-9가-힣]/g, ''); return { TXT: 'TOMORROWXTOGETHER' }[k] || k; };
+function chActive(dk) { const S0 = new Set(weekRivals(dk).map(x => grpKey(x.name))); for (const [g, [a, b]] of Object.entries(REAL_PROMO)) if (dk >= a && dk <= b) S0.add(grpKey(g)); return S0; }
+// music：在打歌现场 → 只能碰到这周在打歌的团；其他现场 → 最近两周在活动的团更容易碰到
+function chPopCands(music, dk = dkey(Date.now())) {
+  const now = chActive(dk), recent = new Set([...now, ...chActive(addDays(dk, -7))]);
+  const pool = [], add = (p, w) => { if (!p || chCooling(p)) return; const k = grpKey(p.g); if (k === 'PLAVE' || (music && !now.has(k))) return; pool.push([p, w * (!music && recent.has(k) ? 3 : 1)]); };
   for (const f of chal().friends) add(chFind(f.g, f.n) || { kind: 'friend', g: f.g, gk: f.g, tier: 5, n: f.n, z: f.z }, f.lv === 'best' ? 3 : f.lv === 'close' ? 2 : 1);
   for (const [g, gk, t, ms] of CH_SAME) for (const [n] of ms) if (!friendOf(g, n)) add(chFind(g, n), .35);
   for (const [g, gk, t, ms] of CH_OTHERS) for (const [n] of ms) if (!friendOf(g, n)) add(chFind(g, n), .25);
@@ -6062,14 +6067,17 @@ function chPopCands() {
 }
 function chPopTick() {
   const C = chal(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes(), P = C.pop || (C.pop = {});
+  if (!C.force1 && !$('#modal').classList.contains('on') && !UI.chPop && chSongs(today).length) { // 一次性：再弹一次 challenge 邀请
+    const r = rulesFor(today).filter(x => CH_DAY_CATS.includes(x.cat)).sort((x, y) => (y.cat === '打歌') - (x.cat === '打歌'))[0], music = !!(r && r.cat === '打歌'), cands = chPopCands(music, today);
+    if (cands.length) { C.force1 = 1; UI.chPop = { k: today, where: r ? r.title : '', cands, step: 'pick', onAct: !!r, music }; openModal(chPopHTML()); save(); return; }
+  }
   if (P.day !== today) { P.day = today; P.done = 0; const rs = rulesFor(today).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) { const r = pick(rs), a = toMin(r.start) - 10, b = toMin(r.end) + 10; P.at = Math.round(a + Math.random() * Math.max(1, b - a)); P.end = b; P.rid = r.id; } else P.at = null; }
   if (P.done || P.at == null || nm < P.at) return;
   if (nm > P.end) { P.done = 1; return; } // 错过了就算了
   if ($('#modal').classList.contains('on') || UI.chPop) return;
   P.done = 1;
   if (chLimit(today) || !chSongs(today).length) return;
-  const cands = chPopCands(); if (!cands.length) return;
-  const r = S.schedule.rules.find(x => x.id === P.rid);
+  const r = S.schedule.rules.find(x => x.id === P.rid), cands = chPopCands(!!(r && r.cat === '打歌'), today); if (!cands.length) return;
   UI.chPop = { k: today, where: r ? r.title : '', cands, step: 'pick', onAct: true, music: !!(r && r.cat === '打歌') }; openModal(chPopHTML()); save();
 }
 // 🎬 Challenge 事件：拍摄时随机触发（活动现场 70%，非活动 90%）。{对方} 会换成合作对象的名字
@@ -6200,7 +6208,7 @@ function chPopHTML() {
   if (Q.step === 'visit') return head + `<div style="margin-bottom:10px">${nm(Q.p)} 过来找你，说想一起拍你的 challenge。</div><button class="hot-opt" data-act="chvisok">好啊，拍！</button><button class="hot-opt" data-act="chpopclose">不好意思，现在不太方便</button>`;
   if (Q.step === 'ev') return head + chEvBody(Q);
   if (Q.step === 'postdone') return head + `<div style="text-align:center;padding:16px 0"><div style="font-size:30px">💬</div><div style="margin-top:8px">${Q.score >= .7 ? '评论区更热闹了' : Q.score >= .45 ? '大家看得很开心' : '反应平平'}${Q.postAdd > 0 ? ` · 涨粉 +${fmtNum(Q.postAdd)}` : ''}</div></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="chpopclose">好</button></div>`;
-  if (Q.step === 'pick') return head + `<div class="muted" style="font-size:13px;margin-bottom:8px">待机室附近碰到了这几位，要邀请谁一起拍吗？（只能邀请一位）</div>${Q.cands.map((p, i) => `<button class="hot-opt" data-act="chpoppick" data-i="${i}">${nm(p)}${friendOf(p.g, p.n) ? ` <span class="muted" style="font-size:12px">· ${FR_LV[friendOf(p.g, p.n).lv || 'friend']}</span>` : ''}</button>`).join('')}<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost" data-act="chpopclose">算了，不拍</button></div>`;
+  if (Q.step === 'pick') return head + `<div class="muted" style="font-size:13px;margin-bottom:8px">${Q.onAct === false ? '这几位最近有空，要约谁一起拍吗？' : Q.music ? '待机室附近碰到了这几位（都是这周一起打歌的），要邀请谁一起拍吗？' : '现场碰到了这几位，要邀请谁一起拍吗？'}（只能邀请一位）</div>${Q.cands.map((p, i) => `<button class="hot-opt" data-act="chpoppick" data-i="${i}">${nm(p)}${friendOf(p.g, p.n) ? ` <span class="muted" style="font-size:12px">· ${FR_LV[friendOf(p.g, p.n).lv || 'friend']}</span>` : ''}</button>`).join('')}<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn ghost" data-act="chpopclose">算了，不拍</button></div>`;
   if (Q.step === 'wait') return head + `<div style="text-align:center;padding:26px 0"><div style="font-size:34px">💬</div><div class="muted" style="margin-top:8px">正在问 ${nm(Q.p)}…</div></div>`;
   if (Q.step === 'no') return head + `<div style="text-align:center;padding:18px 0"><div style="font-size:34px">🙏</div><div style="margin-top:8px">${esc(Q.msg)}</div></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="chpopclose">好吧</button></div>`;
   if (Q.step === 'song') return head + `<div style="margin-bottom:10px">✅ ${nm(Q.p)} 答应了！拍哪首歌？</div>${chSongs(Q.k).map(([a, n, ti]) => `<button class="hot-opt" data-act="chpopsong" data-v="${esc(a + '|' + n)}">《${esc(n)}》${ti ? ' <span class="muted" style="font-size:12px">主打</span>' : ''}</button>`).join('')}`;
