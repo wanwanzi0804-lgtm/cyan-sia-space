@@ -6015,7 +6015,7 @@ const CH_OTHERS = [
   ['STAYC', '스테이씨', 7.5, [['수민', '裴秀珉'], ['시은', '朴诗恩'], ['아이사', 'Isa'], ['세은', '尹世恩'], ['윤', 'Yoon'], ['재이', 'J']]],
   ['CORTIS', '코르티스', 9, [['마틴', 'Martin'], ['제임스', 'James'], ['주훈', '柱勋'], ['성현', '成贤'], ['건호', '建浩']]],
   ['RIIZE', '라이즈', 9, [['쇼타로', 'Shotaro'], ['은석', '恩硕'], ['성찬', '圣灿'], ['원빈', '元彬'], ['소희', '昭希'], ['앤톤', 'Anton']]],
-  ['BOYNEXTDOOR', '보이넥스트도어', 9, [['성호', '朴成淏'], ['리우', 'Riwoo'], ['명재현', '明宰铉'], ['태산', '泰山'], ['이한', '易汉'], ['운학', '金云鹤']]],
+  ['BOYNEXTDOOR', '보이넥스트도어', 9, [['성호', '朴成淏'], ['리우', 'Riwoo'], ['명재현', '明宰铉'], ['태산', '泰山'], ['이한', '李涵'], ['운학', '金云鹤']]],
   ['BABYMONSTER', '베이비몬스터', 9, [['루카', 'Ruka'], ['파리타', 'Pharita'], ['아사', 'Asa'], ['아현', '郑雅娴'], ['라미', 'Rami'], ['로라', 'Rora'], ['치키타', 'Chiquita']]],
   ['ILLIT', '아일릿', 8.5, [['윤아', '允儿'], ['민주', '朴敏珠'], ['모카', 'Moka'], ['원희', '李沅禧'], ['이로하', 'Iroha']]],
   ['TWS', '투어스', 8.5, [['신유', '信宥'], ['도훈', '道勋'], ['영재', '英宰'], ['한진', '韩振'], ['지훈', '志薰'], ['경민', '炅民']]],
@@ -6032,7 +6032,7 @@ const CH_DAY_CATS = ['打歌', '综艺', '电台', '公演', '活动']; // 签�
 const FRIEND_DEF = [['CRAVITY', '세림', '世琳', 'best'], ['CRAVITY', '정모', '廷谟', 'close'], ['CRAVITY', '민희', '敏熙', 'close'], ['CRAVITY', '앨런', 'Allen', 'close'],
   ['BOYNEXTDOOR', '성호', '朴成淏', 'close'], ['BOYNEXTDOOR', '명재현', '明宰铉', 'close'], ['BOYNEXTDOOR', '운학', '金云鹤', 'close'], ['BABYMONSTER', '아현', '郑雅娴', 'close'],
   ['CRAVITY', '우빈', '宇彬', 'friend'], ['CRAVITY', '원진', '元进', 'friend'], ['CRAVITY', '형준', '亨俊', 'friend'], ['CRAVITY', '태영', '太煐', 'friend'], ['CRAVITY', '성민', '成民', 'friend'],
-  ['BOYNEXTDOOR', '리우', 'Riwoo', 'friend'], ['BOYNEXTDOOR', '태산', '泰山', 'friend'], ['BOYNEXTDOOR', '이한', '易汉', 'friend'],
+  ['BOYNEXTDOOR', '리우', 'Riwoo', 'friend'], ['BOYNEXTDOOR', '태산', '泰山', 'friend'], ['BOYNEXTDOOR', '이한', '李涵', 'friend'],
   ['KiiiKiii', '하음', 'Haum', 'friend'], ['IVE', '이서', '李瑞', 'friend'], ['WJSN', '엑시', 'EXY', 'friend'], ['MONSTA X', '기현', '基贤', 'friend'],
   ['BABYMONSTER', '루카', 'Ruka', 'friend'], ['ILLIT', '민주', '朴敏珠', 'friend'], ['ILLIT', '원희', '李沅禧', 'friend'], ['ITZY', '리아', 'Lia', 'friend']];
 const FR_LV = { best: '最要好', close: '很熟', friend: '朋友', acq: '熟人' };
@@ -7292,7 +7292,7 @@ function serimClearMig() {
   for (const [k, Q] of Object.entries(SO.ppl || {})) if (k !== 'CRAVITY|세림' && Q.ex) { const mv = Q.ex.filter(e => e.t === 'chat' && e.ai); if (mv.length) { Q.cm = (Q.cm || []).concat(mv.map(e => ({ day: e.day, d: e.d.slice(0, 80) }))).slice(-12); Q.ex = Q.ex.filter(e => !(e.t === 'chat' && e.ai)); } }
   save();
 }
-function nameMig() { const SO = social(); if (SO.nameV) return; SO.nameV = 1; for (const f of chal().friends) if (f.z === '成珉') f.z = '成民'; for (const T of Object.values(dms())) if (T.p.z === '成珉') T.p.z = '成民'; save(); }
+function nameMig() { const SO = social(); if (!SO.nameV2) { SO.nameV2 = 1; for (const f of chal().friends) if (f.z === '易汉') f.z = '李涵'; for (const T of Object.values(dms())) if (T.p.z === '易汉') T.p.z = '李涵'; save(); } if (SO.nameV) return; SO.nameV = 1; for (const f of chal().friends) if (f.z === '成珉') f.z = '成民'; for (const T of Object.values(dms())) if (T.p.z === '成珉') T.p.z = '成民'; save(); }
 function soloMig() {
   const SO = social(); if (SO.soloV2) return; SO.soloV2 = 1; const n = 'EVAN|희승';
   for (const o of ['ENHYPEN|희승', 'HEESEUNG|희승']) {
