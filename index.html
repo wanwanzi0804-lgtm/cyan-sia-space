@@ -7633,7 +7633,7 @@ function chLogHTML() {
   const done = L.filter(x => x.st === 'done'), tl = done.reduce((a, x) => a + (x.likes || 0), 0), tv = done.reduce((a, x) => a + (x.views || 0), 0), tf = done.reduce((a, x) => a + (x.fans || 0), 0);
   return `<div class="row"><h3 style="flex:1">🎬 Challenge 记录</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="muted" style="font-size:13px;margin-bottom:8px">已发布 ${done.length} 条 · 总播放 ${fmtNum(tv)} · 点赞 ${fmtNum(tl)} · 涨粉 ${fmtNum(tf)}</div>
-    <div class="card">${L.length ? L.map(x => `<div class="rule"><span style="flex:1;min-width:0">${+x.date.slice(5, 7)}/${+x.date.slice(8)} · ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? ` <span class="muted" style="font-size:12px">${esc(x.p.z)}</span>` : ''}${x.song && x.song[1] ? `<div class="muted" style="font-size:12px">《${esc(x.song[1])}》${x.bf ? ' · 补录' : ''}</div>` : ''}</span><span style="font-size:12.5px;text-align:right">${st(x)}</span></div>`).join('') : '<div class="muted">还没有记录</div>'}</div>`;
+    <div class="card">${L.length ? L.map(x => `<div class="rule"><span style="flex:1;min-width:0">${+x.date.slice(5, 7)}/${+x.date.slice(8)} · ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? ` <span class="muted" style="font-size:12px">${esc(x.p.z)}</span>` : ''}${x.song && x.song[1] ? `<div class="muted" style="font-size:12px">《${esc(x.song[1])}》</div>` : ''}</span><span style="font-size:12.5px;text-align:right">${st(x)}</span></div>`).join('') : '<div class="muted">还没有记录</div>'}</div>`;
 }
 function chDayHTML(k) {
   const L = chal().list.filter(x => x.date === k);
