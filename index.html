@@ -4250,7 +4250,7 @@ function mkCards() { if (!mkOn()) return []; const L = rulesFor(MK_DAY).map(r =>
 function mkUnnotif(r) { const t = `⚠️ 「${r.title}」旷工了`, n = S.notifs.length; S.notifs = S.notifs.filter(x => x.text !== t); if (S.notifs.length !== n) { save(); updBadges(); } }
 // 一次性：涨粉来源里去掉那天的「旷工：…」，退回的粉丝原来记在「行程：…」里，一起扣回去（总数不变）
 function mkSrcFix() {
-  { const W = wallet(); if (!W.mkFine) { W.mkFine = 1; const R = S.schedule.res || {}, done = rulesFor(MK_DAY).filter(r => { const x = R[MK_DAY + '|' + r.id]; return x && !['旷', '缺'].includes(x.grade); }).map(r => r.title); W.recv = (W.recv || []).filter(y => !(y.src === '旷工罚款' && y.st === 'pend' && y.date >= MK_DAY && done.includes(y.title))); save(); } } // 那天做完了的行程，残留的旷工罚款也撤掉
+  { const W = wallet(); if (!W.mkFine2) { W.mkFine2 = 1; const R = S.schedule.res || {}, done = rulesFor(MK_DAY).filter(r => { const x = R[MK_DAY + '|' + r.id]; return x && !['旷', '缺'].includes(x.grade); }).map(r => r.title); W.recv = (W.recv || []).filter(y => !(y.src === '旷工罚款' && y.date >= MK_DAY && done.includes(y.title))); save(); } } // 那天做完了的行程，残留的旷工罚款也撤掉
   const F = fanState(); if (F.mkSrc) return; F.mkSrc = 1; const T = tgState();
   for (const r of rulesFor(MK_DAY)) {
     const c = T.cards[MK_DAY + '|' + r.id]; if (!c || !c.mk) continue; const kp = '旷工：' + r.title, kg = '行程：' + r.title; let pen = 0;
@@ -4264,7 +4264,7 @@ function mkApply(key) {
   const rid = key.split('|')[1], r = S.schedule.rules.find(x => x.id === rid), R = S.schedule.res || {}, x = R[key];
   if (x && ['旷', '缺'].includes(x.grade)) {
     if (x.fans < 0) addFans(-x.fans, '行程：' + (r ? r.title : ''));
-    const W = wallet(), i = (W.recv || []).findIndex(y => y.src === '旷工罚款' && r && y.title === r.title && y.st === 'pend' && y.date >= MK_DAY); if (i >= 0) W.recv.splice(i, 1);
+    const W = wallet(), i = (W.recv || []).findIndex(y => y.src === '旷工罚款' && r && y.title === r.title && y.date >= MK_DAY); if (i >= 0) W.recv.splice(i, 1);
   }
   const M = mz(), L = M.log[key];
   if (L && !L.skip) { const w = mzWork(L.wid); if (w && w.status === 'writing' && L.gain) { w.prog = Math.max(0, w.prog - L.gain); const j = w.sessions.map(s => s.date).lastIndexOf(MK_DAY); if (j >= 0) w.sessions.splice(j, 1); } if (L.exp) M.exp = Math.max(0, M.exp - L.exp); }
