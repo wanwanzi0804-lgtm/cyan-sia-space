@@ -4812,6 +4812,7 @@ function bubbleTick(dt, silent) {
   const now = Date.now(), subs = bbSubs(), last = B.msgs[B.msgs.length - 1], g = bbOpen(), before = g.fans.length;
   B.pending = B.pending.filter(p => {
     if (p.at > now) return true;
+    if (now - p.at > 30 * 60e3) return false; // 页面关着的时候积下来的旧回复，过了半小时就不再冒出来
     const dup = !p.user && bbOpen().fans.slice(-30).some(f => f.text === p.line.text);
     bbAddFan(dup ? bbUniq(() => bbLine(null, false)) : p.line, p.user); return false;
   });
@@ -4853,14 +4854,14 @@ const BB_AI_WINDOW = 2 * 60000;
 let bbAiTimer = null;
 const bbAiWorth = m => m.type === 'sticker' ? false : m.type !== 'text' || m.text.split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️|\s/gu, '').length >= 4;
 function bbRelease(n) {
-  const B = S.bubble, now = Date.now(); n = Math.min(n, B.aiPool.length);
+  const B = S.bubble, now = Date.now(); if (!B.aiPoolAt || now - B.aiPoolAt > 20 * 60e3) B.aiPool = []; n = Math.min(n, (B.aiPool || []).length); // 很久以前那批消息的回复（比如昨晚的晚安）不再放出来
   for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + 600 + Math.pow(Math.random(), 1.6) * 9000, user: l.user, line: { ...l, ai: 1 } }); }
 }
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
   const want = ri(4, 8);
-  const windowOpen = Date.now() - (B._lastAi || 0) >= BB_AI_WINDOW && !B._aiBusy;
-  if (windowOpen && (bbAiWorth(m) || B._aiScheduled)) {
+  const stale = !B.aiPoolAt || Date.now() - B.aiPoolAt > 20 * 60e3, windowOpen = (stale || Date.now() - (B._lastAi || 0) >= BB_AI_WINDOW) && !B._aiBusy;
+  if (windowOpen && (bbAiWorth(m) || B._aiScheduled || stale)) {
     // 新的 2 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
     B._owed = (B._owed || 0) + want; B._aiScheduled = true;
     clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 900); return;
@@ -4871,14 +4872,14 @@ function bbAiOnSend(m) {
 async function bbAI() {
   const B = S.bubble; B._aiScheduled = false; B._aiBusy = true;
   const since = B._lastAiAt || 0; B._lastAi = Date.now();
-  const batch = B.msgs.filter(x => x.at > since).slice(-6); B._lastAiAt = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now();
+  const newest = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now(), batch = B.msgs.filter(x => x.at > since && x.at > newest - 30 * 60e3).slice(-6); // 只看最近这一阵发的，隔天前的不算 B._lastAiAt = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now();
   try {
     const content = [];
     const img = batch.slice().reverse().find(x => x.type === 'image' && x.media);
     if (img) { const bl = await idbGet(img.media).catch(() => null); if (bl) { const d = await imageB64(bl); if (d) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: d } }); } }
     const kind = { text: '文字', image: '照片', video: '视频', voice: '语音', sticker: '表情包' };
     const lines = batch.map(x => `- [${kind[x.type]}${x.type === 'sticker' && STICKERS[x.sticker] ? '：小猫' + STICKERS[x.sticker].d : ''}]${x.text ? ' ' + x.text.split(BB_TOK).join('【粉丝自己的昵称】') : ''}${x.replyTo ? `（回复粉丝「${x.replyTo.user}」：「${x.replyTo.text}」）` : ''}`).join('\n');
-    const prompt = N => `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}：
+    const prompt = N => `${S.profile.name} 在 Bubble（付费订阅的偶像私信软件）里刚给订阅粉丝发了这些消息${img ? '（上面是她发的照片）' : ''}（现在是 ${socClock(Date.now())}，粉丝回复要符合现在这个时间，不要提之前别的时候她说过的话）：
 ${lines}
 每个粉丝都以为这是偶像单独发给自己的私聊。
 请写 ${N} 条粉丝回复放进 r（${N} 个不同的粉丝，语气、长短、关注点各不相同，有人激动有人淡定有人碎碎念）：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
@@ -4886,11 +4887,11 @@ ${lines}
 回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。`;
     // 先要一小批（快），马上放出来；剩下的再在后台补一批，不让粉丝慢半拍
     const res = await aiCompact([...content, { type: 'text', text: prompt(10) }], 1500);
-    B.aiPool = res.r;
+    B.aiPool = res.r; B.aiPoolAt = Date.now();
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
     bbRelease(B._owed || 0); B._owed = 0; B._aiBusy = false;
-    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { B.aiPool = (B.aiPool || []).concat(r2.r); save(); }).catch(() => { });
+    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) B.aiPool = (B.aiPool || []).concat(r2.r); save(); }).catch(() => { });
   } catch (e) { aiFail(e); }
   finally { B._owed = 0; B._aiBusy = false; }
 }
