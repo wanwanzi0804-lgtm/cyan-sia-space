@@ -6071,14 +6071,13 @@ function chPopTick() {
     const r = rulesFor(today).filter(x => CH_DAY_CATS.includes(x.cat)).sort((x, y) => (y.cat === '打歌') - (x.cat === '打歌'))[0], music = !!(r && r.cat === '打歌'), cands = chPopCands(music, today);
     if (cands.length) { C.force1 = 1; UI.chPop = { k: today, where: r ? r.title : '', cands, step: 'pick', onAct: !!r, music }; openModal(chPopHTML()); save(); return; }
   }
-  if (P.day !== today) { P.day = today; P.done = 0; const rs = rulesFor(today).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) { const r = pick(rs), a = toMin(r.start) - 10, b = toMin(r.end) + 10; P.at = Math.round(a + Math.random() * Math.max(1, b - a)); P.end = b; P.rid = r.id; } else P.at = null; }
-  if (P.done || P.at == null || nm < P.at) return;
-  if (nm > P.end) { P.done = 1; return; } // 错过了就算了
+  if (P.day !== today) { if (P.day && P.at != null && !P.done && P.day >= addDays(today, -3)) P.pend = { k: P.day, rid: P.rid }; P.day = today; P.done = 0; const rs = rulesFor(today).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) { const r = pick(rs), a = toMin(r.start) - 10, b = toMin(r.end) + 10; P.at = Math.round(a + Math.random() * Math.max(1, b - a)); P.end = b; P.rid = r.id; } else P.at = null; }
+  // 当时页面没开着也不会错过：之前没弹出来的（最多往前 3 天），下次打开时弹
+  const show = (k, rid) => { if (chLimit(k) || !chSongs(k).length) return; const r = S.schedule.rules.find(x => x.id === rid), cands = chPopCands(!!(r && r.cat === '打歌'), k); if (!cands.length) return; UI.chPop = { k, where: r ? r.title : '', cands, step: 'pick', onAct: true, music: !!(r && r.cat === '打歌') }; openModal(chPopHTML()); save(); };
   if ($('#modal').classList.contains('on') || UI.chPop) return;
-  P.done = 1;
-  if (chLimit(today) || !chSongs(today).length) return;
-  const r = S.schedule.rules.find(x => x.id === P.rid), cands = chPopCands(!!(r && r.cat === '打歌'), today); if (!cands.length) return;
-  UI.chPop = { k: today, where: r ? r.title : '', cands, step: 'pick', onAct: true, music: !!(r && r.cat === '打歌') }; openModal(chPopHTML()); save();
+  if (P.pend) { const q = P.pend; P.pend = null; show(q.k, q.rid); return; }
+  if (P.done || P.at == null || nm < P.at) return;
+  P.done = 1; show(today, P.rid);
 }
 // 🎬 Challenge 事件：拍摄时随机触发（活动现场 70%，非活动 90%）。{对方} 会换成合作对象的名字
 // [标题, 描述, 选项 [[文字, 分数下限, 上限]], 额外：{ sp: 只在打歌现场, write: 写一句, custom: 可以自己写, game: 'mimic' | 'rps', post: 发布后 }]
