@@ -7675,6 +7675,10 @@ function socHistHTML() {
 function chalTick() {
   { const C0 = S.chal; if (C0 && !C0.fV) { C0.fV = 1; C0.vV = C0.vV || 0; } }
   { const C0 = S.chal; if (C0 && !C0.popV1) { C0.popV1 = 1; C0.jhV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p), nf = Math.round(Math.min(v * rand(.002, .006), S.profile.followers * .03)); if (nf !== (x.fans || 0)) addFans(nf - (x.fans || 0), 'Challenge：' + x.p.g + ' ' + x.p.n); x.views = v; x.likes = l; x.fans = nf; } } } // 按新的个人人气把已发布的 challenge 全部重算一遍
+  { const F = fanState(), C0 = S.chal; if (C0 && !F.chFix1) { F.chFix1 = 1; // 重算 challenge 时补记在当天的差额，挪回 challenge 那天，明细里不显示更正
+    const exp = {}; for (const x of C0.list) if (x.st === 'done') { const k = 'Challenge：' + x.p.g + ' ' + x.p.n, e = exp[k] || (exp[k] = {}); e[x.date] = (e[x.date] || 0) + (x.fans || 0); }
+    for (const [k, e] of Object.entries(exp)) if (Object.values(F.days).reduce((t, d) => t + (d.src[k] || 0), 0) === Object.values(e).reduce((t, v) => t + v, 0)) for (const dk of new Set([...Object.keys(F.days), ...Object.keys(e)])) { const want = e[dk] || 0, d = F.days[dk], has = d ? d.src[k] || 0 : 0; if (want === has || (!d && !want)) continue; const D = d || (F.days[dk] = { net: 0, src: {} }); D.net += want - has; if (want) D.src[k] = want; else delete D.src[k]; }
+  } }
   { const C0 = S.chal; if (C0 && !C0.jhV) { C0.jhV = 1; for (const x of C0.list) if (x.st === 'done' && x.p.g === 'BOYNEXTDOOR' && x.p.n === '명재현') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p), nf = Math.round(Math.min(v * rand(.002, .006), S.profile.followers * .03)); if (v > x.views) { if (nf > (x.fans || 0)) addFans(nf - (x.fans || 0), 'Challenge：' + x.p.g + ' ' + x.p.n); x.views = v; x.likes = Math.max(l, x.likes || 0); x.fans = Math.max(nf, x.fans || 0); } } } } // 明宰铉那条按新的人气重算（只往上调）
   { const C0 = S.chal; if (C0 && !C0.vV) { C0.vV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p); x.views = v; x.likes = l; } } } // 旧记录按新标准重算播放 / 点赞
   { const C0 = S.chal; if (C0 && C0.fV === 1) { C0.fV = 2; let d = 0; for (const x of C0.list) if (x.st === 'done') { const nf = Math.round(Math.min(x.views * rand(.002, .006), S.profile.followers * .03)); d += nf - (x.fans || 0); x.fans = nf; } if (d) addFans(d, 'Challenge 涨粉校正'); } } // 已发布的涨粉也按新播放量重算，多涨的扣回
@@ -7927,7 +7931,7 @@ function fanPanelHTML() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
   const net = k => (F.days[k] || { net: 0 }).net;
   const week = days.reduce((a, k) => a + net(k), 0), mx = Math.max(1, ...days.map(k => Math.abs(net(k))));
-  const sel = days.includes(UI.fanDay) ? UI.fanDay : today, src = Object.entries((F.days[sel] || {}).src || {}).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const sel = days.includes(UI.fanDay) ? UI.fanDay : today, src = Object.entries((F.days[sel] || {}).src || {}).filter(([r]) => !/校正|更正|重算/.test(r)).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const idle = Math.floor((Date.now() - lastActive()) / 86400e3);
   return `<div class="kpi" style="margin-top:0"><div><b>${heatLabel()}</b><span>人气</span></div><div>${fanSign(net(today))}<span>今日</span></div><div>${fanSign(week)}<span>近 7 天</span></div><div><b>${idle ? idle + ' 天' : '今天'}</b><span>上次营业</span></div></div>
     <div class="fbars">${days.map(k => { const n = net(k), h = Math.round(Math.abs(n) / mx * 100); return `<div class="fb${k === UI.fanDay ? ' on' : ''}" data-act="fanday" data-k="${k}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${k === today ? '今天' : WD[parseD(k).getDay()]}</span></div>`; }).join('')}</div>
