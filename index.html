@@ -217,6 +217,9 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-t{font-size:10.5px;color:var(--muted);flex:none;text-align:right}
 .kk-1{display:block;color:#e6b800;font-weight:700;font-size:11px;line-height:1.2}
 .kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
+.st-card{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;width:250px;max-width:100%;box-sizing:border-box}.st-h{display:flex;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.st-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}.st-row b{font-weight:600;white-space:nowrap}.st-tot{border:0;padding-top:8px;font-size:14.5px}.st-tot b{font-size:16px}
+.st-more{margin-top:6px}.st-more summary{font-size:12.5px;color:var(--muted);cursor:pointer}.st-it{padding:7px 0;border-top:1px solid var(--line)}.st-t{font-weight:600}.st-g{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;margin-top:2px}
 .kk-act .btn{white-space:normal;line-height:1.35;height:auto;padding-top:7px;padding-bottom:7px}
 .kk-row>div{min-width:0}
 .kk-res{margin-top:6px;font-size:12px;color:#8a939c}
@@ -2403,10 +2406,10 @@ function dedCost(title, gross, seed, orig = 0) {
 function settleCalc(items) {
   let part = 0, fines = 0; const lines = [];
   for (const x of items) {
-    if (FINE_SRC.includes(x.src)) { fines += x.cost; lines.push({ src: x.src, title: x.title, fine: x.cost }); continue; }
+    if (FINE_SRC.includes(x.src)) { fines += x.cost; lines.push({ src: x.src, title: x.title, date: x.date, fine: x.cost }); continue; }
     if (!(x.gross > 0)) continue; // 没有收入的（公司承担的成本）不进你的账
     const [ratio, label] = splitOf(x), cost = x.kind === 'bb' ? 0 : Math.min(x.cost || 0, x.gross), pay = Math.round((x.gross - cost) * ratio);
-    part += pay; lines.push({ src: x.src, title: x.title, gross: x.gross, cost, why: x.why || '', ratio, label, pay });
+    part += pay; lines.push({ src: x.src, title: x.title, date: x.date, gross: x.gross, cost, why: x.why || '', ratio, label, pay });
   }
   return { part, fines, lines };
 }
@@ -2527,20 +2530,44 @@ function financeTick() {
   // 主办方 / 平台付款
   for (const x of W.recv || []) if (x.st === 'pend' && x.payAt <= today) { x.st = 'paid'; x.paidOn = today; }
   // 结算
-  if (+today.slice(8) >= SETTLE_DAY && W.setMon !== mon) {
+  if ((+today.slice(8) > SETTLE_DAY || (+today.slice(8) === SETTLE_DAY && new Date().getHours() >= 10)) && W.setMon !== mon) { // 每月 15 日上午 10 点后结算
     W.setMon = mon;
     const cut = lastDay(addMonths(mon, -1)), items = (W.recv || []).filter(x => x.st === 'paid' && x.payAt <= cut);
     if (!items.length) return;
-    const c = settleCalc(items), part = c.part, fines = c.fines;
-    const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0; W.debt -= repay; W.bal += part - repay - fines;
-    const pm = addMonths(mon, -1), st = { id: uid(), v: 2, mon, period: pm, at: Date.now(), part, fines, repay, pay: part - repay, lines: c.lines };
-    (W.stmts || (W.stmts = [])).unshift(st); if (W.stmts.length > 24) W.stmts.length = 24;
-    for (const x of items) x.st = 'done';
-    W.recv = W.recv.filter(x => x.st !== 'done');
-    W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算`, auto: true });
-    if (fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -fines, cat: '违约金 / 罚款', note: `${+pm.slice(5)} 月违约金 / 罚款`, auto: true });
-    pushNotif({ type: 'system', text: `📑 ${+pm.slice(5)} 月结算明细已发放`, sub: `实际入账 ${won(part - repay)}${repay ? ` · 还欠款 ${won(repay)}` : ''}${fines ? ` · 违约金 / 罚款 -${won(fines)}` : ''}` }, true);
+    settleRun(items, mon);
   }
+}
+// 月度结算：财务出结算单，经纪人在 KKT 上转达（附明细，可以展开看每一笔）
+const TAX_RATE = .033; // 艺人报酬预扣 3.3%（事业所得税 + 地方税）
+function settleRun(items, mon, at) {
+  const W = wallet(), c = settleCalc(items), part = c.part, fines = c.fines;
+  const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0, tax = Math.round(Math.max(0, part - repay) * TAX_RATE);
+  W.debt -= repay; W.bal += part - repay - fines - tax;
+  const pm = addMonths(mon, -1), gl = c.lines.filter(l => l.gross > 0), st = { id: uid(), v: 3, mon, period: pm, at: Date.now(), part, fines, repay, tax, pay: part - repay, gross: gl.reduce((a, l) => a + l.gross, 0), cost: gl.reduce((a, l) => a + l.cost, 0), lines: c.lines };
+  (W.stmts || (W.stmts = [])).unshift(st); if (W.stmts.length > 24) W.stmts.length = 24;
+  for (const x of items) x.st = 'done';
+  W.recv = (W.recv || []).filter(x => x.st !== 'done');
+  W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算`, auto: true });
+  if (fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -fines, cat: '违约金 / 罚款', note: `${+pm.slice(5)} 月违约金 / 罚款`, auto: true });
+  if (tax) W.tx.unshift({ id: uid(), at: Date.now() + 2, amt: -tax, cat: '预扣税款', note: `${+pm.slice(5)} 月结算 · 预扣 3.3%`, auto: true });
+  mgrStmtSay(st, at);
+  return st;
+}
+function mgrStmtSay(st, at) {
+  const m = +st.period.slice(5), net = st.pay - st.fines - st.tax, M = mgrChat(), n0 = M.chat.length;
+  const a = pick([['이번 달 정산 나왔어요. 명세서 보내드릴게요', '这个月的结算出来了，把明细发给你'], [`재무팀에서 ${m}월분 정산서 넘어왔어요`, `财务那边把${m}月的结算单发过来了`], [`${m}월 정산 내역이에요. 한번 확인해 보세요`, `这是${m}月的结算明细，你看一下`], [`${m}월 정산 끝났대요. 명세서 첨부할게요`, `${m}月的结算做完了，明细附上`]]);
+  const b = net <= 0 ? ['이번 달은 공제가 커서 입금될 금액이 없어요ㅠ 궁금한 거 있으면 물어봐요', '这个月扣除比较多，没有要打的款ㅠ 有不清楚的问我'] : pick([['정산금은 오늘 중으로 개인 계좌에 들어갈 거예요', '结算款今天之内会打到你个人账户'], ['입금은 오늘 처리됐어요. 궁금한 거 있으면 말해요', '今天已经打款了，有不清楚的跟我说'], ['오늘 계좌로 들어갈 거예요. 확인되면 알려줘요~', '今天会打到你账户，到账了跟我说一声～'], ['개인 계좌로 입금했대요. 내역 보고 이상한 거 있으면 말해줘요', '已经打到你个人账户了，看了明细有不对的跟我说']]);
+  mgrSay(a); mgrSay(['', ''], { type: 'stmt', id: st.id }, true); mgrSay(b, null, true);
+  if (at) { let t = at; M.chat.slice(n0).forEach((x, i) => { if (i) t += rand(20, 70) * 1e3; x.at = t; }); M.chat.sort((x, y) => x.at - y.at); }
+  save();
+}
+function stmtCardHTML(st) {
+  if (!st) return '<div class="kk-res">명세서를 찾을 수 없어요</div>';
+  const gl = (st.lines || []).filter(l => l.gross > 0), fl = (st.lines || []).filter(l => l.fine), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), tax = st.tax || 0, net = st.pay - (st.fines || 0) - tax;
+  const row = (k, v, cls) => `<div class="st-row${cls ? ' ' + cls : ''}"><span>${k}</span><b>${v}</b></div>`, md = d => d ? `${+d.slice(5, 7)}/${+d.slice(8)} · ` : '';
+  return `<div class="st-card"><div class="st-h"><div>📄</div><div style="flex:1;min-width:0"><b>${st.period.slice(0, 4)}년 ${+st.period.slice(5)}월 정산 명세서</b><div class="muted" style="font-size:11.5px">STARSHIP 재무팀</div></div></div>
+    ${row('活动收入（公司收款）', won(gross))}${row('可扣除直接费用', cost ? '-' + won(cost) : won(0))}${row('艺人合同分成', won(st.part))}${st.repay ? row('前期投入回收', '-' + won(st.repay)) : ''}${st.fines ? row('违约金 / 罚款', '-' + won(st.fines)) : ''}${tax ? row('预扣税款（3.3%）', '-' + won(tax)) : ''}${row('本期实际到账', won(Math.max(0, net)), 'st-tot')}
+    ${gl.length || fl.length ? `<details class="st-more"><summary>收入明细（${gl.length} 笔${fl.length ? ` · 扣款 ${fl.length} 笔` : ''}）</summary>${gl.map(l => `<div class="st-it"><div class="st-t">${md(l.date)}${esc(l.title)}</div><div class="muted" style="font-size:11.5px">${esc(l.label || l.src)} · 分成 ${Math.round(l.ratio * 100)}%</div><div class="st-g"><span>收入 ${won(l.gross)}</span><span>扣除 ${l.cost ? '-' + won(l.cost) : won(0)}</span><span>所得 <b>${won(l.pay)}</b></span></div></div>`).join('')}${fl.map(l => `<div class="st-it"><div class="st-t">${md(l.date)}${esc(l.title)}</div><div class="st-g"><span>${esc(l.src)}</span><span>-${won(l.fine)}</span></div></div>`).join('')}</details>` : ''}</div>`.replace(/\n\s*/g, ''); // 气泡里是 pre-wrap，换行会变成空白
 }
 function settleHTML() {
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
@@ -3224,6 +3251,7 @@ function mgrCardHTML() {
 }
 function mgrCardMsg(m) {
   if (!m.card) return '';
+  if (m.card.type === 'stmt') return stmtCardHTML((wallet().stmts || []).find(x => x.id === m.card.id));
   if (m.card.type === 'offer') { const o = mgr().offers.find(x => x.id === m.card.id); return o && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="ofno" data-id="${o.id}">不接</button><button class="btn primary sm" data-act="ofok" data-id="${o.id}">接</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   if (m.card.type === 'gift') { const r = S.schedule.rules.find(x => x.id === m.card.id); if (!r || m.res) return `<div class="kk-res">${esc(m.res || '已处理')}</div>`;
     const g = GIFTS[m.card.t], sel = m.card.sel || [], btn = (t, l, z, cls) => `<button class="btn ${cls || 'ghost'} sm" data-act="mgift" data-mid="${m.id}" data-t="${t}"${z !== undefined ? ` data-z="${z}"` : ''}>${esc(l)}</button>`;
