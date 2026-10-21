@@ -6544,7 +6544,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); dmPolishMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -7028,7 +7028,7 @@ function socCtx(p, when) {
   const cm = (P.cm || []).slice(-6).map(e => `- ${e.day.slice(5)} ${e.d}`).join('\n');
   const never = ['meal', 'coffee', 'chal', 'call', 'gift'].filter(t => !P.cnt[t] && !(t === 'meal' && P.facts.meal)).map(t => EX_ZH[t]).join('、');
   const todo = P.todo.filter(x => x.st === 'open').map(x => `- ${x.d}（${x.day.slice(5)} 说好的，还没定下时间，也还没发生）`).join('\n') || '（无）';
-  let lastD = ''; const chat = T ? T.msgs.slice(-16).map(m => { const t = new Date(m.at), dk = dkey(m.at), hd = dk !== lastD ? `〔${+dk.slice(5, 7)}/${+dk.slice(8)}〕\n` : ''; lastD = dk; return hd + (m.sys ? `[${m.sys}]` : `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')} ${m.me ? S.profile.name : socName(p)}：${m.text}`); }).join('\n') : '';
+  let lastD = ''; const lastHim = T ? Math.max(0, ...T.msgs.filter(m => !m.me && !m.sys).map(m => m.at)) : 0; const chat = T ? T.msgs.slice(-24).map(m => { const t = new Date(m.at), dk = dkey(m.at), hd = dk !== lastD ? `〔${+dk.slice(5, 7)}/${+dk.slice(8)}〕\n` : ''; lastD = dk; return hd + (m.sys ? `[${m.sys}]` : `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')} ${m.me ? S.profile.name : socName(p)}：${m.text}${m.me && m.at > lastHim ? '　←他还没回' : ''}`); }).join('\n') : '';
   const today = rulesFor(dkey(Date.now())).filter(r => r.cat !== 'other').map(r => `${r.start}-${r.end} ${r.title}${r.loc ? '@' + r.loc : ''}`).join('；') || '没有行程';
   const thL = !socAmbOk(p) ? '' : P.th >= 5 ? '对方对她有明显好感（但没说破）' : P.th >= 2 ? '对方对她有一点好感' : '对方对她没有特别的想法';
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
@@ -7184,7 +7184,7 @@ function socApplyTh(x, o, mine) {
 // 开着 AI 时，预设事件的第一条消息按这个人的说话卡重写（意思不变）
 async function socThVoice(x) {
   try { const p = x.p, ban = socBan(p);
-    const j = await aiRaw([{ type: 'text', text: `${socWho(p)} 要给 ${S.profile.name}（女，solo 爱豆，STARSHIP）发一条 KKT。\n${socCtx(p)}\n\n这条消息要表达的意思（不能改）：「${x.zh}」\n参考写法：「${x.ko}」\n按这个人自己的说话习惯，把参考写法改成 ta 会真的发出来的样子：${ban ? '用半语' : '用敬语'}。只表达上面这个意思，不要再加别的句子（不要顺带讲自己的近况、不要加和这件事无关或者互相矛盾的话），长度和参考差不多或更短；语气词只在自然的时候用，不要为了显得随意硬加 ㅋㅋ。不要提记录里没有的过去。ko 写韩语，zh 写准确的中文意思。` }], 200, { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } }, KKT_SYS());
+    const j = await aiRaw([{ type: 'text', text: `${socWho(p)} 要给 ${S.profile.name}（女，solo 爱豆，STARSHIP）发一条 KKT。\n${socCtx(p)}\n\n这条消息要表达的意思（不能改）：「${x.zh}」\n参考写法：「${x.ko}」\n按这个人自己的说话习惯，把参考写法改成 ta 会真的发出来的样子（二十岁上下的人私下发 KKT 的口语，不是书面句，也不是中文直译）：${ban ? '用半语' : '用敬语'}。只表达上面这个意思，不要再加别的句子（不要顺带讲自己的近况、不要加和这件事无关或者互相矛盾的话），长度和参考差不多或更短；语气词只在自然的时候用，不要为了显得随意硬加 ㅋㅋ。不要提记录里没有的过去。ko 写韩语，zh 写准确的中文意思。` }], 200, { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } }, KKT_SYS());
     if (j.ko) { x.ko = j.ko; x.zh = j.zh || x.zh; } } catch (err) { }
 }
 // 当晚真的见面：排在你晚上有空的时间
@@ -7287,7 +7287,7 @@ async function dmDueReply(T) {
 const dmClose = p => { const fr = friendOf(p.g, p.n); return (fr && ['best', 'close'].includes(fr.lv)) || ['close', 'amb'].includes(socStage(p)); };
 function dmRescue(T, now) {
   if (T.gen && now - (T.genAt || 0) > 120e3) T.gen = 0; // 生成到一半页面被关了
-  const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || m.rescued || T.due || (T.pend && T.pend.length) || T.gen) return;
+  const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || m.rescued || T.quiet === m.id || dmAgree(m.text) || T.due || (T.pend && T.pend.length) || T.gen) return;
   if (!dmClose(T.p) || (T.readTo || 0) < m.at || now - m.at < 40 * 60e3 || ((dmBye(m.text) || dmAck(m.text)) && !dmAsk(m.text))) return;
   m.rescued = 1; T.due = { at: now + rand(1, 6) * 60e3, later: 1 }; save();
 }
@@ -7314,68 +7314,93 @@ function socVibe(p, when) {
   for (const [k, n] of Object.entries(w)) { x -= Math.max(0, n); if (x <= 0) { v = k; break; } }
   V[p.key] = { v, from: now, until: now + rand(90, 300) * 60e3 }; return v;
 }
-const dmAsk = t => /[?？]|\b(뭐|어디|언제|왜|어때|어떻게|할래|갈래|될까|있어|돼\?)|(吗|呢|什么|怎么|要不要|能不能|几点|哪)/.test(t || '');
+const dmAsk = t => /[?？]|(뭐|어디|언제|왜|어때|어떻게|할래|갈래|될까|있어\?|돼\?|ㄱㄱ\?)|(吗|呢|什么|怎么|要不要|能不能|几点|哪(?!天都))/.test(t || '');
 // 结束性的话（晚安 / 我去忙了 / 谢谢 / 加油）：本地兜底时只回一句收尾
 const dmAck = t => /^[\sㅇㅋㅎㅠㅜ웅응넵네굿ok👍👌!~.^]+$/i.test(t || ''); // 只是「ㅇㅋ / 웅 / 👍」这种
 const dmBye = t => /잘\s*자|굿나잇|좋은\s*꿈|자러|잘게|먼저\s*(잘|갈|가볼)|일하러|작업하러|다음에\s*(얘기|연락)|고마워|감사|화이팅|파이팅|晚安|睡了|去忙|先这样|下次聊|谢谢|加油/.test(t || '');
-// 没开 AI 时的备用回复：按性格分开，平常的短句，不重复他最近说过的（[半语, 敬语, 中文]）
+// 她这句是不是只是在附和 / 同意 / 收尾（没有新内容、也没在问）
+const dmAgree = t => !dmAsk(t) && /^[\s\S]{0,40}$/.test(t || '') && /^(네|넹|넵|응|웅|ㅇㅇ|ㅇㅋ|오키|오케이|알겠|알았|좋아|그래|그럼|당연|ok|okay|好|好的|好呀|好啊|嗯|行|可以|没问题|知道了|收到|都可以|哪天都|随时|听你的|听姐姐|听哥哥)/i.test(String(t).trim());
+// 没开 AI 时的备用回复：先看她这句是什么（收尾 / 附和 / 问题 / 好笑 / 分享），再按性格挑一句短的；没必要回就不回（[半语, 敬语, 中文]）
 const DM_FB = {
-  warm: [['헐 진짜?', '헐 진짜요?', '天哪真的？'], ['오 대박', '오 대박이에요', '哇厉害'], ['아 뭐야', '아 뭐예요', '啊什么嘛'], ['나도 그거 좋아', '저도 그거 좋아요', '我也喜欢那个']],
-  funny: [['뭐야 ㅋㅋ', '뭐예요 ㅋㅋ', '什么啊哈哈'], ['아 그건 좀', '아 그건 좀..', '啊那有点…'], ['갑자기?', '갑자기요?', '怎么突然？']],
-  cool: [['ㅇㅇ', '넵', '嗯'], ['그래', '네', '好'], ['오', '오', '哦']],
-  polite: [['아 그렇구나', '아 그렇군요', '啊原来这样'], ['좋다', '좋네요', '挺好'], ['맞아', '맞아요', '对']],
-  gentle: [['아 그랬구나', '아 그랬군요', '啊原来是这样'], ['다행이다', '다행이에요', '那就好'], ['그치', '그쵸', '对吧']],
-  direct: [['오 괜찮은데', '오 괜찮은데요', '哦不错'], ['그럼 그렇게 해', '그럼 그렇게 해요', '那就这么办'], ['음 난 별로', '음 저는 별로요', '嗯我觉得一般']],
+  warm: [['헐 대박', '헐 대박', '天哪厉害'], ['아 진짜?', '아 진짜요?', '啊真的？'], ['오 좋겠다', '오 좋겠다', '哦真好']],
+  funny: [['뭐야ㅋㅋ', '뭐예요ㅋㅋ', '什么啊哈哈'], ['아니 갑자기', '아니 갑자기요', '不是，怎么突然'], ['ㅋㅋ 어이없어', 'ㅋㅋ 어이없네요', '哈哈无语']],
+  cool: [['오', '오', '哦'], ['그렇구나', '그렇군요', '这样啊'], ['ㅇㅇ', '넵', '嗯']],
+  polite: [['아 그렇구나', '아 그렇군요', '啊原来这样'], ['좋다', '좋네요', '挺好'], ['오 신기하다', '오 신기하네요', '哦好神奇']],
+  gentle: [['아 그랬구나', '아 그랬군요', '啊原来是这样'], ['다행이다', '다행이에요', '那就好'], ['고생했네', '고생하셨네요', '辛苦了']],
+  direct: [['오 괜찮은데', '오 괜찮은데요', '哦不错'], ['음 난 별로', '음 저는 별로요', '嗯我觉得一般'], ['그거 좋다', '그거 좋네요', '那个好']],
   neutral: [['오 그래?', '오 그래요?', '哦是吗？'], ['그렇구나', '그렇군요', '原来如此'], ['좋네', '좋네요', '不错']],
-  ask: [['음 글쎄', '음 글쎄요', '嗯…不好说'], ['잠깐만 이따 말해줄게', '잠시만요 이따 말씀드릴게요', '等下跟你说'], ['나도 잘 모르겠어', '저도 잘 모르겠어요', '我也不太清楚']]
+  ask: [['음 글쎄', '음 글쎄요', '嗯…不好说'], ['잠깐만 이따 말해줄게', '잠시만요 이따 말씀드릴게요', '等下跟你说'], ['나도 잘 모르겠어', '저도 잘 모르겠어요', '我也不太清楚']],
+  lol: [['ㅋㅋㅋㅋ', 'ㅋㅋㅋㅋ', '哈哈哈哈'], ['ㅋㅋㅋ 미쳤다', 'ㅋㅋㅋ 미쳤다', '哈哈哈疯了']],
+  nod: [['ㅇㅋ', '넵', 'OK'], ['웅', '네네', '嗯'], ['ㅋㅋ', 'ㅎㅎ', '哈哈']],
+  yes: [['좋아', '좋아요', '好'], ['오 좋지', '오 좋죠', '哦好啊'], ['ㄱㄱ', '넵 좋아요', '走起']],
+  no: [['ㅇㅇ 알겠어', '넵 알겠어요', '嗯知道了'], ['그래', '네', '好']]
 };
-// 自由聊天：先判断要不要回、想不想回、话题是不是已经结束，再决定回多少
-async function dmChatAi(T, mine, when, later) {
-  const p = T.p, pers = socPers(p), P = socPX(p), ban = socBan(p), vibe = socVibe(p, when);
+// 回复（自由聊天、预设事件后的回应都走这里）：先弄清楚对话进行到哪了、她这句到底要不要回，再按这个人写
+// evt：预设事件的上下文 { what: 事件本身, opt: 她选的回应方向, gist: 预设里他的反应（剧情上的意思，不能变） }
+async function dmChatAi(T, mine, when, later, evt) {
+  const p = T.p, pers = socPers(p), P = socPX(p), ban = socBan(p), vibe = socVibe(p, when), close = dmClose(p);
+  const recent = T.msgs.slice(-8).filter(m => !m.me && !m.sys).map(m => m.text);
+  const fresh = L => L.filter(x => !recent.includes(x[ban ? 0 : 1]));
+  const one = (L, keep) => { const c = fresh(L); if (!c.length) return keep ? { list: [{ text: ban ? '웅' : '네', zh: '嗯' }] } : null; const x = pick(c); return { list: [{ text: x[ban ? 0 : 1], zh: x[2] }] }; };
   const local = () => {
-    if (dmBye(mine)) { const L = /잘\s*자|굿나잇|좋은\s*꿈|자러|잘게|晚安|睡了/.test(mine) ? (ban ? [['웅 잘자', '嗯晚安'], ['ㅇㅇ 굿나잇', '嗯嗯晚安'], ['잘자~', '晚安~']] : [['네 잘 자요', '好的，晚安'], ['굿나잇이에요ㅎㅎ', '晚安呵呵']]) : /고마|감사|谢/.test(mine) ? (ban ? [['뭘', '谢什么'], ['웅웅', '嗯嗯']] : [['아니에요ㅎㅎ', '没事呵呵'], ['넵ㅎㅎ', '好的呵呵']]) : /화이팅|파이팅|加油/.test(mine) ? (ban ? [['너두', '你也是'], ['ㅇㅇ', '嗯嗯']] : [['감사해요!', '谢谢！'], ['네 같이 화이팅해요', '嗯一起加油']]) : (ban ? [['ㅇㅋ', 'OK'], ['웅웅', '嗯嗯']] : [['넵!', '好的！']]); const [ko, zh] = pick(L); return Math.random() < .15 ? null : { list: [{ text: ko, zh }] }; }
-    if (!dmAsk(mine) && !dmClose(p) && Math.random() < (vibe === 'tired' ? .4 : vibe === 'brief' ? .25 : .1)) return null;
-    const pool = (dmAsk(mine) ? DM_FB.ask : DM_FB[pers.id] || DM_FB.neutral).filter(x => !T.msgs.slice(-6).some(m => !m.me && m.text === x[ban ? 0 : 1]));
-    const L = pick(pool.length ? pool : DM_FB.neutral); return { list: [{ text: L[ban ? 0 : 1], zh: L[2] }] };
+    if (evt && evt.gist && /[가-힣]/.test(evt.gist)) { const [ko, zh] = evt.gist.replace(/^「|」$/g, '').split('｜'); return { list: [{ text: ko, zh: zh || '' }] }; } // 预设事件本来就写好的回应
+    if (evt) return evt.tone === '-' ? one(DM_FB.no, true) : evt.tone === '0' ? (Math.random() < .5 ? one(DM_FB.nod) : null) : one(DM_FB.yes, true); // 预设只有动作描写：按她回应的方向给一句短的
+    if (dmBye(mine)) { const L = /잘\s*자|굿나잇|좋은\s*꿈|자러|잘게|晚安|睡了/.test(mine) ? (ban ? [['웅 잘자', '嗯晚安'], ['굿밤', '晚安'], ['잘자~', '晚安~']] : [['네 잘 자요', '好的，晚安'], ['굿밤이에요ㅎㅎ', '晚安呵呵']]) : /고마|감사|谢/.test(mine) ? (ban ? [['뭘', '谢什么'], ['ㅇㅇ', '嗯嗯']] : [['아니에요ㅎㅎ', '没事呵呵'], ['넵ㅎㅎ', '好的呵呵']]) : /화이팅|파이팅|加油/.test(mine) ? (ban ? [['너두', '你也是'], ['ㄱㄱ', '冲']] : [['감사해요!', '谢谢！'], ['같이 화이팅해요', '一起加油']]) : (ban ? [['ㅇㅋ', 'OK'], ['웅웅', '嗯嗯']] : [['넵!', '好的！']]); const [ko, zh] = pick(L); return Math.random() < .3 ? null : { list: [{ text: ko, zh }] }; }
+    if (dmAck(mine) || dmAgree(mine)) return close && Math.random() < .35 ? one(DM_FB.nod) : null; // 只是附和 / 同意：多半就不回了
+    if (/^[\sㅋㅎ]+$|哈哈|笑死/.test(mine)) return Math.random() < .5 ? one(DM_FB.lol) : null;
+    if (dmAsk(mine)) return one(DM_FB.ask, true);
+    if (!close && Math.random() < (vibe === 'tired' ? .4 : vibe === 'brief' ? .25 : .1)) return null;
+    return one(DM_FB[pers.id] || DM_FB.neutral) || one(DM_FB.neutral, close);
   };
   if (!aiOn()) return local();
-  const gap = when && Date.now() - when > 30 * 60e3, lastMe = (T.msgs.filter(m => m.me).pop() || {}).at || when, seenLate = when - lastMe > 90 * 60e3;
+  const lastMe = (T.msgs.filter(m => m.me).pop() || {}).at || when, seenLate = when - lastMe > 90 * 60e3;
+  const mineL = T.msgs.filter(m => m.me && m.at > Math.max(0, ...T.msgs.filter(m => !m.me && !m.sys).map(m => m.at))).length;
   try {
     const j = await aiRaw([{ type: 'text', text: `你要写的是 ${socWho(p)} 本人在 KKT 上发给 ${S.profile.name}（女，solo 爱豆，STARSHIP，2025 年出道）的消息。他是一个有自己生活、脾气和说话习惯的人，不是聊天助手。
 ${socCtx(p, when)}
 他此刻的状态和心情（临时的，别说出来）：${VIBE_ZH[vibe]}。
-${later ? `他之前已经点开看过这些消息，当时没回，现在（${socClock(when)}）才回。这次要回（act 只能是 reply / react，除非话题本来就已经结束）。熟的人不用解释为什么晚回。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回，不要假装还在她发消息的那个时间实时聊。` : ''}`}
+${later ? `他之前已经点开看过这些消息，当时没回，现在（${socClock(when)}）才回。熟的人不用解释为什么晚回。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回，不要假装还在她发消息的那个时间实时聊。` : ''}`}
+${evt ? `\n刚才发生的事：「${evt.what}」\n${S.profile.name}的回应方向：${evt.opt}${evt.gist ? `\n剧情上他这次的反应（意思不能变，但要用他自己的话说，可以更短；如果是动作描写，就写成他会真的发出来的消息）：「${evt.gist}」` : ''}\n` : ''}
+${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消息（上面聊天里标了「←他还没回」，合在一起看）：「${mine}」
 
-${S.profile.name}发来、他还没回的消息（合在一起回）：「${mine}」
+第一步，先看懂对话（写进 gist，不会发出去）：现在在聊什么、哪些事已经说清楚或说定了（谁说过要做什么）、她这几条到底是什么——在问他 / 告诉他一件新的事 / 只是同意、附和、收尾。
+第二步，判断 need：
+- answer：她问了问题、在等他决定，或者说了需要他回应的事
+- open：她分享了点什么，接一句很自然，但不接也不奇怪
+- none：话已经说完了。她只是在同意/附和他刚说的、或者在收尾，没有任何新内容。
+第三步，再决定发什么。
 
-怎么写：
-- 先想清楚「他」此刻看到这几条消息，真实的第一反应是什么、想不想说点什么，再按他的说话习惯写出来。不要想「怎么回才得体 / 才显得有在聊」。
-- 长短、条数、语气词（ㅋㅋ、ㅎㅎ、ㅠㅠ、感叹号、表情）全部由他这个人的习惯、此刻的心情和这件事本身决定。没有固定格式；平平淡淡的一句话也是很正常的回复。不要刻意随意，也不要刻意可爱。
-- 语气词是情绪的结果，不是装饰：他真觉得好笑才会打 ㅋㅋ，难过/心疼才会 ㅠㅠ。档案里写「会用 ㅋㅋ」意思是好笑的时候他会这么打，不是每句都要挂一个。AI 最典型的毛病就是在「응 / 고마워 / 맞아」这种普通回复后面自动加 ㅋㅋ 显得友好，真人不会这样；也别每次都用「응 + …」开头。
-- 上面聊天记录里他以前的消息如果已经有这种句句带 ㅋㅋ、固定开头的毛病，那是之前写坏了，不要延续。
-- 他不负责把她的每句话都接住：不用每次都回应所有内容、不用提问、不用鼓励或安慰，除非他真的想或者事情真的需要。可以只回其中一句、可以吐槽、可以说自己的事、可以把话题岔开，也可以让聊天在这里停下。她只是在收尾（晚安 / 去忙了 / 谢谢 / 加油）的话，就跟着收尾。
-- 关系决定分寸：不熟就有不熟的距离感，很熟就随便、不客套。熟不等于更热情、更长、更温柔。没有暧昧阶段就不要有任何暧昧的说法。
-- 真正严重的事（生病受伤、出事、很难过地来找他）才会认真关心，关心的程度和你们的关系相称；普通的累和抱怨就是普通聊天。
-- 记得的事只在正好相关时才提；他自己的近况可以顺口说，但不要编具体的私人经历和行程。
-- 别重复他自己在上面聊天里用过的说法、句式和开头。
-- 韩语要像韩国二十岁左右的年轻人私下发 KKT 那样自然，不是翻译出来的韩语，也不是网络段子。
+最重要的几条：
+- 已经说过的话不要再说一遍。例：他说「拍完看看日程再告诉你」，她回「好呀我哪天都可以」——这时他不会再说一遍「好，拍完我看看日子再跟你说」。真人会 read（不回），或者只回一个「ㅇㅋ」「웅」「ㅋㅋ」，或者干脆聊别的。重新确认、复述计划是最典型的 AI 味。
+- 不是每条都要完整回应。need 是 none 的时候，大多数情况就 read；要回也只是一两个字、一个笑或表情（act=react）。
+- 不用每次都反问、关心、鼓励、解释，也不用为了让聊天继续而找话。可以停在这里，也可以按他自己的心情顺手说点别的、吐槽一句。
+- 长短、条数、语气词（ㅋㅋ ㅎㅎ ㅠㅠ 感叹号 表情）由他的习惯、此刻的心情和这件事本身决定。语气词是情绪，不是装饰：真觉得好笑才 ㅋㅋ。不要每次都用「응 + …」「아 + …」开头。
+- 上面聊天记录里他以前的消息如果有复述、重复确认、句句带 ㅋㅋ 的毛病，那是之前写坏了，不要延续。
+
+韩语：
+- 写韩国二十岁上下的人私下发 KKT 的样子，不是把中文意思翻成韩语。熟的朋友之间：主语、宾语常常省掉；一句话常拆成两三个短气泡；会用 ㅇㅇ ㅇㅋ 웅 ㄱㄱ ㄴㄴ ㄹㅇ 같은 缩略、没写完的半句、「~했어?」「~하자」「~임」「~ㄴ듯」这类口语结尾。不熟的就用敬语，但也是口语的敬语（「넵」「헐 진짜요?」「아 그래요?ㅎㅎ」），不是书面礼貌句。
+- 不要中文式表达：比如不说「언니 말 들을게」「시간 맞춰보자」这种直译腔，不写「~해줄게」式的完整解释句来交代安排。
+- 她有时用中文发消息，他照常按他的语言习惯回（档案里写了会说中文的人，按档案的程度用中文）。
+- 称呼、半语/敬语按上面的关系规则，不能为了口语化乱用。
+- 和他在上面聊天里自己用过的说法、开头别重复。
+
+关系决定分寸：熟不等于更热情更长，是更随便、更不客套。没有暧昧阶段就不要有暧昧的说法。真正严重的事才认真关心。记得的事只在正好相关时才提，不编具体的私人经历和行程。
 
 ${SOC_RULES}
 
-act：${dmClose(p) ? '（你们很要好，基本不会已读不回：没空就选 later，晚点回）' : ''}reply（正常回）/ react（只回一个很短的反应或表情，msgs 里放 1 条）/ read（已读，觉得不用回了。只用在话题已经结束或者只是个表情的时候，不要用在她问了问题或说了重要的事的时候，也不要太常用）/ later（已读，现在不方便或不想打字，过一阵再回；msgs 留空）。
-msgs：ko 写 ta 实际发出的原文（一般是韩语；档案里写了会说中文的人，按档案写的程度用中文），zh 写准确自然的中文意思（不要加原文没有的情绪）。
-todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，today 表示说好就是今晚。
+act：reply（正常回）/ react（只回一个很短的反应或表情，msgs 里 1 条）/ read（已读不回：need 是 none 时最常见；她问了问题或者说了需要回应的事时不能用）/ later（已读，现在不方便或不想打字，过一阵再回；msgs 留空）。${close ? '你们很要好：need 不是 none 的话不会已读不回，没空就 later。' : ''}${later ? '他已经拖了一阵了，这次除非 need 是 none，否则要回（reply 或 react）。' : ''}
+msgs：ko 写他实际发出的原文，zh 写准确自然的中文意思（不加原文没有的情绪）。
+todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，而且之前没记过；today 表示说好就是今晚。
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
-unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 700,
-      { type: 'object', additionalProperties: false, required: ['act', 'msgs', 'todo', 'today', 'mem', 'unsure'], properties: { act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal'] }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
+unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 900,
+      { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'mem', 'unsure'], properties: { gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal'] }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
-    if (j.todo) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
-    let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
-    const close = dmClose(p), bye = (dmBye(mine) || dmAck(mine)) && !dmAsk(mine);
-    if (act === 'read' && (dmAsk(mine) || (close && !bye))) act = 'later'; // 问了问题 / 好朋友：不会就这么已读不回
+    if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
+    let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim()), done = j.need === 'none' && !dmAsk(mine);
+    if (done) { const m = T.msgs.filter(m => m.me).pop(); if (m) T.quiet = m.id; } // 话已经说完了：之后也不用「补回」
+    if (act === 'read' && !done && (dmAsk(mine) || close)) act = 'later'; // 问了问题 / 好朋友有话要回：不会就这么已读不回
     if (later && act === 'later') act = msgs.length ? 'reply' : 'read';
     if (act === 'later') return { later: 1 };
-    if ((act === 'read' || !msgs.length) && close && !bye) return local() || { list: [{ text: ban ? '웅' : '네', zh: '嗯' }] }; // 好朋友至少回一句
     if (act === 'read' || !msgs.length) return null;
     return { list: (act === 'react' ? msgs.slice(0, 1) : msgs.slice(0, 5)).map(m => ({ text: m.ko.trim(), zh: m.zh })) };
   } catch (err) { return local(); }
@@ -7428,6 +7453,48 @@ function soloMig() {
   }
   for (const f of chal().friends) if (['ENHYPEN', 'HEESEUNG'].includes(f.g) && f.n === '희승') f.g = 'EVAN';
   save();
+}
+// 一次性：以前生成的艺人消息很多很生硬（复述、重复确认、翻译腔、句句客气）。按现在的写法把「他」那一方润一遍：
+// 事实、约定、时间顺序、关系都不变，你发的消息一个字不动；明显重复确认、没内容的可以删；改之前的原文留在 m.orig / T.polBak
+let dmPolBusy = 0;
+async function dmPolishMig() {
+  if (dmPolBusy || !aiOn()) return; const now = Date.now();
+  const T = Object.values(dms()).find(T => !T.pol1 && !T.gen && !T.due && !(T.pend && T.pend.length) && T.msgs.some(m => !m.me && !m.sys && m.text) && !(UI.typing && UI.typing[T.p.key] > now) && (T.polTry || 0) < 3);
+  if (!T) return; dmPolBusy = 1; T.polTry = (T.polTry || 0) + 1;
+  try {
+    const p = T.p; T.msgs.forEach(m => { if (!m.id) m.id = uid(); });
+    const hm = ts => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    const lines = T.msgs.map(m => m.sys ? `　　[${m.sys}]` : `${m.me ? '　　' : m.id}｜${hm(m.at)}｜${m.me ? '她' : '他'}${m.ev ? '★' : ''}：${m.text}`).join('\n');
+    const j = await aiRaw([{ type: 'text', text: `下面是 ${socWho(p)} 和 ${S.profile.name}（女，solo 爱豆）之间已经存在的 KKT 聊天记录。他那一方的很多消息是以前自动生成的，读起来很机械：复述已经说定的计划、重复确认、像客服一样每句都完整礼貌地回应、翻译腔的韩语、句句挂 ㅋㅋ、每次同样的开头。
+请只修改「他」的消息，让整段对话读起来像他本人真的在 KKT 上发的。
+
+关于他：
+${socCtx(p)}
+
+要求：
+1. 她的消息一个字都不能改（没有编号的行就是她的，或系统提示）。
+2. 他每条消息原本的意思、提到的事实、答应的事、时间都要保留。不能新增原来没有的事件、约定、情绪进展或关系变化，也不能删掉影响剧情的内容（比如答应见面、拒绝、说了某个具体的安排）。带 ★ 的是剧情事件发来的第一条消息，只能改说法，不能删。
+3. 可以删除的：明显复述 / 重复确认他自己前面已经说过的话、没有任何新内容的客套回应。删的时候确认删完后上下文依然通顺（她的下一句仍然接得上）。
+4. 改写的方向：二十岁上下的韩国人私下发 KKT 的说法——省主语、短、可以是半句、自然的口语结尾；不要中文直译腔；语气词只在真有情绪时用。不是每条都要改：本来就自然的就不要动。
+5. 敬语/半语按每条消息当时的关系保留：原来用敬语的地方继续用敬语，原来已经用半语的继续半语，不要统一改。称呼同理。
+6. 不要把所有消息改成同一种语气或长度，按这个人的性格和当时的情境来。他的消息如果原本是中文（档案里写了会说中文），保持用中文。
+7. 改完的消息之间，以及和她的消息之间，不能互相矛盾。
+
+记录（行首是他那条消息的编号）：
+${lines}
+
+edits：只列出需要改或删的他的消息。id 用行首编号；drop=true 表示删除（ko/zh 留空）；否则 ko 写改后的原文，zh 写准确的中文意思。` }], 6000,
+      { type: 'object', additionalProperties: false, required: ['edits'], properties: { edits: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'drop', 'ko', 'zh'], properties: { id: { type: 'string' }, drop: { type: 'boolean' }, ko: { type: 'string' }, zh: { type: 'string' } } } } } }, KKT_SYS());
+    if (T.gen || (T.pend && T.pend.length)) return; // 生成期间他又发了新消息：下次再来
+    const bak = T.polBak || (T.polBak = []);
+    for (const e of j.edits || []) {
+      const i = T.msgs.findIndex(m => m.id === e.id), m = T.msgs[i]; if (!m || m.me || m.sys) continue;
+      if (e.drop) { if (m.ev) continue; bak.push(m); T.msgs.splice(i, 1); continue; }
+      const ko = (e.ko || '').trim(); if (!ko || ko === m.text) continue;
+      if (!m.orig) m.orig = { text: m.text, zh: m.zh }; m.text = ko; m.zh = e.zh || m.zh;
+    }
+    T.pol1 = 1; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); if (UI.tab === 'kkt') render();
+  } catch (err) { console.error('dmPolish', err); } finally { dmPolBusy = 0; }
 }
 function dmCleanMig() {
   const SO = social(); if (SO.dmClean) return; SO.dmClean = 1;
@@ -7607,9 +7674,11 @@ async function dmAnswer(key, mine, o, silent) {
   if (!x) { if (!T.due) { const d = dmDelay(T.p); T.due = { at: Date.now() + d }; dmWillRead(T, T.due.at - Math.min(d * .4, rand(20, 150) * 1e3)); } else dmWillRead(T, T.rd ? T.rd.at : T.due.at); save(); return; } // 等他看到时再一次性回复你发的所有消息
   x.ans = 1; const res = socApply(x, o, mine); save(); openModal(dmHTML(key));
   const lvNote = res.up ? [{ sys: `你们现在算是${FR_LV[res.up]}了` }] : [];
-  if (silent || !o.reply) { if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
-  const ai = x.via ? null : await socAiReply(x, mine, o, true), [ko, zh] = String(o.reply).replace(/^「|」$/g, '').split('｜');
-  dmQueue(T.p, [ai ? { text: ai.ko, zh: ai.zh } : { text: ko, zh: zh || '' }, ...lvNote]);
+  if (silent) { if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
+  const what = socText(socEv(x.ev), x.p, x), r = await dmChatAi(T, mine, Date.now(), false, { what, opt: o.t, gist: o.reply || '', tone: o.tone }).catch(() => null);
+  if (r && r.later) { const d = dmDelay(T.p) + rand(30, 90) * 60e3; T.due = { at: Date.now() + d, later: 1 }; dmWillRead(T, Date.now() + Math.min(d * .3, rand(1, 5) * 60e3)); save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
+  if (!r || !r.list) { dmWillRead(T, Date.now() + Math.min(dmDelay(T.p), rand(1, 20) * 60e3)); save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
+  dmQueue(T.p, [...r.list, ...lvNote]);
 }
 // 好友：没聊过天也显示在 KKT 里（排在有聊天记录的后面）
 function friendP(f) { const c = chFind(f.g, f.n) || {}, key = f.g + '|' + f.n; return { g: f.g, n: f.n, z: f.z || c.z, key, f: !MALE_GROUPS.includes(f.g) && !MALE_EXTRA.some(x => x[0] === f.g && x[1] === f.n) ? 1 : undefined }; }
@@ -7641,9 +7710,9 @@ function serimPlan(text) {
 async function serimGen() {
   const SV = social().serim; if (!SV || SV.gen || !aiOn()) return;
   try {
-    const schema = { type: 'object', additionalProperties: false, required: ['scene', 'line', 'opts'], properties: { scene: { type: 'string' }, line: { type: 'string' }, opts: { type: 'array', items: { type: 'string' } } } };
-    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）之间会发生这件事：「${SV.text}」。\n（设定：她和世琳平时在这个模拟器之外还有别的聊天软件，这里的 KKT 只是他们聊天的一小部分，不需要交代前因后果。）\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，不要加戏到恋爱；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。只按描述扩写，不要改变事件。` }], 800, schema);
-    SV.gen = { scene: j.scene, line: j.line, opts: (j.opts || []).slice(0, 3) }; save();
+    const schema = { type: 'object', additionalProperties: false, required: ['scene', 'line', 'ko', 'zh', 'opts'], properties: { scene: { type: 'string' }, line: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' }, opts: { type: 'array', items: { type: 'string' } } } };
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）之间会发生这件事：「${SV.text}」。\n（设定：她和世琳平时在这个模拟器之外还有别的聊天软件，这里的 KKT 只是他们聊天的一小部分，不需要交代前因后果。）\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，不要加戏到恋爱；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。ko / zh：如果这件事是在 KKT 上发生的，世琳发来的那条消息的原文（他平时跟最好的朋友发 KKT 的样子：半语、口语、短，不是把中文翻成韩语）和中文意思；不是线上的就照样写一句他会发的。只按描述扩写，不要改变事件。` }], 800, schema);
+    SV.gen = { scene: j.scene, line: j.line, ko: j.ko, zh: j.zh, opts: (j.opts || []).slice(0, 3) }; save();
   } catch (e) { }
 }
 function serimPopHTML() {
@@ -7655,6 +7724,10 @@ function serimPopHTML() {
 }
 async function serimReply(mine) {
   const SV = social().serim, Q = SV.dm ? { dm: 1 } : UI.socPop, sp = { ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }; Q.res = { mine, reply: '' }; if (SV.dm) dmPush(sp, { me: true, text: mine }); else openModal(socPopHTML());
+  if (SV.dm) { // KKT 里的：和平时聊天一样的写法
+    SV.done = true; SV.mine = mine; save(); const r = await dmChatAi(dmThread(sp), mine, Date.now(), false, { what: (SV.gen || {}).ko || (SV.gen || {}).line ? `世琳发来：${SV.gen.ko || SV.gen.line}` : SV.text, opt: mine }).catch(() => null), L = r && r.list;
+    if (L) dmQueue(sp, L, rand(3, 12) * 1e3); SV.reply = L ? L.map(m => m.text).join(' / ') : ''; social().hist.push({ id: uid(), day: SV.day, ev: 'serim', who: 'CRAVITY 世琳', text: SV.text, mine, reply: SV.reply }); save(); return;
+  }
   let rep = pick(['ㅋㅋㅋ 진짜? 고마워', '哈哈你今天怎么这么会说', '那下次我请你吃饭', '야 갑자기 왜 그래ㅋㅋ（喂你突然干嘛啦哈哈）', '嘿嘿，你也是']);
   if (aiOn()) { try { const j = await aiRaw([{ type: 'text', text: `场景：${(SV.gen || {}).scene || SV.text}\n${S.profile.name}对世琳说：「${mine}」\n以世琳（最要好的朋友，男，CRAVITY）的口吻回一句，口语、自然、像好朋友，不要暧昧。可以中韩混，韩语后面括号写中文。` }], 300, { type: 'object', additionalProperties: false, required: ['r'], properties: { r: { type: 'string' } } }); if (j.r) rep = j.r; } catch (e) { } }
   Q.res.reply = rep; SV.done = true; SV.mine = mine; SV.reply = rep; if (SV.dm) setTimeout(() => { dmPush(sp, { text: rep }); save(); }, rand(3000, 12000)); if (SV.dm && UI.dmOpen === 'CRAVITY|세림') openModal(dmHTML('CRAVITY|세림'));
@@ -7666,7 +7739,7 @@ function serimTick() {
   if (!SV.online && (UI.socPop || UI.chPop || $('#modal').classList.contains('on'))) return;
   if (!SV.gen && aiOn() && nm < SV.at + 3) return; // 给 AI 一点时间准备
   SV.shown = 1;
-  if (SV.online) { const p = { ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }; SV.dm = 1; const g = SV.gen; if (g && g.line) dmPush(p, { text: g.line }); else dmPush(p, { sys: SV.text.replace(/我们/g, '你们').replace(/我/g, '你') }); save(); return; } // 线上的发到 KKT
+  if (SV.online) { const p = { ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }; SV.dm = 1; const g = SV.gen; if (g && g.ko) dmPush(p, { text: g.ko, zh: g.zh }); else if (g && g.line) dmPush(p, { text: g.line }); else dmPush(p, { sys: SV.text.replace(/我们/g, '你们').replace(/我/g, '你') }); save(); return; } // 线上的发到 KKT
   UI.socPop = { serim: 1 }; openModal(socPopHTML()); save();
 }
 function serimCardHTML() {
@@ -8179,7 +8252,7 @@ document.addEventListener('click', async e => {
     case 'mgrtr2': UI.mgrTr = UI.mgrTr === false; openModal(dmHTML(t.dataset.k)); break;
     case 'dmpick': { const k = t.dataset.k, x = social().q.find(y => y.dm && !y.ans && y.p.key === k); if (!x) break; const o = socOpts(socEv(x.ev), x.p, x)[+t.dataset.j]; if (!o) break; dmAnswer(k, o.t, o, SOC_SILENT.test(o.t)); break; }
     case 'dmsend': { const k = t.dataset.k, v = ($('#dm-in').value || '').trim(); if (!v) break; { const SV = social().serim; if (k === 'CRAVITY|세림' && SV && SV.dm && !SV.done) { serimReply(v); break; } } $('#dm-in').value = ''; const x = social().q.find(y => y.dm && !y.ans && (y.via || y.p).key === k), e = x && socEv(x.ev), tn = tone(v), neg = tn === 'neg';
-      { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: socBan(dms()[k].p) ? (neg ? '…알겠어｜…知道了' : pick(['ㅋㅋㅋㅋ 그치｜哈哈哈哈对吧', '오 고마워!｜哦谢谢！', 'ㅎㅎ 다음에 또 얘기하자｜呵呵下次再聊', '헐 진짜?｜天哪真的吗？'])) : (neg ? '…알겠어요｜…知道了' : pick(['ㅋㅋㅋㅋ 그쵸｜哈哈哈哈对吧', '오 고마워요!｜哦谢谢！', 'ㅎㅎ 다음에 또 얘기해요｜呵呵下次再聊', '헐 진짜요?｜天哪真的吗？'])) };
+      { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: '' };
         if (x && x.o && x.o.length) { const b = neg ? x.o[x.o.length - 1] : x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
         dmAnswer(k, v, o, false); } break; }
     case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const o = socOpts(socEv(Q.x.ev), Q.x.p, Q.x)[+t.dataset.j]; if (!o) break; socDone(Q, o.t, o); break; }
