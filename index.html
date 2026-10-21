@@ -7476,10 +7476,9 @@ const kAv = (key, cls) => { const a = kprof(key).av; return a ? `<img class="${c
 function dmProfHTML(key) {
   const T = dms()[key]; if (!T) return ''; const k = kprof(key), p = T.p;
   return `<div class="row"><h3 style="flex:1">好友资料</h3><button class="btn ghost sm" data-act="dmopen" data-k="${esc(key)}">返回</button></div>
-    <div class="card" style="text-align:center"><label style="cursor:pointer;display:inline-block">${kAv(key, 'mgr-av big')}<input type="file" id="dmp-av" accept="image/*" style="display:none"></label><div class="muted" style="font-size:12px;margin-top:4px">点头像换图片</div><div class="muted" style="font-size:12.5px;margin-top:6px">${esc(socWho(p))}</div></div>
+    <div class="card" style="text-align:center">${kAv(key, 'mgr-av big')}<div style="font-size:15px;font-weight:600;margin-top:8px">${esc(k.nm || socWho(p))}</div><div class="muted" style="font-size:12.5px;margin-top:2px">${esc(socWho(p))}</div></div>
     <div class="muted" style="font-size:12.5px;margin:8px 2px 4px">备注（只有你自己看得到）</div><input id="dmp-rm" value="${esc(k.rm || '')}" placeholder="${esc(k.nm || socWho(p))}">
-    <div class="muted" style="font-size:12.5px;margin:10px 2px 4px">他的 KKT 名称</div><input id="dmp-nm" value="${esc(k.nm || '')}" placeholder="${esc(socWho(p))}">
-    <div class="row" style="margin-top:12px">${k.av ? `<button class="link" data-act="dmprofav0" data-k="${esc(key)}">删除头像</button>` : ''}<span class="sp"></span><button class="btn primary" data-act="dmprofsave" data-k="${esc(key)}">保存</button></div>`;
+    <div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="dmprofsave" data-k="${esc(key)}">保存</button></div>`;
 }
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
@@ -8071,9 +8070,8 @@ document.addEventListener('click', async e => {
     case 'dmopen': { let T = dms()[t.dataset.k]; if (!T) { const f = chal().friends.find(f => f.g + '|' + f.n === t.dataset.k); if (!f) break; T = dmThread(friendP(f)); } T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
     case 'dmprof': openModal(dmProfHTML(t.dataset.k)); break;
     case 'dmprofav0': { const k = kprof(t.dataset.k); delete k.av; save(); openModal(dmProfHTML(t.dataset.k)); render(); break; }
-    case 'dmprofsave': { const key = t.dataset.k, SO = social(), k = kprof(key), f = ($('#dmp-av').files || [])[0];
-      k.rm = $('#dmp-rm').value.trim(); k.nm = $('#dmp-nm').value.trim(); if (!k.rm) delete k.rm; if (!k.nm) delete k.nm; SO.prof[key] = k;
-      if (f) { const b = await imageB64(f, 160); if (b) k.av = 'data:image/jpeg;base64,' + b; else toast('这张图片读不了'); }
+    case 'dmprofsave': { const key = t.dataset.k, SO = social(), k = kprof(key);
+      k.rm = $('#dmp-rm').value.trim(); if (!k.rm) delete k.rm; SO.prof[key] = k; // 只能改自己写的备注；头像和 KKT 名是对方的
       save(); toast('已保存'); openModal(dmHTML(key)); render(); break; }
     case 'mgrtr2': UI.mgrTr = UI.mgrTr === false; openModal(dmHTML(t.dataset.k)); break;
     case 'dmpick': { const k = t.dataset.k, x = social().q.find(y => y.dm && !y.ans && y.p.key === k); if (!x) break; const o = socOpts(socEv(x.ev), x.p, x)[+t.dataset.j]; if (!o) break; dmAnswer(k, o.t, o, SOC_SILENT.test(o.t)); break; }
