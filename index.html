@@ -7279,7 +7279,7 @@ async function dmDueReply(T) {
   T.gen = 1; T.genAt = Date.now(); save(); const when = Math.min(T.due.at, Date.now()); let keep = null; // 他是在这个时间看到并回的（就算你那时没开着页面）
   try { const last = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) last.unshift(T.msgs[i].text);
     const later = !!T.due.later, r = last.length ? await dmChatAi(T, last.join('\n'), when, later) : null;
-    if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1 }; T.readTo = Math.max(T.readTo || 0, when); return; } // 已读，过一阵再回
+    if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1 }; T.rd = null; return; } // 现在回不了：先不点开（「1」留着），等能回的时候再看再回
     if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: r.list }); } else T.readTo = Math.max(T.readTo || 0, when); // 不回也已经读过了
   } finally { T.due = keep; T.gen = 0; save(); }
 }
@@ -7359,7 +7359,7 @@ async function dmChatAi(T, mine, when, later, evt) {
     const j = await aiRaw([{ type: 'text', text: `你要写的是 ${socWho(p)} 本人在 KKT 上发给 ${S.profile.name}（女，solo 爱豆，STARSHIP，2025 年出道）的消息。他是一个有自己生活、脾气和说话习惯的人，不是聊天助手。
 ${socCtx(p, when)}
 他此刻的状态和心情（临时的，别说出来）：${VIBE_ZH[vibe]}。
-${later ? `他之前已经点开看过这些消息，当时没回，现在（${socClock(when)}）才回。熟的人不用解释为什么晚回。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回，不要假装还在她发消息的那个时间实时聊。` : ''}`}
+${later ? `他之前没空看，现在（${socClock(when)}）才点开这些消息。熟的人不用解释为什么晚回。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回，不要假装还在她发消息的那个时间实时聊。` : ''}`}
 ${evt ? `\n刚才发生的事：「${evt.what}」\n${S.profile.name}的回应方向：${evt.opt}${evt.gist ? `\n剧情上他这次的反应（意思不能变，但要用他自己的话说，可以更短；如果是动作描写，就写成他会真的发出来的消息）：「${evt.gist}」` : ''}\n` : ''}
 ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消息（上面聊天里标了「←他还没回」，合在一起看）：「${mine}」
 
@@ -7388,7 +7388,7 @@ ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消�
 
 ${SOC_RULES}
 
-act：reply（正常回）/ react（只回一个很短的反应或表情，msgs 里 1 条）/ read（已读不回：need 是 none 时最常见；她问了问题或者说了需要回应的事时不能用）/ later（已读，现在不方便或不想打字，过一阵再回；msgs 留空）。${close ? '你们很要好：need 不是 none 的话不会已读不回，没空就 later。' : ''}${later ? '他已经拖了一阵了，这次除非 need 是 none，否则要回（reply 或 react）。' : ''}
+act：reply（正常回）/ react（只回一个很短的反应或表情，msgs 里 1 条）/ read（已读不回：need 是 none 时最常见；她问了问题或者说了需要回应的事时不能用）/ later（现在不方便或不想打字：先不点开，过一阵再看再回；msgs 留空）。${close ? '你们很要好：need 不是 none 的话不会已读不回，没空就 later。' : ''}${later ? '他已经拖了一阵了，这次除非 need 是 none，否则要回（reply 或 react）。' : ''}
 msgs：ko 写他实际发出的原文，zh 写准确自然的中文意思（不加原文没有的情绪）。
 todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，而且之前没记过；today 表示说好就是今晚。
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
@@ -7672,12 +7672,12 @@ function dmHTML(key) {
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
   if (!silent) dmPush(T.p, { me: true, text: mine });
-  if (!x) { if (!T.due) { const d = dmDelay(T.p); T.due = { at: Date.now() + d }; dmWillRead(T, T.due.at - Math.min(d * .4, rand(20, 150) * 1e3)); } else dmWillRead(T, T.rd ? T.rd.at : T.due.at); save(); return; } // 等他看到时再一次性回复你发的所有消息
+  if (!x) { if (!T.due) T.due = { at: Date.now() + dmDelay(T.p) }; save(); return; } // 他点开的那一刻才算已读，读了就决定回不回 // 等他看到时再一次性回复你发的所有消息
   x.ans = 1; const res = socApply(x, o, mine); save(); openModal(dmHTML(key));
   const lvNote = res.up ? [{ sys: `你们现在算是${FR_LV[res.up]}了` }] : [];
   if (silent) { if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
   const what = socText(socEv(x.ev), x.p, x), r = await dmChatAi(T, mine, Date.now(), false, { what, opt: o.t, gist: o.reply || '', tone: o.tone }).catch(() => null);
-  if (r && r.later) { const d = dmDelay(T.p) + rand(30, 90) * 60e3; T.due = { at: Date.now() + d, later: 1 }; dmWillRead(T, Date.now() + Math.min(d * .3, rand(1, 5) * 60e3)); save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
+  if (r && r.later) { const d = dmDelay(T.p) + rand(30, 90) * 60e3; T.due = { at: Date.now() + d, later: 1 }; save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
   if (!r || !r.list) { dmWillRead(T, Date.now() + Math.min(dmDelay(T.p), rand(1, 20) * 60e3)); save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
   dmQueue(T.p, [...r.list, ...lvNote]);
 }
