@@ -7763,8 +7763,8 @@ function serimNoteTick() {
 function serimCardHTML() {
   const today = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(today, -6)).slice().reverse(), hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   return `<div class="row"><h3 style="flex:1">💙 世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="card"><textarea id="serim-in" style="min-height:64px" placeholder="比如：下午三点到六点在练习室；晚上会发消息问我吃没吃饭"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
-    ${L.length ? `<div class="card">${L.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === today ? '今天' : `${+n.day.slice(5, 7)}/${+n.day.slice(8)}`}${n.kkt ? ` · ${n.kkt.done ? 'KKT 已发' : `${hm(n.kkt.at)} 发 KKT`}` : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link muted" data-act="serimdel" data-id="${n.id}">✕</button></div>`).join('')}</div>` : ''}`;
+    <div class="card"><textarea id="serim-in" style="min-height:64px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
+    ${L.length ? `<div class="card">${L.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === today ? '今天' : `${+n.day.slice(5, 7)}/${+n.day.slice(8)}`}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link muted" data-act="serimdel" data-id="${n.id}">✕</button></div>`).join('')}</div>` : ''}`;
 }
 function socHistHTML() {
   const hist = social().hist.slice().reverse().slice(0, 20); if (!hist.length) return '';
