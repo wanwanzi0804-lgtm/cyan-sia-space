@@ -2473,8 +2473,8 @@ function mgrExpenses(dk) {
   const etc = r() < .4 ? v(8000, 35000) : 0, etcN = [12, 1, 2].includes(mo) ? '핫팩·음료' : [7, 8].includes(mo) ? '얼음물·음료' : '음료·간식';
   return { car, meal, etc, etcN, etcZh: { '핫팩·음료': '暖宝宝·饮料', '얼음물·음료': '冰水·饮料', '음료·간식': '饮料·零食' }[etcN], total: car + meal + etc };
 }
-// 每月 15 日结算：上个月底前已到账的收入，扣掉相关费用，按合同分成，并附明细（标准专属合约：到账后 45 日内支付）
-const SETTLE_DAY = 15;
+// 每月 3 日结算：上个月底前已到账的收入，扣掉相关费用，按合同分成，并附明细（标准专属合约：到账后 45 日内支付）
+const SETTLE_DAY = 3, setDk = m => `${m}-${String(SETTLE_DAY).padStart(2, '0')}`;
 function lastDay(mon) { return addDays(addMonths(mon, 1) + '-01', -1); }
 function addMonths(mon, n) { const [y, m] = mon.split('-').map(Number), t = y * 12 + m - 1 + n; return `${Math.floor(t / 12)}-${String(t % 12 + 1).padStart(2, '0')}`; }
 // 流水重整：以前当天直接入账的收入和成本全部撤回，改成应收款，按新的结算流程重新走
@@ -2554,10 +2554,10 @@ function financeTick() {
     x.st = 'paid'; x.paidOn = today;
   }
   // 结算
-  if ((+today.slice(8) > SETTLE_DAY || (+today.slice(8) === SETTLE_DAY && new Date().getHours() >= 10)) && W.setMon !== mon) { // 每月 15 日上午 10 点后结算
+  if ((+today.slice(8) > SETTLE_DAY || (+today.slice(8) === SETTLE_DAY && new Date().getHours() >= 10)) && W.setMon !== mon) { // 每月 3 日上午 10 点后结算
     const cut = lastDay(addMonths(mon, -1)), items = (W.recv || []).filter(x => x.st === 'paid' && x.payAt <= cut);
     if (!items.length) { W.setMon = mon; mgrSettleNote('none', mon); return; } // 这个月没有要结算的
-    if (!W.setDelay || W.setDelay.mon !== mon) { W.setDelay = { mon, until: Math.random() < .1 ? addDays(mon + '-' + SETTLE_DAY, ri(1, 3)) : null }; if (W.setDelay.until) { mgrSettleNote('delay', mon, W.setDelay.until); return; } } // 偶尔财务那边晚几天
+    if (!W.setDelay || W.setDelay.mon !== mon) { W.setDelay = { mon, until: Math.random() < .1 ? addDays(setDk(mon), ri(1, 3)) : null }; if (W.setDelay.until) { mgrSettleNote('delay', mon, W.setDelay.until); return; } } // 偶尔财务那边晚几天
     if (W.setDelay.until && today < W.setDelay.until) return;
     W.setMon = mon;
     const held = (W.recv || []).filter(x => x.st === 'pend' && x.due && x.due <= cut && !x.lateSaid).sort((a, b) => b.gross - a.gross)[0]; // 本该到账、主办方还没付的
@@ -2624,7 +2624,7 @@ function stmtPageHTML(id) {
 }
 function settleHTML() {
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
-  const next = (W.setMon === mon || +today.slice(8) >= SETTLE_DAY ? addMonths(mon, 1) : mon) + '-' + SETTLE_DAY;
+  const next = setDk(W.setMon === mon || +today.slice(8) >= SETTLE_DAY ? addMonths(mon, 1) : mon);
   const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), st = (W.stmts || [])[0];
   const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
   return `<div class="card"><b style="font-size:14px">📑 结算</b>
@@ -2898,7 +2898,7 @@ function walletHTML() {
       <div><span>剩余</span><b>${(() => { const d = Math.round((parseD(C.end).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3); return d > 365 ? `${Math.floor(d / 365)} 年 ${Math.floor(d % 365 / 30)} 个月` : `${d} 天`; })()}</b></div>
       <div><span>泡泡分成</span><b>你 ${Math.round(T.bb * 100)}% · 公司 ${100 - Math.round(T.bb * 100)}%</b></div>
       <div><span>还款</span><b>每笔到手收入的 ${Math.round(C.repay * 100)}%</b></div></div>
-    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：每月 15 日结算已到账收入并提供明细（到账后 45 日内支付）；合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
+    <div class="muted" style="font-size:12.5px;line-height:1.7;margin-top:6px">条款：每月 3 日结算已到账收入并提供明细（到账后 45 日内支付）；合同到期前 3 个月公司会来谈续约。<br>泡泡 ${won(BB_PRICE)}/月，现在 ${fmtNum(subs)} 人订阅，这个月你预计分到 ${won(subs * BB_PRICE * T.bb)}。汇率为估算：1 人民币 ≈ ₩${FX.CNY}，1 加币 ≈ ₩${FX.CAD}。</div>
     <details class="me-more"><summary>收入分成比例</summary>${SPLITS.map(([r, l]) => `<div class="rule"><span style="flex:1">${l}</span><b>你 ${Math.round(r * 100)}% · 公司 ${100 - Math.round(r * 100)}%</b></div>`).join('')}<div class="rule"><span style="flex:1">常规音乐节目打歌</span><b>不单独计算通告收入</b></div>
       <div class="muted" style="font-size:12px;line-height:1.7;margin-top:6px">按可分配收入分：活动收入 - 合同允许扣除的直接成本。可以扣的只有实际发生、和这场活动直接相关的：外包舞者、额外设备、自办活动的场地、临时聘请的专业人员（编舞 / 音响师 / 翻译 / 摄影），不是每场都有。<br>公司承担、不扣你的：经纪人和工作人员工资、公司车、打歌 / 音乐节目 / 电台 / 综艺通告安排、MV / Dance Practice / 宣传视频制作、办公室练习室租金、常规宣传培训运营。特殊费用另有约定的单独处理，不自动算作你的欠款。</div></details>
     ${C.offer ? `<div class="hot-opt" style="margin-top:10px">📄 续约提议：${TIERS[C.offer.tier].name}（泡泡 ${TIERS[C.offer.tier].bb * 100}%）· ${C.offer.years} 年<div class="row" style="margin-top:8px"><span class="sp"></span>${C.offer.again ? '' : '<button class="btn ghost sm" data-act="crenego">再谈谈</button>'}<button class="btn primary sm" data-act="crenew">签约</button></div><div class="muted" style="font-size:12px;margin-top:4px">再谈谈只能一次，结果可能更好也可能更差；到期前不处理会按原条件自动续 1 年</div></div>` : ''}
@@ -3555,7 +3555,7 @@ ${mgrContext()}`, messages: msgs, output_config: { format: { type: 'json_schema'
   try { msgs2 = (JSON.parse(out).msgs || []).filter(m => m.ko).map(m => [m.ko.trim(), (m.zh || '').trim()]); } catch (e) { for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]); }
   return msgs2.length ? msgs2 : null;
 }
-// 预支：① 已完成、份额已确认但主办方还没付款的活动款 ② 公司已经收到、原定 15 日才发的结算款提前发。都要公司同意
+// 预支：① 已完成、份额已确认但主办方还没付款的活动款 ② 公司已经收到、原定 3 日才发的结算款提前发。都要公司同意
 function mgrAdvance(t) {
   if (!/预支|提前|先发|先给|早点发|가불|선지급|미리 ?(받|주|당겨)|당겨|먼저 ?(받|주)|일찍 ?(받|주|정산)/.test(t) || !/钱|款|结算|收入|工资|费|정산|돈|출연료|수익|입금|월급|페이/.test(t)) return null;
   const M = mgrChat(); if (M.adv) return [['아까 그거 지금 회사에 확인 중이에요~', '刚才那个正在跟公司确认～']];
@@ -3575,7 +3575,7 @@ function mgrAdvanceTick() {
   if (!list.some(x => x.gross > 0)) { mgrSay(['확인해보니까 지금은 당길 게 없대요', '确认了一下，现在没有能预支的']); return; }
   if (A.kind === 2 && W.earlyMon === mon) { mgrReply([['이번 달은 이미 한 번 당겨 받아서 이번엔 안 된대요ㅠ', '这个月已经提前发过一次了，这次不行ㅠ'], [`${SETTLE_DAY}일 정산 때 같이 들어가요`, `${SETTLE_DAY} 号结算时一起发`]]); return; }
   if (A.kind === 1 && Math.random() < .2) { mgrReply([['이번엔 어렵대요ㅠ', '这次公司说不太行ㅠ'], ['주최 측 입금되는 대로 바로 정산해준대요', '说主办方一打款就马上给你结']]); return; }
-  // 预支只是先拿：这几笔照样进 15 日的结算单，那时把已经拿到的扣掉
+  // 预支只是先拿：这几笔照样进 3 日的结算单，那时把已经拿到的扣掉
   const its = list.filter(x => x.gross > 0), c = settleCalc(its);
   its.forEach((x, i) => { x.advPay = c.lines[i].pay; x.advTax = Math.round(x.advPay * TAX_RATE); x.advOn = today; });
   const tax = its.reduce((a, x) => a + x.advTax, 0), net = c.part - tax;
