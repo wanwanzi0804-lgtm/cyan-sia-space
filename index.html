@@ -208,8 +208,8 @@ body.typing .bb-tick.bb-tick2{display:block}
 .mgr-av.big{width:76px;height:76px;border-radius:26px;font-size:38px;margin:0 auto}
 .mgr-u{background:var(--danger);color:#fff;border-radius:10px;font-size:12px;padding:1px 7px;font-weight:700}
 .kk-log{--kk-bg:#bacee0;--kk-o:#fff;--kk-ot:#191919;--kk-tm:#556270;background:var(--kk-bg);border-radius:14px;padding:12px 10px;height:min(60vh,520px);overflow-y:auto;display:flex;flex-direction:column;gap:0}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kk-log{--kk-bg:#22303b;--kk-o:#3a434c;--kk-ot:#eef2f5;--kk-tm:#9aa6b1}}
-:root[data-theme="dark"] .kk-log{--kk-bg:#22303b;--kk-o:#3a434c;--kk-ot:#eef2f5;--kk-tm:#9aa6b1}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kk-room,:root:not([data-theme="light"]) .kk-log{--kk-bg:#22303b;--kk-o:#3a434c;--kk-ot:#eef2f5;--kk-tm:#9aa6b1}}
+:root[data-theme="dark"] .kk-room,:root[data-theme="dark"] .kk-log{--kk-bg:#22303b;--kk-o:#3a434c;--kk-ot:#eef2f5;--kk-tm:#9aa6b1}
 .kk-day{align-self:center;font-size:11.5px;color:#fff;background:rgba(0,0,0,.16);border-radius:12px;padding:3px 12px;margin:12px 0 4px}
 .kk-sep{align-self:center;font-size:11.5px;color:#fff;background:rgba(0,0,0,.12);border-radius:12px;padding:3px 12px;margin:8px 0;text-align:center}
 .kk-row{display:flex;gap:7px;align-items:flex-end;max-width:86%;margin-top:9px}
@@ -439,6 +439,13 @@ body.typing .bb-tick.bb-tick2{display:block}
 #modal.on{display:flex}
 #modal .sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
 @media (min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
+#modal.full{background:none;align-items:stretch}#modal.full .sheet{height:100vh;height:100dvh;max-height:none;border-radius:0;padding:0;overflow:hidden;background:#bacee0}#modal.full .sheet.slide{animation:kkIn .22s ease-out}@keyframes kkIn{from{transform:translateX(100%)}to{transform:none}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #modal.full .sheet{background:#22303b}}:root[data-theme="dark"] #modal.full .sheet{background:#22303b}
+.kk-room{--kk-bg:#bacee0;--kk-o:#fff;--kk-ot:#191919;--kk-tm:#556270;display:flex;flex-direction:column;height:100%;background:var(--kk-bg);color:var(--kk-ot)}
+.kk-top{display:flex;align-items:center;gap:2px;padding:calc(env(safe-area-inset-top) + 8px) 6px 8px;flex:none}.kk-nm{flex:1;font-size:16.5px;font-weight:600;margin-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kk-hb{border:0;background:none;color:inherit;padding:6px 8px;font:inherit;font-size:13px;cursor:pointer;display:flex;align-items:center}.kk-tr{opacity:.45}.kk-tr.on{opacity:1;font-weight:600}
+.kk-room .kk-log{flex:1;height:auto;border-radius:0;padding:6px 10px 12px}.kk-note{padding:0 12px;flex:none}.kk-note .me-more{margin:0 0 6px!important;background:rgba(255,255,255,.55);border-radius:10px;padding:6px 10px}.kk-opts{padding:6px 10px 0;flex:none}
+.kk-bar{display:flex;gap:6px;align-items:flex-end;padding:8px 8px calc(env(safe-area-inset-bottom) + 8px);background:var(--card);flex:none}.kk-bar .chat-in{flex:1;min-width:0;border:0;background:var(--bg);border-radius:20px}.kk-bar .kk-send{align-self:stretch;border-radius:20px}
 .sheet h3{margin:4px 0 12px}
 .field{margin-bottom:10px}
 .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:3px}
@@ -3323,9 +3330,9 @@ function mgrLogHTML() {
   return kkLogHTML(M.chat, { tr: UI.mgrTr !== false, unread: m => m.at > (mgr().readAt || 0), av: '<div class="mgr-av sm">🧑‍💼</div>', name: '매니저', extra: mgrCardMsg }) || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
 }
 function mgrChatHTML() {
-  return `<div class="row"><h3 style="flex:1">🧑‍💼 매니저</h3><button class="btn ghost sm" data-act="mgrtr">${UI.mgrTr !== false ? '隐藏翻译' : '显示翻译'}</button><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
+  return `<div class="kk-room"><div class="kk-top"><button class="kk-hb" data-act="mgrclose"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">매니저</b><button class="kk-hb kk-tr${UI.mgrTr !== false ? ' on' : ''}" data-act="mgrtr">翻译</button></div>
     <div class="kk-log" id="mgr-log">${mgrLogHTML()}</div>
-    <div class="row" style="gap:6px;margin-top:8px"><textarea id="mgr-in" class="chat-in" rows="1" placeholder="메시지 입력" maxlength="200" autocomplete="off" style="flex:1"></textarea><button class="kk-send" data-act="mgrsend">전송</button></div>`;
+    <div class="kk-bar"><textarea id="mgr-in" class="chat-in" rows="1" placeholder="메시지 입력" maxlength="200" autocomplete="off"></textarea><button class="kk-send" data-act="mgrsend">전송</button></div></div>`;
 }
 // 回答：能用真实数据回答的直接答（韩语 + 中文）；其他的开了 AI 就让 AI 回，没开就简短回应
 const hm = r => `${r.start}${r.end ? '~' + r.end : ''}`;
@@ -7578,11 +7585,11 @@ function dmLogHTML(T, key, tr) {
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
-  return `<div class="row">${kAv(key, 'mgr-av sm')}<h3 style="flex:1;margin-left:8px">${esc(socDisp(p))}</h3><button class="btn ghost sm" data-act="dmprof" data-k="${esc(key)}">备注</button><button class="btn ghost sm" data-act="mgrtr2" data-k="${esc(key)}">${tr ? '隐藏翻译' : '翻译'}</button><button class="btn ghost sm" data-act="close">关闭</button></div>
-    ${socMemHTML(key)}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
-    ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div style="margin-top:8px">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
-    ${e ? `<div style="margin-top:8px">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
-    <div class="row" style="gap:6px;margin-top:8px"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off" style="flex:1;min-width:0"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>`;
+  return `<div class="kk-room"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="dmprof" data-k="${esc(key)}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+    ${socMemHTML(key) ? `<div class="kk-note">${socMemHTML(key)}</div>` : ''}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
+    ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div class="kk-opts">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
+    ${e ? `<div class="kk-opts">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
+    <div class="kk-bar"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div></div>`;
 }
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
@@ -8011,12 +8018,12 @@ function openModal(html) {
   if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
     for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
     keep.sheet = sh.scrollTop; }
-  sh.innerHTML = html; $('#modal').classList.add('on'); hydrate(sh);
+  sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
   if (keep.sheet != null) sh.scrollTop = keep.sheet;
   for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
 }
-function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on'); $('#sheet').innerHTML = ''; }
+function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; }
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 
 /* =========================================================
