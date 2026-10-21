@@ -217,8 +217,12 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-t{font-size:10.5px;color:var(--muted);flex:none;text-align:right}
 .kk-1{display:block;color:#e6b800;font-weight:700;font-size:11px;line-height:1.2}
 .kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
-.st-card{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;width:100%;box-sizing:border-box}.kk-b:has(.st-card){width:min(300px,78vw);max-width:none}.st-row span{white-space:nowrap}.st-h{display:flex;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.st-card{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;width:100%;box-sizing:border-box}.kk-b:has(.st-card){width:min(290px,70vw);max-width:none}.st-row span{white-space:nowrap}.st-h{display:flex;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .st-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}.st-row b{font-weight:600;white-space:nowrap}.st-tot{border:0;padding-top:8px;font-size:14.5px}.st-tot b{font-size:16px}
+.st-card{cursor:pointer}.sp-hero{background:var(--bg);border-radius:14px;padding:14px 16px;margin:14px 0 8px}.sp-amt{font-size:30px;font-weight:800;margin:4px 0}
+.sp-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.sp-row b{font-weight:600;white-space:nowrap}
+.sp-tabs{display:flex;gap:6px;margin-bottom:6px}.sp-tabs button{flex:1;border:0;background:none;padding:8px 0;border-radius:999px;font:inherit;font-size:14px;color:var(--muted);cursor:pointer}.sp-tabs button.on{background:var(--bg);color:var(--text);font-weight:600}
+.sp-it{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);font-size:14px}.sp-it>b{white-space:nowrap}
 .st-more{margin-top:6px}.st-more summary{font-size:12.5px;color:var(--muted);cursor:pointer}.st-it{padding:7px 0;border-top:1px solid var(--line)}.st-t{font-weight:600}.st-g{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;margin-top:2px}
 .kk-act .btn{white-space:normal;line-height:1.35;height:auto;padding-top:7px;padding-bottom:7px}
 .kk-row>div{min-width:0}
@@ -2531,43 +2535,71 @@ function financeTick() {
   for (const x of W.recv || []) if (x.st === 'pend' && x.payAt <= today) { x.st = 'paid'; x.paidOn = today; }
   // 结算
   if ((+today.slice(8) > SETTLE_DAY || (+today.slice(8) === SETTLE_DAY && new Date().getHours() >= 10)) && W.setMon !== mon) { // 每月 15 日上午 10 点后结算
+    const cut = lastDay(addMonths(mon, -1)), items = (W.recv || []).filter(x => x.st === 'paid' && x.payAt <= cut && x.holdMon !== mon);
+    if (!items.length) { W.setMon = mon; mgrSettleNote('none', mon); return; } // 这个月没有要结算的
+    if (!W.setDelay || W.setDelay.mon !== mon) { W.setDelay = { mon, until: Math.random() < .1 ? addDays(mon + '-' + SETTLE_DAY, ri(1, 3)) : null }; if (W.setDelay.until) { mgrSettleNote('delay', mon, W.setDelay.until); return; } } // 偶尔财务那边晚几天
+    if (W.setDelay.until && today < W.setDelay.until) return;
     W.setMon = mon;
-    const cut = lastDay(addMonths(mon, -1)), items = (W.recv || []).filter(x => x.st === 'paid' && x.payAt <= cut);
-    if (!items.length) return;
-    settleRun(items, mon);
+    let held = null; const ev = items.filter(x => x.gross > 0 && ['行程', '代言'].includes(x.src)); // 偶尔有一笔对不上，挪到下个月
+    if (ev.length >= 2 && Math.random() < .06) { held = pick(ev); held.holdMon = mon; items.splice(items.indexOf(held), 1); }
+    settleRun(items, mon, null, held);
   }
 }
 // 月度结算：财务出结算单，经纪人在 KKT 上转达（附明细，可以展开看每一笔）
 const TAX_RATE = .033; // 艺人报酬预扣 3.3%（事业所得税 + 地方税）
-function settleRun(items, mon, at) {
+function settleRun(items, mon, at, held) {
   const W = wallet(), c = settleCalc(items), part = c.part, fines = c.fines;
   const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0, tax = Math.round(Math.max(0, part - repay) * TAX_RATE);
   W.debt -= repay; W.bal += part - repay - fines - tax;
-  const pm = addMonths(mon, -1), gl = c.lines.filter(l => l.gross > 0), st = { id: uid(), v: 3, mon, period: pm, at: Date.now(), part, fines, repay, tax, pay: part - repay, gross: gl.reduce((a, l) => a + l.gross, 0), cost: gl.reduce((a, l) => a + l.cost, 0), lines: c.lines };
+  const pm = addMonths(mon, -1), gl = c.lines.filter(l => l.gross > 0), st = { id: uid(), v: 3, mon, period: pm, at: at || Date.now(), part, fines, repay, tax, pay: part - repay, gross: gl.reduce((a, l) => a + l.gross, 0), cost: gl.reduce((a, l) => a + l.cost, 0), lines: c.lines };
   (W.stmts || (W.stmts = [])).unshift(st); if (W.stmts.length > 24) W.stmts.length = 24;
   for (const x of items) x.st = 'done';
   W.recv = (W.recv || []).filter(x => x.st !== 'done');
   W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算`, auto: true });
   if (fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -fines, cat: '违约金 / 罚款', note: `${+pm.slice(5)} 月违约金 / 罚款`, auto: true });
   if (tax) W.tx.unshift({ id: uid(), at: Date.now() + 2, amt: -tax, cat: '预扣税款', note: `${+pm.slice(5)} 月结算 · 预扣 3.3%`, auto: true });
+  if (held) st.held = held.title;
   mgrStmtSay(st, at);
   return st;
 }
 function mgrStmtSay(st, at) {
-  const m = +st.period.slice(5), net = st.pay - st.fines - st.tax, M = mgrChat(), n0 = M.chat.length;
-  const a = pick([['이번 달 정산 나왔어요. 명세서 보내드릴게요', '这个月的结算出来了，把明细发给你'], [`재무팀에서 ${m}월분 정산서 넘어왔어요`, `财务那边把${m}月的结算单发过来了`], [`${m}월 정산 내역이에요. 한번 확인해 보세요`, `这是${m}月的结算明细，你看一下`], [`${m}월 정산 끝났대요. 명세서 첨부할게요`, `${m}月的结算做完了，明细附上`]]);
-  const b = net <= 0 ? ['이번 달은 공제가 커서 입금될 금액이 없어요ㅠ 궁금한 거 있으면 물어봐요', '这个月扣除比较多，没有要打的款ㅠ 有不清楚的问我'] : pick([['정산금은 오늘 중으로 개인 계좌에 들어갈 거예요', '结算款今天之内会打到你个人账户'], ['입금은 오늘 처리됐어요. 궁금한 거 있으면 말해요', '今天已经打款了，有不清楚的跟我说'], ['오늘 계좌로 들어갈 거예요. 확인되면 알려줘요~', '今天会打到你账户，到账了跟我说一声～'], ['개인 계좌로 입금했대요. 내역 보고 이상한 거 있으면 말해줘요', '已经打到你个人账户了，看了明细有不对的跟我说']]);
+  const m = +st.period.slice(5), net = st.pay - st.fines - st.tax, M = mgrChat(), n0 = M.chat.length, late = W0().setDelay && W0().setDelay.until;
+  const a = late ? pick([['늦어져서 미안해요. 정산 나왔어요', '久等了，结算出来了'], ['기다렸죠? 이번 달 정산서 왔어요', '等久了吧？这个月的结算单来了']])
+    : pick([['이번 달 정산 나왔어요. 확인해 보세요', '这个月的结算出来了，你看一下'], [`재무팀에서 ${m}월분 정산서 넘어왔어요`, `财务那边把${m}月的结算单发过来了`], [`${m}월 정산 내역이에요`, `这是${m}月的结算明细`], ['정산 끝났대요. 명세서 첨부할게요', '结算做完了，明细附上']]);
+  const b = net <= 0 ? ['이번 달은 공제가 커서 입금될 금액은 없어요. 궁금한 거 있으면 물어봐요', '这个月扣除比较多，没有要打的款。有不清楚的问我'] : pick([['정산금은 오늘 중으로 개인 계좌에 들어갈 거예요', '结算款今天之内会打到你个人账户'], ['입금은 오늘 처리됐어요. 궁금한 거 있으면 말해요', '今天已经打款了，有不清楚的跟我说'], ['오늘 계좌로 들어갈 거예요', '今天会打到你账户'], ['개인 계좌로 입금했대요', '已经打到你个人账户了']]);
   mgrSay(a); mgrSay(['', ''], { type: 'stmt', id: st.id }, true); mgrSay(b, null, true);
+  if (st.held) mgrSay([`아, ${toKo(st.held)} 건은 주최 측 입금 확인이 아직이라 다음 달 정산으로 넘어갔대요`, `啊，${st.held}那笔主办方的款还没对上，挪到下个月结算了`], null, true);
   if (at) { let t = at; M.chat.slice(n0).forEach((x, i) => { if (i) t += rand(20, 70) * 1e3; x.at = t; }); M.chat.sort((x, y) => x.at - y.at); }
   save();
 }
+// 没有收入 / 晚几天：经纪人也会说一声
+function mgrSettleNote(kind, mon, until) {
+  if (kind === 'none') mgrSay(pick([['이번 달은 정산할 게 없대요. 지난달에 들어온 수익이 없어서요', '这个月没有要结算的，上个月没有到账的收入'], ['이번 달 정산은 없어요~ 다음 달에 같이 나올 거예요', '这个月没有结算哦，下个月一起出']]));
+  else mgrSay(pick([[`재무팀 쪽에서 이번 달 정산이 조금 늦어진대요. ${+until.slice(8)}일쯤 나올 거예요`, `财务那边说这个月结算会晚一点，大概${+until.slice(8)}号出`], [`이번 달은 정산이 며칠 밀린대요. ${+until.slice(8)}일에 보내준대요`, `这个月结算推迟几天，说${+until.slice(8)}号发`]]));
+  save();
+}
+// 聊天里的附件：只显示总览，点开是单独的结算单页面
 function stmtCardHTML(st) {
   if (!st) return '<div class="kk-res">명세서를 찾을 수 없어요</div>';
-  const gl = (st.lines || []).filter(l => l.gross > 0), fl = (st.lines || []).filter(l => l.fine), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), tax = st.tax || 0, net = st.pay - (st.fines || 0) - tax;
-  const row = (k, v, cls) => `<div class="st-row${cls ? ' ' + cls : ''}"><span>${k}</span><b>${v}</b></div>`, md = d => d ? `${+d.slice(5, 7)}/${+d.slice(8)} · ` : '';
-  return `<div class="st-card"><div class="st-h"><div>📄</div><div style="flex:1;min-width:0"><b>${st.period.slice(0, 4)}년 ${+st.period.slice(5)}월 정산 명세서</b><div class="muted" style="font-size:11.5px">STARSHIP 재무팀</div></div></div>
-    ${row('活动收入（公司收款）', won(gross))}${row('可扣除直接费用', cost ? '-' + won(cost) : won(0))}${row('艺人合同分成', won(st.part))}${st.repay ? row('前期投入回收', '-' + won(st.repay)) : ''}${st.fines ? row('违约金 / 罚款', '-' + won(st.fines)) : ''}${tax ? row('预扣税款（3.3%）', '-' + won(tax)) : ''}${row('本期实际到账', won(Math.max(0, net)), 'st-tot')}
-    ${gl.length || fl.length ? `<details class="st-more"><summary>收入明细（${gl.length} 笔${fl.length ? ` · 扣款 ${fl.length} 笔` : ''}）</summary>${gl.map(l => `<div class="st-it"><div class="st-t">${md(l.date)}${esc(l.title)}</div><div class="muted" style="font-size:11.5px">${esc(l.label || l.src)} · 分成 ${Math.round(l.ratio * 100)}%</div><div class="st-g"><span>收入 ${won(l.gross)}</span><span>扣除 ${l.cost ? '-' + won(l.cost) : won(0)}</span><span>所得 <b>${won(l.pay)}</b></span></div></div>`).join('')}${fl.map(l => `<div class="st-it"><div class="st-t">${md(l.date)}${esc(l.title)}</div><div class="st-g"><span>${esc(l.src)}</span><span>-${won(l.fine)}</span></div></div>`).join('')}</details>` : ''}</div>`.replace(/\n\s*/g, ''); // 气泡里是 pre-wrap，换行会变成空白
+  const gl = (st.lines || []).filter(l => l.gross > 0), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), tax = st.tax || 0, net = st.pay - (st.fines || 0) - tax, sm = st.mon || addMonths(st.period, 1);
+  const row = (k, v, cls) => `<div class="st-row${cls ? ' ' + cls : ''}"><span>${k}</span><b>${v}</b></div>`;
+  return `<div class="st-card" data-act="stopen" data-id="${st.id}"><div class="st-h"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><div style="flex:1;min-width:0"><b>${sm.slice(0, 4)}년 ${+sm.slice(5)}월 정산 명세서</b><div class="muted" style="font-size:11.5px">STARSHIP ENTERTAINMENT · PDF</div></div><span class="muted">📎</span></div>${row('活动收入（公司收款）', won(gross))}${row('可扣除直接费用', cost ? '-' + won(cost) : won(0))}${row('艺人合同分成', won(st.part))}${st.repay ? row('前期投入回收', '-' + won(st.repay)) : ''}${st.fines ? row('违约金 / 罚款', '-' + won(st.fines)) : ''}${tax ? row('预扣税款等', '-' + won(tax)) : ''}${row('本期实际到账', won(Math.max(0, net)), 'st-tot')}</div>`;
+}
+const ST_TAB = { act: ['活动收入', l => !['音源', '专辑', '泡泡'].includes(l.src) && !l.fine], music: ['音乐收入', l => ['音源', '专辑'].includes(l.src)], other: ['其他', l => l.src === '泡泡' || l.fine] };
+// 点开附件：独立的财务明细页面
+function stmtPageHTML(id) {
+  const st = (wallet().stmts || []).find(x => x.id === id); if (!st) return '';
+  const gl = (st.lines || []).filter(l => l.gross > 0), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), tax = st.tax || 0, net = st.pay - (st.fines || 0) - tax, sm = st.mon || addMonths(st.period, 1), sd = new Date(st.at);
+  const tab = UI.stTab || 'act', L = (st.lines || []).filter(ST_TAB[tab][1]), md = d => d ? `${+d.slice(5, 7)}/${+d.slice(8)}` : '';
+  const row = (k, v) => `<div class="sp-row"><span>${k}</span><b>${v}</b></div>`;
+  return `<div class="row"><button class="link" data-act="mgropen">‹ 返回</button><span class="sp"></span><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card sp"><div class="muted" style="font-size:12.5px;letter-spacing:.3px">STARSHIP ENTERTAINMENT</div><div class="row" style="align-items:flex-start"><h3 style="flex:1;margin:4px 0 2px">${sm.slice(0, 4)}年${+sm.slice(5)}月 · 收入结算单</h3><span style="font-size:22px">🧾</span></div>
+      <div class="muted" style="font-size:13px">艺人：${esc(S.profile.name)} · 结算期间：${+st.period.slice(5)}月 · 结算日：${sd.getMonth() + 1}.${sd.getDate()}</div>
+      <div class="sp-hero"><div class="muted" style="font-size:12.5px">本期实际结算金额</div><div class="sp-amt">${won(Math.max(0, net))}</div><div style="font-size:12.5px;color:var(--accent)">${net > 0 ? `✓ ${sd.getMonth() + 1}月${sd.getDate()}日已汇入个人账户` : '本期无入账'}</div></div>
+      ${row('本期收入总额', won(gross))}${row('可扣除直接费用', cost ? '-' + won(cost) : won(0))}${row('艺人分成', won(st.part))}${st.repay ? row('前期投入回收', '-' + won(st.repay)) : ''}${st.fines ? row('违约金 / 罚款', '-' + won(st.fines)) : ''}${tax ? row('预扣税款（3.3%）', '-' + won(tax)) : ''}
+      <h4 style="margin:18px 0 8px">收入明细</h4><div class="sp-tabs">${Object.entries(ST_TAB).map(([k, [n]]) => `<button class="${tab === k ? 'on' : ''}" data-act="sttab" data-k="${k}" data-id="${st.id}">${n}</button>`).join('')}</div>
+      ${L.length ? L.map(l => l.fine ? `<div class="sp-it"><div style="flex:1;min-width:0"><b>${esc(l.title)}</b><div class="muted" style="font-size:12px">${md(l.date)} · ${esc(l.src)}</div></div><b>-${won(l.fine)}</b></div>` : `<div class="sp-it"><div style="flex:1;min-width:0"><b>${esc(l.title)}</b><div class="muted" style="font-size:12px">${md(l.date)} · ${esc(l.label || l.src)}</div><div class="muted" style="font-size:12px">收入 ${won(l.gross)} · 扣除 ${l.cost ? '-' + won(l.cost) : won(0)} · 分成 ${Math.round(l.ratio * 100)}%</div></div><b>${won(l.pay)}</b></div>`).join('') : '<div class="muted" style="padding:10px 0;font-size:13px">这一类本期没有收入</div>'}
+      ${st.held ? `<div class="muted" style="font-size:12px;margin-top:10px">※ ${esc(st.held)} 主办方款项尚未确认，顺延至下期结算</div>` : ''}<div class="muted" style="font-size:11.5px;margin-top:14px;line-height:1.6">本结算单由 STARSHIP 财务部制作。分成按合同约定比例，从可分配收入（收入 − 合同允许扣除的直接费用）中计算。</div></div>`;
 }
 function settleHTML() {
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
@@ -8213,6 +8245,8 @@ document.addEventListener('click', async e => {
     case 'charttrk': UI.chartTrk = t.dataset.k; render(); break;
     case 'mtab': UI.musicTab = t.dataset.k; render(); break;
     case 'mksub': UI.makeTab = t.dataset.k; render(); break;
+    case 'stopen': UI.stTab = 'act'; UI.mgrOpen = false; openModal(stmtPageHTML(t.dataset.id)); break;
+    case 'sttab': UI.stTab = t.dataset.k; openModal(stmtPageHTML(t.dataset.id)); break;
     case 'mznew': openModal(mzNewHTML()); break;
     case 'mznewok': { const w = mzNew(($('#mz-n').value || '').trim(), $('#mz-g').value); render(); openModal(mzDetailHTML(w.id)); toast('新作品已创建', '去行程后台安排「音乐创作」并选这首'); break; }
     case 'mzopen': openModal(mzDetailHTML(t.dataset.id)); break;
