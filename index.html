@@ -7762,7 +7762,7 @@ const serimP = () => ({ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' })
 async function serimNoteAdd(text) {
   const N = serimNotes(), n = { id: uid(), day: dkey(Date.now()), at: Date.now(), text }; N.push(n); if (N.length > 60) N.splice(0, N.length - 60); save();
   if (!aiOn()) return n; const ask = /消息|kkt|私信|发给我|问我|找我|叫我|约我|연락|카톡|톡/i.test(text);
-  if (!ask) { await serimSum(n); return n; }
+  if (!ask) return n;
   try {
     const j = await aiRaw([{ type: 'text', text: `${S.profile.name}记下了一条关于好朋友世琳（CRAVITY 세림）的真实情况：「${text}」\n现在是 ${socClock()}。\n${socCtx(serimP())}\n\n只有这条里明确写了「世琳接下来会在 KKT 上给她发消息」时，send 才是 true：time 按写的时间填（"HH:MM"，24 小时制；只写了大概时段就在那个时段里挑一个自然的时间；没写就填 ""）；ko 写他真的会发出来的那条消息（他平时跟最好的朋友发 KKT 的样子：半语、口语、短，只表达写的那个意思，不加别的内容），zh 写中文意思。已经发生过的、不是 KKT 消息的，send=false，其他留空。\nsum：把这条用一句很短的中文笼统概括（12 个字以内，不写具体几点），只用来在列表里显示。` }], 300,
       { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh', 'sum'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' }, sum: { type: 'string' } } }, KKT_SYS());
@@ -7778,15 +7778,12 @@ async function serimSum(n) {
 }
 const serimSumTried = new Set();
 function serimNoteTick() {
-  { const n = serimNotes().find(n => !n.sum && !n._sum && !serimSumTried.has(n.id)); if (n && aiOn()) { serimSumTried.add(n.id); serimSum(n); } } // 每次打开网页每条最多试一次
   const now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   for (const n of serimNotes()) if (n.day === today && n.kkt && !n.kkt.done && nm >= n.kkt.at) { n.kkt.done = 1; dmPush(serimP(), { text: n.kkt.ko, zh: n.kkt.zh }); save(); }
 }
 function serimCardHTML() {
-  const today = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(today, -6)).slice().reverse(), hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   return `<div class="row"><h3 style="flex:1">💙 世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="card"><textarea id="serim-in" style="min-height:64px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
-    ${L.length ? `<div class="card">${L.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === today ? '今天' : `${+n.day.slice(5, 7)}/${+n.day.slice(8)}`}</span><div style="font-size:13.5px">${esc(n.sum || n.text)}</div></span><button class="link muted" data-act="serimdel" data-id="${n.id}">✕</button></div>`).join('')}</div>` : ''}`;
+    <div class="card"><textarea id="serim-in" style="min-height:64px"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>`;
 }
 function socHistHTML() {
   const hist = social().hist.slice().reverse().slice(0, 20); if (!hist.length) return '';
@@ -8301,7 +8298,7 @@ document.addEventListener('click', async e => {
       socDone(Q, v, o); break; }
     case 'socclose': { const Q = UI.socPop; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimopen': openModal(serimCardHTML()); break;
-    case 'serimset': { const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v).then(() => { if ($('#serim-in')) openModal(serimCardHTML()); }); openModal(serimCardHTML()); break; }
+    case 'serimset': { const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v); toast('记下了'); openModal(serimCardHTML()); break; }
     case 'serimdel': { const N = serimNotes(), i = N.findIndex(n => n.id === t.dataset.id); if (i >= 0) N.splice(i, 1); save(); openModal(serimCardHTML()); break; }
     case 'serimclear': social().serim = null; save(); openModal(serimCardHTML()); break;
     case 'serimpick': { const SV = social().serim, g = (SV && SV.gen) || { opts: SV && SV.dm ? ['好呀', '哈哈哈', '怎么了？'] : ['笑着回应他', '和他多聊几句', '开个玩笑'] }; serimReply(g.opts[+t.dataset.j]); break; }
