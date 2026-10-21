@@ -7459,10 +7459,11 @@ function soloMig() {
 let dmPolBusy = 0;
 async function dmPolishMig() {
   if (dmPolBusy || !aiOn()) return; const now = Date.now();
-  const T = Object.values(dms()).find(T => !T.pol1 && !T.gen && !T.due && !(T.pend && T.pend.length) && T.msgs.some(m => !m.me && !m.sys && m.text) && !(UI.typing && UI.typing[T.p.key] > now) && (T.polTry || 0) < 3);
+  const T = Object.values(dms()).find(T => !T.pol1 && !T.gen && !T.due && !(T.pend && T.pend.length) && T.msgs.some(m => !m.me && !m.sys && m.text) && !(UI.typing && UI.typing[T.p.key] > now) && (T.polTry || 0) < 3 && (!T.polSnap || T.polSnap.msgs.length === T.msgs.length));
   if (!T) return; dmPolBusy = 1; T.polTry = (T.polTry || 0) + 1;
   try {
     const p = T.p; T.msgs.forEach(m => { if (!m.id) m.id = uid(); });
+    if (!T.polSnap) { T.polSnap = { at: Date.now(), msgs: JSON.parse(JSON.stringify(T.msgs)) }; save(); } // 先整段备份，迁移只做这一次
     const hm = ts => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
     const lines = T.msgs.map(m => m.sys ? `　　[${m.sys}]` : `${m.me ? '　　' : m.id}｜${hm(m.at)}｜${m.me ? '她' : '他'}${m.ev ? '★' : ''}：${m.text}`).join('\n');
     const j = await aiRaw([{ type: 'text', text: `下面是 ${socWho(p)} 和 ${S.profile.name}（女，solo 爱豆）之间已经存在的 KKT 聊天记录。他那一方的很多消息是以前自动生成的，读起来很机械：复述已经说定的计划、重复确认、像客服一样每句都完整礼貌地回应、翻译腔的韩语、句句挂 ㅋㅋ、每次同样的开头。
