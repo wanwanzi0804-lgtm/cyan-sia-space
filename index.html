@@ -134,7 +134,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .fb i{display:block;width:62%;min-height:2px;border-radius:4px}
 .fb-up i{background:var(--accent)}
 .fb-dn i{background:var(--danger)}
-.fb span{font-size:11px;color:var(--muted);margin-top:3px}
+.fb span{font-size:11px;color:var(--muted);margin-top:3px}.fb{cursor:pointer}.fbars:has(.fb.on) .fb:not(.on) i{opacity:.4}.fb.on span{color:var(--text);font-weight:600}
 .me-more{margin-top:10px;font-size:14px}
 .me-more summary{cursor:pointer;color:var(--muted);padding:4px 0}
 .done-tg{display:flex;width:100%;justify-content:center;gap:6px;border:0;background:var(--bg);color:var(--muted);border-radius:12px;padding:10px;margin-top:10px;font-size:13.5px}
@@ -7927,11 +7927,11 @@ function fanPanelHTML() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
   const net = k => (F.days[k] || { net: 0 }).net;
   const week = days.reduce((a, k) => a + net(k), 0), mx = Math.max(1, ...days.map(k => Math.abs(net(k))));
-  const src = Object.entries((F.days[today] || { src: {} }).src).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+  const sel = days.includes(UI.fanDay) ? UI.fanDay : today, src = Object.entries((F.days[sel] || {}).src || {}).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
   const idle = Math.floor((Date.now() - lastActive()) / 86400e3);
   return `<div class="kpi" style="margin-top:0"><div><b>${heatLabel()}</b><span>人气</span></div><div>${fanSign(net(today))}<span>今日</span></div><div>${fanSign(week)}<span>近 7 天</span></div><div><b>${idle ? idle + ' 天' : '今天'}</b><span>上次营业</span></div></div>
-    <div class="fbars">${days.map(k => { const n = net(k), h = Math.round(Math.abs(n) / mx * 100); return `<div class="fb" title="${k}：${n}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${k === today ? '今天' : WD[parseD(k).getDay()]}</span></div>`; }).join('')}</div>
-    <details class="me-more"><summary>今日变化来源${src.length ? ` · ${src.length} 项` : ''}</summary>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${fanSign(n)}</div>`).join('') : '<div class="muted" style="padding:6px 0">今天还没有变化</div>'}</details>`;
+    <div class="fbars">${days.map(k => { const n = net(k), h = Math.round(Math.abs(n) / mx * 100); return `<div class="fb${k === UI.fanDay ? ' on' : ''}" data-act="fanday" data-k="${k}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${k === today ? '今天' : WD[parseD(k).getDay()]}</span></div>`; }).join('')}</div>
+    <details class="me-more" id="fan-src"${UI.fanOpen ? ' open' : ''}><summary>${sel === today ? '今日' : `${+sel.slice(5, 7)}/${+sel.slice(8)}（${WD[parseD(sel).getDay()]}）`}变化来源${src.length ? ` · ${src.length} 项` : ''}</summary>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${fanSign(n)}</div>`).join('') : `<div class="muted" style="padding:6px 0">${sel === today ? '今天还没有变化' : '这天没有变化'}</div>`}</details>`;
 }
 function hotPanelHTML() {
   const H = hotState(), c = H.cur;
@@ -8287,6 +8287,7 @@ document.addEventListener('click', async e => {
     case 'mzsubcb': mzSubmit(t.dataset.id, true); render(); openModal(mzDetailHTML(t.dataset.id)); break;
     case 'pppref': { const o = prepOn(); if (!o) break; o.P.pref = o.P.pref === t.dataset.id ? '' : t.dataset.id; save(); render(); toast(o.P.pref ? '已经告诉公司你的想法' : '已取消'); break; }
     case 'ppdance': { const o = prepOn(); if (!o) break; o.P.dance = t.checked; if (t.checked && o.t.dance.skip) o.t.dance = { need: o.t.dance.need, prog: 0, done: false }; save(); render(); break; }
+    case 'fanday': UI.fanDay = t.dataset.k; UI.fanOpen = true; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
