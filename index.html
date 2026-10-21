@@ -6444,7 +6444,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -7084,7 +7084,7 @@ function socApplyTh(x, o, mine) {
 // 开着 AI 时，预设事件的第一条消息按这个人的说话卡重写（意思不变）
 async function socThVoice(x) {
   try { const p = x.p, ban = socBan(p);
-    const j = await aiRaw([{ type: 'text', text: `${socWho(p)} 要给 ${S.profile.name}（女，solo 爱豆，STARSHIP）发一条 KKT。\n${socCtx(p)}\n\n这条消息要表达的意思（不能改）：「${x.zh}」\n参考写法：「${x.ko}」\n用他的口吻重写成一条 KKT 消息，长度和参考差不多，${ban ? '用半语' : '用敬语'}，不要加新的事实、不要提记录里没有的过去。ko 写韩语，zh 写中文意思。` }], 200, { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } });
+    const j = await aiRaw([{ type: 'text', text: `${socWho(p)} 要给 ${S.profile.name}（女，solo 爱豆，STARSHIP）发一条 KKT。\n${socCtx(p)}\n\n这条消息要表达的意思（不能改）：「${x.zh}」\n参考写法：「${x.ko}」\n按这个人自己的说话习惯，把参考写法改成 ta 会真的发出来的样子：${ban ? '用半语' : '用敬语'}。只表达上面这个意思，不要再加别的句子（不要顺带讲自己的近况、不要加和这件事无关或者互相矛盾的话），长度和参考差不多或更短；语气词只在自然的时候用，不要为了显得随意硬加 ㅋㅋ。不要提记录里没有的过去。ko 写韩语，zh 写准确的中文意思。` }], 200, { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } }, KKT_SYS());
     if (j.ko) { x.ko = j.ko; x.zh = j.zh || x.zh; } } catch (err) { }
 }
 // 当晚真的见面：排在你晚上有空的时间
@@ -7318,6 +7318,7 @@ function serimClearMig() {
   for (const [k, Q] of Object.entries(SO.ppl || {})) if (k !== 'CRAVITY|세림' && Q.ex) { const mv = Q.ex.filter(e => e.t === 'chat' && e.ai); if (mv.length) { Q.cm = (Q.cm || []).concat(mv.map(e => ({ day: e.day, d: e.d.slice(0, 80) }))).slice(-12); Q.ex = Q.ex.filter(e => !(e.t === 'chat' && e.ai)); } }
   save();
 }
+function ahMsgFix() { const SO = social(); if (SO.ahFix) return; SO.ahFix = 1; const T = dms()['BABYMONSTER|아현']; if (!T) return; for (const m of T.msgs) if (!m.me && /잘 시간도 없어/.test(m.text || '')) { m.text = '이번 주 언제 비어? 밥 먹자'; m.zh = '这周哪天有空？一起吃饭吧'; } save(); }
 function nameMig() { const SO = social(); if (!SO.nameV2) { SO.nameV2 = 1; for (const f of chal().friends) if (f.z === '易汉') f.z = '李涵'; for (const T of Object.values(dms())) if (T.p.z === '易汉') T.p.z = '李涵'; save(); } if (SO.nameV) return; SO.nameV = 1; for (const f of chal().friends) if (f.z === '成珉') f.z = '成民'; for (const T of Object.values(dms())) if (T.p.z === '成珉') T.p.z = '成民'; save(); }
 function soloMig() {
   const SO = social(); if (SO.soloV2) return; SO.soloV2 = 1; const n = 'EVAN|희승';
