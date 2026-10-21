@@ -207,15 +207,25 @@ body.typing .bb-tick.bb-tick2{display:block}
 .mgr-av.sm{width:34px;height:34px;border-radius:12px;font-size:18px}
 .mgr-av.big{width:76px;height:76px;border-radius:26px;font-size:38px;margin:0 auto}
 .mgr-u{background:var(--danger);color:#fff;border-radius:10px;font-size:12px;padding:1px 7px;font-weight:700}
-.kk-log{background:var(--accent-soft);border-radius:14px;padding:10px;height:min(60vh,520px);overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-.kk-day{align-self:center;font-size:11.5px;color:var(--muted);background:var(--card);border-radius:10px;padding:2px 10px;margin:4px 0}
-.kk-row{display:flex;gap:6px;align-items:flex-end;max-width:88%}
+.kk-log{--kk-bg:#bacee0;--kk-o:#fff;--kk-ot:#191919;--kk-tm:#556270;background:var(--kk-bg);border-radius:14px;padding:12px 10px;height:min(60vh,520px);overflow-y:auto;display:flex;flex-direction:column;gap:0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kk-log{--kk-bg:#22303b;--kk-o:#3a434c;--kk-ot:#eef2f5;--kk-tm:#9aa6b1}}
+:root[data-theme="dark"] .kk-log{--kk-bg:#22303b;--kk-o:#3a434c;--kk-ot:#eef2f5;--kk-tm:#9aa6b1}
+.kk-day{align-self:center;font-size:11.5px;color:#fff;background:rgba(0,0,0,.16);border-radius:12px;padding:3px 12px;margin:12px 0 4px}
+.kk-sep{align-self:center;font-size:11.5px;color:#fff;background:rgba(0,0,0,.12);border-radius:12px;padding:3px 12px;margin:8px 0;text-align:center}
+.kk-row{display:flex;gap:7px;align-items:flex-end;max-width:86%;margin-top:9px}
+.kk-row.cont{margin-top:3px}
 .kk-row.me{align-self:flex-end}
-.kk-n{font-size:12px;color:var(--muted);margin-bottom:2px}
-.kk-b{background:#fff;color:#1d2329;border-radius:4px 14px 14px 14px;padding:8px 11px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.kk-b.me{background:#fee500;border-radius:14px 4px 14px 14px}
-.kk-t{font-size:10.5px;color:var(--muted);flex:none;text-align:right}
-.kk-1{display:block;color:#e6b800;font-weight:700;font-size:11px;line-height:1.2}
+.kk-avsp{width:36px;flex:none}
+.kk-log .mgr-av.sm{width:36px;height:36px;border-radius:14px;align-self:flex-start}
+.kk-n{font-size:12px;color:var(--kk-tm);margin:0 0 3px 2px}
+.kk-b{background:var(--kk-o);color:var(--kk-ot);border-radius:4px 14px 14px 14px;padding:8px 11px;font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.kk-b.cont{border-radius:14px}
+.kk-b.me{background:#fee500;color:#191919;border-radius:14px 4px 14px 14px}
+.kk-b.me.cont{border-radius:14px}
+.kk-t{font-size:10px;color:var(--kk-tm);flex:none;text-align:right;white-space:nowrap}
+.kk-1{display:block;color:#f5c400;font-weight:700;font-size:10.5px;line-height:1.2}
+.kk-send{flex:none;align-self:stretch;border:0;border-radius:12px;background:#fee500;color:#191919;font:inherit;font-weight:700;font-size:13.5px;padding:0 14px;cursor:pointer}
+.kk-list{background:var(--card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}.kk-list .card{box-shadow:none;border-radius:0;margin:0;background:transparent;border-bottom:1px solid var(--line);padding:11px 14px}.kk-list .card:last-child{border-bottom:0}.kk-list .mgr-av{width:46px;height:46px;border-radius:17px}
 .kk-act{display:flex;gap:6px;justify-content:flex-end;margin-top:8px}
 .st-card{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;width:100%;box-sizing:border-box}.kk-b:has(.st-card){width:min(290px,70vw);max-width:none}.st-row span{white-space:nowrap}.st-h{display:flex;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .st-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}.st-row b{font-weight:600;white-space:nowrap}.st-tot{border:0;padding-top:8px;font-size:14.5px}.st-tot b{font-size:16px}
@@ -227,7 +237,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-act .btn{white-space:normal;line-height:1.35;height:auto;padding-top:7px;padding-bottom:7px}
 .kk-row>div{min-width:0}
 .kk-res{margin-top:6px;font-size:12px;color:#8a939c}
-.kk-zh{margin-top:6px;padding-top:6px;border-top:1px dashed #d5dbe0;font-size:12.5px;color:#6b7680}
+.kk-zh{margin-top:6px;padding-top:6px;border-top:1px dashed rgba(127,127,127,.35);font-size:12.5px;opacity:.7}
 .offer-b{display:flex;flex-direction:column;gap:6px}
 .tg-row{display:flex;align-items:center;gap:8px;padding:11px 4px;border-top:1px solid var(--line);cursor:pointer}
 .tg-row.lock{opacity:.55;cursor:default}
@@ -3222,7 +3232,7 @@ function mgrChatter() {
   if (win) once('win' + win.at, () => mgrSay(['1위 축하해요 🎉', '恭喜一位 🎉']));
   const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay(['연습생 비용 정산 끝났어요.', '练习生费用结清了。']));
 }
-function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div>${dmListHTML(true)}${socHistHTML()}`; }
+function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div><div class="kk-list">${dmListHTML(true)}</div>${socHistHTML()}`; }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
 function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...rulesFor(dk).map(x => toMin(x.end))), from = Math.min(27 * 60, Math.max(21 * 60, last + 20)); return parseD(dk).getTime() + (from + Math.floor(r() * (28 * 60 - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
 // 一整天都在宿舍（或没有行程）就不发日报
@@ -3293,16 +3303,27 @@ function mgrCardMsg(m) {
   if (m.card.type === 'deal') { const o = wallet().offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   return '';
 }
+// KKT 风格的聊天记录：同一个人同一分钟连发的合成一组（头像 / 名字只在第一条，时间只在最后一条）
+const kkTime = ts => { const d = new Date(ts), h = d.getHours(); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`; };
+function kkLogHTML(msgs, o) {
+  let lastDay = ''; const minute = m => Math.floor(m.at / 60000), who = m => m.sys ? 's' : m.me ? 'me' : 'o';
+  return msgs.map((m, i) => {
+    const d = new Date(m.at), dk = dkey(m.at), sep = dk !== lastDay ? `<div class="kk-day">${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${WDK[d.getDay()]}요일</div>` : ''; lastDay = dk;
+    if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
+    const p = msgs[i - 1], n = msgs[i + 1], cont = !sep && p && who(p) === who(m) && minute(p) === minute(m), last = !n || who(n) !== who(m) || minute(n) !== minute(m) || dkey(n.at) !== dk;
+    const body = `${esc(m.text)}${o.tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
+    if (m.me) return sep + `<div class="kk-row me${cont ? ' cont' : ''}"><span class="kk-t">${o.unread(m) ? '<b class="kk-1">1</b>' : ''}${tm}</span><div class="kk-b me${cont ? ' cont' : ''}">${body}</div></div>`;
+    return sep + `<div class="kk-row${cont ? ' cont' : ''}">${cont ? '<div class="kk-avsp"></div>' : o.av}<div>${cont ? '' : `<div class="kk-n">${esc(o.name)}</div>`}<div class="kk-b${cont ? ' cont' : ''}">${body}</div></div><span class="kk-t">${tm}</span></div>`;
+  }).join('');
+}
 function mgrLogHTML() {
-  const M = mgrChat(), tr = UI.mgrTr !== false; let lastDay = '';
-  return M.chat.map(m => { const dk = dkey(m.at), t = new Date(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
-    const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
-    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${m.at > (mgr().readAt || 0) ? '<b class="kk-1">1</b>' : ''}${hm}</span><div class="kk-b me">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div>` : `<div class="kk-row"><div class="mgr-av sm">🧑‍💼</div><div><div class="kk-n">매니저</div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${mgrCardMsg(m)}</div></div><span class="kk-t">${hm}</span></div>`); }).join('') || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
+  const M = mgrChat();
+  return kkLogHTML(M.chat, { tr: UI.mgrTr !== false, unread: m => m.at > (mgr().readAt || 0), av: '<div class="mgr-av sm">🧑‍💼</div>', name: '매니저', extra: mgrCardMsg }) || '<div class="muted" style="text-align:center;padding:30px 0">还没有消息</div>';
 }
 function mgrChatHTML() {
   return `<div class="row"><h3 style="flex:1">🧑‍💼 매니저</h3><button class="btn ghost sm" data-act="mgrtr">${UI.mgrTr !== false ? '隐藏翻译' : '显示翻译'}</button><button class="btn ghost sm" data-act="mgrclose">关闭</button></div>
     <div class="kk-log" id="mgr-log">${mgrLogHTML()}</div>
-    <div class="row" style="gap:6px;margin-top:8px"><textarea id="mgr-in" class="chat-in" rows="1" placeholder="메시지 입력…" maxlength="200" autocomplete="off" style="flex:1"></textarea><button class="btn primary sm" data-act="mgrsend">发送</button></div>`;
+    <div class="row" style="gap:6px;margin-top:8px"><textarea id="mgr-in" class="chat-in" rows="1" placeholder="메시지 입력" maxlength="200" autocomplete="off" style="flex:1"></textarea><button class="kk-send" data-act="mgrsend">전송</button></div>`;
 }
 // 回答：能用真实数据回答的直接答（韩语 + 中文）；其他的开了 AI 就让 AI 回，没开就简短回应
 const hm = r => `${r.start}${r.end ? '~' + r.end : ''}`;
@@ -7549,12 +7570,8 @@ async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (
 function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
-  let lastDay = ''; const rd = T.readTo || 0;
-  return T.msgs.map(m => { const t = new Date(m.at), dk = dkey(m.at), hm = `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')}`;
-    const sep = dk !== lastDay ? `<div class="kk-day">${+dk.slice(5, 7)}月${+dk.slice(8)}日 周${WD[t.getDay()]}</div>` : ''; lastDay = dk;
-    if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
-    return sep + (m.me ? `<div class="kk-row me"><span class="kk-t">${m.at > rd ? '<b class="kk-1">1</b>' : ''}${hm}</span><div class="kk-b me">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div>`
-      : `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div><div class="kk-b">${esc(m.text)}${tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}</div></div><span class="kk-t">${hm}</span></div>`); }).join('');
+  const rd = T.readTo || 0;
+  return kkLogHTML(T.msgs, { tr, unread: m => m.at > rd, av: kAv(key, 'mgr-av sm'), name: socDisp(T.p) });
 }
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
@@ -7563,7 +7580,7 @@ function dmHTML(key) {
     ${socMemHTML(key)}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div style="margin-top:8px">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
     ${e ? `<div style="margin-top:8px">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
-    <div class="row" style="gap:6px;margin-top:8px"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력…" autocomplete="off" style="flex:1;min-width:0"></textarea><button class="btn primary sm" data-act="dmsend" data-k="${esc(key)}">发送</button></div>`;
+    <div class="row" style="gap:6px;margin-top:8px"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off" style="flex:1;min-width:0"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>`;
 }
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
