@@ -6544,7 +6544,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); dmPolishMig();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); dmPolishMig(); serimNoteTick();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -7034,7 +7034,7 @@ function socCtx(p, when) {
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
   return `对方：${p.g} ${socName(p)}（${p.f ? '女' : '男'}，${same ? '和她同公司' : '别家公司'}）。${socCardTxt(p)}
 关系阶段：${STAGE_ZH[st]}。称呼她：${socBan(p) ? `你们是好朋友了，有时叫艺名「${S.profile.name}」，有时叫本名「은설」（은설아 / 은설이，中文写恩雪），随口来，不用每句都叫` : `叫她艺名「${S.profile.name}」（不熟时可以加 씨），不要叫本名`}。语气：${socBan(p) ? '你们已经是很熟的朋友，用半语（반말）' : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
-${p.key === 'CRAVITY|세림' ? '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。\n' : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
+${p.key === 'CRAVITY|세림' ? `世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
@@ -7743,11 +7743,28 @@ function serimTick() {
   if (SV.online) { const p = { ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }; SV.dm = 1; const g = SV.gen; if (g && g.ko) dmPush(p, { text: g.ko, zh: g.zh }); else if (g && g.line) dmPush(p, { text: g.line }); else dmPush(p, { sys: SV.text.replace(/我们/g, '你们').replace(/我/g, '你') }); save(); return; } // 线上的发到 KKT
   UI.socPop = { serim: 1 }; openModal(socPopHTML()); save();
 }
+// 💙 世琳：你记下的他今天的情况 / 你们之间的事。只当事实用，不再自己编弹窗剧情；写明了他会发 KKT 的，到点他就发
+function serimNotes() { const SO = social(); return SO.snotes || (SO.snotes = []); }
+const serimP = () => ({ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' });
+async function serimNoteAdd(text) {
+  const N = serimNotes(), n = { id: uid(), day: dkey(Date.now()), at: Date.now(), text }; N.push(n); if (N.length > 60) N.splice(0, N.length - 60); save();
+  if (!aiOn() || !/消息|kkt|私信|发给我|问我|找我|叫我|约我|연락|카톡|톡/i.test(text)) return n;
+  try {
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}记下了一条关于好朋友世琳（CRAVITY 세림）的真实情况：「${text}」\n现在是 ${socClock()}。\n${socCtx(serimP())}\n\n只有这条里明确写了「世琳接下来会在 KKT 上给她发消息」时，send 才是 true：time 按写的时间填（"HH:MM"，24 小时制；只写了大概时段就在那个时段里挑一个自然的时间；没写就填 ""）；ko 写他真的会发出来的那条消息（他平时跟最好的朋友发 KKT 的样子：半语、口语、短，只表达写的那个意思，不加别的内容），zh 写中文意思。已经发生过的、不是 KKT 消息的，send=false，其他留空。` }], 300,
+      { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' } } }, KKT_SYS());
+    if (j.send && j.ko) { const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), t = /^(\d{1,2}):(\d{2})$/.exec((j.time || '').trim()); let at = t ? +t[1] * 60 + +t[2] : nm + ri(10, 60); if (at <= nm) at = nm + 1; n.kkt = { at: Math.min(at, 1439), ko: j.ko.trim(), zh: j.zh || '' }; save(); }
+  } catch (e) { }
+  return n;
+}
+function serimNoteTick() {
+  const now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
+  for (const n of serimNotes()) if (n.day === today && n.kkt && !n.kkt.done && nm >= n.kkt.at) { n.kkt.done = 1; dmPush(serimP(), { text: n.kkt.ko, zh: n.kkt.zh }); save(); }
+}
 function serimCardHTML() {
-  const SO = social(), today = dkey(Date.now()), SV = SO.serim && SO.serim.day === today ? SO.serim : null, hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-  return `<div class="row"><h3 style="flex:1">💙 今天和世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div><div class="card">
-    ${SV ? `<div style="margin-top:6px">${esc(SV.text)}</div><div class="muted" style="font-size:12.5px;margin-top:4px">${SV.done ? '已经发生了' : SV.shown ? '正在发生…' : `大概 ${hm(SV.at)} 左右`}${SV.warn ? ' · ' + esc(SV.warn) : ''}</div>${!SV.done && !SV.shown ? '<button class="link" data-act="serimclear" style="margin-top:4px">取消</button>' : ''}`
-      : `<div class="muted" style="font-size:12.5px;margin:4px 0 8px">写下今天你和世琳之间会发生的事，到了合适的时间会弹出来。不写的话，今天你们就不会有这种突然的交集。</div><textarea id="serim-in" style="min-height:64px" placeholder="比如：他下班回到公司的时候遇到了，我夸他衣服好看"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">安排</button></div>`}</div>`;
+  const today = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(today, -6)).slice().reverse(), hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  return `<div class="row"><h3 style="flex:1">💙 世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="card"><textarea id="serim-in" style="min-height:64px" placeholder="比如：下午三点到六点在练习室；晚上会发消息问我吃没吃饭"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
+    ${L.length ? `<div class="card">${L.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === today ? '今天' : `${+n.day.slice(5, 7)}/${+n.day.slice(8)}`}${n.kkt ? ` · ${n.kkt.done ? 'KKT 已发' : `${hm(n.kkt.at)} 发 KKT`}` : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link muted" data-act="serimdel" data-id="${n.id}">✕</button></div>`).join('')}</div>` : ''}`;
 }
 function socHistHTML() {
   const hist = social().hist.slice().reverse().slice(0, 20); if (!hist.length) return '';
@@ -8262,7 +8279,8 @@ document.addEventListener('click', async e => {
       socDone(Q, v, o); break; }
     case 'socclose': { const Q = UI.socPop; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimopen': openModal(serimCardHTML()); break;
-    case 'serimset': { const v = ($('#serim-in').value || '').trim(); if (!v) { toast('写一下会发生什么'); break; } const SV = serimPlan(v); toast('💙 安排好了', `大概 ${String(Math.floor(SV.at / 60)).padStart(2, '0')}:${String(SV.at % 60).padStart(2, '0')} 左右`); closeModal(); render(); break; }
+    case 'serimset': { const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v).then(() => { if ($('#serim-in')) openModal(serimCardHTML()); }); openModal(serimCardHTML()); break; }
+    case 'serimdel': { const N = serimNotes(), i = N.findIndex(n => n.id === t.dataset.id); if (i >= 0) N.splice(i, 1); save(); openModal(serimCardHTML()); break; }
     case 'serimclear': social().serim = null; save(); openModal(serimCardHTML()); break;
     case 'serimpick': { const SV = social().serim, g = (SV && SV.gen) || { opts: SV && SV.dm ? ['好呀', '哈哈哈', '怎么了？'] : ['笑着回应他', '和他多聊几句', '开个玩笑'] }; serimReply(g.opts[+t.dataset.j]); break; }
     case 'serimwrite': { const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } serimReply(v); break; }
