@@ -2430,7 +2430,7 @@ function settleCalc(items) {
     if (FINE_SRC.includes(x.src)) { fines += x.cost; lines.push({ src: x.src, title: x.title, date: x.date, fine: x.cost }); continue; }
     if (!(x.gross > 0)) continue; // 没有收入的（公司承担的成本）不进你的账
     const [ratio, label] = splitOf(x), cost = x.kind === 'bb' ? 0 : Math.min(x.cost || 0, x.gross), pay = Math.round((x.gross - cost) * ratio);
-    part += pay; lines.push({ src: x.src, title: x.title, date: x.date, gross: x.gross, cost, why: x.why || '', ratio, label, pay });
+    part += pay; lines.push({ src: x.src, title: x.title, date: x.date, gross: x.gross, cost, why: x.why || '', ratio, label, pay, ...(x.advPay ? { adv: x.advPay, advTax: x.advTax || 0, advOn: x.advOn } : {}) });
   }
   return { part, fines, lines };
 }
@@ -2566,27 +2566,29 @@ function financeTick() {
   }
 }
 // 月度结算：财务出结算单，经纪人在 KKT 上转达（附明细，可以展开看每一笔）
+const stNet = st => st.pay - (st.fines || 0) - (st.tax || 0) - (st.adv || 0); // 实际打到账户的（扣掉预支时已经拿到的）
 const TAX_RATE = .033; // 艺人报酬预扣 3.3%（事业所得税 + 地方税）
 function settleRun(items, mon, at, held) {
   const W = wallet(), c = settleCalc(items), part = c.part, fines = c.fines;
   const repay = W.debt > 0 ? Math.min(W.debt, Math.round(part * W.contract.repay)) : 0, tax = Math.round(Math.max(0, part - repay) * TAX_RATE);
-  W.debt -= repay; W.bal += part - repay - fines - tax;
-  const pm = addMonths(mon, -1), gl = c.lines.filter(l => l.gross > 0), st = { id: uid(), v: 3, mon, period: pm, at: at || Date.now(), part, fines, repay, tax, pay: part - repay, gross: gl.reduce((a, l) => a + l.gross, 0), cost: gl.reduce((a, l) => a + l.cost, 0), lines: c.lines };
+  const advL = c.lines.filter(l => l.adv), adv = advL.reduce((a, l) => a + l.adv - l.advTax, 0), advPart = advL.reduce((a, l) => a + l.adv, 0), advTax = advL.reduce((a, l) => a + l.advTax, 0); // 预支时已经拿到的
+  W.debt -= repay; W.bal += part - repay - fines - tax - adv;
+  const pm = addMonths(mon, -1), gl = c.lines.filter(l => l.gross > 0), st = { id: uid(), v: 3, mon, period: pm, at: at || Date.now(), part, fines, repay, tax, adv, pay: part - repay, gross: gl.reduce((a, l) => a + l.gross, 0), cost: gl.reduce((a, l) => a + l.cost, 0), lines: c.lines };
   (W.stmts || (W.stmts = [])).unshift(st); if (W.stmts.length > 24) W.stmts.length = 24;
   for (const x of items) x.st = 'done';
   W.recv = (W.recv || []).filter(x => x.st !== 'done');
-  W.tx.unshift({ id: uid(), at: Date.now(), amt: part, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算`, auto: true });
+  if (part - advPart) W.tx.unshift({ id: uid(), at: Date.now(), amt: part - advPart, repay, cat: '月度结算', note: `${+pm.slice(5)} 月结算${advPart ? '（已扣预支）' : ''}`, auto: true });
   if (fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -fines, cat: '违约金 / 罚款', note: `${+pm.slice(5)} 月违约金 / 罚款`, auto: true });
-  if (tax) W.tx.unshift({ id: uid(), at: Date.now() + 2, amt: -tax, cat: '预扣税款', note: `${+pm.slice(5)} 月结算 · 预扣 3.3%`, auto: true });
+  if (tax - advTax) W.tx.unshift({ id: uid(), at: Date.now() + 2, amt: -(tax - advTax), cat: '预扣税款', note: `${+pm.slice(5)} 月结算 · 预扣 3.3%`, auto: true });
   if (held) st.held = held.title;
   mgrStmtSay(st, at);
   return st;
 }
 function mgrStmtSay(st, at) {
-  const m = +st.period.slice(5), net = st.pay - st.fines - st.tax, M = mgrChat(), n0 = M.chat.length, late = W0().setDelay && W0().setDelay.until;
+  const m = +st.period.slice(5), net = stNet(st), M = mgrChat(), n0 = M.chat.length, late = W0().setDelay && W0().setDelay.until;
   const a = late ? pick([['늦어져서 미안해요. 정산 나왔어요', '久等了，结算出来了'], ['기다렸죠? 이번 달 정산서 왔어요', '等久了吧？这个月的结算单来了']])
     : pick([['이번 달 정산 나왔어요. 확인해 보세요', '这个月的结算出来了，你看一下'], [`재무팀에서 ${m}월분 정산서 넘어왔어요`, `财务那边把${m}月的结算单发过来了`], [`${m}월 정산 내역이에요`, `这是${m}月的结算明细`], ['정산 끝났대요. 명세서 첨부할게요', '结算做完了，明细附上']]);
-  const b = net <= 0 ? ['이번 달은 공제가 커서 입금될 금액은 없어요. 궁금한 거 있으면 물어봐요', '这个月扣除比较多，没有要打的款。有不清楚的问我'] : pick([['정산금은 오늘 중으로 개인 계좌에 들어갈 거예요', '结算款今天之内会打到你个人账户'], ['입금은 오늘 처리됐어요. 궁금한 거 있으면 말해요', '今天已经打款了，有不清楚的跟我说'], ['오늘 계좌로 들어갈 거예요', '今天会打到你账户'], ['개인 계좌로 입금했대요', '已经打到你个人账户了']]);
+  const b = net <= 0 && st.adv ? ['미리 받은 거 빼면 이번엔 따로 들어갈 건 없어요', '扣掉之前预支的，这次没有另外要打的了'] : net <= 0 ? ['이번 달은 공제가 커서 입금될 금액은 없어요. 궁금한 거 있으면 물어봐요', '这个月扣除比较多，没有要打的款。有不清楚的问我'] : st.adv ? pick([['지난번에 미리 받은 건 빼고 오늘 들어가요', '上次预支的扣掉了，今天打'], ['가불한 건 빼고 나머지 입금됐어요', '预支的扣掉了，剩下的已经打了']]) : pick([['정산금은 오늘 중으로 개인 계좌에 들어갈 거예요', '结算款今天之内会打到你个人账户'], ['입금은 오늘 처리됐어요. 궁금한 거 있으면 말해요', '今天已经打款了，有不清楚的跟我说'], ['오늘 계좌로 들어갈 거예요', '今天会打到你账户'], ['개인 계좌로 입금했대요', '已经打到你个人账户了']]);
   mgrSay(a); mgrSay(['', ''], { type: 'stmt', id: st.id }, true); mgrSay(b, null, true);
   if (st.held) mgrSay([`아, ${toKo(st.held)} 건은 주최 측에서 아직 입금을 안 해서 이번엔 빠졌어요. 들어오면 다음 달에 같이 나와요`, `啊，${st.held}那笔主办方还没打款，这次没算进去，到账了下个月一起结`], null, true);
   if (at) { let t = at; M.chat.slice(n0).forEach((x, i) => { if (i) t += rand(20, 70) * 1e3; x.at = t; }); M.chat.sort((x, y) => x.at - y.at); }
@@ -2601,7 +2603,7 @@ function mgrSettleNote(kind, mon, until) {
 // 聊天里的附件：只显示总览，点开是单独的结算单页面
 function stmtCardHTML(st) {
   if (!st) return '<div class="kk-res">명세서를 찾을 수 없어요</div>';
-  const gl = (st.lines || []).filter(l => l.gross > 0), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), tax = st.tax || 0, net = st.pay - (st.fines || 0) - tax, sm = st.mon || addMonths(st.period, 1);
+  const gl = (st.lines || []).filter(l => l.gross > 0), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), tax = st.tax || 0, net = stNet(st), sm = st.mon || addMonths(st.period, 1);
   const pe = lastDay(st.period);
   return `<div class="st-card" data-act="stopen" data-id="${st.id}"><div class="st-h"><span class="st-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="4" width="14" height="16" rx="3.5"/><path d="M9 10h6M9 14h6"/></svg></span><div style="flex:1;min-width:0"><b>${+sm.slice(5)}월_정산명세서.pdf</b><div class="muted" style="font-size:12px">STARSHIP ENTERTAINMENT</div></div><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex:none"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg></div><div class="muted" style="font-size:12.5px;margin-top:10px">정산 대상: ${st.period.replace('-', '.')}.01 ~ ${+pe.slice(5, 7)}.${pe.slice(8)}</div><div class="st-row st-tot"><span class="muted">실지급액</span><b>${won(Math.max(0, net))}</b></div></div>`;
 }
@@ -2609,16 +2611,16 @@ const ST_TAB = { act: ['活动收入', l => !['音源', '专辑', '泡泡'].incl
 // 点开附件：独立的财务明细页面
 function stmtPageHTML(id) {
   const st = (wallet().stmts || []).find(x => x.id === id); if (!st) return '';
-  const gl = (st.lines || []).filter(l => l.gross > 0), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), ded = (st.tax || 0) + (st.fines || 0), net = st.pay - ded, sm = st.mon || addMonths(st.period, 1), sd = new Date(st.at);
+  const gl = (st.lines || []).filter(l => l.gross > 0), gross = st.gross ?? gl.reduce((a, l) => a + l.gross, 0), cost = st.cost ?? gl.reduce((a, l) => a + l.cost, 0), ded = (st.tax || 0) + (st.fines || 0), net = stNet(st), sm = st.mon || addMonths(st.period, 1), sd = new Date(st.at);
   const tab = UI.stTab || 'act', L = (st.lines || []).filter(ST_TAB[tab][1]), md = d => d ? `${+d.slice(5, 7)}/${+d.slice(8)}` : '';
   const row = (k, v) => `<div class="sp-row"><span>${k}</span><b>${v}</b></div>`, sub = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
   return `<div class="row"><button class="link" data-act="mgropen">‹ 返回</button></div>
-    <div class="card sp"><div class="muted" style="font-size:12.5px;letter-spacing:.3px">STARSHIP ENTERTAINMENT</div><div class="row" style="align-items:flex-start"><h3 style="flex:1;margin:4px 0 2px">${sm.slice(0, 4)}年${+sm.slice(5)}月 · 收入结算单</h3><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--muted)"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
-      <div class="muted" style="font-size:13px">艺人：${esc(S.profile.name)} / SIA · 结算日：${sd.getMonth() + 1}.${sd.getDate()}</div>
+    <div class="card sp"><div class="muted" style="font-size:12.5px;letter-spacing:.3px">STARSHIP ENTERTAINMENT</div><div class="row" style="align-items:flex-start"><h3 style="flex:1;margin:4px 0 2px">${sm.slice(0, 4)}年${+sm.slice(5)}月收入结算单</h3><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--muted)"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></div>
+      <div class="muted" style="font-size:13px"><span>艺人：${esc(S.profile.name)}</span><span style="margin-left:16px">结算日：${sd.getMonth() + 1}.${sd.getDate()}</span></div>
       <div class="sp-hero"><div class="muted" style="font-size:12.5px">本期实际结算金额</div><div class="sp-amt">${won(Math.max(0, net))}</div>${net > 0 ? `<div class="sp-ok"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16 10"/></svg>${sd.getMonth() + 1}月${sd.getDate()}日入账</div>` : ''}</div>
-      ${row('本期收入总额', won(gross))}${row('可扣除直接费用', cost ? '-' + won(cost) : won(0))}${row('艺人分成', won(st.part))}${st.repay ? row('前期投入回收', '-' + won(st.repay)) : ''}${row('预扣税款等', ded ? '-' + won(ded) : won(0))}
+      ${row('本期收入总额', won(gross))}${row('可扣除直接费用', cost ? '-' + won(cost) : won(0))}${row('艺人分成', won(st.part))}${st.repay ? row('前期投入回收', '-' + won(st.repay)) : ''}${row('预扣税款等', ded ? '-' + won(ded) : won(0))}${st.adv ? row('已预支', '-' + won(st.adv)) : ''}
       <h4 style="margin:22px 0 10px">收入明细</h4><div class="sp-tabs">${Object.entries(ST_TAB).map(([k, [n]]) => `<button class="${tab === k ? 'on' : ''}" data-act="sttab" data-k="${k}" data-id="${st.id}">${n}</button>`).join('')}</div>
-      ${L.map(l => l.fine ? `<div class="sp-it"><span>${esc(l.title)}</span><b>-${won(l.fine)}</b></div>` : `<details class="sp-it"><summary><span>${esc(l.title)}</span><b>${won(l.gross)}</b></summary><div class="sp-sub">${sub('日期', md(l.date))}${sub('收入', won(l.gross))}${sub('扣除费用', l.cost ? '-' + won(l.cost) : won(0))}${sub('合同分成', Math.round(l.ratio * 100) + '%')}${sub('艺人所得', won(l.pay))}</div></details>`).join('')}</div>`;
+      ${L.map(l => l.fine ? `<div class="sp-it"><span>${esc(l.title)}</span><b>-${won(l.fine)}</b></div>` : `<details class="sp-it"><summary><span>${esc(l.title)}</span><b>${won(l.gross)}</b></summary><div class="sp-sub">${sub('日期', md(l.date))}${sub('收入', won(l.gross))}${sub('扣除费用', l.cost ? '-' + won(l.cost) : won(0))}${sub('合同分成', Math.round(l.ratio * 100) + '%')}${sub('艺人所得', won(l.pay))}${l.adv ? sub(`已预支（${md(l.advOn)}）`, '-' + won(l.adv - l.advTax)) : ''}</div></details>`).join('')}</div>`;
 }
 function settleHTML() {
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
@@ -2626,7 +2628,7 @@ function settleHTML() {
   const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), st = (W.stmts || [])[0];
   const sum = (a, k) => a.reduce((s, x) => s + x[k], 0);
   return `<div class="card"><b style="font-size:14px">📑 结算</b>
-    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R.filter(x => x.gross > 0 || FINE_SRC.includes(x.src)), 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${st.label || +st.period.slice(5) + ' 月'} · ${won(st.pay - (st.fines || 0))}` : '还没有'}</b></div></div>
+    <div class="wct"><div><span>主办方 / 平台待付款</span><b>${pend.length} 笔 · ${won(sum(pend, 'gross'))}</b></div><div><span>已到账待结算</span><b>${won(sum(paid, 'gross'))}</b></div><div><span>待扣费用</span><b>${won(sum(R.filter(x => x.gross > 0 || FINE_SRC.includes(x.src)), 'cost'))}</b></div><div><span>最近结算</span><b>${st ? `${st.label || +st.period.slice(5) + ' 月'} · ${won(stNet(st))}` : '还没有'}</b></div></div>
     ${pend.length ? `<details class="me-more"><summary>待付款明细</summary>${pend.slice().sort((a, b) => a.payAt.localeCompare(b.payAt)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · 预计 ${x.payAt.slice(5).replace('-', '/')} 前付款</div></span><b>${won(x.gross)}</b></div>`).join('')}</details>` : ''}
     ${R.some(x => x.cost > 0 && (x.gross > 0 || FINE_SRC.includes(x.src))) ? `<details class="me-more"><summary>待扣费用明细</summary>${R.filter(x => x.cost > 0 && (x.gross > 0 || FINE_SRC.includes(x.src))).sort((a, b) => b.date.localeCompare(a.date)).map(x => `<div class="rule"><span style="flex:1;min-width:0">${esc(x.src === '活动经费' ? '经纪人活动经费' : x.title)}<div class="muted" style="font-size:12px">${x.date.slice(5).replace('-', '/')} · ${esc({ 行程: '直接成本', 课程: '课时费', 活动经费: '车费 · 餐费 · 临时采购', 取消违约金: '当天取消违约金', 旷工罚款: '旷工罚款', 专辑制作: '专辑制作 / 宣传' }[x.src] || x.src)}${x.why && x.src !== '活动经费' && x.why !== x.src ? ' · ' + esc(x.why) : ''}</div></span><b>-${won(x.cost)}</b></div>`).join('')}</details>` : ''}
     ${st ? `<details class="me-more"><summary>${st.label || +st.period.slice(5) + ' 月结算'}明细</summary>
@@ -2634,7 +2636,7 @@ function settleHTML() {
       <div class="rule"><span style="flex:1">你的份额合计</span><b>${won(st.part)}</b></div>
       ${(st.lines || []).filter(l => l.fine).map(l => `<div class="rule"><span style="flex:1;min-width:0">${esc(l.src)}<div class="muted" style="font-size:12px">${esc(l.title)}</div></span><b style="color:var(--danger)">-${won(l.fine)}</b></div>`).join('')}
       ${st.repay ? `<div class="rule"><span style="flex:1">还练习生欠款</span><b>-${won(st.repay)}</b></div>` : ''}
-      <div class="rule"><span style="flex:1"><b>实际支付</b></span><b style="color:var(--accent)">${won(st.pay - (st.fines || 0))}</b></div>
+      <div class="rule"><span style="flex:1"><b>实际支付</b></span><b style="color:var(--accent)">${won(stNet(st))}</b></div>
     </details>` : ''}
   </div>`;
 }
@@ -3370,7 +3372,7 @@ function mgrFacts(t) {
     const dd = +today.slice(8), st = (W.stmts || [])[0], doneToday = st && st.mon === mon && dkey(st.at) === today, nm = +next.slice(5);
     // 问「今天是不是结算日 / 什么时候结算」
     if (/정산일|정산 날|정산하는 날|언제 정산|오늘.*정산|结算日|几号结算|什么时候结算|今天.*结算/.test(t)) {
-      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [['네 오늘이에요!', '对，就是今天！'], [`${+st.period.slice(5)}월분 들어갔을 거예요. ${krw(st.pay - (st.fines || 0))}이요`, `${+st.period.slice(5)} 月的应该到了，${krw(st.pay - (st.fines || 0))}`]] : [['네 오늘이긴 한데', '是今天倒是'], ['이번엔 들어갈 게 없더라고요ㅠ 입금 아직 안 된 건 다음 달에 같이 들어가요', '这次没有能结的ㅠ 还没到账的下个月一起']];
+      if (dd === SETTLE_DAY || doneToday) return st && st.mon === mon ? [['네 오늘이에요!', '对，就是今天！'], [`${+st.period.slice(5)}월분 들어갔을 거예요. ${krw(Math.max(0, stNet(st)))}이요`, `${+st.period.slice(5)} 月的应该到了，${krw(Math.max(0, stNet(st)))}`]] : [['네 오늘이긴 한데', '是今天倒是'], ['이번엔 들어갈 게 없더라고요ㅠ 입금 아직 안 된 건 다음 달에 같이 들어가요', '这次没有能结的ㅠ 还没到账的下个月一起']];
       const left = dd < SETTLE_DAY ? SETTLE_DAY - dd : null;
       return left ? [`이번 달 ${SETTLE_DAY}일이에요. ${left === 1 ? '내일이네요!' : `${left}일 남았어요.`}`, `这个月 ${SETTLE_DAY} 号，${left === 1 ? '就是明天！' : `还有 ${left} 天。`}`] : [`이번 달 정산은 끝났고, 다음은 ${nm}월 ${SETTLE_DAY}일이에요.`, `这个月已经结算过了，下次是 ${nm} 月 ${SETTLE_DAY} 日。`];
     }
@@ -3558,7 +3560,7 @@ function mgrAdvance(t) {
   if (!/预支|提前|先发|先给|早点发|가불|선지급|미리 ?(받|주|당겨)|당겨|먼저 ?(받|주)|일찍 ?(받|주|정산)/.test(t) || !/钱|款|结算|收入|工资|费|정산|돈|출연료|수익|입금|월급|페이/.test(t)) return null;
   const M = mgrChat(); if (M.adv) return [['아까 그거 지금 회사에 확인 중이에요~', '刚才那个正在跟公司确认～']];
   const W = wallet(), today = dkey(Date.now()), R = W.recv || [];
-  const evt = R.filter(x => x.st === 'pend' && x.gross > 0 && x.kind !== 'bb' && ['行程', '代言'].includes(x.src) && x.date < today), paid = R.filter(x => x.st === 'paid');
+  const evt = R.filter(x => x.st === 'pend' && x.gross > 0 && !x.advPay && x.kind !== 'bb' && ['行程', '代言'].includes(x.src) && x.date < today), paid = R.filter(x => x.st === 'paid' && x.gross > 0 && !x.advPay);
   const want1 = /行程|活动|商演|庆典|演出|主办|행사|공연|축제|출연료|주최/.test(t), want2 = /当月|这个月|月结|结算|이번 ?달|정산/.test(t);
   const kind = want1 && !want2 ? 1 : want2 && !want1 ? 2 : paid.some(x => x.gross > 0) ? 2 : 1;
   const list = kind === 1 ? evt : paid;
@@ -3569,19 +3571,20 @@ function mgrAdvance(t) {
 function mgrAdvanceTick() {
   const M = mgrChat(), A = M.adv; if (!A || Date.now() < A.at) return; M.adv = null;
   const W = wallet(), today = dkey(Date.now()), mon = today.slice(0, 7), R = W.recv || [];
-  const list = A.kind === 1 ? R.filter(x => x.st === 'pend' && x.gross > 0 && x.kind !== 'bb' && ['行程', '代言'].includes(x.src) && x.date < today) : R.filter(x => x.st === 'paid');
+  const list = A.kind === 1 ? R.filter(x => x.st === 'pend' && x.gross > 0 && !x.advPay && x.kind !== 'bb' && ['行程', '代言'].includes(x.src) && x.date < today) : R.filter(x => x.st === 'paid' && x.gross > 0 && !x.advPay);
   if (!list.some(x => x.gross > 0)) { mgrSay(['확인해보니까 지금은 당길 게 없대요', '确认了一下，现在没有能预支的']); return; }
   if (A.kind === 2 && W.earlyMon === mon) { mgrReply([['이번 달은 이미 한 번 당겨 받아서 이번엔 안 된대요ㅠ', '这个月已经提前发过一次了，这次不行ㅠ'], [`${SETTLE_DAY}일 정산 때 같이 들어가요`, `${SETTLE_DAY} 号结算时一起发`]]); return; }
   if (A.kind === 1 && Math.random() < .2) { mgrReply([['이번엔 어렵대요ㅠ', '这次公司说不太行ㅠ'], ['주최 측 입금되는 대로 바로 정산해준대요', '说主办方一打款就马上给你结']]); return; }
-  const c = settleCalc(list), repay = W.debt > 0 ? Math.min(W.debt, Math.round(c.part * W.contract.repay)) : 0, net = c.part - repay - c.fines;
-  W.debt -= repay; W.bal += net; if (A.kind === 2) W.earlyMon = mon;
-  const label = A.kind === 1 ? '活动款预支' : `${+mon.slice(5)} 月提前结算`;
-  (W.stmts || (W.stmts = [])).unshift({ id: uid(), v: 2, mon, period: mon, label, at: Date.now(), part: c.part, fines: c.fines, repay, pay: c.part - repay, lines: c.lines });
-  W.recv = R.filter(x => !list.includes(x));
-  W.tx.unshift({ id: uid(), at: Date.now(), amt: c.part, repay, cat: '月度结算', note: label, auto: true });
-  if (c.fines) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -c.fines, cat: '违约金 / 罚款', note: label + ' · 违约金 / 罚款', auto: true });
-  mgrReply([['회사에서 OK 났어요!', '公司同意了！'], [`${krw(net)} 오늘 들어갈 거예요${repay ? `. 연습생 비용 ${krw(repay)}은 빼고요` : ''}`, `今天会打给你 ${krw(net)}${repay ? `，已经扣掉练习生费用 ${krw(repay)}` : ''}`]]);
-  pushNotif({ type: 'system', text: `💸 ${label}已到账`, sub: `实际入账 ${won(net)}${repay ? ` · 还欠款 ${won(repay)}` : ''}` }, true);
+  // 预支只是先拿：这几笔照样进 15 日的结算单，那时把已经拿到的扣掉
+  const its = list.filter(x => x.gross > 0), c = settleCalc(its);
+  its.forEach((x, i) => { x.advPay = c.lines[i].pay; x.advTax = Math.round(x.advPay * TAX_RATE); x.advOn = today; });
+  const tax = its.reduce((a, x) => a + x.advTax, 0), net = c.part - tax;
+  W.bal += net; if (A.kind === 2) W.earlyMon = mon;
+  const label = A.kind === 1 ? '活动款预支' : `${+mon.slice(5)} 月结算款预支`;
+  W.tx.unshift({ id: uid(), at: Date.now(), amt: c.part, cat: '预支', note: label, auto: true });
+  if (tax) W.tx.unshift({ id: uid(), at: Date.now() + 1, amt: -tax, cat: '预扣税款', note: label + ' · 预扣 3.3%', auto: true });
+  mgrReply([['회사에서 OK 났어요!', '公司同意了！'], [`${krw(net)} 오늘 들어갈 거예요`, `今天会打给你 ${krw(net)}`], [`${SETTLE_DAY}일 정산 때 이만큼 빼고 나와요`, `${SETTLE_DAY} 号结算的时候会把这笔扣掉`]]);
+  pushNotif({ type: 'system', text: `💸 ${label}已到账`, sub: `实际入账 ${won(net)}` }, true);
 }
 async function mgrRespond(text) {
   const cancel = mgrCancel(text); if (cancel) { mgrReply(cancel, true); return; }
