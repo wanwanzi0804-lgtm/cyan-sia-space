@@ -444,6 +444,13 @@ body.typing .bb-tick.bb-tick2{display:block}
 .kk-room{--kk-bg:#bacee0;--kk-o:#fff;--kk-ot:#191919;--kk-tm:#556270;display:flex;flex-direction:column;height:100%;background:var(--kk-bg);color:var(--kk-ot)}
 .kk-top{display:flex;align-items:center;gap:2px;padding:calc(env(safe-area-inset-top) + 8px) 6px 8px;flex:none}.kk-nm{flex:1;font-size:16.5px;font-weight:600;margin-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kk-hb{border:0;background:none;color:inherit;padding:6px 8px;font:inherit;font-size:13px;cursor:pointer;display:flex;align-items:center}.kk-tr{opacity:.45}.kk-tr.on{opacity:1;font-weight:600}
+.kk-room{position:relative;overflow:hidden}.kk-dim{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s}.kk-room.dr .kk-dim{opacity:1;pointer-events:auto}
+.kk-dr{position:absolute;top:0;right:0;bottom:0;width:78%;max-width:340px;background:var(--card);color:var(--text);transform:translateX(100%);transition:transform .22s ease-out;padding:calc(env(safe-area-inset-top) + 14px) 0 0;overflow-y:auto}.kk-room.dr .kk-dr{transform:none}
+.kk-dr-h{font-size:17px;font-weight:600;padding:4px 18px 14px;border-bottom:1px solid var(--line)}.kk-dr-sec{font-size:13px;color:var(--muted);padding:14px 18px 6px}.kk-dr-it{display:flex;align-items:center;gap:12px;padding:8px 18px;font-size:15px;cursor:pointer}.kk-dr-av{width:40px!important;height:40px!important;border-radius:15px!important;flex:none;font-size:18px}.kk-me{font-style:normal;font-size:11px;background:#556270;color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;margin-right:6px}
+.kk-pf{position:relative;height:100%;display:flex;flex-direction:column;color:#fff;background:#6f7d8c;overflow:hidden}.kk-pf::before{content:'';position:absolute;inset:-30px;background:var(--pf-bg) center/cover;filter:blur(24px) brightness(.6)}.kk-pf>*{position:relative}
+.kk-pf-top{padding:calc(env(safe-area-inset-top) + 10px) 8px 0}.kk-pf-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:28px}.kk-pf-av{width:96px;height:96px;border-radius:36px;background:#ffe24a;display:flex;align-items:center;justify-content:center;font-size:44px}
+.kk-pf-nm{display:flex;align-items:center;gap:2px;font-size:19px;font-weight:600;margin-top:14px;padding-left:32px}.kk-pf-sub{font-size:13px;opacity:.75;margin-top:2px}.kk-pf-ed{display:flex;gap:4px;margin-top:14px;align-items:center}.kk-pf-ed input::placeholder{color:rgba(255,255,255,.55)}.kk-pf-ed input{background:rgba(255,255,255,.15);border:0;border-bottom:1.5px solid #fff;border-radius:0;color:#fff;font-size:17px;text-align:center;width:180px;padding:6px}
+.kk-pf-bot{border-top:1px solid rgba(255,255,255,.25);display:flex;justify-content:center;padding:14px 0 calc(env(safe-area-inset-bottom) + 18px)}.kk-pf-bot .kk-hb{flex-direction:column;gap:6px;font-size:12.5px}
 .kk-room .kk-log{flex:1;height:auto;border-radius:0;padding:6px 10px 12px}.kk-note{padding:0 12px;flex:none}.kk-note .me-more{margin:0 0 6px!important;background:rgba(255,255,255,.55);border-radius:10px;padding:6px 10px}.kk-opts{padding:6px 10px 0;flex:none}
 .kk-bar{display:flex;gap:6px;align-items:flex-end;padding:8px 8px calc(env(safe-area-inset-bottom) + 8px);background:var(--card);flex:none}.kk-bar .chat-in{flex:1;min-width:0;border:0;background:var(--bg);border-radius:20px}.kk-bar .kk-send{align-self:stretch;border-radius:20px}
 .sheet h3{margin:4px 0 12px}
@@ -7568,11 +7575,10 @@ function kprof(key) { const SO = social(), P = SO.prof || (SO.prof = {}); if (!S
 const socDisp = p => { const k = kprof(p.key || p.g + '|' + p.n); return k.rm || k.nm || socWho(p); };
 const kAv = (key, cls) => { const a = kprof(key).av; return a ? `<img class="${cls}" src="${a}" style="object-fit:cover;padding:0" alt="">` : `<div class="${cls}">🙂</div>`; };
 function dmProfHTML(key) {
-  const T = dms()[key]; if (!T) return ''; const k = kprof(key), p = T.p;
-  return `<div class="row"><h3 style="flex:1">好友资料</h3><button class="btn ghost sm" data-act="dmopen" data-k="${esc(key)}">返回</button></div>
-    <div class="card" style="text-align:center">${kAv(key, 'mgr-av big')}<div style="font-size:15px;font-weight:600;margin-top:8px">${esc(k.nm || socWho(p))}</div><div class="muted" style="font-size:12.5px;margin-top:2px">${esc(socWho(p))}</div></div>
-    <div class="muted" style="font-size:12.5px;margin:8px 2px 4px">备注（只有你自己看得到）</div><input id="dmp-rm" value="${esc(k.rm || '')}" placeholder="${esc(k.nm || socWho(p))}">
-    <div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="dmprofsave" data-k="${esc(key)}">保存</button></div>`;
+  const T = dms()[key]; if (!T) return ''; const k = kprof(key), p = T.p, nm = k.rm || k.nm || socWho(p);
+  return `<div class="kk-pf"${k.av ? ` style="--pf-bg:url('${k.av}')"` : ''}><div class="kk-pf-top"><button class="kk-hb" data-act="dmopen" data-k="${esc(key)}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="kk-pf-mid">${kAv(key, 'kk-pf-av')}${UI.kpEdit === key ? `<div class="kk-pf-ed"><input id="dmp-rm" value="${esc(k.rm || '')}" placeholder="${esc(k.nm || socWho(p))}" maxlength="20"><button class="kk-hb" data-act="dmprofsave" data-k="${esc(key)}">확인</button></div>` : `<div class="kk-pf-nm">${esc(nm)}<button class="kk-hb" data-act="kpedit" data-k="${esc(key)}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button></div>${k.rm ? `<div class="kk-pf-sub">${esc(k.nm || socWho(p))}</div>` : ''}`}</div>
+    <div class="kk-pf-bot"><button class="kk-hb" data-act="dmopen" data-k="${esc(key)}"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-.9 3.3 3.7-2.4c.6.1 1.3.1 2 .1 5 0 9-3.1 9-7s-4-7-9-7z"/></svg><span>1:1 채팅</span></button></div></div>`;
 }
 function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
@@ -7588,11 +7594,12 @@ function dmLogHTML(T, key, tr) {
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
-  return `<div class="kk-room"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="dmprof" data-k="${esc(key)}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+  return `<div class="kk-room${UI.kkDr === key ? ' dr' : ''}"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="kkdr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
     ${socMemHTML(key) ? `<div class="kk-note">${socMemHTML(key)}</div>` : ''}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div class="kk-opts">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
     ${e ? `<div class="kk-opts">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
-    <div class="kk-bar"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div></div>`;
+    <div class="kk-bar"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
+    <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div></aside></div>`;
 }
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
@@ -8025,7 +8032,7 @@ function openModal(html) {
   if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
     for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
     keep.sheet = sh.scrollTop; }
-  sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
+  sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room,.kk-pf')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
   if (keep.sheet != null) sh.scrollTop = keep.sheet;
   for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
@@ -8161,12 +8168,14 @@ document.addEventListener('click', async e => {
       if (ok) C.list.push({ id: uid(), date: o.date, p: o.p, song: ['', ''], st: 'book', at: Date.now(), bk: { min: o.min, where: o.where, act: o.act, music: o.music, relMin: o.relMin } });
       mgrReply(ok ? ['네 그날로 잡아둘게요', '好，那天给你安排上'] : ['네 그쪽에 말해둘게요', '好，我跟那边说一声'], true); B.offer = null; save(); render(); break; }
     case 'chpopclose': UI.chPop = null; closeModal(); render(); break;
-    case 'dmopen': { let T = dms()[t.dataset.k]; if (!T) { const f = chal().friends.find(f => f.g + '|' + f.n === t.dataset.k); if (!f) break; T = dmThread(friendP(f)); } T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
-    case 'dmprof': openModal(dmProfHTML(t.dataset.k)); break;
+    case 'dmopen': { UI.kkDr = null; let T = dms()[t.dataset.k]; if (!T) { const f = chal().friends.find(f => f.g + '|' + f.n === t.dataset.k); if (!f) break; T = dmThread(friendP(f)); } T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'dmprof': UI.kpEdit = null; UI.kkDr = null; openModal(dmProfHTML(t.dataset.k)); break;
+    case 'kpedit': UI.kpEdit = t.dataset.k; openModal(dmProfHTML(t.dataset.k)); { const el = $('#dmp-rm'); if (el) el.focus(); } break;
+    case 'kkdr': { const r = t.closest('.kk-room'); if (r) UI.kkDr = r.classList.toggle('dr') ? UI.dmOpen : null; break; }
     case 'dmprofav0': { const k = kprof(t.dataset.k); delete k.av; save(); openModal(dmProfHTML(t.dataset.k)); render(); break; }
     case 'dmprofsave': { const key = t.dataset.k, SO = social(), k = kprof(key);
       k.rm = $('#dmp-rm').value.trim(); if (!k.rm) delete k.rm; SO.prof[key] = k; // 只能改自己写的备注；头像和 KKT 名是对方的
-      save(); toast('已保存'); openModal(dmHTML(key)); render(); break; }
+      UI.kpEdit = null; save(); openModal(dmProfHTML(key)); render(); break; }
     case 'mgrtr2': UI.mgrTr = UI.mgrTr === false; openModal(dmHTML(t.dataset.k)); break;
     case 'dmpick': { const k = t.dataset.k, x = social().q.find(y => y.dm && !y.ans && y.p.key === k); if (!x) break; const o = socOpts(socEv(x.ev), x.p, x)[+t.dataset.j]; if (!o) break; dmAnswer(k, o.t, o, SOC_SILENT.test(o.t)); break; }
     case 'dmsend': { const k = t.dataset.k, v = ($('#dm-in').value || '').trim(); if (!v) break; { const SV = social().serim; if (k === 'CRAVITY|세림' && SV && SV.dm && !SV.done) { serimReply(v); break; } } $('#dm-in').value = ''; const x = social().q.find(y => y.dm && !y.ans && (y.via || y.p).key === k), e = x && socEv(x.ev), tn = tone(v), neg = tn === 'neg';
