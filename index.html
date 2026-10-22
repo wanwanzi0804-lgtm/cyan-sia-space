@@ -5782,7 +5782,7 @@ function viewFeed() {
     <div class="hero-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)}</b><span>今日</span></div></div></div>`;
   if (sub === 'media') {
     const L = S.posts.filter(x => x.media.length);
-    return feedNav('media') + hero + (L.length ? `<div class="mgrid">${L.map(x => { const m = x.media[0]; return `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}${x.media.length > 1 ? `<i class="mg-n">${x.media.length}</i>` : ''}</div>`; }).join('')}</div>` : '<div class="empty">还没有发过图片或视频</div>');
+    return feedNav('media') + hero + (L.length ? `<div class="mgrid">${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : '<div class="empty">还没有发过图片或视频</div>');
   }
   const open = UI.cmpOpen || pending.length > 0;
   return `${feedNav('feed')}${hero}
