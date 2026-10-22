@@ -3387,7 +3387,7 @@ const YT_CAT = {
   vlog: ['Vlog / 自制物料', [['self', '个人拍摄', 0, 2e5, 0], ['co', '公司协助拍摄', 3e5, 3e6, 1]]],
   special: ['Special Video', [['low', '低预算自制影像', 3e5, 15e5, 1], ['mid', '特别影像 / 特别表演', 15e5, 6e6, 1]]]
 };
-const YT_ST = { sub: '已提交', rev: 'STARSHIP 初审', fix: '需要修改', coord: '合作方协调中', ok: '已批准', sched: '待安排拍摄', booked: '已排期', shoot: '制作中', post: '后期制作', ready: '待发布', pub: '已发布', no: '已拒绝', hold: '暂缓', cancel: '已取消' };
+const YT_ST = { ask: '等你回复', sub: '已提交', rev: 'STARSHIP 初审', fix: '需要修改', coord: '合作方协调中', ok: '已批准', sched: '待安排拍摄', booked: '已排期', shoot: '制作中', post: '后期制作', ready: '待发布', pub: '已发布', no: '已拒绝', hold: '暂缓', cancel: '已取消' };
 function yt() { const Y = S.yt || (S.yt = { v: 1, plans: [], vids: [] }); if (!Y.plans) Y.plans = []; if (!Y.vids) Y.vids = []; return Y; }
 const ytFmt = p => (YT_CAT[p.cat][1].find(f => f[0] === p.fmt) || YT_CAT[p.cat][1][0]);
 const ytLight = p => !ytFmt(p)[4] && !p.collab; // 不需要外部人员、自己就能拍的：简化流程，不占正式行程
@@ -3445,13 +3445,74 @@ function ytAfterOk(p, d) {
   if (!p.slots.length) { p.st = 'hold'; p.retryAt = Date.now() + 5 * 86400e3; ytLog(p, '最近两周排不出拍摄时间，往后放'); mgrSay([`${p.title} 통과됐는데 2주 안에는 촬영 잡을 날이 없네요. 좀 미룰게요`, `${p.title}通过了，但两周内排不出拍摄时间，先往后放`]); return; }
   mgrSay([`${p.title} 통과됐어요.${d.cut ? ' 예산은 반으로 줄였어요.' : d.remote ? ' 같이 찍는 건 어렵고 각자 녹음해서 합치기로 했어요.' : ''} 촬영 언제가 좋아요?`, `${p.title}通过了。${d.cut ? '预算砍了一半。' : d.remote ? '一起拍不行，改成各自录音再合成。' : ''}拍摄哪天方便？`], { type: 'ytshoot', id: p.id });
 }
+// 🏢 公司主动安排的内容：跟着活动期走（回归期每周 1～2 个，空档期每月 1～2 个），经纪人在 KKT 里说
+// 回归必拍的（Dance Practice、MV 幕后）只能商量时间；其他的可以接、提意见或推掉
+const YT_COVERS = [['사랑은 늘 도망가', '임영웅'], ['Love wins all', 'IU'], ['밤양갱', '비비'], ['Hype Boy', 'NewJeans'], ['first love', '宇多田光'], ['어떻게 이별까지 사랑하겠어, 널 사랑하는 거지', 'AKMU'], ['Square', '백예린'], ['그대만 있다면', '너드커넥션']];
+function ytCoPool() {
+  const ph = cbPhase(), a = cbAlbum(), song = a && (ph === 'follow' ? S.cb.follow : albTitle(a)), nm = S.profile.name, aid = a ? a.id : '';
+  if (a && ['tease', 'promo', 'follow'].includes(ph)) {
+    const L = [];
+    if (ph === 'tease') L.push({ k: `tz:${aid}`, cat: 'shorts', fmt: 'pro', title: `《${song}》回归预告 Shorts`, vtitle: `${nm} - ${song} #Shorts`, why: ['컴백 전에 쇼츠 하나 올리려고요', '回归前想先发个 Shorts 预热'] });
+    if (ph === 'promo' || ph === 'follow') {
+      L.push({ k: `dp:${aid}:${song}`, must: 1, cat: 'dance', fmt: 'fix', title: `《${song}》Dance Practice`, vtitle: `[Dance Practice] ${nm} - ${song}`, why: ['안무 영상은 컴백 때 꼭 찍어야 해요', '回归的练习室版是必须拍的'] });
+      if (ph === 'promo') L.push({ k: `mvb:${aid}`, must: 1, noShoot: 1, cat: 'special', fmt: 'low', title: `《${song}》MV 幕后`, vtitle: `${nm} '${song}' M/V Behind`, why: ['뮤비 비하인드는 촬영 때 찍어둔 걸로 편집할게요', 'MV 幕后用拍 MV 时录的素材剪，不用另外拍'] });
+      L.push({ k: `live:${aid}:${song}`, cat: 'vocal', fmt: 'live', title: `《${song}》Live Clip`, vtitle: `${nm} - ${song} (Live Clip)`, why: ['라이브 클립 하나 찍어보면 어때요', '要不要拍一个 Live Clip'] });
+      if (ph === 'promo') L.push({ k: `cbv:${aid}`, cat: 'vlog', fmt: 'co', title: '回归 Vlog', vtitle: `${nm} 컴백 VLOG`, why: ['컴백 브이로그 찍을까 해요. 촬영팀이 따라다니는 거라 따로 시간은 거의 안 들어요', '想拍个回归 Vlog，摄影组跟拍，基本不用另外空时间'] });
+      for (let i = 1; i <= 3; i++) L.push({ k: `bs:${aid}:${i}`, cat: 'shorts', fmt: 'self', title: '打歌后台 Shorts', vtitle: `${song} 음방 비하인드 #Shorts`, why: ['음방 대기실에서 쇼츠 하나 찍어줄 수 있어요?', '打歌待机室里能拍个 Shorts 吗？'] });
+    }
+    return L;
+  }
+  const m = dkey(Date.now()).slice(0, 7), cv = YT_COVERS[srng('ytcv' + m)() * YT_COVERS.length | 0];
+  return [
+    { k: `vlog:${m}`, cat: 'vlog', fmt: 'self', title: '日常 Vlog', vtitle: `${nm} VLOG`, why: ['요즘 콘텐츠가 좀 비어서요. 일상 브이로그 하나 찍어줄 수 있어요?', '最近内容有点空，能拍个日常 Vlog 吗？'] },
+    { k: `cover:${m}`, cat: 'vocal', fmt: 'live', title: `《${cv[0]}》翻唱 Live Clip`, orig: cv[1], vtitle: `${nm} - ${cv[0]} (Cover)`, why: [`${cv[0]} 커버 어때요? 제작팀에서 추천했어요`, `翻唱《${cv[0]}》怎么样？制作组推荐的`] },
+    { k: `sh:${m}`, cat: 'shorts', fmt: 'self', title: '随手拍 Shorts', vtitle: `${nm} #Shorts`, why: ['쇼츠 하나만 찍어서 보내줘요. 아무거나 괜찮아요', '随便拍个 Shorts 发我就行'] }
+  ];
+}
+function ytCoTick() {
+  const Y = yt(), now = Date.now(), h = new Date().getHours(); if (h < 10 || h >= 21) return;
+  const done = Y.coDone || (Y.coDone = {}), ph = cbPhase(), busy = ['tease', 'promo', 'follow'].includes(ph);
+  if (Y.plans.some(p => p.by === 'co' && p.st === 'ask')) return; // 上一个还没回
+  if (Y.coLast && now - Y.coLast < 86400e3) return; // 一天最多一个
+  const pool = ytCoPool().filter(x => !done[x.k]), must = pool.find(x => x.must);
+  if (!must && Y.coNext && now < Y.coNext) return;
+  if (!Y.coNext && !must) { Y.coNext = now + rand(2, 10) * 3600e3; return; }
+  const x = must || pick(pool); if (!x) { Y.coNext = now + 3 * 86400e3; return; }
+  done[x.k] = 1; Y.coLast = now; Y.coNext = now + (busy ? rand(3, 5) : rand(12, 20)) * 86400e3;
+  const p = { id: uid(), by: 'co', must: x.must || 0, noShoot: x.noShoot || 0, cat: x.cat, fmt: x.fmt, title: x.title, vtitle: x.vtitle, orig: x.orig || '', note: '', collab: null, at: now, log: [] };
+  p.cost = ytCost(p); Y.plans.unshift(p);
+  if (p.must) { ytLog(p, '公司安排（回归必拍）'); mgrSay(x.why); setTimeout(() => { ytCoStart(p); save(); }, 1500); }
+  else { p.st = 'ask'; p.askAt = now; ytLog(p, '公司提议'); mgrSay(x.why, { type: 'ytco', id: p.id }); }
+  save();
+}
+// 定下来以后：自己拍的直接拍；不用拍的直接进后期；要拍的给 3 个时间
+function ytCoStart(p) {
+  if (p.noShoot) { p.st = 'post'; p.postUntil = Date.now() + rand(2, 5) * 86400e3; ytLog(p, '用已有素材剪辑'); return; }
+  if (p.fmt === 'self') { p.st = 'shoot'; ytLog(p, '自己找空拍'); mgrSay(pick([['편할 때 찍어서 보내줘요', '你方便的时候拍了发我'], ['찍으면 보내줘요~', '拍好发我~']])); return; }
+  p.st = 'sched'; p.slots = ytSlots(p);
+  if (!p.slots.length) { p.st = 'hold'; p.retryAt = Date.now() + 5 * 86400e3; p.dec = { st: 'ok', why: '' }; ytLog(p, '最近两周排不出拍摄时间，往后放'); mgrSay([`${p.title} 촬영은 2주 안에 잡을 날이 없어서 좀 미룰게요`, `${p.title}两周内排不出拍摄时间，先往后放`]); return; }
+  mgrSay([`${p.title} 촬영 언제가 좋아요?`, `${p.title}拍摄哪天方便？`], { type: 'ytshoot', id: p.id });
+}
+function ytCoAns(id, r, idea) {
+  const p = yt().plans.find(x => x.id === id); if (!p || p.st !== 'ask') return; const M = mgrChat();
+  const me = r === 'no' ? pick([['이번엔 패스할게요', '这次就算了'], ['이건 안 할래요', '这个不拍了']]) : r === 'ok' ? pick([['네 좋아요!', '好啊！'], ['찍을게요', '拍吧']]) : null;
+  if (me) M.chat.push({ id: uid(), at: Date.now(), text: me[0], zh: me[1], me: true }); else { const m = { id: uid(), at: Date.now(), text: idea, me: true }; M.chat.push(m); mgrTrMe(m); }
+  M.readPlan = Date.now() + 700;
+  if (r === 'no') { p.st = 'cancel'; ytLog(p, '你推掉了'); mgrResolve('ytco', id, '没接'); mgrReply(['알겠어요, 이번 건은 패스할게요', '好，这个就不做了']); save(); return; }
+  if (r === 'idea') { p.note = idea; ytLog(p, '你提了意见'); mgrResolve('ytco', id, '提了意见'); mgrReply(['좋아요, 제작팀에 전달할게요', '好，我跟制作组说']); }
+  else { ytLog(p, '你同意了'); mgrResolve('ytco', id, '接了'); }
+  p.st = 'ok'; setTimeout(() => { ytCoStart(p); save(); mgrRefresh(); }, 2500); save(); mgrRefresh();
+}
+// 3 天没回：这次先不做
+function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
+  ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
     if (p.st === 'sub' && now >= p.decideAt) { p.st = p.collab ? 'coord' : 'rev'; ytLog(p); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：${YT_CAT[p.cat][0]}《${p.title}》在等双方公司确认，还没定`); p.decideAt = now + (ytLight(p) ? rand(.5, 3) : rand(18, 60)) * 3600e3; }
     else if ((p.st === 'rev' || p.st === 'coord') && now >= p.decideAt) {
       const d = p.dec || (p.dec = ytDecide(p));
-      if (d.st === 'ok') ytAfterOk(p, d);
+      if (d.st === 'ok') { if (p.by === 'co') ytCoStart(p); else ytAfterOk(p, d); }
       else if (d.st === 'hold') { p.st = 'hold'; p.retryAt = now + d.days * 86400e3; ytLog(p, d.why); mgrSay([`${p.title} 건은 좀 미뤄졌어요.`, `${p.title}那个先缓一缓。${d.why}`]); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：《${p.title}》延期了，还没定时间`); }
       else { p.st = d.st; ytLog(p, d.why); mgrSay(d.st === 'fix' ? [`${p.title} 기획 조금만 수정해서 다시 내보래요.`, `${p.title}的企划让改一下再提。${d.why}`] : [`${p.title} 이번엔 어렵대요ㅠ`, `${p.title}这次不行ㅠ ${d.why}`]); if (p.collab) ytMem(p.collab.key, d.st === 'fix' ? `和 Cyan 的合作企划：《${p.title}》公司让改一下再提，还没定` : `和 Cyan 的合作企划：《${p.title}》没谈成（${d.cw === 'will' ? '这边没时间参加' : d.cw === 'co' ? '对方公司没批' : 'STARSHIP 没批'}）`); }
     }
@@ -3512,8 +3573,8 @@ function ytPageHTML(pg) {
     <div class="seg3">${[['v', '视频', vids.length], ['s', 'Shorts', shorts.length], ['p', '企划', Y.plans.length]].map(([k, t, n]) => `<button class="${tab === k ? 'on' : ''}" data-act="yttab" data-k="${k}">${t}${n ? ` <i>${n}</i>` : ''}</button>`).join('')}</div>${body}`;
 }
 function ytPlansHTML() {
-  const Y = yt(), grp = [['审核中', ['sub', 'rev', 'coord', 'fix']], ['制作中', ['ok', 'sched', 'booked', 'shoot', 'post']], ['待发布', ['ready']], ['已发布', ['pub']], ['拒绝 / 暂缓 / 取消', ['no', 'hold', 'cancel']]];
-  const row = p => `<button class="m-alb" data-act="mgo" data-p="ytp:${p.id}"><div class="w-tx-l"><div class="w-tx-t">${esc(p.title)}${p.collab ? ` <span class="muted" style="font-size:12px">with ${esc(socName(p.collab))}</span>` : ''}</div><div class="w-tx-s">${YT_CAT[p.cat][0]} · ${ytFmt(p)[1]}</div></div><em class="w-tag ${['no', 'cancel'].includes(p.st) ? 'sys' : 't2'}">${YT_ST[p.st]}</em><i>›</i></button>`;
+  const Y = yt(), grp = [['审核中', ['ask', 'sub', 'rev', 'coord', 'fix']], ['制作中', ['ok', 'sched', 'booked', 'shoot', 'post']], ['待发布', ['ready']], ['已发布', ['pub']], ['拒绝 / 暂缓 / 取消', ['no', 'hold', 'cancel']]];
+  const row = p => `<button class="m-alb" data-act="mgo" data-p="ytp:${p.id}"><div class="w-tx-l"><div class="w-tx-t">${esc(p.title)}${p.collab ? ` <span class="muted" style="font-size:12px">with ${esc(socName(p.collab))}</span>` : ''}</div><div class="w-tx-s">${p.by === 'co' ? '公司安排 · ' : ''}${YT_CAT[p.cat][0]} · ${ytFmt(p)[1]}</div></div><em class="w-tag ${['no', 'cancel'].includes(p.st) ? 'sys' : 't2'}">${YT_ST[p.st]}</em><i>›</i></button>`;
   const G = grp.map(([t, sts]) => [t, Y.plans.filter(p => sts.includes(p.st))]).filter(x => x[1].length);
   return G.length ? G.map(([t, L]) => `<div class="w-day">${t}</div><div class="card w-list">${L.map(row).join('')}</div>`).join('') : '<div class="card muted" style="text-align:center">还没有提交过企划</div>';
 }
@@ -3533,8 +3594,8 @@ function ytPlanHTML(id) {
   const p = yt().plans.find(x => x.id === id); if (!p) { UI.mPage = 'yt'; return ytPageHTML('yt'); }
   const kv = (k, v) => `<div class="w-kv"><span>${k}</span><b>${v}</b></div>`, sl = S.schedule.rules.find(x => x.id === p.rule);
   const act = p.st === 'fix' ? `<button class="btn primary" data-act="ytedit" data-id="${p.id}">修改后重新提交</button>` : p.st === 'shoot' && ytLight(p) ? `<button class="btn primary" data-act="ytshot" data-id="${p.id}">拍好了</button>` : p.st === 'ready' ? `<button class="btn primary" data-act="ytpub" data-id="${p.id}">发布到频道</button>` : p.st === 'pub' && p.vid ? `<button class="btn primary" data-act="mgo" data-p="ytv:${p.vid}">查看视频</button>` : '';
-  const can = !['pub', 'no', 'cancel', 'post', 'ready'].includes(p.st);
-  return mHead('企划详情', 'yt') + `<div class="card w-ov">${kv('企划', esc(p.title))}${p.orig ? kv('原唱', esc(p.orig)) : ''}${kv('类型', YT_CAT[p.cat][0])}${kv('形式', ytFmt(p)[1])}${p.collab ? kv('合作', esc(`${p.collab.g} ${p.collab.z || p.collab.n}`)) : ''}${p.cost != null && p.st !== 'sub' && p.cost ? kv('制作预算', won(p.cost) + '（公司承担）') : ''}${kv('状态', YT_ST[p.st])}${sl ? kv('拍摄', `${sl.date.slice(5).replace('-', '/')} ${sl.start}-${sl.end}`) : ''}</div>
+  const can = !['pub', 'no', 'cancel', 'post', 'ready', 'ask'].includes(p.st) && !p.must;
+  return mHead('企划详情', 'yt') + `<div class="card w-ov">${kv('企划', esc(p.title))}${p.by === 'co' ? kv('来源', p.must ? '公司安排（回归必拍）' : '公司安排') : ''}${p.orig ? kv('原唱', esc(p.orig)) : ''}${kv('类型', YT_CAT[p.cat][0])}${kv('形式', ytFmt(p)[1])}${p.collab ? kv('合作', esc(`${p.collab.g} ${p.collab.z || p.collab.n}`)) : ''}${p.cost != null && p.st !== 'sub' && p.cost ? kv('制作预算', won(p.cost) + '（公司承担）') : ''}${kv('状态', YT_ST[p.st])}${sl ? kv('拍摄', `${sl.date.slice(5).replace('-', '/')} ${sl.start}-${sl.end}`) : ''}</div>
     ${p.note ? `<div class="card w-doc">${esc(p.note)}</div>` : ''}
     ${mSec('进度')}<div class="card w-list">${(p.log || []).slice().reverse().map(l => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${YT_ST[l.st] || ''}</div><div class="w-tx-s">${new Date(l.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${l.msg ? ' · ' + esc(l.msg) : ''}</div></div></div>`).join('')}</div>
     ${act || can ? `<div class="w-sh-b">${can ? `<button class="btn ghost" data-act="ytcancel" data-id="${p.id}">取消企划</button>` : '<span></span>'}${act || '<span></span>'}</div>` : ''}`;
@@ -3782,6 +3843,7 @@ function mgrCardMsg(m) {
     const types = Object.entries(GIFTS).filter(([k, x]) => x.cats.includes(m.card.cat) && !sel.some(c => c.startsWith(k + ':'))).map(([k, x]) => btn(k, (sel.length ? '＋ ' : '') + x.short));
     return `${sel.length ? `<div class="kk-res" style="color:inherit">已选：${sel.map(c => esc(giftInfo(c).label)).join('、')}</div>` : ''}<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${g ? g.sizes.map((z, i) => btn(m.card.t, `${z[0] ? z[0] + ' · ' : ''}${fmtNum(z[1] / 10000)}–${fmtNum(z[2] / 10000)}万`, i)).join('') + btn('', '‹ 换一种') : [sel.length ? btn('done', '就这些', undefined, 'primary') : btn('-', '不用了'), ...types].join('')}</div>`; }
   if (m.card.type === 'aw') { const st = awardsState()[m.card.id]; return st && st.status === 'ask' && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="awno" data-id="${m.card.id}">不去</button><button class="btn primary sm" data-act="awok" data-id="${m.card.id}">去</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
+  if (m.card.type === 'ytco') { const p = yt().plans.find(x => x.id === m.card.id); if (!p || m.res || p.st !== 'ask') return `<div class="kk-res">${esc(m.res || '已处理')}</div>`; return `<div class="kk-act"><button class="btn ghost sm" data-act="ytco" data-id="${p.id}" data-r="no">不拍</button><button class="btn ghost sm" data-act="ytco" data-id="${p.id}" data-r="idea">有想法</button><button class="btn primary sm" data-act="ytco" data-id="${p.id}" data-r="ok">好</button></div>`; }
   if (m.card.type === 'ytshoot') { const p = yt().plans.find(x => x.id === m.card.id); if (!p || m.res || p.st !== 'sched') return `<div class="kk-res">${esc(m.res || '已处理')}</div>`; return `<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${(p.slots || []).map((x, i) => `<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="${i}">${+x.dk.slice(5, 7)}/${+x.dk.slice(8)}（${WD[parseD(x.dk).getDay()]}）${x.start}</button>`).join('')}<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="-1">都不行</button></div>`; }
   if (m.card.type === 'chbook') { const o = (chal().book || {}).offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="chbkno" data-id="${o.id}">不拍</button><button class="btn primary sm" data-act="chbkok" data-id="${o.id}">好</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   if (m.card.type === 'deal') { const o = wallet().offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
@@ -9062,6 +9124,8 @@ document.addEventListener('click', async e => {
     case 'ytshot': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || p.st !== 'shoot') break; p.st = 'ready'; ytLog(p, '自己拍好了'); save(); render(); toast('拍好了 ✓', '可以发布了'); break; }
     case 'ytpub': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p) break; ytPublish(p); render(); toast('已发布 ▶', p.title); break; }
     case 'ytcancel': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || ['pub', 'cancel'].includes(p.st)) break; const r = p.rule && S.schedule.rules.find(x => x.id === p.rule); if (r && (r.date > dkey(Date.now()))) S.schedule.rules = S.schedule.rules.filter(x => x !== r); p.st = 'cancel'; ytLog(p, '你取消了'); mgrResolve('ytshoot', p.id, '已取消'); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：《${p.title}》取消了`); save(); render(); break; }
+    case 'ytco': { const r = t.dataset.r, id = t.dataset.id; if (r !== 'idea') { ytCoAns(id, r); break; } const p = yt().plans.find(x => x.id === id); if (!p) break; UI.ytIdea = id; UI.mgrOpen = false; openModal(`<div class="row"><h3 style="flex:1">${esc(p.title)}</h3></div><textarea id="ytco-in" rows="4" style="width:100%" placeholder="想怎么拍、想加什么…"></textarea><div class="row" style="margin-top:10px"><span class="sp"></span><button class="link" data-act="mgropen">返回</button><button class="btn primary sm" data-act="ytcoidea">发给经纪人</button></div>`); break; }
+    case 'ytcoidea': { const v = ($('#ytco-in')?.value || '').trim(); if (!v) { toast('写一下你的想法'); break; } ytCoAns(UI.ytIdea, 'idea', v); UI.ytIdea = null; { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break; }
     case 'ytslot': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || p.st !== 'sched') break; const i = +t.dataset.i;
       if (i < 0) { p.st = 'hold'; p.retryAt = Date.now() + 3 * 86400e3; p.dec = { st: 'ok', why: '' }; ytLog(p, '提供的时间都不方便，过几天再排'); mgrResolve('ytshoot', p.id, '都不行'); mgrReply(['알겠어요, 며칠 뒤에 다시 잡아볼게요', '好，过几天再重新排']); save(); break; }
       const x = p.slots[i]; if (!x || rulesFor(x.dk).some(r => toMin(r.start) < toMin(x.end) && toMin(r.end) > toMin(x.start))) { toast('那个时间已经有行程了'); p.slots = ytSlots(p); mgrRefresh(); break; }
