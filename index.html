@@ -4351,6 +4351,18 @@ function tgTrivia() {
   if (first) qs.push({ w: '我的第一首歌是？', m: albTitle(first), opts: pickN([albTitle(first), '星期五晚上', 'Blue Hour', '橘子汽水'], 4) });
   return pickN(qs, 3);
 }
+// 视频通话签售：隔着屏幕，碰不到人也拿不到东西——线下才有的事件（签名、握手、收礼物、拍立得、翻手账…）不出现，换成视频签售自己的
+const VCALL_RE = /视频通话|영상통화|영통|线上签售/, VCALL_OFF = /握|签名|签到|签了|便签|便利贴|手写|写一句|写下|写个|写一个|写「|内页|翻看|一页|收纳册|毛衣|送了你|礼物|拍立得|合照|带来|蹲下|套上|手账|手抖|画像|小朋友|妈妈说|现场|手酸|狂点|到场/;
+const TG_VCALL = [
+  r => C('一位粉丝把手机镜头对准了自己家的猫，说它也是你的粉丝。', [['凑近镜头跟猫打招呼', .5, 1], ['学猫叫逗它', .45, .95], ['问猫叫什么名字', .45, .9]]),
+  r => C('一位粉丝开着小狗滤镜连进来，整张脸都变成了狗狗。', [['自己也换一个滤镜', .45, 1], ['笑到说不出话', .4, .9], ['认真夸滤镜可爱', .4, .85]]),
+  r => M([['通话只剩最后十秒，粉丝急着说还有一句话没说完。', [['让她快说，我听着', .5, 1], ['先说「下次再来」', .4, .85], ['隔着屏幕比个心', .45, .9]]]]),
+  r => W_('一位粉丝说明天要考试，请你对着镜头给她加油。', '对她说一句'),
+  r => C('一位粉丝举着手写的应援牌凑到镜头前，字太小你看不清。', [['让她慢慢念给你听', .5, 1], ['把脸贴近屏幕眯眼看', .45, .95], ['笑着说「再近一点！」', .4, .9]]),
+  r => C('连线的粉丝在宿舍被窝里小声说话，怕吵醒室友。', [['也跟着压低声音', .5, 1], ['问她这么晚还不睡', .4, .9], ['陪她小声聊完', .45, .95]]),
+  r => C('一位粉丝让你猜她今天给你准备的问题，猜对有奖励。', [['认真猜三次', .45, .95], ['耍赖要提示', .45, 1], ['直接投降', .35, .8]]),
+  r => M([['画面卡住了，粉丝的表情定格在一个很好笑的瞬间。', [['忍不住笑出声', .45, 1], ['截屏发 Bubble', .4, .9], ['等画面恢复再说', .4, .85]]], ['画面恢复后，她问你刚才笑什么。', [['老实说她卡住的样子很可爱', .5, 1], ['装作什么都没发生', .35, .8], ['让她自己看截图', .4, .9]]]])
+];
 function tgCard(k, r) {
   if (isMusicRule(r)) return mzCard(k, r, k + '|' + r.id); // 音乐创作：用作品库里的创作事件
   const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
@@ -4361,10 +4373,13 @@ function tgCard(k, r) {
   const sigOf = e => TG_GAME_KINDS.includes(e.kind) ? 'g:' + e.kind : e._i || String(e.d).split(r.title).join('§');
   const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.key !== key).map(c => c.sig || (TG_GAME_KINDS.includes(c.kind) ? 'g:' + c.kind : String(c.d).split(c.title).join('§'))));
   // 循环：这一类的每个事件都出现过一次之前不重复，全部出现过后再重置
-  const csig = e => e._i || String(e.d).split(r.title).join('§'), cyc = T.cyc || (T.cyc = {}), ck = evs === TG_EVENTS['校庆'] ? '校庆' : r.cat;
+  const csig = e => e._i || String(e.d).split(r.title).join('§'), cyc = T.cyc || (T.cyc = {}), ck = evs === TG_EVENTS['校庆'] ? '校庆' : r.cat === '签售' && VCALL_RE.test(r.title || '') ? '视频签售' : r.cat;
   const uniq = es => { const seen = new Set(); return es.filter(e => { const g = String(e.d).split(r.title).join('§'); if (seen.has(g)) return false; seen.add(g); return true; }); };
   const cycle = (es, k2) => { const done = new Set(cyc[k2] || []); let p = es.filter(e => !done.has(csig(e))); if (!p.length) { cyc[k2] = []; p = es; } const fresh = p.filter(e => !used.has(sigOf(e))); return fresh.length ? fresh : p; };
-  let cands = uniq(evs.map((f, i) => { try { const e = f(r); if (e) e._i = ck + '#' + i; return e; } catch (e) { return null; } }).filter(Boolean)); if (!cands.length) return null;
+  const vc = r.cat === '签售' && VCALL_RE.test(r.title || '');
+  let cands = uniq(evs.map((f, i) => { try { const e = f(r); if (e) e._i = ck + '#' + i; return e; } catch (e) { return null; } }).filter(Boolean));
+  if (vc) cands = cands.filter(e => !VCALL_OFF.test(JSON.stringify(e))).concat(TG_VCALL.map((f, i) => { const e = f(r); e._i = 'vc#' + i; return e; }));
+  if (!cands.length) return null;
   cands = cycle(cands, ck);
   const wts = cands.map(e => TG_GAME_KINDS.includes(e.kind) ? .35 : 1);
   let spE = uniq(sp.map(x => { try { const e = x[1](r); if (e) e._i = 'sp#' + TG_SPECIAL.indexOf(x); return e; } catch (e) { return null; } }).filter(Boolean)); if (spE.length) { if ((cyc.sp || []).length >= TG_SPECIAL.length) cyc.sp = []; const done = new Set(cyc.sp || []); spE = spE.filter(e => !done.has(csig(e)) && !used.has(sigOf(e))); } // 专属事件用完了这次就出普通事件，不提前重复
