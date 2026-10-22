@@ -9,7 +9,7 @@
 :root{
   --bg:#f4f6f8; --card:#ffffff; --text:#1d2329; --muted:#8a939c; --line:#e7ebef;
   --accent:#16c2c8; --accent2:#7b6cff; --accent-soft:#e3f8f9; --danger:#ff4d6d;
-  --shadow:0 1px 3px rgba(20,30,40,.06),0 4px 14px rgba(20,30,40,.05);
+  --shadow:0 1px 2px rgba(20,30,40,.05),0 2px 10px rgba(20,30,40,.04);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){ --bg:#0f1316; --card:#181e23; --text:#e8edf1; --muted:#87929c; --line:#262e35; --accent-soft:#11373a; --shadow:none; }
@@ -23,7 +23,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:80px}
 /* 聊天输入框用 textarea：iOS Safari 不会在上面弹「自动填充联系人 / 地址」 */
 textarea.chat-in{min-height:42px;max-height:110px;resize:none;padding:10px 12px;line-height:1.35}
-#app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:76px}
+#app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:12px 16px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px)}
 .logo{font-weight:800;letter-spacing:.5px;font-size:19px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
 .sp{flex:1}
@@ -32,8 +32,8 @@ textarea.chat-in{min-height:42px;max-height:110px;resize:none;padding:10px 12px;
 .badge:empty{display:none}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabbar .inner{display:flex;width:100%;max-width:560px}
-.tab{flex:1;border:0;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;color:var(--muted);position:relative}
-.tab .ic{font-size:20px;line-height:1.2}
+.tab{flex:1;border:0;background:none;padding:7px 0 6px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;color:var(--muted);position:relative}
+.tab .ic{font-size:21px;line-height:1.15;transition:transform .15s}.tab.on .ic{transform:scale(1.08)}
 .tab.on{color:var(--accent);font-weight:700}
 .tab .badge{top:3px;right:calc(50% - 22px)}
 main{padding:0 12px}
@@ -378,19 +378,26 @@ body.typing .bb-tick.bb-tick2{display:block}
 .av.lg{width:74px;height:74px;font-size:28px}
 .artist{display:inline-block;margin-left:5px;padding:0 6px;border-radius:6px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;font-size:10.5px;font-weight:700;vertical-align:1px}
 .lang{display:inline-block;margin-left:5px;padding:0 5px;border-radius:5px;border:1px solid var(--line);font-size:10px;color:var(--muted);vertical-align:1px}
-.hero{display:flex;gap:14px;align-items:center}
-.hero h2{margin:0;font-size:20px}
+.hero{display:flex;gap:12px;align-items:center;padding:12px 14px}
+.av.md{width:52px;height:52px;font-size:20px}
+.hero-nm{font-size:17px;font-weight:700;white-space:nowrap}.hero-bio{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.hero-st{display:flex;gap:16px;flex:none;text-align:center}.hero-st b{display:block;font-size:16px;line-height:1.2}.hero-st span{font-size:11px;color:var(--muted)}
+.fnav{display:flex;gap:20px;padding:0 4px 10px}.fnav button{border:0;background:none;padding:2px 0 5px;font-size:15px;font-weight:600;color:var(--muted);position:relative}.fnav button.on{color:var(--text)}.fnav button.on::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2.5px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.cmp-bar{display:flex;align-items:center;gap:10px;width:100%;border:0;text-align:left;padding:10px 14px;color:var(--muted);font-size:14.5px}.cmp-bar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cmp-bar span.has{color:var(--text)}.cmp-bar i{font-style:normal;opacity:.55}
+.feed{background:var(--card);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}.feed .post{padding:14px 16px 12px;cursor:pointer}.feed .post+.post{border-top:8px solid var(--bg)}
+.ph-nm{font-weight:700;font-size:15px;white-space:nowrap}.ph-t{font-size:12px;color:var(--muted);margin-top:-1px}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border-radius:14px;overflow:hidden;margin-bottom:12px}.mg{position:relative;aspect-ratio:1/1;background:#111;cursor:pointer}.mg img,.mg video{width:100%;height:100%;object-fit:cover;display:block}.mg i{position:absolute;font-style:normal;color:#fff;font-size:12px;text-shadow:0 1px 4px rgba(0,0,0,.6)}.mg-ic{left:6px;bottom:4px}.mg-n{right:6px;top:4px;font-weight:700}
 .stats{display:flex;gap:18px;margin-top:4px}
 .stats b{font-size:16px}
-.composer textarea{border:0;padding:4px 2px;min-height:70px;background:transparent}
+.composer textarea{border:0;padding:4px 2px;min-height:90px;background:transparent}
 .cmp-prev{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
 .cmp-prev .pv{position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;background:#000}
 .cmp-prev .pv img,.cmp-prev .pv video{width:100%;height:100%;object-fit:cover}
 .cmp-prev .pv button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:20px;padding:0}
-.post .ph{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.ptext{white-space:pre-wrap;word-break:break-word}
+.post .ph{display:flex;gap:10px;align-items:center;margin-bottom:10px}.post .ph .av{width:40px;height:40px}
+.ptext{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.65}
 .post.clip .ptext{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
-.media{display:grid;gap:4px;margin-top:10px;border-radius:12px;overflow:hidden}
+.media{display:grid;gap:2px;margin-top:10px;border-radius:10px;overflow:hidden}
 .media.n1{grid-template-columns:1fr}
 .media.n2,.media.n4{grid-template-columns:1fr 1fr}
 .media.n3,.media.n5,.media.n6,.media.n7,.media.n8,.media.n9{grid-template-columns:1fr 1fr 1fr}
@@ -399,30 +406,31 @@ body.typing .bb-tick.bb-tick2{display:block}
 .media img,.media video{width:100%;height:100%;object-fit:cover;display:block}
 .media.n1 img,.media.n1 video{object-fit:contain;max-height:520px}
 .media .play{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:34px;text-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none}
-.pact{display:flex;gap:20px;margin-top:10px;color:var(--muted);font-size:14px}
-.pact b{color:var(--text);font-weight:600}
+.pact{display:flex;gap:18px;margin-top:12px;color:var(--muted);font-size:13.5px}.pact span{display:inline-flex;align-items:center;gap:5px}
+.pact b{color:var(--muted);font-weight:500}
 .bump{animation:bump .4s}
 @keyframes bump{40%{transform:scale(1.25);color:var(--danger)}}
 .detail-top{display:flex;align-items:center;gap:8px;margin:2px 0 10px}
-.cmt{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.cmt{display:flex;gap:10px;padding:12px 0;border-top:1px solid var(--line)}.cmt>.av{width:34px;height:34px}
 .cmt:first-child{border-top:0}
 .cmt.new{animation:fadein .5s}
 @keyframes fadein{from{opacity:0;transform:translateY(-6px)}}
 .cb{flex:1;min-width:0}
-.cn{font-weight:600;font-size:13.5px}
+.cn{font-weight:600;font-size:13.5px;display:flex;align-items:center;flex-wrap:wrap;gap:0}.cm{font-size:12px}.cm .muted{font-size:12px}
 .ct{white-space:pre-wrap;word-break:break-word;margin:1px 0}
 .tr{font-size:13px;color:var(--muted);border-left:3px solid var(--accent);padding-left:7px;margin:3px 0}
 .cm{display:flex;gap:14px;align-items:center;margin-top:2px}
 .liked{color:var(--danger)!important}
-.replies{margin-top:6px}
+.replies{margin-top:6px}.replies:not(:empty){border-left:2px solid var(--line);padding-left:10px}
 .rep{display:flex;gap:8px;padding:7px 0 0}
 .rep .ct{font-size:14px}
 .at{color:var(--accent);font-weight:600}
 .rbox .row{margin-top:8px}
 .cmt.me>.cb>.ct,.rep.me .ct{color:var(--accent2)}
+.cmt.me{background:color-mix(in srgb,var(--accent2) 6%,transparent);border-radius:12px;padding:10px;margin:2px -6px}.cmt.me+.cmt{border-top:0}.rep.me{background:color-mix(in srgb,var(--accent2) 6%,transparent);border-radius:10px;padding:6px 8px;margin-top:6px}
 .flash{animation:flash 2s}
 @keyframes flash{0%,40%{background:var(--accent-soft)}}
-.cbar{position:sticky;bottom:66px;display:flex;gap:8px;background:var(--card);padding:10px;border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px}
+.cbar{position:sticky;bottom:calc(66px + env(safe-area-inset-bottom));display:flex;gap:8px;background:var(--card);padding:10px;border-radius:14px;box-shadow:var(--shadow);margin-bottom:12px}
 .newpill[hidden]{display:none}
 .newpill{display:block;margin:0 auto 8px;border:0;border-radius:999px;background:var(--accent);color:#fff;padding:5px 14px;font-size:13px}
 .notif{display:flex;gap:10px;padding:12px 4px;border-top:1px solid var(--line);cursor:pointer}
@@ -461,25 +469,31 @@ body.typing .bb-tick.bb-tick2{display:block}
 .days label{display:flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:13px;color:var(--text)}
 .days input{width:auto}
 .sec-title{font-weight:700;margin:16px 4px 8px;display:flex;align-items:center;gap:8px}
-.week{display:flex;gap:4px;align-items:center}
-.day{flex:1;border:0;background:transparent;border-radius:12px;padding:6px 0;display:flex;flex-direction:column;align-items:center;font-size:12px;color:var(--muted)}
-.day b{font-size:16px;color:var(--text)}
+.s-head{display:flex;align-items:center;gap:6px;margin:2px 4px 6px}.s-date{flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;white-space:nowrap}.s-date b{font-size:19px;font-weight:800}.s-date span{font-size:14px;color:var(--muted)}.s-date em{font-style:normal;font-size:11px;font-weight:700;color:#fff;background:var(--accent);border-radius:6px;padding:1px 6px;align-self:center}
+.s-links{display:flex;gap:14px;flex-wrap:wrap;margin:0 4px 10px}
+.week{display:flex;gap:2px;align-items:center;padding:8px 6px}.week>.link{font-size:18px;padding:0 4px}
+.day{flex:1;border:0;background:transparent;border-radius:12px;padding:5px 0 4px;display:flex;flex-direction:column;align-items:center;font-size:11.5px;color:var(--muted);line-height:1.3}
+.day b{font-size:16px;color:var(--text);margin:1px 0}
 .day.on{background:var(--accent);color:#fff}
 .day.on b{color:#fff}
 .day.today b{text-decoration:underline;text-underline-offset:3px}
 .dots{display:flex;gap:2px;height:5px;margin-top:2px}
 .dots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.7}
 .worksum{display:flex;justify-content:space-between;padding:11px 0 2px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}.worksum b{color:var(--text);font-weight:600}
-.sched{display:flex;gap:10px;padding:11px 0;border-top:1px solid var(--line);align-items:flex-start}
+.sched{display:flex;gap:10px;padding:12px 0;border-top:1px solid var(--line);align-items:flex-start}
 .sched:first-child{border-top:0}
-.sched .time{width:52px;flex:none;font-weight:700;font-size:14px}
+.sched .time{width:46px;flex:none;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;line-height:1.35}
 .sched .time span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
-.sched .bar{width:4px;align-self:stretch;border-radius:2px;flex:none}
-.sched.done .stitle{text-decoration:line-through;color:var(--muted)}
+.sched .bar{width:3px;align-self:stretch;border-radius:2px;flex:none;opacity:.85}
+.stitle{font-size:15.5px;font-weight:650;line-height:1.35;word-break:break-word}
+.smeta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:4px}.stag{font-size:11px;font-weight:700;border-radius:5px;padding:0 6px;line-height:18px}.sloc{font-size:12.5px;color:var(--muted)}
+.sched.done .stitle,.sched.over .stitle{color:var(--muted)}.sched.done .stitle{text-decoration:line-through}.sched.now .time{color:var(--accent)}
+.s-fin{text-align:center;font-size:13px;color:var(--muted);padding:12px 0 4px;border-top:1px solid var(--line)}
 .chip{display:inline-block;padding:0 7px;border-radius:6px;font-size:11px;font-weight:700;color:#fff;margin-right:5px;vertical-align:1px}
-.status{font-size:12px;font-weight:600}
-.status.now{color:var(--danger)}
-.chk{width:22px;height:22px;flex:none;accent-color:var(--accent);margin-top:2px}
+.status{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:3px}
+.status.now{color:var(--accent);font-weight:600}.status.now::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:5px;vertical-align:1px;animation:pulse 1.6s infinite}.status.ok{color:var(--accent)}
+@keyframes pulse{50%{opacity:.3}}
+.chk{width:18px;height:18px;flex:none;accent-color:var(--accent);margin-top:3px}
 .tagrow{display:flex;flex-wrap:wrap;gap:6px}
 .pcats{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
 .pcat{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-size:13px}
@@ -540,6 +554,14 @@ video.bv-glow{pointer-events:none}
 .preview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
 .preview{position:relative}
 .empty{padding:40px 10px;text-align:center;color:var(--muted)}
+.anv{position:relative;overflow:hidden;text-align:center;padding:26px 12px 18px;border-radius:18px;background:linear-gradient(160deg,var(--accent-soft),color-mix(in srgb,var(--accent2) 12%,var(--card)))}
+.anv-av{display:flex;justify-content:center}.anv-av .av{box-shadow:0 0 0 4px var(--card),0 6px 20px rgba(0,0,0,.12)}
+.anv-big{margin-top:14px;font-size:30px;font-weight:800;letter-spacing:.5px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.anv-t{font-size:17px;font-weight:700;margin-top:4px}.anv-s{font-size:13px;color:var(--muted);margin-top:4px}
+.anv i{position:absolute;top:-12px;width:7px;height:11px;border-radius:2px;opacity:.85;animation:anvf 3.2s ease-in forwards}
+.anv i:nth-child(3n){background:var(--accent)}.anv i:nth-child(3n+1){background:var(--accent2)}.anv i:nth-child(3n+2){background:#ffc94d}
+.anv i:nth-child(1){left:3.0%;animation-delay:0.00s}.anv i:nth-child(2){left:10.1%;animation-delay:0.17s}.anv i:nth-child(3){left:17.2%;animation-delay:0.34s}.anv i:nth-child(4){left:24.3%;animation-delay:0.51s}.anv i:nth-child(5){left:31.4%;animation-delay:0.68s}.anv i:nth-child(6){left:38.5%;animation-delay:0.85s}.anv i:nth-child(7){left:45.6%;animation-delay:1.02s}.anv i:nth-child(8){left:52.7%;animation-delay:1.19s}.anv i:nth-child(9){left:59.8%;animation-delay:1.36s}.anv i:nth-child(10){left:66.9%;animation-delay:1.53s}.anv i:nth-child(11){left:74.0%;animation-delay:1.70s}.anv i:nth-child(12){left:81.1%;animation-delay:1.87s}.anv i:nth-child(13){left:88.2%;animation-delay:2.04s}.anv i:nth-child(14){left:95.3%;animation-delay:2.21s}
+@keyframes anvf{to{transform:translateY(340px) rotate(300deg);opacity:0}}
 </style>
 </head>
 <body>
@@ -819,6 +841,26 @@ const CAT_KW = {
 };
 const EMO = ['🐱', '💙', '！！', '～', '😭', '✨', '🥺', 'hhh', '！', '❤️', '🫶'];
 function ageOf() { const b = parseD(S.profile.birth || '2007-08-29'), n = new Date(); return n.getFullYear() - b.getFullYear() - (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate()) ? 1 : 0); }
+// 出道纪念日：每满 100 天（第 100、200…天）和每年周年当天，打开模拟器时弹一次（同一天两个都是的话只弹周年）
+function annivToday() {
+  const deb = S.profile.debut; if (!deb) return null; const today = dkey(Date.now()), d = dday();
+  if (today > deb && today.slice(5) === deb.slice(5)) { const y = +today.slice(0, 4) - +deb.slice(0, 4); return { key: today, kind: 'year', n: y, d }; }
+  if (d % 100 === 0) return { key: today, kind: 'day', n: d, d };
+  return null;
+}
+const ANNIV_ZH = ['', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十'];
+function annivHTML(a) {
+  const nm = esc(S.profile.name), deb = S.profile.debut.replace(/-/g, '.');
+  const big = a.kind === 'year' ? `${a.n}${['th', 'st', 'nd', 'rd'][(a.n % 100 > 10 && a.n % 100 < 14) ? 0 : a.n % 10 < 4 ? a.n % 10 : 0]} Anniversary` : `D+${a.n}`;
+  const t = a.kind === 'year' ? `${nm} 出道${ANNIV_ZH[a.n] || a.n}周年快乐！` : `${nm} 出道 ${a.n} 天快乐！`;
+  const sub = a.kind === 'year' ? `从 ${deb} 到今天，和 ${esc(S.profile.fandom || 'sia')} 一起走过的第 ${a.n} 年` : `${deb} 出道 · 今天是第 ${a.n} 天`;
+  return `<div class="anv">${'<i></i>'.repeat(14)}<div class="anv-av">${bigAvatar(84)}</div><div class="anv-big">${big}</div><div class="anv-t">${t}</div><div class="anv-s">${sub}</div><button class="btn primary" data-act="close" style="margin-top:18px;min-width:140px">谢谢大家 🐱</button></div>`;
+}
+function annivTick() {
+  const a = annivToday(); if (!a) return; const A = S.anniv || (S.anniv = {}); if (A[a.key]) return;
+  if ($('#modal').classList.contains('on') || UI.chPop || UI.socPop) return;
+  A[a.key] = 1; save(); openModal(annivHTML(a));
+}
 function dday() { return Math.max(1, Math.floor((Date.now() - parseD(S.profile.debut).getTime()) / 86400000) + 1); }
 function fill(t, q = '') {
   const p = S.profile, nicks = p.nicks.length ? p.nicks : [p.name];
@@ -5286,30 +5328,32 @@ function render() {
 }
 
 /* ---------- 社区 ---------- */
+// 社区顶部分类：动态（帖子）/ 媒体（帖子里的图片视频）/ LIVE（直播）
+function feedNav(on) {
+  return `<nav class="fnav">${[['feed', '动态', 'feedsub" data-s="feed'], ['media', '媒体', 'feedsub" data-s="media'], ['live', 'LIVE', 'tab" data-tab="live']].map(([k, t, a]) => `<button class="${on === k ? 'on' : ''}" data-act="${a}">${t}</button>`).join('')}</nav>`;
+}
 function viewFeed() {
-  const p = S.profile;
-  return `
-  <button class="btn ghost" data-act="tab" data-tab="live" style="width:100%;margin-bottom:10px">📹 直播</button>
-  <div class="card hero">
-    ${avatarHTML('lg')}
-    <div style="flex:1;min-width:0">
-      <h2>${esc(p.name)} <span class="artist">ARTIST</span></h2>
-      ${p.bio ? `<div class="muted">${esc(p.bio)}</div>` : ''}
-      <div class="stats"><span><b data-fol>${fmtNum(p.followers)}</b> <span class="muted">粉丝</span></span><span>${(() => { const n = (fanState().days[dkey(Date.now())] || { net: 0 }).net; return `<b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${n}</b> <span class="muted">今日</span>`; })()}</span><span><b>D+${dday()}</b> <span class="muted">出道</span></span></div>
-    </div>
-  </div>
-  <div class="card composer">
+  const p = S.profile, sub = UI.feedSub === 'media' ? 'media' : 'feed', n = (fanState().days[dkey(Date.now())] || { net: 0 }).net;
+  const hero = `<div class="card hero">${avatarHTML('md')}<div style="flex:1;min-width:0"><div class="hero-nm">${esc(p.name)}<span class="artist">ARTIST</span></div>${p.bio ? `<div class="muted hero-bio">${esc(p.bio)}</div>` : ''}</div>
+    <div class="hero-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)}</b><span>今日</span></div></div></div>`;
+  if (sub === 'media') {
+    const L = S.posts.filter(x => x.media.length);
+    return feedNav('media') + hero + (L.length ? `<div class="mgrid">${L.map(x => { const m = x.media[0]; return `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}${x.media.length > 1 ? `<i class="mg-n">${x.media.length}</i>` : ''}</div>`; }).join('')}</div>` : '<div class="empty">还没有发过图片或视频</div>');
+  }
+  const open = UI.cmpOpen || pending.length > 0;
+  return `${feedNav('feed')}${hero}
+  ${open ? `<div class="card composer">
     <textarea id="cmp-text" placeholder="和粉丝们分享点什么吧…"></textarea>
     <div id="cmp-prev" class="cmp-prev"></div>
     <div id="cmp-meta"></div>
     <div class="row">
       <label class="btn ghost sm">🖼 图片/视频<input type="file" id="cmp-file" accept="image/*,video/*" multiple hidden></label>
-      <span class="muted">${aiOn() ? '✨ AI 粉丝已开启' : '本地模板粉丝'}</span>
       <span class="sp"></span>
-      <button class="btn primary" data-act="publish">发布</button>
+      <button class="link" data-act="cmpclose" style="font-size:13.5px;margin-right:6px">收起</button>
+      <button class="btn primary sm" data-act="publish">发布</button>
     </div>
-  </div>
-  ${S.posts.length ? S.posts.map(postCard).join('') : '<div class="empty">还没有帖子，发第一条吧 🐱</div>'}`;
+  </div>` : `<button class="card cmp-bar" data-act="cmpopen">${avatarHTML('sm')}<span${draft.trim() ? ' class="has"' : ''}>${draft.trim() ? esc(draft.trim().split('\n')[0]) : '和粉丝们分享点什么吧…'}</span><i>🖼</i></button>`}
+  ${S.posts.length ? `<div class="feed">${S.posts.map(postCard).join('')}</div>` : '<div class="empty">还没有帖子，发第一条吧 🐱</div>'}`;
 }
 function mediaHTML(post, full) {
   if (!post.media.length) return '';
@@ -5318,12 +5362,15 @@ function mediaHTML(post, full) {
     ? `<div class="m"><video data-mid="${m.id}" ${full ? 'controls' : 'muted'} playsinline preload="metadata"></video>${full ? '' : '<div class="play">▶</div>'}</div>`
     : `<div class="m"><img data-mid="${m.id}" alt="" ${full ? `data-act="zoom" data-mid2="${m.id}"` : ''}></div>`).join('')}</div>`;
 }
+const IC_HEART = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>', IC_CMT = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>';
+const postHead = (p, full) => `<div class="ph">${avatarHTML()}<div style="min-width:0"><div class="ph-nm">${esc(S.profile.name)}<span class="artist">ARTIST</span></div><div class="ph-t">${full ? new Date(p.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ago(p.createdAt)}</div></div></div>`;
+const postAct = p => `<div class="pact"><span>${IC_HEART}<b data-lc="${p.id}">${fmtNum(p.likes)}</b></span><span>${IC_CMT}<b data-cc="${p.id}">${fmtNum(p.commentCount)}</b></span></div>`;
 function postCard(p) {
-  return `<article class="card post clip" data-act="open" data-id="${p.id}">
-    <div class="ph">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span class="artist">ARTIST</span><div class="muted">${ago(p.createdAt)}</div></div></div>
+  return `<article class="post clip" data-act="open" data-id="${p.id}">
+    ${postHead(p)}
     ${p.text ? `<div class="ptext">${esc(p.text)}</div>` : ''}
     ${mediaHTML(p, false)}
-    <div class="pact"><span>♡ <b data-lc="${p.id}">${fmtNum(p.likes)}</b></span><span>💬 <b data-cc="${p.id}">${fmtNum(p.commentCount)}</b></span></div>
+    ${postAct(p)}
   </article>`;
 }
 function renderPending() {
@@ -5354,7 +5401,7 @@ async function publish() {
   logAct('post');
   S.posts.unshift(post);
   hotTaskCheck('post', media.map(m => m.type), text);
-  draft = ''; pending = []; draftTags = []; draftDesc = '';
+  draft = ''; pending = []; draftTags = []; draftDesc = ''; UI.cmpOpen = false;
   save(); render();
   toast('发布成功！', '粉丝们正在赶来…');
   if (aiOn()) aiForPost(post);
@@ -5367,13 +5414,13 @@ function viewPost() {
   return `
   <div class="detail-top"><button class="btn ghost sm" data-act="back">‹ 返回</button><span class="sp"></span><button class="btn ghost sm" data-act="delpost" data-id="${p.id}">删除</button></div>
   <article class="card post">
-    <div class="ph">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span class="artist">ARTIST</span><div class="muted">${new Date(p.createdAt).toLocaleString('zh-CN')}</div></div></div>
+    ${postHead(p, true)}
     ${p.text ? `<div class="ptext">${esc(p.text)}</div>` : ''}
     ${mediaHTML(p, true)}
     ${(p.tags || []).length || p.desc ? `<div class="muted" style="margin-top:8px;font-size:12.5px">🔒 仅自己可见：${(p.tags || []).map(k => (IMG_TAGS.find(x => x[0] === k) || [, k])[1]).join(' ')}${p.desc ? ` · ${esc(p.desc)}` : ''}</div>` : ''}
-    <div class="pact"><span>♡ <b data-lc="${p.id}">${fmtNum(p.likes)}</b></span><span>💬 <b data-cc="${p.id}">${fmtNum(p.commentCount)}</b></span></div>
+    ${postAct(p)}
   </article>
-  <div class="card">
+  <div class="card cmts">
     <div class="row" style="margin-bottom:6px"><b>评论</b><span class="sp"></span>
       <button class="link ${UI.sort === 'new' ? 'liked' : ''}" data-act="sort" data-s="new">最新</button>
       <button class="link ${UI.sort === 'hot' ? 'liked' : ''}" data-act="sort" data-s="hot">最热</button>
@@ -5594,7 +5641,7 @@ function attachPair(root, stream) { $$('video.bv-main, video.bv-glow', root).for
 
 function viewLive() {
   const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video';
-  return `<div class="card">
+  return `${feedNav('live')}<div class="card">
     <h3 style="margin:2px 0 10px">开始直播</h3>
     <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button></div>
     ${mode === 'video' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>
@@ -5604,7 +5651,7 @@ function viewLive() {
     <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
     <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'video' ? '视频' : '语音'}直播</button></div>
     ${IN_FRAME ? '<p class="muted" style="margin:10px 0 0;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头和麦克风，只能用「纯聊天直播」。</p>' : ''}
-    <p class="muted" style="margin:10px 0 0">直播中可以直接说话（浏览器语音识别），粉丝会根据你说的内容刷弹幕；也可以打字。iPhone 需要在 设置 → 通用 → 键盘 里打开「启用听写」。${aiOn() ? '<br>✨ AI 粉丝已开启：会结合画面和你说的话来回应。' : ''}</p>
+    <p class="muted" style="margin:10px 0 0">直播中可以直接说话（浏览器语音识别），粉丝会根据你说的内容刷弹幕；也可以打字。iPhone 需要在 设置 → 通用 → 键盘 里打开「启用听写」。</p>
   </div>
   <div class="sec-title">直播记录</div>
   <div class="card">${hist.length ? hist.map(l => `<div class="rule"><div style="flex:1"><b>${l.mode === 'voice' ? '🎙 ' : l.mode === 'chat' ? '💬 ' : '📹 '}${esc(l.title)}</b><div class="muted">${new Date(l.start).toLocaleString('zh-CN')} · 时长 ${hms(l.end - l.start)}</div></div><div class="muted" style="text-align:right">👁 峰值 ${fmtNum(l.peak)}<br>♥ ${fmtNum(l.hearts)} · 💬 ${fmtNum(l.comments)}</div><button class="link" style="margin-left:8px" data-act="ldel" data-s="${l.start}">删除</button></div>`).join('') : '<div class="empty">还没有直播过</div>'}</div>`;
@@ -6078,28 +6125,27 @@ function viewSched() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
   const items = rulesFor(k); const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
   return `
-  <div class="row" style="margin:4px 4px 8px"><b style="font-size:16px;white-space:nowrap">${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}</b>${k === today ? '<span class="chip" style="background:var(--accent)">今天</span>' : ''}<span class="sp"></span>
-    ${k !== today ? '<button class="link" data-act="sdate" data-k="' + today + '">回到今天</button>' : ''}
-    <button class="btn ghost sm" data-act="tglist">📋 通告<span class="badge" id="tg-badge">${(tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length) || ''}</span></button>
+  <div class="s-head"><div class="s-date"><b>${d0.getMonth() + 1}月${d0.getDate()}日</b><span>周${WD[d0.getDay()]}</span>${k === today ? '<em>今天</em>' : `<button class="link" data-act="sdate" data-k="${today}">回到今天</button>`}</div>
+    <button class="btn ghost sm" data-act="tglist" style="position:relative">📋 通告<span class="badge" id="tg-badge">${(tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length) || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
-  <div style="margin:-2px 4px 8px"><button class="link" data-act="chlog">🎬 Challenge 记录${chal().list.length ? `（${chal().list.filter(x => x.st !== 'no').length}）` : ''} ›</button></div>
-  ${chBackfillList().length ? `<div style="margin:-2px 4px 8px"><button class="link" data-act="chbfopen">🎬 有 ${chBackfillList().length} 个有活动的日子可以补 challenge ›</button></div>` : ''}
+  <div class="s-links"><button class="link" data-act="chlog">🎬 Challenge 记录${chal().list.length ? `（${chal().list.filter(x => x.st !== 'no').length}）` : ''} ›</button>${chBackfillList().length ? `<button class="link" data-act="chbfopen">有 ${chBackfillList().length} 个日子可以补 challenge ›</button>` : ''}</div>
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
     ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
     <button class="link" data-act="sdate" data-k="${addDays(k, 7)}">›</button>
   </div>
   <div class="rest-tg"><span>${isRestWeek(k) ? '🌙 这周是休息周' : '这周正常营业'}</span><label class="sw"><input type="checkbox" data-act="resttg" data-k="${mon}" ${isRestWeek(k) ? 'checked' : ''}><i></i></label></div>
-  <div class="card">${items.length ? items.map(r => {
+  <div class="card s-list">${items.length ? items.map(r => {
     const dk = k + '|' + r.id, done = !!S.schedule.done[dk];
-    let st = '';
-    if (k === today) { const s = toMin(r.start), e = toMin(r.end); st = done ? '<span class="status" style="color:var(--accent)">已完成</span>' : nowMin >= e ? '<span class="status muted">已结束</span>' : nowMin >= s ? '<span class="status now">● 进行中</span>' : `<span class="status muted">${s - nowMin >= 60 ? Math.floor((s - nowMin) / 60) + ' 小时' : ''}${(s - nowMin) % 60} 分钟后</span>`; }
-    else if (done) st = '<span class="status" style="color:var(--accent)">已完成</span>';
-    return `<div class="sched ${done ? 'done' : ''}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${CATS[r.cat] || '#999'}"></div>
-      <div style="flex:1;min-width:0"><div class="stitle"><span class="chip" style="background:${CATS[r.cat] || '#999'}">${esc(r.cat)}</span><b>${esc(r.title)}</b></div>
-      <div class="muted">${r.loc ? '📍 ' + esc(r.loc) : ''}${r.note ? ' · ' + esc(r.note) : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
+    let st = '', ph = '';
+    if (k === today) { const s = toMin(r.start), e = toMin(r.end), left = s - nowMin; ph = done ? 'done' : nowMin >= e ? 'over' : nowMin >= s ? 'now' : 'soon'; st = done ? '<span class="status ok">已完成</span>' : nowMin >= e ? '<span class="status">已结束</span>' : nowMin >= s ? '<span class="status now">进行中</span>' : `<span class="status">${left <= 60 ? '即将开始 · ' : ''}${left >= 60 ? Math.floor(left / 60) + ' 小时' : ''}${left % 60 ? left % 60 + ' 分钟' : ''}后</span>`; }
+    else if (done) { ph = 'done'; st = '<span class="status ok">已完成</span>'; }
+    const cc = CATS[r.cat] || '#999';
+    return `<div class="sched ${done ? 'done' : ''} ${ph}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${cc}"></div>
+      <div style="flex:1;min-width:0"><div class="stitle">${esc(r.title)}</div>
+      <div class="smeta"><span class="stag" style="color:${cc};background:color-mix(in srgb,${cc} 13%,transparent)">${esc(r.cat)}</span>${r.loc ? `<span class="sloc">${esc(r.loc)}</span>` : ''}${r.note ? `<span class="sloc">${esc(r.note)}</span>` : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
-  }).join('') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
+  }).join('') + (k === today && items.every(r => S.schedule.done[k + '|' + r.id] || nowMin >= toMin(r.end)) ? '<div class="s-fin">今天的行程都结束了，辛苦了 🐱</div>' : '') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
 }
 /* =========================================================
    🎬 Challenge 邀请：有活动的日子可以邀请别的艺人一起拍你的歌的挑战视频
@@ -6552,7 +6598,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -8223,6 +8269,9 @@ document.addEventListener('click', async e => {
     case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); break;
     case 'publish': publish(); break;
+    case 'cmpopen': UI.cmpOpen = true; render(); $('#cmp-text')?.focus(); break;
+    case 'cmpclose': draft = ($('#cmp-text')?.value || ''); UI.cmpOpen = false; render(); break;
+    case 'feedsub': UI.feedSub = t.dataset.s; UI.postId = null; render(); window.scrollTo(0, 0); break;
     case 'imgtag': { const k = t.dataset.k; draftTags = draftTags.includes(k) ? draftTags.filter(x => x !== k) : [...draftTags, k]; t.classList.toggle('on', draftTags.includes(k)); break; }
     case 'unpend': { const f = pending.splice(+t.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f._url); renderPending(); break; }
     case 'delpost': {
@@ -8320,7 +8369,7 @@ document.addEventListener('click', async e => {
       const panel = t.closest('.bpanel'); panel.outerHTML = beautyPanelHTML(); break;
     }
     case 'golive': startLive(); break;
-    case 'livepost': closeModal(); UI.tab = 'feed'; UI.postId = null; draft = `今天的直播谢谢大家陪我！${'\n'}聊得好开心，下次见～ 🐱💙`; render(); $('#cmp-text')?.focus(); break;
+    case 'livepost': closeModal(); UI.tab = 'feed'; UI.postId = null; UI.feedSub = 'feed'; UI.cmpOpen = true; draft = `今天的直播谢谢大家陪我！${'\n'}聊得好开心，下次见～ 🐱💙`; render(); $('#cmp-text')?.focus(); break;
     case 'close': { const wasDm = UI.dmOpen; closeModal(); if (wasDm && UI.tab === 'kkt') render(); break; }
     case 'chopen': if (chLimit(t.dataset.k)) { toast(chLimit(t.dataset.k)); break; } UI.chSong = null; openModal(chPickHTML(t.dataset.k)); break;
     case 'chpick': { const p = chFind(t.dataset.g, t.dataset.n), v = ($('#ch-song') || {}).value; if (!p || !v) { toast('还没有可以拍的歌'); break; } const i = v.indexOf('|'), song = [v.slice(0, i), v.slice(i + 1)]; chInvite(t.dataset.k, p, song); closeModal(); toast('🎬 已经让经纪人去问了', `${p.g} ${p.n} · 《${song[1]}》`); render(); break; }
