@@ -6996,7 +6996,7 @@ function relContext() {
 // 线上的交集都进 KKT：他发来的话 / 系统提示
 const SOC_DM = {
   dm1: ['오늘 무대 너무 좋았어요!', '今天的舞台很好看！'], dm2: ['[视频] 이거 완전 너 같아ㅋㅋㅋ', '[视频] 这个完全就是你哈哈哈'], wrong: ['아 내일 몇 시에 보기로 했…', '啊明天约的几点来着…', '（他很快撤回了这条消息）'],
-  game: ['오늘 겜 할래? 우리 몇 명 모였는데', '今天要不要打游戏？我们几个人凑了个局'], call: ['혹시 시간 될 때 잠깐 통화 가능해요? 직접 물어보고 싶은 게 있어서', '方便的时候能打个电话吗？有件事想当面问你'],
+  game: ['오늘 겜 할래? 우리 몇 명 모였는데', '今天要不要打游戏？我们几个人凑了个局'], call: ['혹시 시간 될 때 잠깐 통화 가능해요? 직접 물어보고 싶은 게 있어서', '方便的时候能通个电话吗？有件事想直接问你'],
   cmt: [null, null, '💬 他在你刚发的动态下留了一句容易引起误会的话，粉丝已经在讨论了'], cf: [null, null, '⭐ 他把你加进了 Instagram 的 Close Friends'], intro: [null, null, '朋友发来消息：能不能把他的联系方式推给她？'],
   mutual: [null, null, '你发现他和另一位艺人都以为你和对方很熟'], reveal: [null, null, '你们上的同一档综艺播出了，他在节目里说你们私下认识']
 };
@@ -7065,7 +7065,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -8037,6 +8037,7 @@ function ahFollowMig() {
   save();
 }
 // 一次性：之前「拖了两次就当成已读不回」的 bug 留下的：好朋友那边你最后发的、问了问题却被已读不回的，补上回复
+function dmCallZh1() { const SO = social(); if (SO.callZh1) return; SO.callZh1 = 1; for (const T of Object.values(dms())) for (const m of T.msgs || []) if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; }
 function dmUnstick1() {
   const SO = social(); if (SO.unstick1) return; SO.unstick1 = 1; const now = Date.now();
   for (const T of Object.values(dms())) { const m = T.msgs[T.msgs.length - 1];
@@ -8211,7 +8212,10 @@ const SOC_OPT = {
   261: [['好啊，交换', 1, 2, '+', ['他马上发来一句「是我」']], ['工作上还是走工作人员比较好', 0, -1, '0', ['「好，你说得对」']], ['婉拒', 0, -2, '-', ['「好，我明白」']]],
   282: [['约个时间当面换', 1, 1, '+', ['你们约在公司附近见面']], ['让工作人员帮忙换', 0, 0, '0', ['外套第二天就送回来了']], ['寄快递给他', 0, -1, '-', ['他说收到了，谢谢']]]
 };
+// 同一件事搬到 KKT 上时，原来的选项可能对不上（比如电话里的选项）：这里单独写
+const SOC_DM_OPT = { call: [['好啊，约个时间打给你', 1, .1, '原来他想请你帮忙给团里的新歌提建议'], ['问他什么事，打字说也行', 1, 0, '原来是想问你们公司练习室的事'], ['说最近太忙了', -1, 0, '「好，那不打扰了」']] };
 function socOpts(e, p, x) {
+  if (e.old && x && x.dm && SOC_DM_OPT[e.id]) e = { ...e, o: SOC_DM_OPT[e.id] };
   if (e.th) return (x && x.o) || [];
   if (e.old) return e.o.map(o => ({ t: socG(o[0], p).split('{她}').join(socName(p)).split('{他}').join(socName(p)), fam: o[1], amb: 0, tone: o[1] > 0 ? '+' : o[1] < 0 ? '-' : '0', risk: o[2] * (p.f ? .2 : 1), reply: socG(o[3], p), act: o[4] }));
   const own = SOC_OPT[+String(e.id).replace('s2_', '')];
