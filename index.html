@@ -3335,7 +3335,7 @@ function musicHTML() {
   if (pg.startsWith('yt')) return typeof ytPageHTML === 'function' ? ytPageHTML(pg) : '';
   const L = released(), a = L[L.length - 1], SS = salesState(), today = dkey(Date.now());
   // 1 最新发行
-  let h = mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
+  let h = (typeof ytEntryHTML === 'function' ? ytEntryHTML() : '') + mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
   // 2 音乐成绩（只看最新作品）
   if (a) {
     const k = a.id + '|' + albTitle(a), rk = trkRanks(k), main = rk[0], rest = rk.slice(1, 4), al = SS.alb[a.id], mv = SS.mv && SS.mv[a.id];
@@ -3360,7 +3360,6 @@ function musicHTML() {
   const c = S.cb, ca = cbAlbum(), live = c && !c.over && ca;
   h += mSec('回归企划') + `<button class="card w-ct" data-act="mgo" data-p="cb"><div><b>${live ? `《${esc(ca.name)}》` : '准备下一次发行'}</b><span>${live ? (c.tbd ? '企划中 · 日期待定' : cbDay() > 0 ? `${c.date.replace(/-/g, '.')} 回归 · D-${cbDay()}` : '活动中') : '开始新的音乐企划'}</span></div><i>›</i></button>`;
   // 8 官方 YouTube
-  if (typeof ytEntryHTML === 'function') h += ytEntryHTML();
   return h;
 }
 function albDetailHTML(id) {
