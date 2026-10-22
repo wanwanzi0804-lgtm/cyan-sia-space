@@ -4634,9 +4634,22 @@ document.addEventListener('pointerdown', e => { if (e.target.id === 'tg-hold') {
 document.addEventListener('pointerup', e => { if (TGG && TGG.kind === 'hold') { const d = performance.now() - TGG.t, b = $('#tg-hold'); TGG = null; if (b) { b.classList.remove('go'); b.textContent = (d / 1000).toFixed(2) + ' 秒'; } const sc = clamp(1 - Math.abs(d - 4000) / 2000, 0, 1); setTimeout(() => tgFinish(sc, `按了 ${(d / 1000).toFixed(2)} 秒`), 500); } });
 function updTgBadge() { const n = tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length, el = $('#tg-badge'); if (el) el.textContent = n || ''; }
 // 结算：行程结束 + 通告完成 → 结果卡片；当天没做完 → 旷工
+// 一次性：10/22 的视频通话签售抽到了线下才有的事件 → 按视频签售重新抽一张（已经结算的先撤回涨粉和收入，重新选完再结算）
+function vcRedo1022() {
+  const T = tgState(); if (T.vcRedo1022) return; T.vcRedo1022 = 1; const k = '2026-10-22', R = S.schedule.res || {};
+  for (const r of rulesFor(k)) { const key = k + '|' + r.id, c = T.cards[key];
+    if (r.cat !== '签售' || !VCALL_RE.test(r.title || '') || !c || !VCALL_OFF.test(JSON.stringify(c)) || /^vc#/.test(c.sig || c._i || '')) continue;
+    const x = R[key];
+    if (x) { if (x.fans) { S.profile.followers -= x.fans; const F = fanState(), d = F.days[dkey(x.at)], src = '行程：' + r.title; if (d && d.src[src]) { d.src[src] -= x.fans; d.net -= x.fans; if (!d.src[src]) delete d.src[src]; } }
+      const W = wallet(); W.recv = (W.recv || []).filter(y => !(y.src === '行程' && y.title === r.title && y.date === k && y.st === 'pend')); delete R[key]; }
+    delete T.cards[key]; const nc = tgCard(k, r); if (nc) nc.redo = 1;
+  }
+  save(); updTgBadge(); if (UI.tab === 'sched') render();
+}
 function tgSettle(k, r, key, today) {
   const c = tgCard(k, r); if (!c) return 'old';
   if (!c.done && k >= today) return 'wait';
+  if (!c.done && c.redo) { c.done = true; c.score = .6; c.pickText = ''; } // 重抽的卡当天没来得及选：按普通表现算，不算旷工
   const f = S.profile.followers, R = S.schedule.res || (S.schedule.res = {});
   if (!c.done) {
     if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没去练习，能力没有提升', at: Date.now() }; return 'done'; }
@@ -6643,7 +6656,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
