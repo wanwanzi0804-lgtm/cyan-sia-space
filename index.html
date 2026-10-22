@@ -496,7 +496,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .chk{width:18px;height:18px;flex:none;accent-color:var(--accent);margin-top:3px}
 .tagrow{display:flex;flex-wrap:wrap;gap:6px}
 .pcats{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
-.pcat{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-size:13px}
+.pcat.gap{margin-left:8px}.pcat{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-size:13px}
 .pcat.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .plist{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-top:4px}
 .preset{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:8px 10px;font-size:14px}
@@ -6143,7 +6143,7 @@ const UNIV_FEST = PRESETS['校庆'], UNIV_RE = /大学(?!路)|大东祭|入实�
 const MGR_ONLY = { 物料: PRESETS['物料'].filter(([t]) => /画报|广告/.test(t)) };
 PRESETS['物料'] = PRESETS['物料'].filter(([t]) => !/画报|广告/.test(t));
 PRESETS['公演'] = [...UNIV_FEST, ...PRESETS['公演'].filter(([t]) => !/歌谣大祝祭|歌谣大战|歌谣大祭典/.test(t))];
-const CAT_ORDER = ['练习', '签售', '上课', '电台', '公演', '综艺', '活动', '物料', '打歌', '演唱会', '其他'];
+const CAT_ORDER = ['练习', '其他', '上课', '活动', '综艺', '签售', '电台', '公演', '物料', '打歌', '演唱会'], CAT_GAP = ['上课', '签售', '物料']; // 分组之间间隔稍大
 // 其他：艺人自己在宿舍 / 工作室处理的个人工作（没有通告卡、收入和罚款）
 PRESETS['其他'] = [['音乐创作', '宿舍'], ['专辑录音', '公司 录音室'], ['回归企划会议', '公司 会议室'], ['线上会议', '宿舍'], ['个人内容制作', '宿舍'], ['个人工作', '宿舍'], ['个人学习', '宿舍']];
 { const P = { ...PRESETS }; for (const k of Object.keys(PRESETS)) delete PRESETS[k]; for (const c of CAT_ORDER) PRESETS[c] = P[c]; }
@@ -8067,7 +8067,7 @@ function adminHTML(edit) {
   ${edit ? '' : `<div class="card">
     <b>从预设选择</b> <span class="muted">选好后在下面填写时间</span>
     <input id="preset-q" placeholder="搜索预设，如：Music Bank、校庆、签售" value="${esc(UI.presetQ || '')}" style="margin:8px 0">
-    <div class="pcats">${Object.keys(PRESETS).map(c => `<button class="pcat ${c === UI.presetCat && !UI.presetQ ? 'on' : ''}" data-act="pcat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+    <div class="pcats">${Object.keys(PRESETS).map(c => `<button class="pcat ${CAT_GAP.includes(c) ? 'gap ' : ''}${c === UI.presetCat && !UI.presetQ ? 'on' : ''}" data-act="pcat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
     <div class="plist" id="plist">${presetListHTML()}</div>
   </div>`}
   <div class="card" id="r-form">
