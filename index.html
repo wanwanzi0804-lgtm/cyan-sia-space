@@ -282,6 +282,11 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .kk-b.cont{border-radius:14px}
 .kk-b.me{background:#fee500;color:#191919;border-radius:14px 4px 14px 14px}
 .kk-b.me.cont{border-radius:14px}
+.kk-b.att{background:none!important;padding:0;border-radius:0}
+.kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
+.kk-ph{width:160px;height:180px;max-width:52vw;border-radius:14px;background:linear-gradient(160deg,#d5dbe2,#aeb8c4);color:#fff;display:grid;place-items:center;position:relative}.kk-ph.v{background:linear-gradient(160deg,#5f6772,#2d323a)}.kk-ph em{position:absolute;right:9px;bottom:7px;font-style:normal;font-size:12px}
+.kk-play{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.35);display:grid;place-items:center;color:#fff;font-size:15px;padding-left:3px}.kk-play.sm{width:30px;height:30px;font-size:11px;background:#191919}
+.kk-voice{display:flex;align-items:center;gap:10px;background:#fff;color:#191919;border-radius:14px;padding:9px 13px;width:180px}.kk-wave{flex:1;height:14px;background:repeating-linear-gradient(90deg,#bbb 0 2px,transparent 2px 5px);border-radius:2px}.kk-voice em{font-style:normal;font-size:12.5px}
 .kk-call{display:flex;align-items:center;gap:9px;min-width:130px;white-space:normal}.kk-call i{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.07);display:grid;place-items:center;font-style:normal;flex:none}.kk-call b{display:block;font-weight:600}.kk-call span{font-size:12px;opacity:.6}
 #call-ly{position:fixed;inset:0;z-index:150;background:linear-gradient(180deg,#46505f,#16191e);color:#fff;display:flex;flex-direction:column;align-items:center;padding:calc(72px + env(safe-area-inset-top)) 22px calc(36px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
 #call-ly .call-av{width:108px;height:108px;border-radius:50%;object-fit:cover;font-size:52px;display:grid;place-items:center;background:#5b6573}
@@ -3863,15 +3868,36 @@ function mgrCardMsg(m) {
 }
 // KKT 风格的聊天记录：同一个人同一分钟连发的合成一组（头像 / 名字只在第一条，时间只在最后一条）
 const kkTime = ts => { const d = new Date(ts), h = d.getHours(); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')}`; };
+// KKT 附件：消息开头是 [文件] / [照片] / [视频] / [语音] 这种的，显示成 KKT 里的文件卡片 / 照片 / 视频 / 语音，不当成普通文字
+const KK_ATT = [[/^(음성 ?파일|파일|文件|语音文件|첨부)$/, 'file'], [/^(사진|照片|图片|이미지|사진 \d+장)$/, 'photo'], [/^(동영상|영상|视频)$/, 'video'], [/^(음성 ?메시지|음성|语音|语音消息)$/, 'voice']];
+function kkAttSplit(m) {
+  if (m.sys || m.call || m.card || typeof m.text !== 'string') return [m];
+  const g = m.text.match(/^\[([^\]]{1,12})\]\s*([\s\S]*)$/); if (!g) return [m];
+  const k = (KK_ATT.find(([re]) => re.test(g[1].trim())) || [])[1]; if (!k) return [m];
+  let rest = g[2].trim(), name = '';
+  if (k === 'file') { const f = rest.match(/^(\S+\.[A-Za-z0-9]{2,4})\s*([\s\S]*)$/) || rest.match(/^(.+?\.[A-Za-z0-9]{2,4})\s*$/); if (f) { name = f[1]; rest = (f[2] || '').trim(); } else { name = rest || '파일'; rest = ''; } }
+  const zr = (m.zh || '').replace(/^\[[^\]]{1,12}\]\s*/, '').replace(k === 'file' && name ? new RegExp('^\\S*\\.[A-Za-z0-9]{2,4}\\s*') : /^$/, '').trim();
+  const a = { ...m, att: { k, name }, text: '', zh: '' };
+  return rest ? [a, { ...m, id: m.id + '_c', text: rest, zh: zr }] : [a];
+}
+function kkAttHTML(m) {
+  const A = m.att, r = srng('att' + (A.name || '') + m.at);
+  if (A.k === 'file') { const ex = new Date(m.at + 30 * 86400e3), sz = (.4 + r() * 8.5).toFixed(2), ext = (A.name.split('.').pop() || '').toLowerCase(), ic = /m4a|mp3|wav|aac/.test(ext) ? '🎵' : /mp4|mov/.test(ext) ? '🎬' : /jpe?g|png|heic/.test(ext) ? '🖼' : /pdf|docx?|hwp|txt/.test(ext) ? '📄' : '📁';
+    return `<div class="kk-file"><div><b>${esc(A.name)}</b><span>유효기간: ~${ex.getFullYear()}. ${ex.getMonth() + 1}. ${ex.getDate()}.</span><span>용량: ${sz} MB</span></div><i>${ic}</i></div>`; }
+  if (A.k === 'photo') return `<div class="kk-ph"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></div>`;
+  if (A.k === 'video') return `<div class="kk-ph v"><span class="kk-play">▶</span><em>0:${String(8 + Math.floor(r() * 50)).padStart(2, '0')}</em></div>`;
+  return `<div class="kk-voice"><span class="kk-play sm">▶</span><span class="kk-wave"></span><em>0:${String(3 + Math.floor(r() * 40)).padStart(2, '0')}</em></div>`;
+}
 function kkLogHTML(msgs, o) {
+  msgs = msgs.flatMap(kkAttSplit);
   let lastDay = ''; const minute = m => Math.floor(m.at / 60000), who = m => m.sys ? 's' : m.me ? 'me' : 'o';
   return msgs.map((m, i) => {
     const d = new Date(m.at), dk = dkey(m.at), sep = dk !== lastDay ? `<div class="kk-day">${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${WDK[d.getDay()]}요일</div>` : ''; lastDay = dk;
     if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
     const p = msgs[i - 1], n = msgs[i + 1], cont = !sep && p && who(p) === who(m) && minute(p) === minute(m), last = !n || who(n) !== who(m) || minute(n) !== minute(m) || dkey(n.at) !== dk;
-    const body = m.call ? `<div class="kk-call"><i>${CALL_SVG}</i><div><b>${callLbl(m.call)}</b>${m.call.dur ? `<span>${m.call.dur}</span>` : ''}</div></div>` : `${esc(m.text)}${o.tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
-    if (m.me) return sep + `<div class="kk-row me${cont ? ' cont' : ''}"><span class="kk-t">${o.unread(m) && !m.call ? '<b class="kk-1">1</b>' : ''}${tm}</span><div class="kk-b me${cont ? ' cont' : ''}">${body}</div></div>`;
-    return sep + `<div class="kk-row${cont ? ' cont' : ''}">${cont ? '<div class="kk-avsp"></div>' : o.av}<div>${cont ? '' : `<div class="kk-n">${esc(o.name)}</div>`}<div class="kk-b${cont ? ' cont' : ''}">${body}</div></div><span class="kk-t">${tm}</span></div>`;
+    const body = m.att ? kkAttHTML(m) : m.call ? `<div class="kk-call"><i>${CALL_SVG}</i><div><b>${callLbl(m.call)}</b>${m.call.dur ? `<span>${m.call.dur}</span>` : ''}</div></div>` : `${esc(m.text)}${o.tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
+    if (m.me) return sep + `<div class="kk-row me${cont ? ' cont' : ''}"><span class="kk-t">${o.unread(m) && !m.call ? '<b class="kk-1">1</b>' : ''}${tm}</span><div class="kk-b me${cont ? ' cont' : ''}${m.att ? ' att' : ''}">${body}</div></div>`;
+    return sep + `<div class="kk-row${cont ? ' cont' : ''}">${cont ? '<div class="kk-avsp"></div>' : o.av}<div>${cont ? '' : `<div class="kk-n">${esc(o.name)}</div>`}<div class="kk-b${cont ? ' cont' : ''}${m.att ? ' att' : ''}">${body}</div></div><span class="kk-t">${tm}</span></div>`;
   }).join('');
 }
 function mgrLogHTML() {
@@ -7979,6 +8005,7 @@ ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消�
 - 上面聊天记录里他以前的消息如果有复述、重复确认、句句带 ㅋㅋ 的毛病，那是之前写坏了，不要延续。
 
 韩语：
+- 要发照片 / 视频 / 文件 / 语音时，单独一条，只写「[사진]」「[동영상]」「[파일] 文件名.扩展名」「[음성메시지]」，后面不要加描述（会显示成 KKT 里的附件）；想说明就另发一条文字。
 - 写韩国二十岁上下的人私下发 KKT 的样子，不是把中文意思翻成韩语。熟的朋友之间：主语、宾语常常省掉；一句话常拆成两三个短气泡；会用 ㅇㅇ ㅇㅋ 웅 ㄱㄱ ㄴㄴ ㄹㅇ 같은 缩略、没写完的半句、「~했어?」「~하자」「~임」「~ㄴ듯」这类口语结尾。不熟的就用敬语，但也是口语的敬语（「넵」「헐 진짜요?」「아 그래요?ㅎㅎ」），不是书面礼貌句。
 - 不要中文式表达：比如不说「언니 말 들을게」「시간 맞춰보자」这种直译腔，不写「~해줄게」式的完整解释句来交代安排。
 - 她有时用中文发消息，他照常按他的语言习惯回（档案里写了会说中文的人，按档案的程度用中文）。
