@@ -3557,7 +3557,7 @@ function ytSubmit(editId) {
   if (p) { Object.assign(p, { cat: F.cat, fmt: F.fmt, title: F.title, orig: F.orig, note: F.note, collab: c ? { ...c } : null, st: 'sub', dec: null, round: (p.round || 0) + 1 }); }
   else { p = { id: uid(), cat: F.cat, fmt: F.fmt, title: F.title, orig: F.orig, note: F.note, collab: c ? { ...c } : null, st: 'sub', at: Date.now(), log: [] }; Y.plans.unshift(p); }
   p.decideAt = Date.now() + rand(5, 40) * 60e3; ytLog(p, editId ? '修改后重新提交' : '');
-  UI.ytF = null; UI.mPage = 'ytp:' + p.id; save(); render(); toast('已提交给 STARSHIP');
+  UI.ytF = null; UI.mPage = 'ytp:' + p.id; save(); render(); meSubTop(); toast('已提交给 STARSHIP');
 }
 /* =========================================================
    能力 / 休息周 / 经纪人邀约 / 📋 通告（每个行程当天一张机遇卡）
@@ -8687,6 +8687,8 @@ function hotPanelHTML() {
     .concat(H.hist.slice(-5).reverse().map(x => `<button class="hot-card" data-act="hotopen" data-k="${x.key || ''}"><div class="hc-t">#${esc(x.title)}#</div><div class="hc-d">${esc(x.choice)} · ${esc(x.result)}</div><div class="hc-m"><em>已平息</em>${x.at ? `<span>${when(x.at)}</span>` : ''}${x.net ? `<b class="${x.net > 0 ? 'pos' : 'neg'}">${x.net > 0 ? '+' : ''}${fmtNum(x.net)}</b>` : ''}</div></button>`));
   return cards.length ? `<div class="hots">${cards.join('')}</div>` : '<div class="card muted" style="text-align:center;padding:22px 10px">最近没有热搜</div>';
 }
+// 子页面打开时：导航吸顶，页面标题紧贴在导航下面。吸顶状态下 offsetTop 会取到吸顶后的位置（Safari），所以先回到顶部再量
+function meSubTop() { window.scrollTo(0, 0); const nb = $('.me-tabs'); if (!nb) return; const tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, Math.max(0, nb.getBoundingClientRect().top + window.scrollY - tH)); }
 function viewMe() {
   const p = S.profile; const totalL = S.posts.reduce((s, x) => s + x.likes, 0), totalC = S.posts.reduce((s, x) => s + x.commentCount, 0);
   const co = (p.company || 'STARSHIP').trim(), coFull = /ENTERTAINMENT|엔터/i.test(co) ? co : co.toUpperCase() + ' ENTERTAINMENT', tab = UI.meTab || 'stats';
@@ -8780,7 +8782,7 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act;
   switch (a) {
-    case 'metab': { UI.wPage = ''; UI.mPage = ''; const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); const nb = $('.me-tabs'); window.scrollTo(0, stuck && nb ? nb.offsetTop - tH : 0); break; } // 吸顶时切换：导航留在原位，不跳
+    case 'metab': { UI.wPage = ''; UI.mPage = ''; const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); if (stuck) meSubTop(); else window.scrollTo(0, 0); break; } // 吸顶时切换：导航留在原位，不跳
     case 'tab': stopPreview(); UI.wPage = ''; UI.mPage = ''; UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
     case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); break;
@@ -8975,7 +8977,7 @@ document.addEventListener('click', async e => {
     case 'yttab': UI.ytTab = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'ytfcat': case 'ytffmt': { const F = UI.ytF || {}; F.title = $('#ytf-t')?.value || F.title || ''; F.orig = $('#ytf-o')?.value || F.orig || ''; F.with = $('#ytf-w')?.value ?? F.with; F.note = $('#ytf-n')?.value || F.note || ''; if (t.dataset.act === 'ytfcat') { F.cat = t.dataset.k; F.fmt = YT_CAT[F.cat][1][0][0]; } else F.fmt = t.dataset.k; UI.ytF = F; const y = window.scrollY; render(); window.scrollTo(0, y); break; }
     case 'ytsubmit': ytSubmit(t.dataset.id); break;
-    case 'ytedit': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p) break; UI.ytF = { cat: p.cat, fmt: p.fmt, title: p.title, orig: p.orig || '', with: p.collab ? p.collab.key : '', note: p.note || '' }; UI.mPage = 'ytnew:' + p.id; render(); window.scrollTo(0, 0); break; }
+    case 'ytedit': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p) break; UI.ytF = { cat: p.cat, fmt: p.fmt, title: p.title, orig: p.orig || '', with: p.collab ? p.collab.key : '', note: p.note || '' }; UI.mPage = 'ytnew:' + p.id; render(); meSubTop(); break; }
     case 'ytshot': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || p.st !== 'shoot') break; p.st = 'ready'; ytLog(p, '自己拍好了'); save(); render(); toast('拍好了 ✓', '可以发布了'); break; }
     case 'ytpub': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p) break; ytPublish(p); render(); toast('已发布 ▶', p.title); break; }
     case 'ytcancel': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || ['pub', 'cancel'].includes(p.st)) break; const r = p.rule && S.schedule.rules.find(x => x.id === p.rule); if (r && (r.date > dkey(Date.now()))) S.schedule.rules = S.schedule.rules.filter(x => x !== r); p.st = 'cancel'; ytLog(p, '你取消了'); mgrResolve('ytshoot', p.id, '已取消'); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：《${p.title}》取消了`); save(); render(); break; }
@@ -8986,9 +8988,9 @@ document.addEventListener('click', async e => {
       S.schedule.rules.push({ id, title: `官方 YouTube 拍摄：${p.title}`, cat: '物料', start: x.start, end: x.end, loc, repeat: 'once', days: [], date: x.dk, note: YT_CAT[p.cat][0] + (p.collab ? ` · with ${socName(p.collab)}` : ''), mgr: 1, yt: p.id, createdAt: Date.now() });
       p.rule = id; p.st = 'booked'; ytLog(p, `拍摄定在 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} ${x.start}`); mgrResolve('ytshoot', p.id, `已定 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} ${x.start}`); mgrReply([`네, ${+x.dk.slice(5, 7)}월 ${+x.dk.slice(8)}일로 잡을게요`, `好，定在${+x.dk.slice(5, 7)}月${+x.dk.slice(8)}日`]);
       if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：${YT_CAT[p.cat][0]}《${p.title}》定在 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} 拍`); save(); break; }
-    case 'mgo': { const np = t.dataset.p || ''; if (np.startsWith('alb:') && !(UI.mPage || '').startsWith('alb:')) UI.mFrom = UI.mPage || ''; UI.mPage = np; render(); const nb = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, nb ? Math.max(0, nb.offsetTop - tH) : 0); break; }
+    case 'mgo': { const np = t.dataset.p || ''; if (np.startsWith('alb:') && !(UI.mPage || '').startsWith('alb:')) UI.mFrom = UI.mPage || ''; UI.mPage = np; render(); meSubTop(); break; }
     case 'shweek': UI.shWeek = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
-    case 'wgo': { UI.wPage = t.dataset.p || ''; render(); const nb = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, nb ? Math.max(0, nb.offsetTop - tH) : 0); break; }
+    case 'wgo': { UI.wPage = t.dataset.p || ''; render(); meSubTop(); break; }
     case 'wsheet': openModal(walletSheetHTML()); setTimeout(() => $('#w-in')?.focus(), 50); break;
     case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; mgrMe(ok ? 'dealOk' : 'dealNo'); if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? ['네, 진행할게요.', '好，推进。'] : ['네, 거절할게요.', '好，回绝。']); W.offer = null; save(); mgrRefresh(); render(); break; }
     case 'crenego': { const c = wallet().contract; c.offer = renewOffer(true); save(); render(); break; }
