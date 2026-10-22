@@ -8037,7 +8037,7 @@ function ahFollowMig() {
   save();
 }
 // 一次性：之前「拖了两次就当成已读不回」的 bug 留下的：好朋友那边你最后发的、问了问题却被已读不回的，补上回复
-function dmCallZh1() { const SO = social(); if (SO.callZh1) return; SO.callZh1 = 1; for (const T of Object.values(dms())) for (const m of T.msgs || []) if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; }
+function dmCallZh1() { const SO = social(); if (SO.callZh1 && SO.callKo1) return; SO.callZh1 = SO.callKo1 = 1; for (const T of Object.values(dms())) for (const m of T.msgs || []) { if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; if (m.me && m.text === '好啊，约个时间打给你' && m.zh && !hasHan(m.zh)) { const k = m.zh; m.zh = m.text; m.text = k; } } }
 function dmUnstick1() {
   const SO = social(); if (SO.unstick1) return; SO.unstick1 = 1; const now = Date.now();
   for (const T of Object.values(dms())) { const m = T.msgs[T.msgs.length - 1];
@@ -8272,7 +8272,7 @@ function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
-async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { if (m.opt && hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
@@ -8291,7 +8291,7 @@ function dmHTML(key) {
 }
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
-  if (!silent) dmPush(T.p, { me: true, text: mine });
+  if (!silent) dmPush(T.p, { me: true, text: mine, opt: 1 }); // 选项是中文写的：发出去的是韩语，中文放下面
   if (!x) { if (!T.due) T.due = { at: Date.now() + dmDelay(T.p) }; save(); return; } // 他点开的那一刻才算已读，读了就决定回不回 // 等他看到时再一次性回复你发的所有消息
   x.ans = 1; const res = socApply(x, o, mine); save(); openModal(dmHTML(key));
   const lvNote = res.up ? [{ sys: `你们现在算是${FR_LV[res.up]}了` }] : [];
