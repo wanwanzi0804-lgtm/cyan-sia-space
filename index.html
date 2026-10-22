@@ -5973,7 +5973,7 @@ function viewNotif() {
 }
 function openNotif(n) {
   if (n.postId && S.posts.some(p => p.id === n.postId)) {
-    UI.tab = 'feed'; UI.postId = n.postId; render(); window.scrollTo(0, 0);
+    UI.tab = 'feed'; UI.postId = n.postId; UI.feedY = 0; render(); window.scrollTo(0, 0);
     if (n.cid) setTimeout(() => { const el = $(`[data-cid="${n.cid}"]`); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.add('flash'); } }, 80);
   } else if (n.type === 'sched') { UI.tab = 'sched'; render(); }
   else if (n.type === 'live') { UI.tab = 'live'; render(); }
@@ -8766,9 +8766,10 @@ function openModal(html) {
   if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
     for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
     keep.sheet = sh.scrollTop; }
+  const sig = () => { const h = sh.querySelector('h3,h2,b'); return (sh.firstElementChild?.className || '') + '|' + (h ? h.textContent.trim().slice(0, 30) : ''); }, oldSig = wasOn ? sig() : '';
   sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room,.kk-pf')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
-  if (keep.sheet != null) sh.scrollTop = keep.sheet;
+  sh.scrollTop = keep.sheet != null && sig() === oldSig ? keep.sheet : 0; // 同一个弹窗刷新才保留位置，换成别的弹窗从顶上开始
   for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
 }
 function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; }
@@ -8783,8 +8784,8 @@ document.addEventListener('click', async e => {
   switch (a) {
     case 'metab': { UI.wPage = ''; UI.mPage = ''; const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); if (stuck) meSubTop(); else window.scrollTo(0, 0); break; } // 吸顶时切换：导航留在原位，不跳
     case 'tab': stopPreview(); UI.wPage = ''; UI.mPage = ''; UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
-    case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
-    case 'back': UI.postId = null; render(); break;
+    case 'open': UI.feedY = UI.postId ? UI.feedY : window.scrollY; UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
+    case 'back': UI.postId = null; render(); window.scrollTo(0, UI.feedY || 0); break; // 回到列表原来看到的位置
     case 'publish': publish(); break;
     case 'cmpopen': UI.cmpOpen = true; render(); $('#cmp-text')?.focus(); break;
     case 'cmpclose': draft = ($('#cmp-text')?.value || ''); UI.cmpOpen = false; render(); break;
