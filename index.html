@@ -7849,6 +7849,10 @@ function socHistHTML() {
 function chalTick() {
   { const C0 = S.chal; if (C0 && !C0.fV) { C0.fV = 1; C0.vV = C0.vV || 0; } }
   { const C0 = S.chal; if (C0 && !C0.popV1) { C0.popV1 = 1; C0.jhV = 1; for (const x of C0.list) if (x.st === 'done') { const [v, l] = chViews(x.p.tier, x.mult || 1, x.p), nf = Math.round(Math.min(v * rand(.002, .006), S.profile.followers * .03)); if (nf !== (x.fans || 0)) addFans(nf - (x.fans || 0), 'Challenge：' + x.p.g + ' ' + x.p.n); x.views = v; x.likes = l; x.fans = nf; } } } // 按新的个人人气把已发布的 challenge 全部重算一遍
+  { const F = fanState(), C0 = S.chal; if (C0 && !F.chFix2) { F.chFix2 = 1; // 更正差额记在了别的日子：只把那笔挪回 challenge 拍的那天（只搬已有的数，不凭空加减）
+    const dOf = {}; for (const x of C0.list) if (x.st === 'done') (dOf['Challenge：' + x.p.g + ' ' + x.p.n] || (dOf['Challenge：' + x.p.g + ' ' + x.p.n] = [])).push(x.date);
+    for (const [dk, d] of Object.entries(F.days)) for (const [k, n] of Object.entries(d.src)) { const ds = dOf[k]; if (!ds || ds.includes(dk)) continue; const to = ds.slice().sort().pop(), D = F.days[to] || (F.days[to] = { net: 0, src: {} }); D.src[k] = (D.src[k] || 0) + n; D.net += n; d.net -= n; delete d.src[k]; }
+  } }
   { const F = fanState(), C0 = S.chal; if (C0 && !F.chFix1) { F.chFix1 = 1; // 重算 challenge 时补记在当天的差额，挪回 challenge 那天，明细里不显示更正
     const exp = {}; for (const x of C0.list) if (x.st === 'done') { const k = 'Challenge：' + x.p.g + ' ' + x.p.n, e = exp[k] || (exp[k] = {}); e[x.date] = (e[x.date] || 0) + (x.fans || 0); }
     for (const [k, e] of Object.entries(exp)) if (Object.values(F.days).reduce((t, d) => t + (d.src[k] || 0), 0) === Object.values(e).reduce((t, v) => t + v, 0)) for (const dk of new Set([...Object.keys(F.days), ...Object.keys(e)])) { const want = e[dk] || 0, d = F.days[dk], has = d ? d.src[k] || 0 : 0; if (want === has || (!d && !want)) continue; const D = d || (F.days[dk] = { net: 0, src: {} }); D.net += want - has; if (want) D.src[k] = want; else delete D.src[k]; }
