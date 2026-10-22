@@ -2327,18 +2327,27 @@ function prepFinalize(o) {
 }
 // 完成的准备行程 → 对应任务；公司任务按时间推进；发行前检查 / 延期 / 预热物料
 // 企划会议和专辑录音由公司安排（不是你手动加的）：经纪人排进行程，算进回归准备
-function prepSlot(dk, h) { for (const st of [13, 10, 15, 18]) { const a = st * 60, b = (st + h) * 60; if (b > 22 * 60) continue; if (!rulesFor(dk).some(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; })) return [st, st + h]; } return null; }
+function prepSlot(dk, h) { for (const st of h >= 7 ? [9, 10] : [13, 10, 15, 18]) { const a = st * 60, b = (st + h) * 60; if (b > 22 * 60) continue; if (!rulesFor(dk).some(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; })) return [st, st + h]; } return null; }
 function prepAuto(o) {
   const { c, a, P, t } = o, today = dkey(Date.now()); if (P.autoDay === today) return; P.autoDay = today;
-  const add = (dk, h, title, loc, tk) => { const sl = prepSlot(dk, h); if (!sl) return 0; const hh = x => String(x).padStart(2, '0') + ':00'; S.schedule.rules.push({ id: uid(), title, cat: '其他', start: hh(sl[0]), end: hh(sl[1]), loc, repeat: 'once', days: [], date: dk, note: `《${a.name}》`, mgr: 1, cbTask: tk, cbAlbum: a.id, createdAt: Date.now() }); return sl; };
+  const add = (dk, h, title, loc, tk, cat) => { const sl = prepSlot(dk, h); if (!sl) return 0; const hh = x => String(x).padStart(2, '0') + ':00'; S.schedule.rules.push({ id: uid(), title, cat: cat || '其他', start: hh(sl[0]), end: hh(sl[1]), loc, repeat: 'once', days: [], date: dk, note: `《${a.name}》`, mgr: 1, cbTask: tk, cbAlbum: a.id, createdAt: Date.now() }); return sl; };
   const planned = tk => S.schedule.rules.filter(r => r.cbTask === tk && r.cbAlbum === a.id && r.date >= today && !P.log[r.date + '|' + r.id]);
   const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
   if (!t.concept.done && !P.autoMeet && !planned('meet').length) for (let i = 1; i <= 4; i++) { const dk = addDays(today, i), sl = add(dk, 2, '回归企划会议', '公司 会议室', 'meet'); if (sl) { P.autoMeet = dk; mgrSay([`${+dk.slice(5, 7)}월 ${+dk.slice(8)}일 ${sl[0]}시에 컴백 기획 회의 잡았어요`, `${md(dk)} ${sl[0]} 点排了回归企划会议`]); break; } }
-  if (t.final.done && !t.rec.done) {
-    let left = t.rec.need - t.rec.prog - planned('rec').reduce((s, r) => { const x = toMin(r.start); let e = toMin(r.end); if (e <= x) e += 1440; return s + Math.min((e - x) / 60, 10); }, 0);
-    const until = c.tbd ? addDays(today, 21) : addDays(c.date, -4), got = [];
-    for (let i = 1; left > 0.5 && i <= 21; i++) { const dk = addDays(today, i); if (dk > until && got.length) break; const h = Math.max(2, Math.min(5, Math.ceil(left))), sl = add(dk, h, '专辑录音', '公司 录音室', 'rec'); if (sl) { left -= h; got.push(`${md(dk)} ${sl[0]}:00`); i++; } }
-    if (got.length) mgrSay([`녹음 일정 잡았어요. ${got.length}번이에요`, `录音排好了：${got.join('、')}`]);
+  // 本人要参与的准备：录音 / 编舞 / MV / 概念照 / 宣传物料，都由公司按需要的时长排进行程
+  const JOBS = [
+    ['rec', t.final.done, '专辑录音', '公司 录音室', '其他', 5, -4, ['녹음', '录音']],
+    ['dance', t.final.done && P.dance, '回归编舞练习', '公司 练习室', '练习', 4, -5, ['안무 연습', '编舞练习']],
+    ['photo', t.concept.done, '概念照拍摄', '摄影棚', '物料', 5, -13, ['콘셉트 포토 촬영', '概念照拍摄']],
+    ['mv', t.final.done, 'MV 拍摄', '外景 / 摄影棚', '物料', 9, -7, ['뮤비 촬영', 'MV 拍摄']],
+    ['promo', t.concept.done, '宣传物料拍摄', '公司 / 摄影棚', '物料', 3, -6, ['홍보 콘텐츠 촬영', '宣传物料拍摄']]
+  ];
+  for (const [tk, ready, title, loc, cat, per, dl, nm] of JOBS) {
+    const T0 = t[tk]; if (!ready || !T0 || T0.done || T0.skip) continue;
+    let left = T0.need - T0.prog - planned(tk).reduce((s, r) => { const x = toMin(r.start); let e = toMin(r.end); if (e <= x) e += 1440; return s + Math.min((e - x) / 60, 10); }, 0);
+    const until = c.tbd ? addDays(today, 28) : addDays(c.date, dl), got = [];
+    for (let i = 1; left > 0.5 && i <= 28; i++) { const dk = addDays(today, i); if (dk > until && got.length) break; const h = Math.max(2, Math.min(per, Math.ceil(left))), sl = add(dk, h, title, loc, tk, cat); if (sl) { left -= h; got.push(`${md(dk)} ${sl[0]}:00`); if (per <= 5) i++; } }
+    if (got.length) mgrSay([`${nm[0]} 일정 잡았어요 (${got.length}번)`, `${nm[1]}排好了：${got.join('、')}`]);
   }
 }
 function prepTick() {
@@ -3693,6 +3702,8 @@ const OFFER_SPEC = [
   [/商场签名活动/, () => { const [l, lk] = pick([['Starfield 河南', '스타필드 하남'], ['现代百货 板桥店', '현대백화점 판교점'], ['Lotte World Mall', '롯데월드몰']]); return { title: `${l} 商场签名活动`, loc: l, ko: [[l, lk]], note: ['매장 이벤트 당첨자 대상 사인회예요. 한 시간 정도요.', '商场活动中奖顾客的签名会，大概一个小时。'] }; }]
 ];
 function offerSpec(title, loc) { const f = OFFER_SPEC.find(([re]) => re.test(title)); if (!f) return { title, loc }; const r = f[1](); return { title: r.title, loc: r.loc || loc, note: r.note }; }
+function offerClash(date, start, end) { const a = toMin(start), b = toMin(end) <= a ? toMin(end) + 1440 : toMin(end), hit = r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b + 30 && e + 30 > a; };
+  return rulesFor(date).find(hit) || mgr().offers.find(o => o.date === date && hit(o)) || null; }
 function mgrMakeOffer() {
   const f = S.profile.followers, K = skills(), mo = new Date().getMonth() + 1, today = dkey(Date.now());
   const days = []; for (let i = 3; i <= 24; i++) { const k = addDays(today, i); if (offerDayOk(k)) days.push(k); }
@@ -3710,9 +3721,12 @@ function mgrMakeOffer() {
   if (cat === '活动' && f < POP_MAX && Math.random() < .6) { pop = popupOffer(); title = pop.title; loc = pop.loc; }
   else if (/品牌/.test(title)) { const b = brandPick(uid(), /时装|秀场/.test(title) ? ['fashion'] : null)[0]; title = title.replace('品牌门店开业活动', `${b} 门店开业活动`).replace('品牌活动 / 快闪店', `${b} 快闪店活动`).replace('海外时装周 · 品牌秀场', `海外时装周 · ${b} 秀场`).replace(/品牌/, b); }
   let sp = null; if (!pop) { sp = offerSpec(title, loc); title = sp.title; loc = sp.loc; }
-  const date = pick(days), sh = ri(10, 19), dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]);
+  const dur = cat === '校庆' || cat === '公演' ? 2 : pick([1, 2, 3]); let date, sh, end;
+  for (let k = 0; k < 30; k++) { // 不和已有行程、还没回复的邀约撞时间
+    date = pick(days); sh = ri(10, 19); end = pop ? hhmm(sh * 60 + pop.dur) : `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`;
+    if (!offerClash(date, `${String(sh).padStart(2, '0')}:00`, end)) break; date = null; }
+  if (!date) return null;
   const row = (SCHED_ECON[cat] || []).find(r => r[0].test(title));
-  const end = pop ? hhmm(sh * 60 + pop.dur) : `${String(Math.min(23, sh + dur)).padStart(2, '0')}:00`;
   return { id: uid(), cat: cat === '校庆' ? '公演' : cat, title, loc, date, start: `${String(sh).padStart(2, '0')}:00`, end, fee: row ? [row[1], row[2]] : [0, 0], exp: Date.now() + 48 * 3600e3, popup: pop ? pop.popup : undefined, partner: pop ? pop.partner : undefined, note: sp && sp.note };
 }
 function hhmm(m) { return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -7244,9 +7258,10 @@ function socTick() {
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
   for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online && dmIsMsg(x.ev)) { x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } if (x.ko && aiOn() && !x.via) socThVoice(x).then(() => dmEvent(x)); else dmEvent(x); } // 线上的直接发到 KKT
+  for (const x of SO.q) if (x.day === today && !x.done && !x.gen && !x.popOk && nm >= x.at && nm <= x.until && aiOn() && !x.via && socEv(x.ev) && SOC2_DM_OK(socEv(x.ev))) { x.gen = 1; socDmGen(x).then(ok => { x.gen = 0; if (ok) { x.done = 1; socDmSend(x); } else x.popOk = 1; save(); }).catch(() => { x.gen = 0; x.popOk = 1; }); }
   if (UI.socPop || UI.chPop || $('#modal').classList.contains('on')) return;
   const op = SO.q.find(x => x.open && x.day === today && x.p); if (op) { if (SO.hist.some(h => h.id === op.id)) delete op.open; else { UI.socPop = { x: op }; openModal(socPopHTML()); return; } } // 弹出来还没处理就刷新了：重新弹
-  const due = SO.q.find(x => x.day === today && !x.done && nm >= x.at); if (!due) return;
+  const due = SO.q.find(x => x.day === today && !x.done && !x.gen && nm >= x.at && !(aiOn() && !x.via && !x.popOk && nm <= x.until && socEv(x.ev) && SOC2_DM_OK(socEv(x.ev)))); if (!due) return;
   if (nm > due.until) { due.done = 1; due.missed = 1; return; }
   if (!socThFill(due)) { due.done = 1; due.skip = 1; return; }
   due.done = 1; due.open = 1; UI.socPop = { x: due }; openModal(socPopHTML()); save();
@@ -8110,6 +8125,19 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
 }
 // 每天：同步真实发生的事（拍过的 challenge、行程表里一起的工作），很久不联系就慢慢淡，约定太久没落实就算了
 // 只有真的是对方发来的 KKT 消息才进聊天；加 Close Friends、点赞、评论这类在弹窗里出现
+// 「他发来 / 私信 / 问你」这类线上事件：开着 AI 时真的发到 KKT（对方的消息 + 三个你会发出去的回复），不再弹窗写旁白
+const SOC2_DM_SKIP = new Set([9, 10, 52, 91, 98, 190, 194, 197]); // 工作人员发的 / 公开评论 / 视频通话 / 没有消息的
+const SOC2_DM_OK = e => /^s2_/.test(e.id) && e.online && e.kind !== 'probe' && !SOC2_DM_SKIP.has(+e.id.slice(3)) && /发来|发消息|私信|联系你|单独联系|又联系你|发了一|回复|问你|问：|评论|邀请你|推荐|分享|发给你|说：|打来/.test(e.d) && !/共同朋友|朋友说|朋友把|朋友聊天|朋友发现|朋友在直播|经纪人|有人在社交平台|粉丝开始/.test(e.d);
+async function socDmGen(x) {
+  const e = socEv(x.ev), p = x.p, ban = socBan(p), what = socText(e, p, x);
+  const j = await aiRaw([{ type: 'text', text: `${socWho(p)} 和 ${S.profile.name}（女，solo 爱豆，STARSHIP）之间，现在在 KKT 上发生这件事：「${what}」\n${socCtx(p)}\n\n1) 写 ${socName(p)} 这时真的会发出来的那条 KKT（只写 ta 发的，${ban ? '半语' : '敬语'}，二十岁上下的人私下的口语，一到两句；如果是发照片 / 视频 / 文件，单独写成「[사진]」「[동영상]」「[파일] 文件名.扩展名」，说明另起一句用换行隔开）。ko 韩语，zh 准确的中文意思。\n2) 写 ${S.profile.name} 可能回的三条消息（中文写，就是她会真的发出去的话，不是动作描写），分别是：积极 / 热情（tone +）、普通 / 随意（tone 0）、保持距离或婉拒（tone -）。每条一句，自然口语，要对得上 ta 发的这条。` }], 500,
+    { type: 'object', additionalProperties: false, required: ['ko', 'zh', 'opts'], properties: { ko: { type: 'string' }, zh: { type: 'string' }, opts: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['t', 'tone'], properties: { t: { type: 'string' }, tone: { type: 'string', enum: ['+', '0', '-'] } } } } } }, KKT_SYS());
+  if (!j || !j.ko || !(j.opts || []).length) return false;
+  const K = SOC_KIND[e.kind] || SOC_KIND.msg, byT = { '+': K.find(o => o[3] === '+') || K[0], '0': K.find(o => o[3] === '0') || K[1], '-': K.find(o => o[3] === '-') || K[2] };
+  x.ko = j.ko.trim(); x.zh = (j.zh || '').trim(); x.dmo = j.opts.slice(0, 3).map(o => { const b = byT[o.tone] || K[1]; return { t: o.t, fam: b[1], amb: e.fl.amb ? b[2] : 0, tone: o.tone, risk: o.tone === '+' ? e.fl.r * (p.f ? .2 : 1) : 0, reply: '' }; });
+  return true;
+}
+function socDmSend(x) { const L = x.ko.split(/\n+/).map(s => s.trim()).filter(Boolean), Z = (x.zh || '').split(/\n+/).map(s => s.trim()); L.forEach((t, i) => dmPush(x.p, { text: t, zh: L.length === Z.length ? Z[i] : (i === L.length - 1 ? x.zh : ''), ev: x.id })); x.dm = 1; save(); }
 const dmIsMsg = id => { const e = socEv(id); return !!(e && (e.th || (SOC_DM[id] && SOC_DM[id][0]))); };
 // 以前把「加进 Close Friends」「给快拍点赞」这类不是 KKT 消息的交集也塞进了聊天里：清掉（交集记录里还在）
 // 一次性：世琳那段前后矛盾的回复删掉，按新规则、现在的时间重新回你最后发的消息
@@ -8391,6 +8419,7 @@ const SOC_OPT = {
 // 同一件事搬到 KKT 上时，原来的选项可能对不上（比如电话里的选项）：这里单独写
 const SOC_DM_OPT = { call: [['好啊，约个时间打给你', 1, .1, '他说好，问你今晚还是明天方便，顺便提一句是想请你听听他们团的新歌、给点建议', 'callset'], ['问他什么事，打字说也行', 1, 0, '他说其实是想请你帮忙听听他们团的新歌、给点建议，打字说也可以'], ['说最近太忙了', -1, 0, '他说没关系，那不打扰了，等你有空再说']] };
 function socOpts(e, p, x) {
+  if (x && x.dmo) return x.dmo;
   if (e.old && x && x.dm && SOC_DM_OPT[e.id]) e = { ...e, o: SOC_DM_OPT[e.id] };
   if (e.th) return (x && x.o) || [];
   if (e.old) return e.o.map(o => ({ t: socG(o[0], p).split('{她}').join(socName(p)).split('{他}').join(socName(p)), fam: o[1], amb: 0, tone: o[1] > 0 ? '+' : o[1] < 0 ? '-' : '0', risk: o[2] * (p.f ? .2 : 1), reply: socG(o[3], p), act: o[4] }));
@@ -9323,7 +9352,7 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { mgrMe('ok'); mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
+    case 'ofok': { { const o0 = mgr().offers.find(x => x.id === t.dataset.id), cl = o0 && rulesFor(o0.date).find(r => { const a = toMin(o0.start), b = toMin(o0.end), s = toMin(r.start), e = toMin(r.end); return s < b && e > a; }); if (cl) { mgrMe('ok'); mgrResolve('offer', o0.id, '时间冲突'); mgrReply([`앗 그날 ${cl.start}에 「${cl.title}」 있어서 이건 안 되겠어요. 거절할게요`, `啊那天 ${cl.start} 已经有「${cl.title}」了，这个接不了，我回掉`]); mgr().offers = mgr().offers.filter(x => x !== o0); save(); break; } } mgrMe('ok'); mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
       S.schedule.rules.push({ id: rid, title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrMe('no'); mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); M.chat.filter(m => m.me && !m.zh).slice(-30).forEach(mgrTrMe); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
