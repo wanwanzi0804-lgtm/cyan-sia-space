@@ -205,6 +205,19 @@ b.w-out,.w-out{color:var(--text)}
 .sh-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
 .sh-row[data-act]{cursor:pointer}
 .sh-win{color:#e5a100}
+.m-en{font-style:normal;font-size:10.5px;letter-spacing:.8px;color:var(--muted);font-weight:600;margin-left:6px}
+.m-cv{flex:none;border-radius:10px;overflow:hidden;background:var(--bg);display:grid;place-items:center}.m-cv img{width:100%;height:100%;object-fit:cover;display:block}.m-cv.ph{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 55%,#fff),color-mix(in srgb,var(--accent2) 45%,#fff))}.m-cv.ph span{color:#fff;font-weight:800;opacity:.9}
+.m-cv.sm{width:44px;height:44px}.m-cv.sm span{font-size:17px}.m-cv.lg{width:104px;height:104px;border-radius:12px}.m-cv.lg span{font-size:36px}.m-cv.xl{width:180px;height:180px;border-radius:14px;margin:0 auto}.m-cv.xl span{font-size:60px}
+.m-latest{display:flex;gap:14px;align-items:center;width:100%;border:0;text-align:left;cursor:pointer;padding:14px}.m-lt{min-width:0;display:flex;flex-direction:column;gap:1px}.m-lt b{font-size:17px;word-break:break-word}.m-lt span{font-size:12.5px;color:var(--muted)}.m-lt em{font-style:normal;font-size:12.5px;color:var(--accent);font-weight:600;margin-top:6px}
+.m-res{padding:14px 14px 2px}.m-main{display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--accent) 8%,var(--card));border-radius:12px;padding:10px 12px}.m-main>span{font-weight:700;font-size:14px;width:64px}.m-main>div{flex:1;display:flex;align-items:baseline;gap:4px}.m-main b{font-size:28px;font-weight:800;line-height:1}.m-main b.m-nr{font-size:16px;color:var(--muted);font-weight:700}.m-main>div>i{font-style:normal;font-size:12px;color:var(--muted)}.m-main>em{font-style:normal;font-size:11.5px;color:var(--muted)}
+i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5484d}i.dn{color:#3b82f6}i.eq{color:var(--muted)}
+.m-plats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0 4px}.m-plats div{text-align:center;padding:6px 0}.m-plats span{display:block;font-size:11.5px;color:var(--muted)}.m-plats b{display:block;font-size:14px}.m-plats em{font-style:normal;font-size:10.5px;color:var(--muted)}
+.m-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.m-two .card{padding:12px 14px}.m-two span{display:block;font-size:11.5px;color:var(--muted)}.m-two b{font-size:16px;font-variant-numeric:tabular-nums}
+.m-shows{padding:6px 14px 4px}.m-wk{display:flex;align-items:center;justify-content:space-between;padding:4px 0 6px;font-size:13.5px;font-weight:600}.m-wk button{border:0;background:none;font-size:20px;padding:0 10px;color:var(--text)}.m-wk button:disabled{opacity:.2}.m-wk-s{font-size:12px;color:var(--muted);padding-bottom:4px}.sh-go{font-style:normal;color:var(--muted);margin-left:2px}
+.m-hon,.m-demo{padding:12px 14px 0}.m-two2,.m-three{display:grid;grid-template-columns:1fr 1fr;text-align:center}.m-three{grid-template-columns:1fr 1fr 1fr}.m-two2 div+div,.m-three div+div{border-left:1px solid var(--line)}.m-two2 b,.m-three b{display:block;font-size:20px;font-weight:800}.m-two2 span,.m-three span{font-size:11.5px;color:var(--muted)}.m-hl{font-size:12.5px;color:var(--muted);margin-top:10px;word-break:break-word}
+.m-alb{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:10px 0;cursor:pointer}.w-list>.m-alb:first-child{border-top:0}.m-alb>i{font-style:normal;color:var(--muted)}
+.m-ad{text-align:center;display:flex;flex-direction:column;gap:2px;padding:18px 14px}.m-ad b{font-size:19px;margin-top:10px}.m-ad span{font-size:12.5px;color:var(--muted)}.m-cvup{font-size:12px;margin-top:6px;cursor:pointer}.m-no{width:18px;color:var(--muted);font-size:13px;flex:none}.m-pk{font-style:normal;font-weight:400;font-size:11px;color:var(--muted);margin-left:4px}
+.m-manage{font-size:13.5px}
 .sh-cand{color:var(--accent)}
 .cb-warn{margin-top:8px;font-size:12.5px;color:#b35c00;background:#fff4e5;border-radius:10px;padding:6px 10px}
 .cb-warn.ok{color:var(--accent);background:var(--bg)}
@@ -3242,6 +3255,94 @@ function awardsHTML() {
 }
 
 /* =========================================================
+   🎵 我的 → 音乐：首页（最新发行 / 音乐成绩 / 本周打歌 / 荣誉 / 作品 / Demo / 回归 / YouTube）+ 二级页面（UI.mPage）
+   全部读原有数据：disco()、salesState()、showsState()、awardsState()、mz()、S.cb；只多记了一个「历史最高排名」
+   ========================================================= */
+const mHead = (t, back, sub) => `<div class="w-head"><button class="w-back" data-act="mgo" data-p="${back || ''}">‹</button><div><b>${t}</b>${sub ? `<span>${sub}</span>` : ''}</div></div>`;
+const mGo = (p, t) => `<button class="w-go" data-act="mgo" data-p="${p}"><span>${t}</span><i>›</i></button>`;
+const mSec = (t, en, extra) => `<div class="me-h"><span>${t}${en ? `<em class="m-en">${en}</em>` : ''}</span>${extra || ''}</div>`;
+function released() { const t = dkey(Date.now()); return relList().filter(a => a.date <= t); }
+function albCover(a, cls) { return a && a.cover ? `<div class="m-cv ${cls || ''}"><img data-mid="${a.cover}" alt=""></div>` : `<div class="m-cv ph ${cls || ''}"><span>${esc(((a && a.name) || 'C').slice(0, 1))}</span></div>`; }
+// 各平台名次（和「音源」页同一套算法）；历史最高从开始记录的那天起算，不补以前的
+function trkRanks(k) {
+  const today = dkey(Date.now()), T = salesTargets(today), TY = salesTargets(addDays(today, -1)), hr = new Date().getHours(), jit = .85 + .3 * ((hr * 7919) % 100) / 100, SS = salesState(), PK = SS.peak || (SS.peak = {}), pk = PK[k] || (PK[k] = {});
+  return PLATS.map(p => { const r = T.trk[k] ? chartRank(p, T.trk[k] * p[1] * jit) : null, ry = TY.trk[k] ? chartRank(p, TY.trk[k] * p[1]) : null; if (r && (!pk[p[0]] || r < pk[p[0]])) pk[p[0]] = r; return { plat: p[0], r, ry, peak: pk[p[0]] || null }; });
+}
+const rkTxt = r => r ? `${r} 位` : '未入榜', pkTxt = x => x.peak ? `最高 ${x.peak} 位` : '暂无数据';
+const rkMove = x => x.r && x.ry ? (x.ry > x.r ? `<i class="up">▲${x.ry - x.r}</i>` : x.ry < x.r ? `<i class="dn">▼${x.r - x.ry}</i>` : '<i class="eq">–</i>') : x.r && !x.ry ? '<i class="up">NEW</i>' : '';
+function honorList() {
+  const out = [], R = showsState().res, A = awardsState();
+  for (const r of Object.values(R)) if (r.rank === 1) { const sh = SHOWS.find(x => x[0] === r.show); out.push({ dk: r.dk, kind: 'win', ev: sh ? sh[1] : r.show, what: '一位', song: r.song }); }
+  for (const [key, st] of Object.entries(A)) if (st && st.status === 'done' && (st.won || []).length) { const aw = AWARDS.find(x => key.startsWith(x[0])); for (const w of st.won) out.push({ dk: key.slice(aw ? aw[0].length : 0), kind: 'award', ev: aw ? aw[1] : key, what: w, song: st.song || '' }); }
+  return out.sort((a, b) => b.dk.localeCompare(a.dk));
+}
+function showsWeekHTML() {
+  const R = showsState().res, today = dkey(Date.now()), cur = weekOf(today), keys = Object.keys(R).sort(), first = keys.length ? weekOf(keys[0].split('|')[0]) : cur;
+  const mon = UI.shWeek && UI.shWeek >= first && UI.shWeek <= cur ? UI.shWeek : cur, ph = cbPhase(), active = cbAlbum() && ['promo', 'rest', 'follow'].includes(ph);
+  const rivals = weekRivals(mon), top = rivals.find(x => x.tier === 'top');
+  const rows = SHOWS.map(sh => { let k; for (let i = 0; i < 7; i++) { const x = addDays(mon, i); if (parseD(x).getDay() === sh[2]) k = x; }
+    const r = R[k + '|' + sh[0]], off = REAL_SHOW[k + '|' + sh[0]] === 'off';
+    const st = r ? (r.rank === 1 ? '<b class="sh-win">一位</b>' : r.rank <= 3 ? `<b class="sh-cand">候补 · 第 ${r.rank}</b>` : `<span class="muted">第 ${r.rank} 位</span>`) : off ? '<span class="muted">停播</span>' : mon === cur && active && k >= today ? `<span class="muted">${k === today ? '今天' : '周' + WD[sh[2]]} ${sh[3]}:00 公布</span>` : '<span class="muted">—</span>';
+    return `<div class="sh-row" ${r ? `data-act="showres" data-k="${k}|${sh[0]}"` : ''}><div style="flex:1;min-width:0"><b>${sh[1]}</b> <span class="muted" style="font-size:11.5px">${sh[4]} · ${+k.slice(5, 7)}/${+k.slice(8)}</span></div>${st}${r ? '<i class="sh-go">›</i>' : ''}</div>`; }).join('');
+  const any = SHOWS.some(sh => keys.some(k => k.endsWith('|' + sh[0]) && weekOf(k.split('|')[0]) === mon));
+  return `<div class="card m-shows"><div class="m-wk"><button data-act="shweek" data-k="${addDays(mon, -7)}" ${mon > first ? '' : 'disabled'}>‹</button><span>${+mon.slice(5, 7)}/${+mon.slice(8)} – ${+addDays(mon, 6).slice(5, 7)}/${+addDays(mon, 6).slice(8)}${mon === cur ? ' · 本周' : ''}</span><button data-act="shweek" data-k="${addDays(mon, 7)}" ${mon < cur ? '' : 'disabled'}>›</button></div>
+    ${active || any ? `<div class="m-wk-s">${top ? `TOP 团 ${esc(top.name)} 也在打歌` : '这周没有 TOP 团'}</div>${rows}` : `<div class="muted" style="padding:10px 0 6px;font-size:13px">${mon === cur ? '现在不在打歌期' : '这一周没有打歌记录'}</div>`}</div>`;
+}
+// 历史最高排名：每半小时记一次最新作品主打的名次（不看页面也会记）
+let musPeakAt = 0;
+function musPeakTick() { if (Date.now() - musPeakAt < 30 * 60e3) return; musPeakAt = Date.now(); const L = released(), a = L[L.length - 1]; if (a) trkRanks(a.id + '|' + albTitle(a)); }
+function musicHTML() {
+  const pg = UI.mPage || '';
+  if (pg === 'charts') return mHead('完整榜单', '') + `<div class="card">${chartsHTML()}</div>`;
+  if (pg === 'honors') { const L = honorList(); return mHead('全部荣誉', '') + `<div class="card w-list">${L.length ? L.map(h => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(h.ev)} · ${esc(h.what)}</div><div class="w-tx-s">${h.dk.replace(/-/g, '.')}${h.song ? ` · 《${esc(h.song)}》` : ''}</div></div><em class="w-tag ${h.kind === 'win' ? 't2' : 'own'}">${h.kind === 'win' ? '打歌一位' : '颁奖礼'}</em></div>`).join('') : '<div class="muted" style="padding:10px 0">还没有荣誉记录</div>'}</div>`; }
+  if (pg === 'works') { const L = released().slice().reverse(); return mHead('全部作品', '') + `<div class="card w-list">${L.length ? L.map(a => `<button class="m-alb" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'sm')}<div class="w-tx-l"><div class="w-tx-t">${esc(a.name)}</div><div class="w-tx-s">${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</div></div><i>›</i></button>`).join('') : '<div class="muted" style="padding:10px 0">还没有正式发行的作品</div>'}</div><details class="card me-more m-manage"><summary>管理歌单（添加 / 编辑作品）</summary>${discoHTML()}</details>`; }
+  if (pg.startsWith('alb:')) return albDetailHTML(pg.slice(4));
+  if (pg === 'demos') return mHead('个人作品库', '', 'MY DEMOS') + `<div class="card">${worksHTML()}</div>`;
+  if (pg === 'cb') return mHead('回归企划', '') + `<div class="card">${cbHTML()}</div>`;
+  if (pg.startsWith('yt')) return typeof ytPageHTML === 'function' ? ytPageHTML(pg) : '';
+  const L = released(), a = L[L.length - 1], SS = salesState(), today = dkey(Date.now());
+  // 1 最新发行
+  let h = mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
+  // 2 音乐成绩（只看最新作品）
+  if (a) {
+    const k = a.id + '|' + albTitle(a), rk = trkRanks(k), main = rk[0], rest = rk.slice(1, 4), al = SS.alb[a.id], mv = SS.mv && SS.mv[a.id];
+    h += mSec('音乐成绩', '', `<span class="muted" style="font-size:12px">《${esc(albTitle(a))}》</span>`) + `<div class="card m-res">
+      <div class="m-main"><span>${main.plat}</span><div>${main.r ? `<b>${main.r}</b><i>位</i>${rkMove(main)}` : '<b class="m-nr">未入榜</b>'}</div><em>${pkTxt(main)}</em></div>
+      <div class="m-plats">${rest.map(x => `<div><span>${x.plat}</span><b>${rkTxt(x.r)}</b><em>${pkTxt(x)}</em></div>`).join('')}</div>
+      ${PLATS.length > 4 ? mGo('charts', '查看完整榜单') : ''}</div>
+      <div class="m-two"><div class="card"><span>累计销量</span><b>${al && al.total >= 1 ? fmtNum(Math.round(al.total)) + ' 张' : a.type === 'single' ? '数字单曲' : '暂无数据'}</b></div><div class="card"><span>MV 播放</span><b>${mv && mv.total >= 1 ? fmtNum(Math.round(mv.total)) : '暂无 MV'}</b></div></div>`;
+  }
+  // 3 本周打歌
+  h += mSec('本周打歌', 'MUSIC SHOW') + showsWeekHTML();
+  // 4 荣誉
+  const HL = honorList(), wins = HL.filter(x => x.kind === 'win').length, aws = HL.filter(x => x.kind === 'award').length;
+  h += mSec('荣誉记录') + `<div class="card m-hon"><div class="m-two2"><div><b>${wins}</b><span>打歌一位</span></div><div><b>${aws}</b><span>颁奖礼获奖</span></div></div>${HL[0] ? `<div class="m-hl">最近：${HL[0].dk.slice(5).replace('-', '/')} ${esc(HL[0].ev)} ${esc(HL[0].what)}${HL[0].song ? ` ·《${esc(HL[0].song)}》` : ''}</div>` : ''}${mGo('honors', '查看全部荣誉')}</div>`;
+  // 5 我的作品
+  h += mSec('我的作品') + `<div class="card w-list">${L.length ? L.slice(-3).reverse().map(x => `<button class="m-alb" data-act="mgo" data-p="alb:${x.id}">${albCover(x, 'sm')}<div class="w-tx-l"><div class="w-tx-t">${esc(x.name)}</div><div class="w-tx-s">${ALB_TYPE[x.type] || ''} · ${x.date.replace(/-/g, '.')}</div></div><i>›</i></button>`).join('') : '<div class="muted" style="padding:10px 0">还没有正式发行的作品</div>'}${mGo('works', '查看全部作品')}</div>`;
+  // 6 个人作品库（Demo）
+  const W = mz().works, cnt = st => W.filter(w => st.includes(w.status)).length, lastW = W.slice().sort((x, y) => ((y.sessions.slice(-1)[0] || {}).date || '').localeCompare((x.sessions.slice(-1)[0] || {}).date || '') || y.no - x.no)[0];
+  const pct = w => w.status === 'revising' && w.rev ? Math.round(w.rev.prog / w.rev.need * 100) : Math.round((w.prog || 0) / (w.need || 1) * 100);
+  h += mSec('个人作品库', 'MY DEMOS') + `<div class="card m-demo"><div class="m-three"><div><b>${cnt(['writing', 'revising'])}</b><span>创作中</span></div><div><b>${cnt(['demo'])}</b><span>已完成</span></div><div><b>${cnt(['submitted'])}</b><span>审核中</span></div></div>${lastW ? `<div class="m-hl">${esc(mzTitle(lastW))} · ${MZ_ST[lastW.status] || ''}${mzOpen(lastW) ? ` · ${pct(lastW)}%` : ''}</div>` : ''}${mGo('demos', '进入作品库')}</div>`;
+  // 7 回归企划
+  const c = S.cb, ca = cbAlbum(), live = c && !c.over && ca;
+  h += mSec('回归企划') + `<button class="card w-ct" data-act="mgo" data-p="cb"><div><b>${live ? `《${esc(ca.name)}》` : '准备下一次发行'}</b><span>${live ? (c.tbd ? '企划中 · 日期待定' : cbDay() > 0 ? `${c.date.replace(/-/g, '.')} 回归 · D-${cbDay()}` : '活动中') : '开始新的音乐企划'}</span></div><i>›</i></button>`;
+  // 8 官方 YouTube
+  if (typeof ytEntryHTML === 'function') h += ytEntryHTML();
+  return h;
+}
+function albDetailHTML(id) {
+  const a = disco().find(x => x.id === id); if (!a) { UI.mPage = 'works'; return musicHTML(); }
+  const SS = salesState(), al = SS.alb[a.id], mv = SS.mv && SS.mv[a.id], songs = a.tracks.map(t => t.name), hon = honorList().filter(h => songs.includes(h.song));
+  const tr = a.tracks.map(t => { const rk = trkRanks(a.id + '|' + t.name), best = rk.filter(x => x.r).sort((x, y) => x.r - y.r)[0], pk = rk.filter(x => x.peak).sort((x, y) => x.peak - y.peak)[0]; return { t, rk, best, pk }; });
+  const ti = tr.find(x => x.t.title) || tr[0];
+  return mHead('作品详情', UI.mFrom || '') + `<div class="card m-ad">${albCover(a, 'xl')}<label class="link m-cvup">更换封面<input type="file" id="alcv-file" data-id="${a.id}" accept="image/*" hidden></label><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''}${a.date ? ' · ' + a.date.replace(/-/g, '.') : ''}</span></div>
+    ${a.intro ? `<div class="card w-doc">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
+    ${mSec('曲目')}<div class="card w-list">${tr.map((x, i) => `<div class="w-tx"><span class="m-no">${i + 1}</span><div class="w-tx-l"><div class="w-tx-t">${esc(x.t.name)}${x.t.title ? ' <em class="w-tag t2">主打</em>' : ''}</div><div class="w-tx-s">${x.best ? `今日最佳 ${x.best.plat} ${x.best.r} 位` : '今日未入榜'}${x.pk ? ` · 最高 ${x.pk.plat} ${x.pk.peak} 位` : ''}</div></div></div>`).join('')}</div>
+    ${ti ? `${mSec('音源榜单', '', `<span class="muted" style="font-size:12px">《${esc(ti.t.name)}》</span>`)}<div class="card w-ov">${ti.rk.map(x => `<div class="w-kv"><span>${x.plat}</span><b>${rkTxt(x.r)} ${rkMove(x)} <em class="m-pk">${pkTxt(x)}</em></b></div>`).join('')}</div>` : ''}
+    ${mSec('销量 · MV')}<div class="card w-ov"><div class="w-kv"><span>实体销量</span><b>${al && al.total >= 1 ? `${fmtNum(Math.round(al.total))} 张` : a.type === 'single' ? '数字单曲' : '暂无数据'}</b></div>${al && al.first ? `<div class="w-kv"><span>初动</span><b>${fmtNum(Math.round(al.first))} 张</b></div>` : ''}<div class="w-kv"><span>MV 播放</span><b>${mv && mv.total >= 1 ? fmtNum(Math.round(mv.total)) : '暂无 MV'}</b></div></div>
+    ${mSec('荣誉')}<div class="card w-list">${hon.length ? hon.map(hh => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(hh.ev)} · ${esc(hh.what)}</div><div class="w-tx-s">${hh.dk.replace(/-/g, '.')} ·《${esc(hh.song)}》</div></div></div>`).join('') : '<div class="muted" style="padding:10px 0">暂无</div>'}</div>`;
+}
+/* =========================================================
    能力 / 休息周 / 经纪人邀约 / 📋 通告（每个行程当天一张机遇卡）
    ========================================================= */
 const SKILLS = [['vocal', '声乐'], ['dance', '舞蹈'], ['rap', 'Rap'], ['face', '表情管理'], ['stamina', '体能'], ['variety', '综艺感'], ['lang', '外语']];
@@ -4777,7 +4878,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [mkSrcFix, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [mkSrcFix, musPeakTick, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -8385,13 +8486,7 @@ function viewMe() {
   <div class="me-h"><span>热搜</span></div>
   ${hotPanelHTML()}`,
   wallet: () => walletHTML(),
-  music: () => `
-  <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['make', '🎼 作品']].map(([k, v]) => `<button class="pcat ${mTab() === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
-  ${{ chart: () => `<div class="card">${chartsHTML()}</div>`,
-    sales: () => `<div class="sec-title">💿 专辑销量</div><div class="card">${albumSalesHTML()}</div><div class="sec-title">▶️ YouTube MV</div><div class="card">${mvHTML()}</div>`,
-    shows: () => `<div class="card">${showsCardHTML()}</div>`,
-    awards: () => `<div class="card">${awardsHTML()}</div>`,
-    make: makeHTML }[mTab()]()}`,
+  music: () => musicHTML(),
   persona: () => `
   <div class="sec-title">💪 能力</div>
   <div class="card">${skillsHTML()}</div>
@@ -8466,8 +8561,8 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act;
   switch (a) {
-    case 'metab': { UI.wPage = ''; const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); const nb = $('.me-tabs'); window.scrollTo(0, stuck && nb ? nb.offsetTop - tH : 0); break; } // 吸顶时切换：导航留在原位，不跳
-    case 'tab': stopPreview(); UI.wPage = ''; UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
+    case 'metab': { UI.wPage = ''; UI.mPage = ''; const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); const nb = $('.me-tabs'); window.scrollTo(0, stuck && nb ? nb.offsetTop - tH : 0); break; } // 吸顶时切换：导航留在原位，不跳
+    case 'tab': stopPreview(); UI.wPage = ''; UI.mPage = ''; UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
     case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); break;
     case 'publish': publish(); break;
@@ -8657,6 +8752,8 @@ document.addEventListener('click', async e => {
     case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
+    case 'mgo': { const np = t.dataset.p || ''; if (np.startsWith('alb:') && !(UI.mPage || '').startsWith('alb:')) UI.mFrom = UI.mPage || ''; UI.mPage = np; render(); const nb = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, nb ? Math.max(0, nb.offsetTop - tH) : 0); break; }
+    case 'shweek': UI.shWeek = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'wgo': { UI.wPage = t.dataset.p || ''; render(); const nb = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, nb ? Math.max(0, nb.offsetTop - tH) : 0); break; }
     case 'wsheet': openModal(walletSheetHTML()); setTimeout(() => $('#w-in')?.focus(), 50); break;
     case 'wdeal': { const W = wallet(), o = W.offer; if (!o) break; const ok = t.dataset.ok === '1'; mgrMe(ok ? 'dealOk' : 'dealNo'); if (ok) { W.deals.push({ brand: o.brand, fee: o.fee, left: o.months }); toast('签约成功 💼', `${o.brand} · 每月 ${won(o.fee)}`); } mgrResolve('deal', o.id, ok ? '已签约' : '已拒绝'); mgrReply(ok ? ['네, 진행할게요.', '好，推进。'] : ['네, 거절할게요.', '好，回绝。']); W.offer = null; save(); mgrRefresh(); render(); break; }
@@ -8789,6 +8886,10 @@ document.addEventListener('change', async e => {
     }
     if (pending.length > 9) { pending.slice(9).forEach(f => URL.revokeObjectURL(f._url)); pending = pending.slice(0, 9); toast('最多 9 个图片/视频'); }
     t.value = ''; renderPending();
+  } else if (t.id === 'alcv-file' && t.files[0]) {
+    const a = disco().find(x => x.id === t.dataset.id); if (!a) return; const id = uid(), f = t.files[0];
+    try { await idbPut(id, f); } catch (err) { }
+    urlCache[id] = URL.createObjectURL(f); if (a.cover) idbDel(a.cover); a.cover = id; save(); render(); toast('封面已更新');
   } else if (t.id === 'cv-file' && t.files[0]) {
     const id = uid(); const f = t.files[0];
     try { await idbPut(id, f); } catch (err) { }
