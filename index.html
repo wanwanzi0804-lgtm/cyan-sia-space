@@ -6745,7 +6745,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -7723,6 +7723,25 @@ function dmUnstick1() {
     T.quiet = null; T.due = { at: now + rand(2, 12) * 60e3, later: 1, n: 2, task: "她问了你问题（约哪天、几点见）你还没回，现在回她：对上她说的时间，说清楚是哪一天。" };
   }
   save();
+}
+// 一次性：먕 约见面那一段（从她发起的那条事件消息开始）连同记忆一起删掉，然后今天补一个她的线上事件
+function ahReset1() {
+  const SO = social(); if (SO.ahReset1) return; const key = 'BABYMONSTER|아현', T = dms()[key]; if (!T) return; SO.ahReset1 = 1;
+  const j = T.msgs.map(m => !!(m.me && /听姐姐|언니 말 들을게/.test(m.text || ''))).lastIndexOf(true);
+  let i = -1; for (let k = (j < 0 ? T.msgs.length : j) - 1; k >= 0; k--) if (!T.msgs[k].me && T.msgs[k].ev) { i = k; break; }
+  if (i < 0) for (let k = (j < 0 ? T.msgs.length : j) - 1; k >= 0; k--) if (!T.msgs[k].me && /밥|먹|吃|饭|만나|见/.test((T.msgs[k].text || '') + (T.msgs[k].zh || ''))) { i = k; break; }
+  if (i < 0) { save(); return; }
+  const cut = dkey(T.msgs[i].at), evId = T.msgs[i].ev, P = socPX(T.p), oldEv = ((SO.hist.find(h => h.id === evId) || SO.q.find(x => x.id === evId) || {}).ev);
+  (T.polBak || (T.polBak = [])).push(...T.msgs.splice(i));
+  Object.assign(T, { due: null, pend: [], gen: 0, rd: null, quiet: null, unread: 0, readTo: Date.now() });
+  P.todo = (P.todo || []).filter(x => x.day < cut); P.cm = (P.cm || []).filter(x => x.day < cut); P.ex = (P.ex || []).filter(x => x.day < cut);
+  SO.hist = SO.hist.filter(h => !(h.id === evId || ((h.who || '').includes('아현') || (h.who || '').includes('雅娴')) && h.day >= cut));
+  SO.q = SO.q.filter(x => !(x.id === evId || ((x.via || x.p || {}).key === key && x.day >= cut)));
+  // 补一个她的线上事件（KKT 消息），不一定是约饭；不重复刚删掉的那个
+  const today = dkey(Date.now()), now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+  const p = { ...T.p }, evs = ALL_SOC.filter(e => e.online && !e.manual && e.id !== oldEv && dmIsMsg(e.id) && socOk(e, p));
+  if (evs.length) { const e = pick(evs); SO.q.push({ id: uid(), day: today, ev: e.id, at: Math.min(nm + ri(5, 30), 1430), until: 1439, p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, e: '' }); }
+  save(); if (UI.dmOpen === key) openModal(dmHTML(key)); if (UI.tab === 'kkt') render();
 }
 function dmCleanMig() {
   const SO = social(); if (SO.dmClean) return; SO.dmClean = 1;
