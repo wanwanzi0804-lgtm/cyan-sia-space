@@ -1254,15 +1254,19 @@ function addFans(delta, reason) {
 const NEG_RE = /烦死|讨厌你们|闭嘴|滚|无语|不想营业|别烦|黑粉|恶心|关你们什么事|爱看不看|不想理|别管我|烦人/;
 const POS_RE = /谢谢|爱你|想你|加油|开心|努力|辛苦了|晚安|早安|陪/;
 function tone(text) { if (NEG_RE.test(text || '')) return 'neg'; if (CAT_KW.romance.test(text || '')) return 'romance'; if (POS_RE.test(text || '')) return 'pos'; return 'neutral'; }
+const PUB_CATS = ['打歌', '综艺', '电台', '公演', '活动', '签售', '演唱会'];
 // 每天结算一次：自然增长 / 长时间没营业掉粉
 function dailyFans() {
   const F = fanState(), today = dkey(Date.now());
   let d = F.lastDaily || today, guard = 0, idleDays = 0;
   while (d < today && guard++ < 60) {
     d = addDays(d, 1);
-    const idle = (parseD(d).getTime() - lastActive()) / 86400e3;
+    let idle = (parseD(d).getTime() - lastActive()) / 86400e3;
+    // 有对外的公开行程（打歌 / 综艺 / 电台 / 公演 / 活动 / 签售 / 演唱会）也算营业，没去的不算
+    if (idle > 3) for (let j = 0; j <= Math.min(13, idle); j++) { const dd = addDays(d, -j - 1), R0 = S.schedule.res || {}; if (rulesFor(dd).some(r => PUB_CATS.includes(r.cat) && !['旷', '缺'].includes((R0[dd + '|' + r.id] || {}).grade))) { idle = Math.min(idle, j + 1); break; } }
     const h = heat(), f = S.profile.followers;
     addFans(f * .0008 * h, '自然增长');
+    if (idle > 3 && ['promo', 'follow'].includes(cbPhase())) idle = 0; // 回归打歌期天天在舞台上，不算没营业
     if (idle > 3) { addFans(-f * .002 * Math.min(idle - 3, 10), '太久没营业'); idleDays = Math.floor(idle); }
   }
   F.lastDaily = today;
@@ -2329,7 +2333,7 @@ function prepFinalize(o) {
 // 企划会议和专辑录音由公司安排（不是你手动加的）：经纪人排进行程，算进回归准备
 function prepSlot(dk, h) { for (const st of h >= 7 ? [9, 10] : [13, 10, 15, 18]) { const a = st * 60, b = (st + h) * 60; if (b > 22 * 60) continue; if (!rulesFor(dk).some(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; })) return [st, st + h]; } return null; }
 function prepAuto(o) {
-  const { c, a, P, t } = o, today = dkey(Date.now()); if (P.autoDay === today) return; P.autoDay = today;
+  const { c, a, P, t } = o, today = dkey(Date.now()); if (P.autoDay === today) return; P.autoDay = today; if (!c.tbd && cbDay() <= 0) return; // 发行之后不再排准备行程
   const add = (dk, h, title, loc, tk, cat) => { const sl = prepSlot(dk, h); if (!sl) return 0; const hh = x => String(x).padStart(2, '0') + ':00'; S.schedule.rules.push({ id: uid(), title, cat: cat || '其他', start: hh(sl[0]), end: hh(sl[1]), loc, repeat: 'once', days: [], date: dk, note: `《${a.name}》`, mgr: 1, cbTask: tk, cbAlbum: a.id, createdAt: Date.now() }); return sl; };
   const planned = tk => S.schedule.rules.filter(r => r.cbTask === tk && r.cbAlbum === a.id && r.date >= today && !P.log[r.date + '|' + r.id]);
   const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
@@ -2346,7 +2350,7 @@ function prepAuto(o) {
     const T0 = t[tk]; if (!ready || !T0 || T0.done || T0.skip) continue;
     let left = T0.need - T0.prog - planned(tk).reduce((s, r) => { const x = toMin(r.start); let e = toMin(r.end); if (e <= x) e += 1440; return s + Math.min((e - x) / 60, 10); }, 0);
     const until = c.tbd ? addDays(today, 28) : addDays(c.date, dl), got = [];
-    for (let i = 1; left > 0.5 && i <= 28; i++) { const dk = addDays(today, i); if (dk > until && got.length) break; const h = Math.max(2, Math.min(per, Math.ceil(left))), sl = add(dk, h, title, loc, tk, cat); if (sl) { left -= h; got.push(`${md(dk)} ${sl[0]}:00`); if (per <= 5) i++; } }
+    for (let i = 1; left > 0.5 && i <= 28; i++) { const dk = addDays(today, i); if (dk > until) break; const h = Math.max(2, Math.min(per, Math.ceil(left))), sl = add(dk, h, title, loc, tk, cat); if (sl) { left -= h; got.push(`${md(dk)} ${sl[0]}:00`); if (per <= 5) i++; } }
     if (got.length) mgrSay([`${nm[0]} 일정 잡았어요 (${got.length}번)`, `${nm[1]}排好了：${got.join('、')}`]);
   }
 }
@@ -7553,7 +7557,7 @@ const SOC2 = [
   ['你说准备和另一位艺人一起参加活动，他停顿了一下，问你们是怎么认识的。', 'tease', 'o', 'a2 need:contact'],
   ['你之前几次都和别的朋友出去，他某天直接问你周末有没有空：「这次先答应我，怎么样？」', 'invite', 'o', 'a3 need:contact y:alone'],
   ['经纪人发现他最近总在你工作结束后发消息，随口问你：「你们什么时候变得这么熟了？」', 'probe', 'o', 'a2 need:contact'],
-  ['一位共同朋友告诉你，他曾经向朋友问过你的联系方式，但当时没有直接联系你。', 'probe', 'o', 'a1 need:met'],
+  ['一位共同朋友告诉你，他曾经向朋友问过你的联系方式，但当时没有直接联系你。', 'probe', 'o', 'a1 need:met !contact'],
   ['你们在一群人中不约而同选了同一家店、同一款饮料，朋友笑着问你们是不是提前商量过。', 'tease', 'x', 'a2 need:party'],
   ['共同朋友聚会时，你们被故意安排坐在一起。你问他是不是知道，他说自己也是刚刚才发现。', 'tease', 'x', 'a2 need:party'],
   ['一位关系很好的女爱豆问你最近是不是在接触什么人，说你最近聊天时总会看手机。', 'probe', 'o', 'a2 need:contact'],
@@ -7816,8 +7820,13 @@ const SOC_TH = {
     O('这阵子行程有点满', '0', '아 그럼 여유 생기면 말해줘요｜那等你有空了跟我说', {}),
     O('还是在公司见就好', '-', '아 넵ㅎㅎ｜啊好的呵呵', { th: -.5 })] }) },
   // 约好的事：当天先问时间（对方也可能临时有事）
-  planDay: { grp: '私聊', on: 1, ok: c => !!socTodoOpen(c.P, 'meal') || !!socTodoOpen(c.P, 'coffee'), needEve: 1, make: c => {
-    const td = socTodoOpen(c.P, 'meal') || socTodoOpen(c.P, 'coffee'), what = td.t === 'coffee' ? ['커피', '咖啡'] : ['밥', '饭'];
+  planDay: { grp: '私聊', on: 1, ok: c => !!socTodoOpen(c.P, 'meal') || !!socTodoOpen(c.P, 'coffee') || !!socTodoOpen(c.P, 'go'), needEve: 1, make: c => {
+    const td = socTodoOpen(c.P, 'meal') || socTodoOpen(c.P, 'coffee') || socTodoOpen(c.P, 'go'), what = td.t === 'go' ? [(td.what || [])[1] || '그거', (td.what || [])[0] || '那件事'] : td.t === 'coffee' ? ['커피', '咖啡'] : ['밥', '饭'];
+    if (td.t === 'go') { const [wk, wz] = what; if (Math.random() < .2) return { ko: c.k(`미안해요ㅠ 이번 주는 스케줄이 너무 많아서… ${wk}은 다음에 다시 얘기해요`, `미안ㅠ 이번 주는 스케줄이 너무 많아서… ${wk}은 다음에 다시 얘기하자`), zh: `对不起ㅠ 这周行程太多了…${wz.replace(/^去/, '')}下次再说`, o: [] };
+      return { ko: c.k(`오늘 저녁에 시간 돼요? 저번에 말한 ${wk}!`, `오늘 저녁에 시간 돼? 저번에 말한 ${wk}!`), zh: `今晚有空吗？之前说的${wz}！`, o: [
+        O('今晚可以', '+', c.k('좋아요! 이따 연락할게요｜好！待会联系你', '좋아! 이따 연락할게｜好！待会联系你'), { fx: [{ plan: td.id }] }),
+        O('今天不行，改天', '0', c.k('그래요 그럼 다음에!｜好，那下次！', '그래 그럼 다음에!｜好，那下次！'), {}),
+        O('还是算了吧', '-', c.k('아… 알겠어요｜啊…知道了', '아… 알겠어｜啊…知道了'), { fam: -1, th: -1, fx: [{ lapse: td.id }] })] }; }
     if (Math.random() < .25) return { ko: c.k(`미안해요ㅠ 이번 주 스케줄이 갑자기 꽉 차서… 저번에 말한 ${what[0]}은 다음 주에 다시 연락할게요`, `미안ㅠ 이번 주 스케줄이 갑자기 꽉 차서… 저번에 말한 ${what[0]}은 다음 주에 다시 연락할게`), zh: `对不起ㅠ 这周行程突然排满了…之前说的${what[1]}下周再联系你`, o: [] };
     return { ko: c.k(`오늘 저녁에 시간 돼요? 저번에 말한 ${what[0]}${td.t === 'coffee' ? ' 한잔' : ''}`, `오늘 저녁에 시간 돼? 저번에 말한 ${what[0]}${td.t === 'coffee' ? ' 한잔' : ''}`), zh: `今晚有空吗？之前说的那${td.t === 'coffee' ? '杯咖啡' : '顿饭'}`, o: [
       O('今晚可以', '+', c.k('오 좋아요! 이따 봐요｜哦好！待会见', '오 좋아! 이따 봐｜哦好！待会见'), { fx: [{ plan: td.id }] }),
@@ -7827,6 +7836,11 @@ const SOC_TH = {
   // 真的见面了（只由约定落实触发）
   planDo: { grp: '约见', manual: 1, ok: c => !!(c.x.todo && c.P.todo.find(t => t.id === c.x.todo && t.st === 'open')), make: c => {
     const td = c.P.todo.find(t => t.id === c.x.todo), cafe = td.t === 'coffee', pl = pick(cafe ? SOC_CAFE : SOC_PLACE), tp = pick(SOC_TOPIC), two = !/几个人/.test(td.d);
+    if (td.t === 'go') { const wz = (td.what || [])[0] || '见了一面', mood0 = { acq: '一开始还有点拘谨，后来就放松了。', friend: '一路聊个不停，时间过得很快。', close: '跟平时一样熟络，一直在笑。', amb: '人很多，他一直走在你旁边。', new: '' }[c.st];
+      return { txt: `晚上按说好的，和 ${c.w} 一起${wz}。${mood0}`, o: [
+        O('玩得很开心，约了下次', '+', c.g('他说下次还要一起'), { fam: 2, th: .4, fx: [{ done: td.id }, { ex: ['meet', `一起${wz}，玩得很开心`, ''] }] }),
+        O('聊了很多彼此的事', '+', c.g('他听得很认真，也说了很多自己的事'), { fam: 2, th: .8, amb: c.st === 'amb' ? 1 : 0, risk: socAmbOk(c.p) ? .05 : 0, fx: [{ done: td.id }, { ex: ['meet', `一起${wz}，聊了很多彼此的事`, ''] }] }),
+        O('早点回去休息', '0', '他送你上了车', { fx: [{ done: td.id }, { ex: ['meet', `一起${wz}，没待太久`, ''] }] })] }; }
     const mood = { acq: '一开始还有点拘谨，聊着聊着才放松下来。', friend: '聊得很自然，时间过得很快。', close: '跟平时一样熟络，一直在笑。', amb: '店里很安静，偶尔会有一两秒谁都没说话。', new: '' }[c.st];
     const k = cafe ? 'coffee' : 'meal', base = { pk: pl[0], pz: pl[1] };
     return { txt: `晚上和 ${c.w}${two ? '' : '还有几个朋友'}去了${pl[1]}${cafe ? '喝咖啡' : '吃饭'}。${mood}`, o: [
@@ -8107,12 +8121,12 @@ ${SOC_RULES}
 
 act：reply（正常回）/ react（只回一个很短的反应或表情，msgs 里 1 条）/ read（已读不回：need 是 none 时最常见；她问了问题或者说了需要回应的事时不能用）/ later（现在不方便或不想打字：先不点开，过一阵再看再回；msgs 留空）。${close ? '你们很要好：need 不是 none 的话不会已读不回，没空就 later。' : ''}${later ? '他已经拖了一阵了，这次除非 need 是 none，否则要回（reply 或 react）。' : ''}
 msgs：ko 写他实际发出的原文，zh 写准确自然的中文意思（不加原文没有的情绪）。
-todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge）时才填，而且之前没记过；today 表示说好就是今晚。
+todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge / 待会儿或改天打电话 call）时才填，而且之前没记过；today 表示说好就是今晚。
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
 unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 900,
-      { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'mem', 'unsure'], properties: { gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal'] }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
+      { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'mem', 'unsure'], properties: { gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal', 'call'] }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
-    if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
+    if (j.todo === 'call') { const T2 = dmThread(p); if (!T2.call || T2.call.done) { dmCallSet(T2, (j.gist || '').slice(0, 40)); save(); } } else if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
     let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim()), done = j.need === 'none' && !dmAsk(mine);
     if (done) { const m = T.msgs.filter(m => m.me).pop(); if (m) T.quiet = m.id; } // 话已经说完了：之后也不用「补回」
     if (act === 'read' && !done && (dmAsk(mine) || close)) act = 'later'; // 问了问题 / 好朋友有话要回：不会就这么已读不回
@@ -8126,8 +8140,8 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
 // 每天：同步真实发生的事（拍过的 challenge、行程表里一起的工作），很久不联系就慢慢淡，约定太久没落实就算了
 // 只有真的是对方发来的 KKT 消息才进聊天；加 Close Friends、点赞、评论这类在弹窗里出现
 // 「他发来 / 私信 / 问你」这类线上事件：开着 AI 时真的发到 KKT（对方的消息 + 三个你会发出去的回复），不再弹窗写旁白
-const SOC2_DM_SKIP = new Set([9, 10, 52, 91, 98, 190, 194, 197]); // 工作人员发的 / 公开评论 / 视频通话 / 没有消息的
-const SOC2_DM_OK = e => /^s2_/.test(e.id) && e.online && e.kind !== 'probe' && !SOC2_DM_SKIP.has(+e.id.slice(3)) && /发来|发消息|私信|联系你|单独联系|又联系你|发了一|回复|问你|问：|评论|邀请你|推荐|分享|发给你|说：|打来/.test(e.d) && !/共同朋友|朋友说|朋友把|朋友聊天|朋友发现|朋友在直播|经纪人|有人在社交平台|粉丝开始/.test(e.d);
+const SOC2_DM_SKIP = new Set([9, 10, 52, 56, 58, 91, 94, 98, 190, 194, 197, 204]); // 工作人员发的 / 公开评论 / 视频通话 / 没有消息的
+const SOC2_DM_OK = e => /^s2_/.test(e.id) && e.online && e.kind !== 'probe' && !SOC2_DM_SKIP.has(+e.id.slice(3)) && (/发来|发消息|私信|联系你|单独联系|又联系你|发了一|回复|问你|问：|评论|邀请你|推荐|分享|发给你|说：|打来/.test(e.d) || ['msg', 'ask', 'care', 'tease', 'invite', 'help'].includes(e.kind)) && !/共同朋友|朋友说|朋友把|朋友聊天|朋友发现|朋友在直播|经纪人|有人在社交平台|粉丝开始/.test(e.d);
 async function socDmGen(x) {
   const e = socEv(x.ev), p = x.p, ban = socBan(p), what = socText(e, p, x);
   const j = await aiRaw([{ type: 'text', text: `${socWho(p)} 和 ${S.profile.name}（女，solo 爱豆，STARSHIP）之间，现在在 KKT 上发生这件事：「${what}」\n${socCtx(p)}\n\n1) 写 ${socName(p)} 这时真的会发出来的那条 KKT（只写 ta 发的，${ban ? '半语' : '敬语'}，二十岁上下的人私下的口语，一到两句；如果是发照片 / 视频 / 文件，单独写成「[사진]」「[동영상]」「[파일] 文件名.扩展名」，说明另起一句用换行隔开）。ko 韩语，zh 准确的中文意思。\n2) 写 ${S.profile.name} 可能回的三条消息（中文写，就是她会真的发出去的话，不是动作描写），分别是：积极 / 热情（tone +）、普通 / 随意（tone 0）、保持距离或婉拒（tone -）。每条一句，自然口语，要对得上 ta 发的这条。` }], 500,
@@ -8436,7 +8450,9 @@ function socApply(x, o, mine) {
   if (!e.old) {
     for (const f of e.fl.set) { P.facts[f] = 1; if (['meal', 'chal', 'party', 'gift', 'call'].includes(f)) P.cnt[f] = (P.cnt[f] || 0) + 1; }
     // 答应了 ≠ 发生了：吃饭 / 单独见面 / 聚会 / 拍 challenge 先记成约定
-    if (o.tone === '+') for (const f of e.fl.y) { if (f === 'meal') socTodo(p, 'meal', '说好一起吃饭', 'both'); else if (f === 'alone') socTodo(p, 'coffee', '说好单独见一面', 'both'); else if (f === 'chal') socTodo(p, 'chal', '说好一起拍 challenge', 'both'); else if (f !== 'party') P.facts[f] = 1; }
+    const go = /^s2_/.test(e.id) && SOC_GO[+e.id.slice(3)];
+    if (o.tone === '+' && go && !socTodoOpen(P, 'go')) { const td = socTodo(p, 'go', `说好一起${go[0]}`, 'both'); td.what = go; } // 答应了的邀约：之后会约具体时间，真的去
+    if (o.tone === '+') for (const f of e.fl.y) { if (go && f === 'alone') continue; if (f === 'meal') socTodo(p, 'meal', '说好一起吃饭', 'both'); else if (f === 'alone') socTodo(p, 'coffee', '说好单独见一面', 'both'); else if (f === 'chal') socTodo(p, 'chal', '说好一起拍 challenge', 'both'); else if (f !== 'party') P.facts[f] = 1; }
     P.facts.met = 1;
   }
   P.ex.push({ day: today, t: 'ev', d: `${socText(e, p).slice(0, 50)}（你：${String(mine).slice(0, 20)}）` }); if (P.ex.length > 60) P.ex.splice(0, P.ex.length - 60); P.last = today;
@@ -8448,6 +8464,8 @@ function socApply(x, o, mine) {
   if (o.act === 'chal' && chSongs(x.day).length && !chLimit(x.day)) setTimeout(() => { UI.socPop = null; closeModal(); UI.chPop = { k: x.day, where: '', step: 'song', p: chFind(p.g, p.n) || p, onAct: true, music: false }; openModal(chPopHTML()); }, 1400);
   save(); return { up, rumor };
 }
+// 邀约答应了以后要「真的去」的事：[中文, 韩语]
+const SOC_GO = { 32: ['去看他的舞台彩排', '리허설 보러 가는 거'], 33: ['参加那个体验活动', '그 체험 프로그램'], 39: ['去舞蹈练习聚会', '댄스 연습 모임'], 46: ['去新专辑试听会', '앨범 리스닝 세션'], 59: ['去音乐交流会', '음악 교류 모임'], 63: ['去上舞蹈课', '댄스 수업'], 66: ['去他的朋友聚会', '친구들 모임'], 68: ['去看电影续集', '영화 속편'], 70: ['去音乐节', '페스티벌'], 85: ['去音乐交流聚会', '음악 모임'], 113: ['去音乐节', '페스티벌'], 116: ['去看他的特别舞台', '특별 무대'], 169: ['出去玩', '놀러 가는 거'], 180: ['把上次没聊完的话题聊完', '저번에 하던 얘기'], 182: ['见一面', '보는 거'], 186: ['去那家新开的店', '새로 생긴 가게'], 205: ['去新店试营业', '가오픈 가게'], 206: ['去看演出', '공연'], 207: ['去唱片店', '레코드 가게'], 210: ['去挑生日礼物', '생일 선물 고르러 가는 거'], 212: ['去看电影', '영화'], 219: ['去他一直想带你去的店', '가고 싶다던 가게'], 228: ['出去一次', '만나는 거'], 234: ['周末见面', '주말에 보는 거'], 259: ['去听他的新作品', '신곡 들으러 가는 거'], 271: ['再见一面', '다음에 보는 거'], 291: ['再一起玩一次', '또 노는 거'] };
 // 开着 AI 时，对方的回复按你们的真实关系和经历来写
 async function socAiReply(x, mine, o, dm) {
   if (!aiOn()) return null;
@@ -8496,7 +8514,9 @@ function dmHTML(key) {
     <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div></aside></div>`;
 }
 // 📞 约好的电话：聊天里出现「보이스톡」，打过去后电话里说的事会记进你们的记忆，之后有后续
-function dmCallSet(T) { if (T.call && !T.call.done) return; const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id, ringAt: Date.now() + rand(.5, 4) * 3600e3, tries: 0 }; }
+function dmCallSet(T, topic) { if (T.call && !T.call.done) return; const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id, ringAt: Date.now() + rand(.3, 3) * 3600e3, tries: 0, ...(topic != null ? { topic: topic || '刚才聊的事' } : {}) }; }
+const CALL_OPT_G = [['聊得很开心', 1, '通了电话，聊得很开心', [['오늘 통화 재밌었다ㅋㅋ', '今天电话聊得好开心哈哈']], 0], ['简单聊了几句', 0, '通了电话，简单聊了几句', [], 0], ['说有点累，早点挂了', 0, '通了电话，你说有点累，早早挂了', [['푹 쉬어!', '好好休息！']], 0]];
+const callOpts = T => T && T.call && T.call.topic ? CALL_OPT_G : CALL_OPT;
 const CALL_OPT = [
   ['好啊，发给我听听', 1, '通了电话：{他}想请你给新歌提意见，把 demo 发给你了', [['[음성 파일] 새 곡 데모.m4a', '[语音文件] 新歌 demo.m4a'], ['들어보고 솔직하게 말해줘!! 아무 말이나 괜찮아', '听完老实告诉我！！说什么都行']], 1],
   ['说自己不太懂编曲，只能说说听感', 1, '通了电话：{他}想请你给新歌提意见，你说只能说说听感，{他}把 demo 发给你了', [['괜찮아! 듣는 사람 입장에서 말해주는 게 제일 좋아', '没关系！听的人怎么想才最重要'], ['[음성 파일] 새 곡 데모.m4a', '[语音文件] 新歌 demo.m4a']], 1],
@@ -8506,13 +8526,13 @@ const CALL_OPT = [
 const CALL_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>';
 const callLbl = c => c.st === 'done' ? '보이스톡' : c.st === 'cancel' ? '보이스톡 취소' : '부재중 보이스톡';
 function callRec(T, by, st, dur) { dmPush(T.p, { me: by === 'me', text: callLbl({ st }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '' } }); }
-const callTalk = p => socG(`${socName(p)}说下次回归的新歌已经有 demo 了，想先让你听听，问你愿不愿意给点意见。`, p);
+const callTalk = (p, T) => T && T.call && T.call.topic ? socG(`电话接通了。${socName(p)}的声音听起来心情不错，你们接着刚才 KKT 里的话聊了起来。`, p) : socG(`${socName(p)}说下次回归的新歌已经有 demo 了，想先让你听听，问你愿不愿意给点意见。`, p);
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 function callHTML() {
   const C = UI.call, T = dms()[C.key], p = T.p, ic = CALL_SVG.replace(/18/g, '30'), down = ic.replace('<svg', '<svg style="transform:rotate(135deg)"');
   const btn = (act, cls, svg, l) => `<div><button class="call-b ${cls}" data-act="${act}">${svg}</button><div class="call-bl">${l}</div></div>`;
   const st = C.mode === 'in' ? '보이스톡' : C.mode === 'out' ? '연결 중…' : C.mode === 'end' ? `통화 종료 ${C.dur || ''}` : `<span id="call-tm">${mmss((Date.now() - C.t0) / 1000)}</span>`;
-  const mid = C.mode === 'on' ? `<div class="call-cap">${esc(callTalk(p))}</div>${CALL_OPT.map((o, j) => `<button class="call-opt" data-act="callopt" data-j="${j}">${esc(o[0])}</button>`).join('')}` : '';
+  const mid = C.mode === 'on' ? `<div class="call-cap">${esc(callTalk(p, T))}</div>${callOpts(T).map((o, j) => `<button class="call-opt" data-act="callopt" data-j="${j}">${esc(o[0])}</button>`).join('')}` : '';
   const bot = C.mode === 'in' ? btn('callno', 'no', down, '거절') + btn('callok', 'ok', ic, '수락') : C.mode === 'out' ? btn('callcancel', 'no', down, '취소') : C.mode === 'on' ? btn('callhang', 'no', down, '종료') : '';
   return `${kAv(C.key, 'call-av')}<div class="call-nm">${esc(socDisp(p))}</div><div class="call-st">${st}</div><div class="call-mid">${mid}</div><div class="call-btns">${bot}</div>`;
 }
@@ -8541,13 +8561,13 @@ function dmCallOut(key) {
   }, rand(3, 6) * 1e3);
 }
 function dmCallPick(j) {
-  const C = UI.call; if (!C || C.mode !== 'on') return; const T = dms()[C.key], o = CALL_OPT[j], p = T.p; if (!T || !o || !T.call || T.call.done) return;
+  const C = UI.call; if (!C || C.mode !== 'on') return; const T = dms()[C.key], o = callOpts(T)[j], p = T.p; if (!T || !o || !T.call || T.call.done) return;
   const dur = mmss((Date.now() - C.t0) / 1000 + (j === 2 ? ri(60, 180) : ri(5 * 60, 14 * 60)));
   callRec(T, C.by, 'done', dur);
   T.call.done = 1; const P = socPX(p), td = P.todo.find(x => x.id === T.call.td); if (td) { td.st = 'done'; td.doneDay = dkey(Date.now()); }
-  socEx(p, 'call', socG(o[2].split('{他}').join('他'), p)); if (o[1]) socWhy(p, o[1], '通电话聊了新歌');
+  socEx(p, 'call', socG(o[2].split('{他}').join('他'), p)); if (o[1]) socWhy(p, o[1], T.call.topic ? '通了电话' : '通电话聊了新歌');
   if (o[4]) socTodo(p, 'demo', socG('听他发来的新歌 demo，给他意见', p), 'me');
-  dmQueue(p, o[3].map(([text, zh]) => ({ text, zh })), rand(1, 3) * 60e3);
+  if (o[3].length) dmQueue(p, o[3].map(([text, zh]) => ({ text, zh })), rand(1, 3) * 60e3);
   C.mode = 'end'; C.dur = dur; callShow(); save(); setTimeout(() => callEnd(), 1400);
 }
 async function dmAnswer(key, mine, o, silent) {
