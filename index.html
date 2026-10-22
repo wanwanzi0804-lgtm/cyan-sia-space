@@ -2283,7 +2283,7 @@ const PREP_T = [
   ['rec', '正式录音', 'me'], ['dance', '舞蹈学习及排练', 'me'], ['mv', 'MV 拍摄', 'me'], ['photo', '概念照拍摄', 'me'], ['promo', '宣传物料拍摄', 'me'], ['check', '发行前最终确认', 'co']
 ];
 const PREP_KEY = ['final', 'prod', 'rec']; // 关键：没完成就不能发行
-const PREP_CAT = { 其他: ['rec', 'meet'], 练习: ['dance'], 物料: ['mv', 'photo', 'promo'] };
+const PREP_CAT = { 练习: ['dance'], 物料: ['mv', 'photo', 'promo'] };
 const PREP_NAME = { rec: '正式录音', meet: '回归企划会议', dance: '舞蹈学习及排练', mv: 'MV 拍摄', photo: '概念照拍摄', promo: '宣传物料拍摄' };
 const PREP_NEED = { rec: { single: 4, mini: 10, full: 20 }, dance: { single: 10, mini: 14, full: 18 }, mv: { single: 10, mini: 14, full: 16 }, photo: { single: 3, mini: 4, full: 5 }, promo: { single: 2, mini: 3, full: 4 } };
 const PREP_SLOTS = { single: 2, mini: 5, full: 10, other: 2 };
@@ -2326,6 +2326,21 @@ function prepFinalize(o) {
   P.finalAt = dkey(Date.now());
 }
 // 完成的准备行程 → 对应任务；公司任务按时间推进；发行前检查 / 延期 / 预热物料
+// 企划会议和专辑录音由公司安排（不是你手动加的）：经纪人排进行程，算进回归准备
+function prepSlot(dk, h) { for (const st of [13, 10, 15, 18]) { const a = st * 60, b = (st + h) * 60; if (b > 22 * 60) continue; if (!rulesFor(dk).some(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; })) return [st, st + h]; } return null; }
+function prepAuto(o) {
+  const { c, a, P, t } = o, today = dkey(Date.now()); if (P.autoDay === today) return; P.autoDay = today;
+  const add = (dk, h, title, loc, tk) => { const sl = prepSlot(dk, h); if (!sl) return 0; const hh = x => String(x).padStart(2, '0') + ':00'; S.schedule.rules.push({ id: uid(), title, cat: '其他', start: hh(sl[0]), end: hh(sl[1]), loc, repeat: 'once', days: [], date: dk, note: `《${a.name}》`, mgr: 1, cbTask: tk, cbAlbum: a.id, createdAt: Date.now() }); return sl; };
+  const planned = tk => S.schedule.rules.filter(r => r.cbTask === tk && r.cbAlbum === a.id && r.date >= today && !P.log[r.date + '|' + r.id]);
+  const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+  if (!t.concept.done && !P.autoMeet && !planned('meet').length) for (let i = 1; i <= 4; i++) { const dk = addDays(today, i), sl = add(dk, 2, '回归企划会议', '公司 会议室', 'meet'); if (sl) { P.autoMeet = dk; mgrSay([`${+dk.slice(5, 7)}월 ${+dk.slice(8)}일 ${sl[0]}시에 컴백 기획 회의 잡았어요`, `${md(dk)} ${sl[0]} 点排了回归企划会议`]); break; } }
+  if (t.final.done && !t.rec.done) {
+    let left = t.rec.need - t.rec.prog - planned('rec').reduce((s, r) => { const x = toMin(r.start); let e = toMin(r.end); if (e <= x) e += 1440; return s + Math.min((e - x) / 60, 10); }, 0);
+    const until = c.tbd ? addDays(today, 21) : addDays(c.date, -4), got = [];
+    for (let i = 1; left > 0.5 && i <= 21; i++) { const dk = addDays(today, i); if (dk > until && got.length) break; const h = Math.max(2, Math.min(5, Math.ceil(left))), sl = add(dk, h, '专辑录音', '公司 录音室', 'rec'); if (sl) { left -= h; got.push(`${md(dk)} ${sl[0]}:00`); i++; } }
+    if (got.length) mgrSay([`녹음 일정 잡았어요. ${got.length}번이에요`, `录音排好了：${got.join('、')}`]);
+  }
+}
 function prepTick() {
   const o = prepOn(); if (!o) return; const { c, a, P, t } = o, now = Date.now(), today = dkey(now), d = cbDay();
   // ① 关联了回归准备的行程（结束后结算一次）
@@ -2354,6 +2369,7 @@ function prepTick() {
   if (t.final.done && !t.prod.done && t.rec.done && today >= addDays(P.finalAt || t.final.at, P.prodDays) && today >= addDays(t.rec.at, 2)) { t.prod = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》正式制作完成`, sub: '作词、编曲、混音和母带都完成了' }, true); }
   if (t.final.done) for (const w of mz().works) if (w.status === 'cbcand') w.status = 'hold'; // 曲目定了，没选上的候选放回曲库
   if (!P.dance && !t.dance.done) { t.dance = { ...t.dance, done: true, at: today, skip: 1 }; }
+  prepAuto(o);
   // ③ 公开预热物料（只公开已经做好的）
   const ann = (k, ok, txt, alt) => { if (P.ann[k]) return; P.ann[k] = 1; if (ok) pushNotif({ type: 'cb', text: txt[0], sub: txt[1] }, true); else if (alt) pushNotif({ type: 'cb', text: alt[0], sub: alt[1] }, true); };
   if (d <= 14 && d > 0) ann('d14', true, [`💿 ${ALB_TYPE[a.type] || ''}《${a.name}》回归官宣`, `${c.date} 发行 · 公开预热开始`]);
@@ -2365,7 +2381,7 @@ function prepTick() {
     P.ann['chk' + c.date] = 1; const miss = PREP_KEY.filter(k => !t[k].done);
     if (miss.length) {
       P.delays++; const nd = addDays(c.date, 7), old = c.date; c.date = nd; a.date = nd; c.done = {}; delete P.ann.d14; delete P.ann.photo; delete P.ann.track; delete P.ann.hl;
-      pushNotif({ type: 'cb', text: `⚠️ 《${a.name}》回归延期一周（${old} → ${nd}）`, sub: `还没完成：${miss.map(k => PREP_T.find(x => x[0] === k)[1]).join('、')}。${miss.includes('rec') ? '记得安排「专辑录音」并关联这次回归' : ''}` }, true);
+      pushNotif({ type: 'cb', text: `⚠️ 《${a.name}》回归延期一周（${old} → ${nd}）`, sub: `还没完成：${miss.map(k => PREP_T.find(x => x[0] === k)[1]).join('、')}。${miss.includes('rec') ? '录音还没录完，公司会重新排录音' : ''}` }, true);
     } else if (!t.check.done) { t.check = { done: true, at: today }; const lack = ['mv', 'photo', 'dance'].filter(k => !t[k].done); pushNotif({ type: 'cb', text: `💿 《${a.name}》发行前确认完成`, sub: lack.length ? `${lack.map(k => PREP_NAME[k]).join('、')}没赶上，会影响首发效果` : '一切就绪，准备回归！' }, true); }
   }
   // ⑤ 发行：被采用的原创作品同步成「已发行」
@@ -6711,7 +6727,7 @@ PRESETS['物料'] = PRESETS['物料'].filter(([t]) => !/画报|广告/.test(t));
 PRESETS['公演'] = [...UNIV_FEST, ...PRESETS['公演'].filter(([t]) => !/歌谣大祝祭|歌谣大战|歌谣大祭典/.test(t))];
 const CAT_ORDER = ['练习', '其他', '上课', '活动', '综艺', '签售', '电台', '公演', '物料', '打歌', '演唱会'], CAT_GAP = ['上课', '签售', '物料']; // 分组之间间隔稍大
 // 其他：艺人自己在宿舍 / 工作室处理的个人工作（没有通告卡、收入和罚款）
-PRESETS['其他'] = [['音乐创作', '宿舍'], ['专辑录音', '公司 录音室'], ['回归企划会议', '公司 会议室'], ['线上会议', '宿舍'], ['个人内容制作', '宿舍'], ['个人工作', '宿舍'], ['个人学习', '宿舍']];
+PRESETS['其他'] = [['音乐创作', '宿舍'], ['线上会议', '宿舍'], ['个人内容制作', '宿舍'], ['个人工作', '宿舍'], ['个人学习', '宿舍']];
 { const P = { ...PRESETS }; for (const k of Object.keys(PRESETS)) delete PRESETS[k]; for (const c of CAT_ORDER) PRESETS[c] = P[c]; }
 // 经纪人接洽的池子沿用原来的完整清单（大型综艺、颁奖、海外、大型校庆等都还能由经纪人邀约）；行程后台手动预设只留下面这份
 const MGR_POOL = { ...PRESETS };
