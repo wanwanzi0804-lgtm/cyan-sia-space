@@ -3199,17 +3199,30 @@ function mvHTML() {
    年末颁奖典礼：受不受邀请看你这一年的成绩和粉丝量
    ========================================================= */
 // [id, 名字, 月-日, 影响力, 看什么, 门槛, 新人门槛, 可能的奖]
+// [id, 名字, 典型月-日, 说明, 看什么, 门槛, 新人门槛, 可能的奖, 类型 award 颁奖礼 / fest 歌谣祭]
 const AWARDS = [
-  ['mama', 'MAMA', '11-28', '全球直播，最具话题性', 'fol', 80000, 40000, ['年度新人奖', '人气奖', '最佳舞蹈表演']],
-  ['aaa', 'AAA', '12-12', '人气奖为主，阵容庞大', 'fol', 30000, 20000, ['新人奖', '人气奖', 'Hot Trend']],
-  ['kbs', 'KBS 歌谣祭', '12-19', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, []],
-  ['mma', 'MMA', '12-20', '以音源成绩为主，权威性高', 'strm', 2e7, 8e6, ['年度新人奖', '本赏']],
-  ['sbs', 'SBS 歌谣大战', '12-25', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, []],
-  ['mbc', 'MBC 歌谣大祭典', '12-31', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, []],
-  ['gda', '金唱片', '01-10', '历史最悠久 · 音源大赏/唱片大赏', 'alb', 50000, 15000, ['新人奖', '唱片本赏', '音源本赏']],
-  ['sma', '首尔歌谣大赏', '01-24', '综合性强 · 大赏/本赏', 'fol', 50000, 30000, ['新人奖', '本赏', '人气奖']]
+  ['gda', '金唱片 Golden Disc Awards', '01-08', '历史最悠久 · 音源大赏/唱片大赏', 'alb', 50000, 15000, ['新人奖', '唱片本赏', '音源本赏'], 'award'],
+  ['sma', '首尔歌谣大赏 SMA', '01-24', '综合性强 · 大赏/本赏（日期年年变动）', 'fol', 50000, 30000, ['新人奖', '本赏', '人气奖'], 'award'],
+  ['asea', 'Asia Star Entertainer Awards', '05-20', '亚洲巡回性质的颁奖礼', 'fol', 40000, 20000, ['新人奖', '人气奖', 'Best Performance'], 'award'],
+  ['gsum', 'SBS 歌谣大战 Summer', '07-20', '夏季歌谣祭，特别舞台多', 'stage', 45000, 45000, [], 'fest'],
+  ['kwda', 'K-World Dream Awards', '08-18', '夏季颁奖礼，新人奖项多', 'fol', 30000, 15000, ['新人奖', '人气奖', 'Best Performance'], 'award'],
+  ['tma', 'The Fact Music Awards', '09-18', '粉丝投票占比高', 'fol', 40000, 20000, ['新人奖', 'Fan N Star 人气奖', 'Best Music'], 'award'],
+  ['kgma', 'Korea Grand Music Awards', '11-15', '新晋颁奖礼', 'strm', 1.5e7, 6e6, ['新人奖', 'Best Performance', '人气奖'], 'award'],
+  ['mama', 'MAMA', '11-28', '全球直播，最具话题性', 'fol', 80000, 40000, ['年度新人奖', '人气奖', '最佳舞蹈表演'], 'award'],
+  ['aaa', 'AAA', '12-12', '人气奖为主，阵容庞大', 'fol', 30000, 20000, ['新人奖', '人气奖', 'Hot Trend'], 'award'],
+  ['kbs', 'KBS 歌谣祭', '12-19', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, [], 'fest'],
+  ['mma', 'MMA', '12-20', '以音源成绩为主，权威性高', 'strm', 2e7, 8e6, ['年度新人奖', '本赏'], 'award'],
+  ['sbs', 'SBS 歌谣大战', '12-25', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, [], 'fest'],
+  ['mbc', 'MBC 歌谣大祭典', '12-31', '年末特别舞台，合作舞台多', 'stage', 45000, 45000, [], 'fest']
 ];
-function awardDate(aw) { const n = new Date(), season = n.getMonth() + 1 >= 2 ? n.getFullYear() : n.getFullYear() - 1; const y = aw[2] < '06' ? season + 1 : season; return `${y}-${aw[2]}`; }
+// 某一年的举办日：在典型日期附近浮动（年末三大歌谣祭基本固定），同一年同一活动只有一个日期；以前已经记过的沿用
+function awardYearDate(aw, y) {
+  const A = awardsState(), old = Object.keys(A).find(k => k.startsWith(aw[0]) && k.slice(aw[0].length, aw[0].length + 4) === String(y) && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(aw[0].length)));
+  if (old) return old.slice(aw[0].length);
+  const fixed = ['sbs', 'mbc', 'kbs'].includes(aw[0]), j = fixed ? 0 : Math.round((srng('awd' + aw[0] + y)() - .5) * 16);
+  return addDays(`${y}-${aw[2]}`, j);
+}
+function awardDate(aw) { const today = dkey(Date.now()), y = +today.slice(0, 4); for (const yy of [y - 1, y, y + 1]) { const d = awardYearDate(aw, yy); if (d >= addDays(today, -2)) return d; } return awardYearDate(aw, y + 1); }
 function yearStats() {
   const SS = salesState(), y = String(new Date().getFullYear()), Y = (SS.yr || {})[y] || { alb: 0, strm: 0 };
   const wins = Object.values(showsState().res).filter(x => x.rank === 1 && x.dk.startsWith(y)).length;
@@ -3230,35 +3243,48 @@ function awardRatio(aw, date) {
   return { r: sc, rookie };
 }
 function awardsState() { return S.awardsSt || (S.awardsSt = {}); }
+// 年度大型音乐活动：筹备 → 公司收到邀请 → 经纪人问你 → 公司和主办方确认 → 分批公布阵容 → 进行程 → 当天结果
+// 每一步只做一次，结果都存在 awardsState()[id+日期] 里；没确认之前不会进行程
 function awardsTick() {
-  const A = awardsState(), now = new Date(), today = dkey(now), f = S.profile.followers;
-  for (const aw of AWARDS) {
-    const date = awardDate(aw), key = aw[0] + date, inv = addDays(date, -25), st = A[key];
-    if (!st && today >= inv && today <= date) {
-      const { r, rookie } = awardRatio(aw, date), p = clamp(1 / (1 + Math.exp(-(r - .85) / .1)), .01, .92), ok = Math.random() < p;
-      if (ok) {
-        const noms = aw[7].filter(n => (/新人/.test(n) ? rookie : true) && (/本赏/.test(n) ? r > 1.15 : /人气/.test(n) ? true : r > .9 || Math.random() < .5));
-        A[key] = { status: 'inv', noms, r };
-        S.schedule.rules.push({ id: uid(), title: `${aw[1]} ${date.slice(0, 4)}`, cat: '活动', start: '18:00', end: '23:00', loc: '', repeat: 'once', days: [], date, note: noms.length ? '提名：' + noms.join('、') : '年末舞台', createdAt: Date.now() });
-        pushNotif({ type: 'cb', text: `🏅 收到 ${aw[1]} 的邀请！`, sub: `${date.slice(5).replace('-', '/')} ${noms.length ? '· 提名：' + noms.join('、') : '· 年末特别舞台'} · 已加到行程` }, true);
-      } else { A[key] = { status: 'no', r }; pushNotif({ type: 'cb', text: `🏅 今年 ${aw[1]} 没有邀请你`, sub: '多积累成绩和粉丝，明年再冲！' }, false); }
+  const A = awardsState(), now = new Date(), today = dkey(now), f = S.profile.followers, y = +today.slice(0, 4);
+  for (const aw of AWARDS) for (const yy of [y - 1, y, y + 1]) {
+    const date = awardYearDate(aw, yy), key = aw[0] + date, st = A[key], fest = aw[8] === 'fest', r0 = srng('awf' + key);
+    if (date < addDays(today, -3) && !st) continue;
+    const lead = 75 + Math.round(r0() * 45), annLead = 10 + Math.round(r0() * 50);
+    let inv = addDays(date, -lead); if (inv < today && !st && date > today) { const late = addDays(today, Math.round(r0() * 10)); inv = late < addDays(date, -14) ? late : today; } // 系统上线时已经过了正常邀请期：这几天陆续补上
+    if (!st && today >= inv && date >= today) {
+      const { r, rookie } = awardRatio(aw, date), bonus = fest && rookie ? .12 : 0, p = clamp(1 / (1 + Math.exp(-(r - .85) / .1)) + bonus, .01, .92);
+      if (Math.random() >= p) { A[key] = { status: 'no', r, at: Date.now() }; pushNotif({ type: 'cb', text: `🏅 今年 ${aw[1]} 没有邀请你`, sub: '多积累成绩和粉丝，下次再冲！' }, false); continue; }
+      const noms = aw[7].filter(n => (/新人/.test(n) ? rookie : true) && (/本赏/.test(n) ? r > 1.15 : /人气/.test(n) ? true : r > .9 || Math.random() < .5));
+      const perform = fest || Math.random() < clamp(r - .45, .15, .9), coll = fest && Math.random() < .5;
+      A[key] = { status: 'ask', noms, r, perform, coll, at: Date.now(), annLead };
+      const md = `${+date.slice(5, 7)}월 ${+date.slice(8)}일`, mz = `${+date.slice(5, 7)}月${+date.slice(8)}日`, clash = rulesFor(date).filter(x => !x.aw).map(x => x.title);
+      mgrSay([`${aw[1]} ${md} 출연 섭외 들어왔어요.${perform ? (coll ? ' 합동 무대 포함이에요.' : ' 무대도 있어요.') : ' 참석만이에요.'}${clash.length ? ` 그날 ${toKo(clash[0])} 있긴 한데 조정할게요.` : ''} 할까요?`, `${aw[1]} ${mz}的出演邀请来了。${perform ? (coll ? '有合作舞台。' : '有表演。') : '只出席。'}${clash.length ? `那天有${clash[0]}，我来调。` : ''}去吗？`], { type: 'aw', id: key });
+      continue;
     }
-    if (st && st.status === 'inv' && (today > date || (today === date && now.getHours() >= 22))) {
-      const won = st.noms.filter(n => Math.random() < clamp((/人气/.test(n) ? st.r - .55 : st.r - .75) * 1.1, .04, .8));
-      st.status = 'done'; st.won = won;
+    if (!st) continue;
+    if (st.status === 'inv') { st.status = 'conf'; st.ann = 1; st.perform = true; } // 旧版本已经直接进了行程的邀请
+    if (st.status === 'ask' && Date.now() - st.at > 4 * 86400e3) { st.status = 'acc'; st.accAt = Date.now(); mgrResolve('aw', key, '公司先答应了'); mgrSay([`${aw[1]} 건은 회사에서 일단 하겠다고 답했어요`, `${aw[1]}那个公司先答应下来了`]); }
+    if (st.status === 'acc' && Date.now() - st.accAt > (1 + r0() * 5) * 86400e3) { // 公司和主办方确认条件 → 正式确认、进行程
+      st.status = 'conf'; st.confAt = Date.now(); const yr = date.slice(0, 4);
+      if (st.perform) { const rid = uid(); S.schedule.rules.push({ id: rid, title: `${aw[1]} ${yr} 彩排`, cat: '活动', start: '13:00', end: '18:00', loc: '', repeat: 'once', days: [], date: addDays(date, -1), note: st.coll ? '合作舞台彩排' : '舞台彩排', aw: key, createdAt: Date.now() }); st.rules = [rid]; }
+      const eid = uid(); S.schedule.rules.push({ id: eid, title: `${aw[1]} ${yr}`, cat: '活动', start: '17:00', end: '23:00', loc: '', repeat: 'once', days: [], date, note: [st.noms.length ? '提名：' + st.noms.join('、') : '', st.perform ? (st.coll ? '合作舞台' : '表演舞台') : '出席', '红毯'].filter(Boolean).join(' · '), aw: key, createdAt: Date.now() }); (st.rules || (st.rules = [])).push(eid);
+      mgrSay([`${aw[1]} 확정됐어요. 일정 넣어놨어요`, `${aw[1]}确定了，行程加好了`]);
+    }
+    if (st.status === 'conf' && !st.ann && today >= addDays(date, -(st.annLead || 30))) { st.ann = 1; const n = Math.round(f * rand(.001, .004)); if (n) addFans(n, `热搜：${aw[1]} 阵容公布`); pushNotif({ type: 'cb', text: `📣 ${aw[1]} 公布了出演阵容，有你！`, sub: `${date.slice(5).replace('-', '/')} · 涨粉 +${fmtNum(n)}` }, true); }
+    if (['ask', 'acc'].includes(st.status) && today > date) { st.status = 'lapse'; mgrResolve('aw', key, '已过期'); }
+    if (st.status === 'conf' && (today > date || (today === date && now.getHours() >= 22))) {
+      const won = st.noms.filter(n => Math.random() < clamp((/人气/.test(n) ? st.r - .55 : st.r - .75) * 1.1, .04, .8)), L = released(), la = L[L.length - 1];
+      st.status = 'done'; st.won = won; st.song = la ? albTitle(la) : '';
       if (won.length) { const n = Math.round(f * rand(.03, .06) * won.length); addFans(n, aw[1] + ' 获奖'); pushNotif({ type: 'cb', text: `🏆 ${aw[1]} 获得 ${won.join('、')}！`, sub: `粉丝们疯了 · 涨粉 +${fmtNum(n)}` }, true); }
-      else { const n = Math.round(f * rand(.005, .015)); addFans(n, aw[1] + ' 舞台'); pushNotif({ type: 'cb', text: `🏅 ${aw[1]} 结束`, sub: `${st.noms.length ? '这次没有拿奖，' : ''}舞台反响不错 · 涨粉 +${fmtNum(n)}` }, false); }
+      else { const n = Math.round(f * rand(.005, .015) * (st.perform ? 1 : .4)); addFans(n, aw[1] + (st.perform ? ' 舞台' : ' 出席')); pushNotif({ type: 'cb', text: `🏅 ${aw[1]} 结束`, sub: `${st.noms.length ? '这次没有拿奖，' : ''}${st.perform ? '舞台反响不错' : '红毯照片很出圈'} · 涨粉 +${fmtNum(n)}` }, false); }
     }
   }
 }
 function awardsHTML() {
-  const A = awardsState(), today = dkey(Date.now());
-  return `${AWARDS.map(aw => {
-    const date = awardDate(aw), st = A[aw[0] + date];
-    const s = st ? (st.status === 'inv' ? `<b class="sh-cand">✅ 受邀${st.noms.length ? ' · 提名 ' + st.noms.join('、') : ''}</b>` : st.status === 'done' ? (st.won.length ? `<b class="sh-win">🏆 ${st.won.join('、')}</b>` : '<span class="muted">已出席</span>') : '<span class="muted">未受邀</span>')
-      : `<span class="muted" style="font-size:12px">${addDays(date, -25) > today ? `${addDays(date, -25).slice(5).replace('-', '/')} 决定邀请` : ''}</span>`;
-    return `<div class="sh-row" style="align-items:flex-start"><div style="flex:1;min-width:0"><b>${aw[1]}</b> <span class="muted" style="font-size:11.5px">${date.slice(5).replace('-', '/')}</span><div class="muted" style="font-size:11.5px">${aw[3]}</div>
-</div><div style="text-align:right;max-width:45%">${s}</div></div>`; }).join('')}`;
+  const A = awardsState(), today = dkey(Date.now()), L = AWARDS.map(aw => { const d = awardDate(aw); return [aw, d, A[aw[0] + d]]; }).filter(([, d]) => d <= addDays(today, 130)).sort((a, b) => a[1].localeCompare(b[1]));
+  const S2 = { ask: '收到邀请 · 待回复', acc: '公司协调中', conf: '已确认出演', done: '已出演', no: '未受邀', dec: '已婉拒', lapse: '未出演', cxl: '主办方取消' };
+  return L.length ? L.map(([aw, d, st]) => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(aw[1])}</div><div class="w-tx-s">${d.slice(5).replace('-', '/')} · ${aw[8] === 'fest' ? '歌谣祭' : '颁奖礼'}${st && st.status === 'conf' && st.noms.length ? ' · 提名 ' + st.noms.join('、') : ''}</div></div><em class="w-tag ${st && ['conf', 'done'].includes(st.status) ? 't2' : 'sys'}">${st ? (st.status === 'done' && (st.won || []).length ? '获奖' : S2[st.status] || '') : '筹备中'}</em></div>`).join('') : '<div class="muted" style="padding:10px 0">近期没有大型活动</div>';
 }
 
 /* =========================================================
@@ -3301,7 +3327,7 @@ function musPeakTick() { if (Date.now() - musPeakAt < 30 * 60e3) return; musPeak
 function musicHTML() {
   const pg = UI.mPage || '';
   if (pg === 'charts') return mHead('完整榜单', '') + `<div class="card">${chartsHTML()}</div>`;
-  if (pg === 'honors') { const L = honorList(); return mHead('全部荣誉', '') + `<div class="card w-list">${L.length ? L.map(h => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(h.ev)} · ${esc(h.what)}</div><div class="w-tx-s">${h.dk.replace(/-/g, '.')}${h.song ? ` · 《${esc(h.song)}》` : ''}</div></div><em class="w-tag ${h.kind === 'win' ? 't2' : 'own'}">${h.kind === 'win' ? '打歌一位' : '颁奖礼'}</em></div>`).join('') : '<div class="muted" style="padding:10px 0">还没有荣誉记录</div>'}</div>`; }
+  if (pg === 'honors') { const L = honorList(); return mHead('全部荣誉', '') + `${mSec('近期大型音乐活动')}<div class="card w-list">${awardsHTML()}</div>${mSec('荣誉')}<div class="card w-list">${L.length ? L.map(h => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(h.ev)} · ${esc(h.what)}</div><div class="w-tx-s">${h.dk.replace(/-/g, '.')}${h.song ? ` · 《${esc(h.song)}》` : ''}</div></div><em class="w-tag ${h.kind === 'win' ? 't2' : 'own'}">${h.kind === 'win' ? '打歌一位' : '颁奖礼'}</em></div>`).join('') : '<div class="muted" style="padding:10px 0">还没有荣誉记录</div>'}</div>`; }
   if (pg === 'works') { const L = released().slice().reverse(); return mHead('全部作品', '') + `<div class="card w-list">${L.length ? L.map(a => `<button class="m-alb" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'sm')}<div class="w-tx-l"><div class="w-tx-t">${esc(a.name)}</div><div class="w-tx-s">${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</div></div><i>›</i></button>`).join('') : '<div class="muted" style="padding:10px 0">还没有正式发行的作品</div>'}</div><details class="card me-more m-manage"><summary>管理歌单（添加 / 编辑作品）</summary>${discoHTML()}</details>`; }
   if (pg.startsWith('alb:')) return albDetailHTML(pg.slice(4));
   if (pg === 'demos') return mHead('个人作品库', '', 'MY DEMOS') + `<div class="card">${worksHTML()}</div>`;
@@ -3756,6 +3782,7 @@ function mgrCardMsg(m) {
     const g = GIFTS[m.card.t], sel = m.card.sel || [], btn = (t, l, z, cls) => `<button class="btn ${cls || 'ghost'} sm" data-act="mgift" data-mid="${m.id}" data-t="${t}"${z !== undefined ? ` data-z="${z}"` : ''}>${esc(l)}</button>`;
     const types = Object.entries(GIFTS).filter(([k, x]) => x.cats.includes(m.card.cat) && !sel.some(c => c.startsWith(k + ':'))).map(([k, x]) => btn(k, (sel.length ? '＋ ' : '') + x.short));
     return `${sel.length ? `<div class="kk-res" style="color:inherit">已选：${sel.map(c => esc(giftInfo(c).label)).join('、')}</div>` : ''}<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${g ? g.sizes.map((z, i) => btn(m.card.t, `${z[0] ? z[0] + ' · ' : ''}${fmtNum(z[1] / 10000)}–${fmtNum(z[2] / 10000)}万`, i)).join('') + btn('', '‹ 换一种') : [sel.length ? btn('done', '就这些', undefined, 'primary') : btn('-', '不用了'), ...types].join('')}</div>`; }
+  if (m.card.type === 'aw') { const st = awardsState()[m.card.id]; return st && st.status === 'ask' && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="awno" data-id="${m.card.id}">不去</button><button class="btn primary sm" data-act="awok" data-id="${m.card.id}">去</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   if (m.card.type === 'ytshoot') { const p = yt().plans.find(x => x.id === m.card.id); if (!p || m.res || p.st !== 'sched') return `<div class="kk-res">${esc(m.res || '已处理')}</div>`; return `<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${(p.slots || []).map((x, i) => `<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="${i}">${+x.dk.slice(5, 7)}/${+x.dk.slice(8)}（${WD[parseD(x.dk).getDay()]}）${x.start}</button>`).join('')}<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="-1">都不行</button></div>`; }
   if (m.card.type === 'chbook') { const o = (chal().book || {}).offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="chbkno" data-id="${o.id}">不拍</button><button class="btn primary sm" data-act="chbkok" data-id="${o.id}">好</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   if (m.card.type === 'deal') { const o = wallet().offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
@@ -8944,6 +8971,7 @@ document.addEventListener('click', async e => {
     case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
+    case 'awok': case 'awno': { const st = awardsState()[t.dataset.id]; if (!st || st.status !== 'ask') break; const ok = t.dataset.act === 'awok'; st.status = ok ? 'acc' : 'dec'; st.accAt = Date.now(); mgrMe(ok ? 'ok' : 'no'); mgrResolve('aw', t.dataset.id, ok ? '去' : '不去'); mgrReply(ok ? ['네, 회사에 전달할게요. 확정되면 말해줄게요', '好，我跟公司说，确定了告诉你'] : ['알겠어요, 정중하게 거절할게요', '好，我礼貌地回绝']); save(); break; }
     case 'yttab': UI.ytTab = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'ytfcat': case 'ytffmt': { const F = UI.ytF || {}; F.title = $('#ytf-t')?.value || F.title || ''; F.orig = $('#ytf-o')?.value || F.orig || ''; F.with = $('#ytf-w')?.value ?? F.with; F.note = $('#ytf-n')?.value || F.note || ''; if (t.dataset.act === 'ytfcat') { F.cat = t.dataset.k; F.fmt = YT_CAT[F.cat][1][0][0]; } else F.fmt = t.dataset.k; UI.ytF = F; const y = window.scrollY; render(); window.scrollTo(0, y); break; }
     case 'ytsubmit': ytSubmit(t.dataset.id); break;
