@@ -282,6 +282,14 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .kk-b.cont{border-radius:14px}
 .kk-b.me{background:#fee500;color:#191919;border-radius:14px 4px 14px 14px}
 .kk-b.me.cont{border-radius:14px}
+.kk-call{display:flex;align-items:center;gap:9px;min-width:130px;white-space:normal}.kk-call i{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.07);display:grid;place-items:center;font-style:normal;flex:none}.kk-call b{display:block;font-weight:600}.kk-call span{font-size:12px;opacity:.6}
+#call-ly{position:fixed;inset:0;z-index:150;background:linear-gradient(180deg,#46505f,#16191e);color:#fff;display:flex;flex-direction:column;align-items:center;padding:calc(72px + env(safe-area-inset-top)) 22px calc(36px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
+#call-ly .call-av{width:108px;height:108px;border-radius:50%;object-fit:cover;font-size:52px;display:grid;place-items:center;background:#5b6573}
+.call-nm{font-size:24px;font-weight:700;margin-top:18px}.call-st{opacity:.7;margin-top:6px;font-size:14.5px;font-variant-numeric:tabular-nums}
+.call-mid{flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:18px 0;overflow:auto}
+.call-cap{background:rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;font-size:14.5px;line-height:1.5;margin-bottom:4px}
+.call-opt{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:14px;padding:12px 14px;text-align:left;font-size:14.5px}
+.call-btns{display:flex;justify-content:space-around;width:100%}.call-b{width:66px;height:66px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff}.call-b.no{background:#ff3b30}.call-b.ok{background:#34c759}.call-bl{font-size:12.5px;opacity:.75;text-align:center;margin-top:7px}
 .kk-t{font-size:10px;color:var(--kk-tm);flex:none;text-align:right;white-space:nowrap}
 .kk-1{display:block;color:#f5c400;font-weight:700;font-size:10.5px;line-height:1.2}
 .kk-send{flex:none;align-self:stretch;border:0;border-radius:12px;background:#fee500;color:#191919;font:inherit;font-weight:700;font-size:13.5px;padding:0 14px;cursor:pointer}
@@ -3857,8 +3865,8 @@ function kkLogHTML(msgs, o) {
     const d = new Date(m.at), dk = dkey(m.at), sep = dk !== lastDay ? `<div class="kk-day">${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${WDK[d.getDay()]}요일</div>` : ''; lastDay = dk;
     if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
     const p = msgs[i - 1], n = msgs[i + 1], cont = !sep && p && who(p) === who(m) && minute(p) === minute(m), last = !n || who(n) !== who(m) || minute(n) !== minute(m) || dkey(n.at) !== dk;
-    const body = `${esc(m.text)}${o.tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
-    if (m.me) return sep + `<div class="kk-row me${cont ? ' cont' : ''}"><span class="kk-t">${o.unread(m) ? '<b class="kk-1">1</b>' : ''}${tm}</span><div class="kk-b me${cont ? ' cont' : ''}">${body}</div></div>`;
+    const body = m.call ? `<div class="kk-call"><i>${CALL_SVG}</i><div><b>${callLbl(m.call)}</b>${m.call.dur ? `<span>${m.call.dur}</span>` : ''}</div></div>` : `${esc(m.text)}${o.tr && m.zh ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
+    if (m.me) return sep + `<div class="kk-row me${cont ? ' cont' : ''}"><span class="kk-t">${o.unread(m) && !m.call ? '<b class="kk-1">1</b>' : ''}${tm}</span><div class="kk-b me${cont ? ' cont' : ''}">${body}</div></div>`;
     return sep + `<div class="kk-row${cont ? ' cont' : ''}">${cont ? '<div class="kk-avsp"></div>' : o.av}<div>${cont ? '' : `<div class="kk-n">${esc(o.name)}</div>`}<div class="kk-b${cont ? ' cont' : ''}">${body}</div></div><span class="kk-t">${tm}</span></div>`;
   }).join('');
 }
@@ -7127,7 +7135,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -8099,7 +8107,8 @@ function ahFollowMig() {
   save();
 }
 // 一次性：之前「拖了两次就当成已读不回」的 bug 留下的：好朋友那边你最后发的、问了问题却被已读不回的，补上回复
-function dmCallZh1() { for (const T of Object.values(dms())) if (!T.call && (T.msgs || []).some(m => m.text === '혹시 시간 될 때 잠깐 통화 가능해요? 직접 물어보고 싶은 게 있어서') && (T.msgs || []).some(m => m.me && (m.text === '好啊，约个时间打给你' || m.zh === '好啊，约个时间打给你'))) dmCallSet(T); for (const T of Object.values(dms())) { const bad = (T.msgs || []).findIndex(m => !m.me && m.text === '아 그거였구나ㅎㅎ'); if (bad >= 0) T.msgs.splice(bad, 1); } /* 把剧情说明当成台词的那条删掉 */ for (const T of Object.values(dms())) for (const m of T.msgs || []) { if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; if (m.me && m.text === '好啊，约个时间打给你' && m.zh && !hasHan(m.zh)) { const k = m.zh; m.zh = m.text; m.text = k; } } }
+function dmCallZh1() { for (const T of Object.values(dms())) for (const m of T.msgs || []) if (m.callRec) { const d = (m.text.match(/\d+:\d+/) || [''])[0]; m.call = { by: 'me', st: 'done', dur: d }; m.text = '보이스톡 ' + d; delete m.zh; delete m.callRec; }
+  for (const T of Object.values(dms())) if (!T.call && (T.msgs || []).some(m => m.text === '혹시 시간 될 때 잠깐 통화 가능해요? 직접 물어보고 싶은 게 있어서') && (T.msgs || []).some(m => m.me && (m.text === '好啊，约个时间打给你' || m.zh === '好啊，约个时间打给你'))) dmCallSet(T); for (const T of Object.values(dms())) { const bad = (T.msgs || []).findIndex(m => !m.me && m.text === '아 그거였구나ㅎㅎ'); if (bad >= 0) T.msgs.splice(bad, 1); } /* 把剧情说明当成台词的那条删掉 */ for (const T of Object.values(dms())) for (const m of T.msgs || []) { if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; if (m.me && m.text === '好啊，约个时间打给你' && m.zh && !hasHan(m.zh)) { const k = m.zh; m.zh = m.text; m.text = k; } } }
 function dmUnstick1() {
   const SO = social(); if (SO.unstick1) return; SO.unstick1 = 1; const now = Date.now();
   for (const T of Object.values(dms())) { const m = T.msgs[T.msgs.length - 1];
@@ -8334,7 +8343,7 @@ function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
-async function dmTrMe(T, m) { if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { if (m.opt && hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { if (m.opt && hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
@@ -8342,7 +8351,7 @@ function dmLogHTML(T, key, tr) {
   return kkLogHTML(T.msgs, { tr, unread: m => m.at > rd, av: kAv(key, 'mgr-av sm'), name: socDisp(T.p) });
 }
 function dmHTML(key) {
-  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (!m.me && !m.sys && m.text && !m.zh && !m._trTry && /[가-힣]/.test(m.text)) { m._trTry = 1; trText(m.text, 'zh').then(out => { if (out && out !== m.text && !trBad(m.text, out)) { m.zh = out; save(); if (UI.dmOpen === key) openModal(dmHTML(key)); } }).catch(() => {}); } /* 对方的消息漏了翻译：补上 */ if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
+  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.call) return; if (!m.me && !m.sys && m.text && !m.zh && !m._trTry && /[가-힣]/.test(m.text)) { m._trTry = 1; trText(m.text, 'zh').then(out => { if (out && out !== m.text && !trBad(m.text, out)) { m.zh = out; save(); if (UI.dmOpen === key) openModal(dmHTML(key)); } }).catch(() => {}); } /* 对方的消息漏了翻译：补上 */ if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
   return `<div class="kk-room${UI.kkDr === key ? ' dr' : ''}"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="kkdr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
     ${socMemHTML(key) ? `<div class="kk-note">${socMemHTML(key)}</div>` : ''}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
@@ -8353,25 +8362,59 @@ function dmHTML(key) {
     <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div></aside></div>`;
 }
 // 📞 约好的电话：聊天里出现「보이스톡」，打过去后电话里说的事会记进你们的记忆，之后有后续
-function dmCallSet(T) { if (T.call && !T.call.done) return; const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id }; }
+function dmCallSet(T) { if (T.call && !T.call.done) return; const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id, ringAt: Date.now() + rand(.5, 4) * 3600e3, tries: 0 }; }
 const CALL_OPT = [
   ['好啊，发给我听听', 1, '通了电话：{他}想请你给新歌提意见，把 demo 发给你了', [['[음성 파일] 새 곡 데모.m4a', '[语音文件] 新歌 demo.m4a'], ['들어보고 솔직하게 말해줘!! 아무 말이나 괜찮아', '听完老实告诉我！！说什么都行']], 1],
   ['说自己不太懂编曲，只能说说听感', 1, '通了电话：{他}想请你给新歌提意见，你说只能说说听感，{他}把 demo 发给你了', [['괜찮아! 듣는 사람 입장에서 말해주는 게 제일 좋아', '没关系！听的人怎么想才最重要'], ['[음성 파일] 새 곡 데모.m4a', '[语音文件] 新歌 demo.m4a']], 1],
   ['说最近太忙了，等忙完再说', 0, '通了电话：{他}想请你给新歌提意见，你说最近太忙，等忙完再说', [['알겠어 바쁜데 전화 받아줘서 고마워!', '知道啦，这么忙还接电话，谢谢！']], 0]
 ];
-function dmCallHTML(key) {
-  const T = dms()[key], p = T.p, t = socG(`${socName(p)}说下次回归的新歌已经有 demo 了，想先让你听听，问你愿不愿意给点意见。`, p);
-  return `<div class="row"><h3 style="flex:1">📞 ${esc(socDisp(p))}</h3><span class="muted" style="font-size:12.5px">통화 중</span></div><div style="margin:6px 0 12px">${esc(t)}</div>${CALL_OPT.map((o, j) => `<button class="hot-opt" data-act="dmcallpick" data-k="${esc(key)}" data-j="${j}">${esc(o[0])}</button>`).join('')}`;
+// 通话界面：对方打来（接 / 拒）或你打过去（连接中 / 取消），接通后在电话里聊；聊天里留下 KKT 那样的通话记录，谁打的就在谁那边
+const CALL_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>';
+const callLbl = c => c.st === 'done' ? '보이스톡' : c.st === 'cancel' ? '보이스톡 취소' : '부재중 보이스톡';
+function callRec(T, by, st, dur) { dmPush(T.p, { me: by === 'me', text: callLbl({ st }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '' } }); }
+const callTalk = p => socG(`${socName(p)}说下次回归的新歌已经有 demo 了，想先让你听听，问你愿不愿意给点意见。`, p);
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function callHTML() {
+  const C = UI.call, T = dms()[C.key], p = T.p, ic = CALL_SVG.replace(/18/g, '30'), down = ic.replace('<svg', '<svg style="transform:rotate(135deg)"');
+  const btn = (act, cls, svg, l) => `<div><button class="call-b ${cls}" data-act="${act}">${svg}</button><div class="call-bl">${l}</div></div>`;
+  const st = C.mode === 'in' ? '보이스톡' : C.mode === 'out' ? '연결 중…' : C.mode === 'end' ? `통화 종료 ${C.dur || ''}` : `<span id="call-tm">${mmss((Date.now() - C.t0) / 1000)}</span>`;
+  const mid = C.mode === 'on' ? `<div class="call-cap">${esc(callTalk(p))}</div>${CALL_OPT.map((o, j) => `<button class="call-opt" data-act="callopt" data-j="${j}">${esc(o[0])}</button>`).join('')}` : '';
+  const bot = C.mode === 'in' ? btn('callno', 'no', down, '거절') + btn('callok', 'ok', ic, '수락') : C.mode === 'out' ? btn('callcancel', 'no', down, '취소') : C.mode === 'on' ? btn('callhang', 'no', down, '종료') : '';
+  return `${kAv(C.key, 'call-av')}<div class="call-nm">${esc(socDisp(p))}</div><div class="call-st">${st}</div><div class="call-mid">${mid}</div><div class="call-btns">${bot}</div>`;
 }
-function dmCallPick(key, j) {
-  const T = dms()[key], o = CALL_OPT[j], p = T.p; if (!T || !o || !T.call || T.call.done) return;
-  const mm = ri(6, 18), ss = String(ri(0, 59)).padStart(2, '0');
-  dmPush(p, { me: true, text: `📞 보이스톡 ${mm}:${ss}`, zh: `语音通话 ${mm}:${ss}`, callRec: 1 });
+function callShow() {
+  let L = $('#call-ly'); if (!UI.call) { if (L) L.remove(); clearInterval(UI.callIv); return; }
+  if (!L) { L = document.createElement('div'); L.id = 'call-ly'; document.body.appendChild(L); } L.innerHTML = callHTML();
+  clearInterval(UI.callIv); if (UI.call.mode === 'on') UI.callIv = setInterval(() => { const e = $('#call-tm'); if (e && UI.call) e.textContent = mmss((Date.now() - UI.call.t0) / 1000); }, 1000);
+}
+function callEnd(after) { const key = UI.call && UI.call.key; UI.call = null; callShow(); save(); if (key && UI.dmOpen === key) { openModal(dmHTML(key)); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; } if (after) after(); }
+function callRetry(T, txt, inMin) { T.call.ringAt = (T.call.tries || 0) < 3 ? Date.now() + (inMin != null ? inMin * 60e3 : rand(1, 4) * 3600e3) : null; if (txt) dmQueue(T.p, [{ text: txt[0], zh: txt[1] }], rand(1, 3) * 60e3); }
+// 对方打来
+function dmCallTick() {
+  const now = Date.now(), h = new Date().getHours(); if (UI.call || h < 10 || h >= 24) return;
+  for (const [key, T] of Object.entries(dms())) { const c = T.call; if (!c || c.done) continue;
+    if (c.ringAt == null && !c.tries) { c.ringAt = now + rand(.3, 2) * 3600e3; continue; }
+    if (!c.ringAt || now < c.ringAt) continue;
+    c.ringAt = null; c.tries = (c.tries || 0) + 1; UI.call = { key, mode: 'in', by: 'them' }; callShow(); save();
+    setTimeout(() => { if (UI.call && UI.call.key === key && UI.call.mode === 'in') { callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); callEnd(); } }, 30e3);
+    return; }
+}
+function dmCallOut(key) {
+  const T = dms()[key]; if (!T || !T.call || T.call.done || UI.call) return; UI.call = { key, mode: 'out', by: 'me' }; callShow();
+  setTimeout(() => { const C = UI.call; if (!C || C.key !== key || C.mode !== 'out') return;
+    if (Math.random() < .85) { C.mode = 'on'; C.t0 = Date.now(); callShow(); return; }
+    setTimeout(() => { const C = UI.call; if (!C || C.key !== key || C.mode !== 'out') return; callRec(T, 'me', 'cancel'); callRetry(T, ['아 미안 전화 못 받았어ㅠ 내가 다시 걸게', '啊抱歉刚才没接到ㅠ 我打回给你'], rand(5, 25)); callEnd(); }, 15e3);
+  }, rand(3, 6) * 1e3);
+}
+function dmCallPick(j) {
+  const C = UI.call; if (!C || C.mode !== 'on') return; const T = dms()[C.key], o = CALL_OPT[j], p = T.p; if (!T || !o || !T.call || T.call.done) return;
+  const dur = mmss((Date.now() - C.t0) / 1000 + (j === 2 ? ri(60, 180) : ri(5 * 60, 14 * 60)));
+  callRec(T, C.by, 'done', dur);
   T.call.done = 1; const P = socPX(p), td = P.todo.find(x => x.id === T.call.td); if (td) { td.st = 'done'; td.doneDay = dkey(Date.now()); }
   socEx(p, 'call', socG(o[2].split('{他}').join('他'), p)); if (o[1]) socWhy(p, o[1], '通电话聊了新歌');
   if (o[4]) socTodo(p, 'demo', socG('听他发来的新歌 demo，给他意见', p), 'me');
-  dmQueue(p, o[3].map(([text, zh]) => ({ text, zh })), rand(1, 3) * 60e3); save();
-  closeModal(); UI.dmOpen = key; openModal(dmHTML(key)); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight;
+  dmQueue(p, o[3].map(([text, zh]) => ({ text, zh })), rand(1, 3) * 60e3);
+  C.mode = 'end'; C.dur = dur; callShow(); save(); setTimeout(() => callEnd(), 1400);
 }
 async function dmAnswer(key, mine, o, silent) {
   const SO = social(), T = dms()[key], x = SO.q.find(y => y.dm && !y.ans && (y.via || y.p).key === key);
@@ -9061,8 +9104,12 @@ document.addEventListener('click', async e => {
       { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: '' };
         if (x && x.o && x.o.length) { const b = neg ? x.o[x.o.length - 1] : x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
         dmAnswer(k, v, o, false); } break; }
-    case 'dmcall': openModal(dmCallHTML(t.dataset.k)); break;
-    case 'dmcallpick': dmCallPick(t.dataset.k, +t.dataset.j); break;
+    case 'dmcall': dmCallOut(t.dataset.k); break;
+    case 'callok': if (UI.call && UI.call.mode === 'in') { UI.call.mode = 'on'; UI.call.t0 = Date.now(); callShow(); } break;
+    case 'callno': if (UI.call && UI.call.mode === 'in') { const T = dms()[UI.call.key]; callRec(T, 'them', 'miss'); callRetry(T, ['바쁜가 보네ㅎㅎ 편할 때 전화줘', '在忙吧哈哈 方便的时候打给我']); callEnd(); } break;
+    case 'callcancel': if (UI.call && UI.call.mode === 'out') { callRec(dms()[UI.call.key], 'me', 'cancel'); callEnd(); } break;
+    case 'callopt': dmCallPick(+t.dataset.j); break;
+    case 'callhang': dmCallPick(2); break;
     case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const o = socOpts(socEv(Q.x.ev), Q.x.p, Q.x)[+t.dataset.j]; if (!o) break; socDone(Q, o.t, o); break; }
     case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const e = socEv(Q.x.ev), neg = tone(v) === 'neg', o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: neg ? 0 : (e.fl.r || 0) * .5, reply: neg ? socG('他好像有点尴尬', Q.x.p) : socG(pick(SOC_REPLY['+']), Q.x.p) };
       if (Q.x.o && Q.x.o.length) { const b = neg ? Q.x.o[Q.x.o.length - 1] : Q.x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
