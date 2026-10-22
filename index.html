@@ -218,6 +218,13 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .m-alb{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:10px 0;cursor:pointer}.w-list>.m-alb:first-child{border-top:0}.m-alb>i{font-style:normal;color:var(--muted)}
 .m-ad{text-align:center;display:flex;flex-direction:column;gap:2px;padding:18px 14px}.m-ad b{font-size:19px;margin-top:10px}.m-ad span{font-size:12.5px;color:var(--muted)}.m-cvup{font-size:12px;margin-top:6px;cursor:pointer}.m-no{width:18px;color:var(--muted);font-size:13px;flex:none}.m-pk{font-style:normal;font-weight:400;font-size:11px;color:var(--muted);margin-left:4px}
 .m-manage{font-size:13.5px}
+.yt-ch{padding:14px}.yt-chh{display:flex;align-items:center;gap:10px;margin-bottom:12px}.yt-chh b{display:block;font-size:17px}.yt-chh span{font-size:11px;letter-spacing:.6px;color:var(--muted)}.yt-new{width:100%;margin-top:12px}
+.seg3{display:flex;gap:4px;margin:4px 0 10px;background:var(--card);border-radius:12px;padding:3px;box-shadow:var(--shadow)}.seg3 button{flex:1;border:0;background:none;border-radius:9px;padding:7px 0;font-size:13.5px;font-weight:600;color:var(--muted)}.seg3 button.on{background:var(--accent-soft);color:var(--accent)}.seg3 i{font-style:normal;font-size:11px;opacity:.7}
+.yt-th{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#1d2329,#3b4650);display:grid;place-items:center;flex:none}.yt-th.s{aspect-ratio:9/16}.yt-th img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}.yt-th span{color:#fff;font-weight:700;font-size:13px;padding:0 8px;text-align:center;opacity:.9;position:relative}.yt-th i{position:absolute;right:6px;bottom:4px;font-style:normal;color:#fff;font-size:11px;opacity:.8}
+.yt-vl{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}.yt-v{display:flex;gap:12px;align-items:flex-start;border:0;background:var(--card);border-radius:14px;padding:10px;box-shadow:var(--shadow);text-align:left;cursor:pointer}.yt-v .yt-th{width:44%}.yt-v>div{min-width:0}.yt-v b{display:block;font-size:14px;line-height:1.35;word-break:break-word}.yt-v span{font-size:11.5px;color:var(--muted)}
+.yt-sg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.yt-s{border:0;background:none;text-align:left;padding:0;cursor:pointer;min-width:0}.yt-s b{display:block;font-size:12px;line-height:1.3;margin-top:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.yt-s span{font-size:11px;color:var(--muted)}
+.yt-vd{text-align:center;padding:14px}.yt-vd .yt-th.big{width:100%}.yt-vd .yt-th.s.big{width:46%;margin:0 auto}.yt-vd>b{display:block;font-size:16px;margin-top:10px;word-break:break-word}.yt-vd>span{font-size:12px;color:var(--muted)}
+.yt-form .chips{flex-wrap:wrap;overflow:visible;padding:2px 0}
 .sh-cand{color:var(--accent)}
 .cb-warn{margin-top:8px;font-size:12.5px;color:#b35c00;background:#fff4e5;border-radius:10px;padding:6px 10px}
 .cb-warn.ok{color:var(--accent);background:var(--bg)}
@@ -3343,6 +3350,190 @@ function albDetailHTML(id) {
     ${mSec('荣誉')}<div class="card w-list">${hon.length ? hon.map(hh => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(hh.ev)} · ${esc(hh.what)}</div><div class="w-tx-s">${hh.dk.replace(/-/g, '.')} ·《${esc(hh.song)}》</div></div></div>`).join('') : '<div class="muted" style="padding:10px 0">暂无</div>'}</div>`;
 }
 /* =========================================================
+   ▶ 官方 YouTube：Cyan Official / STARSHIP ENTERTAINMENT
+   视频 = 正式 MV（直接读 salesState().mv，和音乐成绩同一份数据）+ 官方企划发布的长视频
+   Shorts = 原有 Challenge（直接读 chal().list，播放量不改）+ 官方企划发布的短视频
+   企划：S.yt.plans（提交 → 公司审核 / 合作协调 → 经纪人排拍摄 → 拍摄 → 后期 → 待发布 → 发布），每一步只触发一次
+   ========================================================= */
+const YT_CAT = {
+  vocal: ['Vocal Cover', [['photo', '静态图片 + 翻唱音频', 1e5, 6e5, 0], ['live', 'Live Clip', 3e5, 15e5, 1], ['mv', 'Cover MV', 15e5, 8e6, 1]]],
+  dance: ['Dance Cover', [['fix', '练习室固定机位', 0, 3e5, 0], ['perf', 'Performance Video', 5e5, 5e6, 1]]],
+  shorts: ['Shorts / Challenge', [['self', '自拍短视频', 0, 3e4, 0], ['pro', '正式制作的短版', 2e5, 1e6, 1]]],
+  vlog: ['Vlog / 自制物料', [['self', '个人拍摄', 0, 2e5, 0], ['co', '公司协助拍摄', 3e5, 3e6, 1]]],
+  special: ['Special Video', [['low', '低预算自制影像', 3e5, 15e5, 1], ['mid', '特别影像 / 特别表演', 15e5, 6e6, 1]]]
+};
+const YT_ST = { sub: '已提交', rev: 'STARSHIP 初审', fix: '需要修改', coord: '合作方协调中', ok: '已批准', sched: '待安排拍摄', booked: '已排期', shoot: '制作中', post: '后期制作', ready: '待发布', pub: '已发布', no: '已拒绝', hold: '暂缓', cancel: '已取消' };
+function yt() { const Y = S.yt || (S.yt = { v: 1, plans: [], vids: [] }); if (!Y.plans) Y.plans = []; if (!Y.vids) Y.vids = []; return Y; }
+const ytFmt = p => (YT_CAT[p.cat][1].find(f => f[0] === p.fmt) || YT_CAT[p.cat][1][0]);
+const ytLight = p => !ytFmt(p)[4] && !p.collab; // 不需要外部人员、自己就能拍的：简化流程，不占正式行程
+const ytShort = p => p.cat === 'shorts';
+const ytLog = (p, msg) => { (p.log || (p.log = [])).push({ at: Date.now(), st: p.st, msg: msg || '' }); };
+// 合作对象：认识的人（好友 / 聊过 KKT 的 / 同公司）
+function ytPeople() {
+  const out = new Map(), add = (g, n) => { const c = chFind(g, n); if (c) out.set(g + '|' + n, { g, n, z: c.z, key: g + '|' + n, tier: c.tier, same: c.kind === 'same' }); };
+  for (const f of chal().friends) if (f.g) add(f.g, f.n);
+  for (const T of Object.values(dms())) if (T.p && T.msgs.length) add(T.p.g, T.p.n);
+  for (const x of chal().list) if (x.st === 'done') add(x.p.g, x.p.n);
+  return [...out.values()];
+}
+// 以前在 KKT 里有没有聊过合作（只认明确说过的；对方明确答应才算谈好）
+function ytTalked(p, song) {
+  const T = dms()[p.key]; if (!T) return 0; const re = /커버|cover|翻唱|合唱|翻跳|같이 (찍|부르|추|하)|챌린지|challenge|합작|콜라보|合作|一起(拍|唱|跳)/i;
+  let s = 0; for (const m of T.msgs.slice(-80)) { const t = (m.text || '') + ' ' + (m.zh || ''); if (!re.test(t) && !(song && t.includes(song))) continue; s = Math.max(s, 1); if (!m.me && /좋아|콜|ㄱㄱ|하자|당연|오케이|好啊|可以|行|一起/.test(t)) s = 2; }
+  return s;
+}
+const ytMem = (key, d) => { const P = socPX({ key }); const C = P.cm || (P.cm = []); const i = C.findIndex(x => x.yt && x.d.startsWith(d.split('：')[0])); const e = { day: dkey(Date.now()), d: d.slice(0, 80), yt: 1 }; if (i >= 0) C[i] = e; else C.push(e); if (C.length > 12) C.splice(0, C.length - 12); };
+// 公司审核（含合作三层判断）：在 decideAt 那一刻算一次，结果存下来
+function ytDecide(p) {
+  const r = srng('ytd' + p.id + (p.round || 0)), f = S.profile.followers, h = heat(), [, , lo, hi] = ytFmt(p), big = hi >= 5e6, ph = cbPhase();
+  const myTier = clamp(Math.log10(Math.max(f, 1000) / 1000) * 2.2, 1, 9);
+  let ok = .62 + (h - 1) * .25 + (f > 5e4 ? .1 : 0) - (big ? .22 : 0) - (ph === 'promo' && !ytShort(p) ? .1 : 0) + (p.cat === 'shorts' ? .15 : 0) + (p.note && p.note.length > 15 ? .05 : 0) + (ytLight(p) ? .2 : 0);
+  if (p.cat === 'vocal' || p.cat === 'dance') { if (r() < .12) return { st: 'fix', why: '原曲的使用授权谈不下来，换一首歌再提吧' }; }
+  if (p.collab) {
+    const c = p.collab, lv = socLv(c), talk = ytTalked(c, p.title), diff = { shorts: .1, vocal: .25, dance: .25, vlog: .2, special: .35 }[p.cat] + (ytFmt(p)[4] ? .1 : 0);
+    const will = clamp(.25 + lv * .13 + talk * .15 - diff * .5 + (r() - .5) * .2, .02, .97);
+    const gap = (c.tier || 5) - myTier, coOk = clamp(.7 - Math.max(0, gap) * .1 - diff + (c.same ? .25 : 0) + (h - 1) * .2 + (r() - .5) * .2, .03, .95);
+    Object.assign(c, { will: +will.toFixed(2), co: +coOk.toFixed(2), talk });
+    if (r() > will) return { st: 'no', why: `${socName(c)} 那边这次不太方便参加`, cw: 'will' };
+    if (r() > coOk) return r() < .4 && p.cat === 'vocal' ? { st: 'ok', why: `对方公司不方便一起拍，改成远程合作：各自录音，后期合成`, fmt: 'photo', remote: 1 } : { st: 'no', why: `${socName(c)} 本人愿意，但对方公司这次没批`, cw: 'co' };
+    if (r() < .25) return { st: 'hold', why: `双方都同意，但 ${socName(c)} 最近档期排不开，先往后放`, days: ri(7, 20) };
+  }
+  if (r() < .08) return { st: 'hold', why: ph === 'promo' ? '回归宣传期内先不放个人内容，活动结束后再看' : '这阵子物料排得太满，先放一放', days: ri(5, 14) };
+  if (r() > ok + .15) return { st: 'no', why: big ? '预算太高，这次先不做' : '和最近的宣传方向不太搭' };
+  if (r() > ok) return big || hi > 1e6 ? { st: 'ok', why: '可以做，但预算砍一半，规格往下调', cut: .5 } : { st: 'fix', why: '方向可以，内容再具体一点重新提' };
+  return { st: 'ok', why: '' };
+}
+function ytCost(p, cut) { const [, , lo, hi] = ytFmt(p), r = srng('ytc' + p.id)(); return Math.round((lo + (hi - lo) * r) * (cut || 1) / 10000) * 10000; }
+// 拍摄日期：之后 2~12 天里，你那段时间没有行程、合作对象那天没有演唱会的
+function ytSlots(p) {
+  const out = [], today = dkey(Date.now()), dur = ytFmt(p)[3] >= 15e5 ? 6 : 3;
+  for (let i = 2; i <= 12 && out.length < 3; i++) { const dk = addDays(today, i);
+    const st = [10, 13, 15].find(h => !rulesFor(dk).some(r => toMin(r.start) < (h + dur) * 60 && toMin(r.end) > h * 60)); if (st == null) continue;
+    if (p.collab && socDay(p.collab, dk).gig) continue; out.push({ dk, start: `${String(st).padStart(2, '0')}:00`, end: `${String(st + dur).padStart(2, '0')}:00` }); }
+  return out;
+}
+function ytAfterOk(p, d) {
+  if (d.fmt) p.fmt = d.fmt; p.cost = ytCost(p, d.cut); p.st = 'ok'; ytLog(p, d.why || '公司批准');
+  if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：${YT_CAT[p.cat][0]}《${p.title}》双方公司已经确认，等安排拍摄`);
+  if (ytLight(p)) { p.st = 'shoot'; ytLog(p, '可以自己找空拍'); mgrSay(pick([[`${p.title} 그거 그냥 편할 때 찍어서 올려도 돼요`, `${p.title}那个你方便的时候拍了就能发`], [`${p.title} 오케이 났어요. 찍으면 보내줘요`, `${p.title}批了，拍好发我看看`]])); return; }
+  p.st = 'sched'; p.slots = ytSlots(p);
+  if (!p.slots.length) { p.st = 'hold'; p.retryAt = Date.now() + 5 * 86400e3; ytLog(p, '最近两周排不出拍摄时间，往后放'); mgrSay([`${p.title} 통과됐는데 2주 안에는 촬영 잡을 날이 없네요. 좀 미룰게요`, `${p.title}通过了，但两周内排不出拍摄时间，先往后放`]); return; }
+  mgrSay([`${p.title} 통과됐어요.${d.cut ? ' 예산은 반으로 줄였어요.' : d.remote ? ' 같이 찍는 건 어렵고 각자 녹음해서 합치기로 했어요.' : ''} 촬영 언제가 좋아요?`, `${p.title}通过了。${d.cut ? '预算砍了一半。' : d.remote ? '一起拍不行，改成各自录音再合成。' : ''}拍摄哪天方便？`], { type: 'ytshoot', id: p.id });
+}
+function ytTick() {
+  const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
+  for (const p of Y.plans) {
+    if (p.st === 'sub' && now >= p.decideAt) { p.st = p.collab ? 'coord' : 'rev'; ytLog(p); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：${YT_CAT[p.cat][0]}《${p.title}》在等双方公司确认，还没定`); p.decideAt = now + (ytLight(p) ? rand(.5, 3) : rand(18, 60)) * 3600e3; }
+    else if ((p.st === 'rev' || p.st === 'coord') && now >= p.decideAt) {
+      const d = p.dec || (p.dec = ytDecide(p));
+      if (d.st === 'ok') ytAfterOk(p, d);
+      else if (d.st === 'hold') { p.st = 'hold'; p.retryAt = now + d.days * 86400e3; ytLog(p, d.why); mgrSay([`${p.title} 건은 좀 미뤄졌어요.`, `${p.title}那个先缓一缓。${d.why}`]); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：《${p.title}》延期了，还没定时间`); }
+      else { p.st = d.st; ytLog(p, d.why); mgrSay(d.st === 'fix' ? [`${p.title} 기획 조금만 수정해서 다시 내보래요.`, `${p.title}的企划让改一下再提。${d.why}`] : [`${p.title} 이번엔 어렵대요ㅠ`, `${p.title}这次不行ㅠ ${d.why}`]); if (p.collab) ytMem(p.collab.key, d.st === 'fix' ? `和 Cyan 的合作企划：《${p.title}》公司让改一下再提，还没定` : `和 Cyan 的合作企划：《${p.title}》没谈成（${d.cw === 'will' ? '这边没时间参加' : d.cw === 'co' ? '对方公司没批' : 'STARSHIP 没批'}）`); }
+    }
+    else if (p.st === 'hold' && p.retryAt && now >= p.retryAt) { p.round = (p.round || 0) + 1; p.dec = null; p.st = p.collab ? 'coord' : 'rev'; p.decideAt = now + rand(6, 30) * 3600e3; ytLog(p, '重新评估'); }
+    else if (p.st === 'booked') { const r = S.schedule.rules.find(x => x.id === p.rule); if (!r) { p.st = 'sched'; p.slots = ytSlots(p); ytLog(p, '拍摄行程被删掉了，重新排'); if (p.slots.length) mgrSay([`${p.title} 촬영 일정이 빠져서 다시 잡아야 해요.`, `${p.title}的拍摄行程没了，要重新排。`], { type: 'ytshoot', id: p.id }); continue; } if (r.date < today || (r.date === today && nm >= toMin(r.end))) { p.st = 'post'; p.postUntil = now + rand(2, ytFmt(p)[3] >= 15e5 ? 9 : 5) * 86400e3; ytLog(p, '拍完了，进入后期'); } }
+    else if (p.st === 'post' && now >= p.postUntil) { p.st = 'ready'; ytLog(p, '成片出来了'); mgrSay([`${p.title} 편집본 나왔어요. 올릴 때 말해줘요`, `${p.title}的成片出来了，要发的时候跟我说`]); }
+  }
+  for (const v of Y.vids) ytGrow(v);
+}
+// 播放量：发布时按粉丝 / 类型 / 质量 / 合作人气 / 热度定一个「最终规模」，之后按时间慢慢长到那里；爆不爆在发布时就定好
+function ytBase(p) {
+  const f = S.profile.followers, r = srng('ytb' + p.id), K = skills(), q = clamp(.7 + ({ vocal: K.vocal, dance: K.dance, vlog: K.variety, shorts: K.face, special: K.face }[p.cat] - 50) / 120 + (p.cost > 2e6 ? .15 : 0), .6, 1.4);
+  const mul = { shorts: [1, 6], vocal: p.fmt === 'photo' ? [.8, 2.4] : p.fmt === 'live' ? [1.2, 3] : [2, 5], dance: p.fmt === 'perf' ? [1.5, 4] : [1, 2.8], vlog: [.4, 1.2], special: [1.5, 4] }[p.cat];
+  let base = f * (mul[0] + (mul[1] - mul[0]) * r()) * q * clamp(heat(), .7, 1.5); if (p.collab) base *= 1 + clamp(((p.collab.tier || 5) - 4) * .35, 0, 3) * (.6 + .4 * r());
+  const viral = r() < (p.cat === 'shorts' ? .06 : .02) ? 5 + 15 * r() : 1;
+  return { base: Math.round(base), q: +q.toFixed(2), viral: +viral.toFixed(1), viralAt: viral > 1 ? 1 + Math.floor(r() * 10) : 0 };
+}
+const YT_CMT = { pos: ['목소리 진짜 미쳤다', '这首翻得太好了吧', '이 조합 뭐야ㅠㅠ 더 해줘', '反复听了十遍', 'Cyan 음색 최고', 'the vibe is so good', '舞台感好强', '이런 거 자주 올려줘요'], mid: ['원곡이랑 느낌 다르네', '还挺有意思', '조명이 좀 어둡다', '后半段更好听', 'subtitle pls'], neg: ['음향 좀 아쉽다', '这个选曲有点普通', '조금 짧아요ㅠ'] };
+function ytPublish(p) {
+  const Y = yt(); if (p.vid || p.st !== 'ready') return; const b = ytBase(p), id = 'v' + uid();
+  const v = { id, plan: p.id, title: p.vtitle || p.title, cat: p.cat, fmt: p.fmt, short: ytShort(p), parts: [S.profile.name].concat(p.collab ? [socName(p.collab)] : []), song: p.title, orig: p.orig || '', pubAt: Date.now(), cost: p.cost || 0, ...b, views: 0, likes: 0, cmts: 0, fanDone: 0, cm: pickN(YT_CMT.pos, 3).concat(pickN(YT_CMT.mid, 1), Math.random() < .5 ? pickN(YT_CMT.neg, 1) : []) };
+  Y.vids.unshift(v); p.vid = id; p.st = 'pub'; ytLog(p, '已发布');
+  const n = Math.round(b.base * rand(.003, .008)); if (n) addFans(n, 'YouTube：' + v.title); v.fanDone = 1; // 发布带来的涨粉只算这一次
+  if (p.collab) ytMem(p.collab.key, `和 Cyan 一起拍的${YT_CAT[p.cat][0]}《${p.title}》已经发布了`);
+  ytGrow(v); save();
+}
+function ytGrow(v) {
+  const age = (Date.now() - v.pubAt) / 86400e3, base = v.base * (age >= v.viralAt && v.viral > 1 ? v.viral : 1);
+  const tgt = Math.round(base * (1 - Math.exp(-age / (v.short ? 1.5 : 3.5)))); if (tgt <= v.views) return;
+  v.views = tgt; v.likes = Math.round(tgt * (v.short ? .07 : .045)); v.cmts = Math.round(tgt * (v.short ? .002 : .005));
+  if (v.viral > 1 && age >= v.viralAt && !v.viralDone) { v.viralDone = 1; const n = Math.round(v.base * v.viral * rand(.002, .005)); if (n) addFans(n, 'YouTube：' + v.title + ' 爆了'); pushNotif({ type: 'cb', text: `📈 「${v.title}」在 YouTube 突然火了`, sub: `播放一路往上涨 · 涨粉 +${fmtNum(n)}` }, true); }
+}
+// 频道里显示的所有内容（MV、Challenge 只读原来的数据，不复制）
+function ytAll() {
+  const SS = salesState(), out = [];
+  for (const a of released()) { const mv = SS.mv && SS.mv[a.id]; if (mv && mv.total >= 1) out.push({ id: 'mv:' + a.id, title: `${S.profile.name} - ${albTitle(a)} MV`, kind: '正式 MV', short: false, at: parseD(a.date).getTime(), views: Math.round(mv.total), likes: Math.round(mv.total * (.03 + .02 * srng('mv' + a.id)())), cmts: Math.round(mv.total * .002), alb: a }); }
+  for (const x of chal().list) if (x.st === 'done') out.push({ id: 'ch:' + (x.id || x.date + x.p.n), title: `${x.song && x.song[1] ? x.song[1] + ' Challenge' : 'Challenge'} with ${x.p.z || x.p.n}`, kind: 'Challenge', short: true, at: parseD(x.date).getTime(), views: x.views || 0, likes: x.likes || 0, cmts: Math.round((x.views || 0) * .002), ch: x });
+  for (const v of yt().vids) out.push({ id: v.id, title: v.title, kind: YT_CAT[v.cat][0], short: v.short, at: v.pubAt, views: v.views, likes: v.likes, cmts: v.cmts, v });
+  return out.sort((a, b) => b.at - a.at);
+}
+const YT_IC = '<svg viewBox="0 0 28 20" width="26" height="18"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
+function ytThumb(x, cls) { const a = x.alb; return `<div class="yt-th ${cls || ''}${x.short ? ' s' : ''}">${a && a.cover ? `<img data-mid="${a.cover}" alt="">` : `<span>${esc((x.title || '').replace(/^Cyan - /, '').slice(0, 14))}</span>`}<i>▶</i></div>`; }
+function ytEntryHTML() {
+  const Y = yt(), all = ytAll(), mk = Y.plans.filter(p => ['ok', 'sched', 'booked', 'shoot', 'post', 'ready'].includes(p.st)).length, rv = Y.plans.filter(p => ['sub', 'rev', 'coord'].includes(p.st)).length;
+  return mSec('官方 YouTube', 'CYAN OFFICIAL') + `<button class="card w-ct" data-act="mgo" data-p="yt"><span class="w-cti" style="background:none">${YT_IC}</span><div><b>Cyan Official</b><span>视频 ${all.length} · 制作中 ${mk} · 审核中 ${rv}</span></div><i>›</i></button>`;
+}
+function ytPageHTML(pg) {
+  const Y = yt();
+  if (pg === 'ytnew' || pg.startsWith('ytnew:')) return ytFormHTML(pg.slice(6));
+  if (pg.startsWith('ytv:')) return ytVideoHTML(pg.slice(4));
+  if (pg.startsWith('ytp:')) return ytPlanHTML(pg.slice(4));
+  const all = ytAll(), tab = UI.ytTab || 'v', vids = all.filter(x => !x.short), shorts = all.filter(x => x.short);
+  const mk = Y.plans.filter(p => ['ok', 'sched', 'booked', 'shoot', 'post', 'ready'].includes(p.st)), rv = Y.plans.filter(p => ['sub', 'rev', 'coord'].includes(p.st));
+  const body = tab === 'v' ? (vids.length ? `<div class="yt-vl">${vids.map(x => `<button class="yt-v" data-act="mgo" data-p="ytv:${x.id}">${ytThumb(x)}<div><b>${esc(x.title)}</b><span>${esc(x.kind)} · 播放 ${fmtNum(x.views)} · ${ago(x.at)}</span></div></button>`).join('')}</div>` : '<div class="card muted" style="text-align:center">还没有视频</div>')
+    : tab === 's' ? (shorts.length ? `<div class="yt-sg">${shorts.map(x => `<button class="yt-s" data-act="mgo" data-p="ytv:${x.id}">${ytThumb(x, 's')}<b>${esc(x.title)}</b><span>${fmtNum(x.views)} 次观看</span></button>`).join('')}</div>` : '<div class="card muted" style="text-align:center">还没有 Shorts</div>')
+    : ytPlansHTML();
+  return mHead('官方 YouTube', '') + `<div class="card yt-ch"><div class="yt-chh">${YT_IC}<div><b>Cyan Official</b><span>STARSHIP ENTERTAINMENT</span></div></div><div class="m-three"><div><b>${all.length}</b><span>视频</span></div><div><b>${mk.length}</b><span>制作中</span></div><div><b>${rv.length}</b><span>审核中</span></div></div><button class="btn primary yt-new" data-act="mgo" data-p="ytnew">提交内容企划</button></div>
+    <div class="seg3">${[['v', '视频', vids.length], ['s', 'Shorts', shorts.length], ['p', '企划', Y.plans.length]].map(([k, t, n]) => `<button class="${tab === k ? 'on' : ''}" data-act="yttab" data-k="${k}">${t}${n ? ` <i>${n}</i>` : ''}</button>`).join('')}</div>${body}`;
+}
+function ytPlansHTML() {
+  const Y = yt(), grp = [['审核中', ['sub', 'rev', 'coord', 'fix']], ['制作中', ['ok', 'sched', 'booked', 'shoot', 'post']], ['待发布', ['ready']], ['已发布', ['pub']], ['拒绝 / 暂缓 / 取消', ['no', 'hold', 'cancel']]];
+  const row = p => `<button class="m-alb" data-act="mgo" data-p="ytp:${p.id}"><div class="w-tx-l"><div class="w-tx-t">${esc(p.title)}${p.collab ? ` <span class="muted" style="font-size:12px">with ${esc(socName(p.collab))}</span>` : ''}</div><div class="w-tx-s">${YT_CAT[p.cat][0]} · ${ytFmt(p)[1]}</div></div><em class="w-tag ${['no', 'cancel'].includes(p.st) ? 'sys' : 't2'}">${YT_ST[p.st]}</em><i>›</i></button>`;
+  const G = grp.map(([t, sts]) => [t, Y.plans.filter(p => sts.includes(p.st))]).filter(x => x[1].length);
+  return G.length ? G.map(([t, L]) => `<div class="w-day">${t}</div><div class="card w-list">${L.map(row).join('')}</div>`).join('') : '<div class="card muted" style="text-align:center">还没有提交过企划</div>';
+}
+function ytFormHTML(editId) {
+  const F = UI.ytF || (UI.ytF = { cat: 'vocal', fmt: 'photo', title: '', orig: '', with: '', note: '', vtitle: '' }), C = YT_CAT[F.cat], ppl = ytPeople();
+  const lbl = { vocal: ['歌曲名称', '原唱'], dance: ['歌曲名称', '原唱'], shorts: ['歌曲 / Challenge / 主题', ''], vlog: ['主题', ''], special: ['主题', ''] }[F.cat];
+  return mHead(editId ? '修改企划' : '提交内容企划', editId ? 'ytp:' + editId : 'yt') + `<div class="card yt-form">
+    <div class="field"><label>内容类型</label><div class="chips">${Object.entries(YT_CAT).map(([k, [n]]) => `<button class="${F.cat === k ? 'on' : ''}" data-act="ytfcat" data-k="${k}">${n}</button>`).join('')}</div></div>
+    <div class="field"><label>制作形式</label><div class="chips">${C[1].map(f => `<button class="${F.fmt === f[0] ? 'on' : ''}" data-act="ytffmt" data-k="${f[0]}">${f[1]}</button>`).join('')}</div><div class="muted" style="font-size:11.5px;margin-top:4px">参考预算 ${won((C[1].find(f => f[0] === F.fmt) || C[1][0])[2])}～${won((C[1].find(f => f[0] === F.fmt) || C[1][0])[3])}（公司承担）</div></div>
+    <div class="field"><label>${lbl[0]}</label><input id="ytf-t" value="${esc(F.title)}" maxlength="40"></div>
+    ${lbl[1] ? `<div class="field"><label>${lbl[1]}</label><input id="ytf-o" value="${esc(F.orig)}" maxlength="30"></div>` : ''}
+    <div class="field"><label>个人 / 合作</label><select id="ytf-w"><option value="">个人</option>${ppl.map(p => `<option value="${esc(p.key)}" ${F.with === p.key ? 'selected' : ''}>和 ${esc(p.g)} ${esc(p.z || p.n)}</option>`).join('')}</select></div>
+    <div class="field"><label>想法 / 备注（可不填）</label><textarea id="ytf-n" style="min-height:64px">${esc(F.note)}</textarea></div>
+    <div class="w-sh-b"><button class="btn ghost" data-act="mgo" data-p="${editId ? 'ytp:' + editId : 'yt'}">取消</button><button class="btn primary" data-act="ytsubmit" data-id="${editId || ''}">提交给 STARSHIP</button></div></div>`;
+}
+function ytPlanHTML(id) {
+  const p = yt().plans.find(x => x.id === id); if (!p) { UI.mPage = 'yt'; return ytPageHTML('yt'); }
+  const kv = (k, v) => `<div class="w-kv"><span>${k}</span><b>${v}</b></div>`, sl = S.schedule.rules.find(x => x.id === p.rule);
+  const act = p.st === 'fix' ? `<button class="btn primary" data-act="ytedit" data-id="${p.id}">修改后重新提交</button>` : p.st === 'shoot' && ytLight(p) ? `<button class="btn primary" data-act="ytshot" data-id="${p.id}">拍好了</button>` : p.st === 'ready' ? `<button class="btn primary" data-act="ytpub" data-id="${p.id}">发布到频道</button>` : p.st === 'pub' && p.vid ? `<button class="btn primary" data-act="mgo" data-p="ytv:${p.vid}">查看视频</button>` : '';
+  const can = !['pub', 'no', 'cancel', 'post', 'ready'].includes(p.st);
+  return mHead('企划详情', 'yt') + `<div class="card w-ov">${kv('企划', esc(p.title))}${p.orig ? kv('原唱', esc(p.orig)) : ''}${kv('类型', YT_CAT[p.cat][0])}${kv('形式', ytFmt(p)[1])}${p.collab ? kv('合作', esc(`${p.collab.g} ${p.collab.z || p.collab.n}`)) : ''}${p.cost != null && p.st !== 'sub' && p.cost ? kv('制作预算', won(p.cost) + '（公司承担）') : ''}${kv('状态', YT_ST[p.st])}${sl ? kv('拍摄', `${sl.date.slice(5).replace('-', '/')} ${sl.start}-${sl.end}`) : ''}</div>
+    ${p.note ? `<div class="card w-doc">${esc(p.note)}</div>` : ''}
+    ${mSec('进度')}<div class="card w-list">${(p.log || []).slice().reverse().map(l => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${YT_ST[l.st] || ''}</div><div class="w-tx-s">${new Date(l.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${l.msg ? ' · ' + esc(l.msg) : ''}</div></div></div>`).join('')}</div>
+    ${act || can ? `<div class="w-sh-b">${can ? `<button class="btn ghost" data-act="ytcancel" data-id="${p.id}">取消企划</button>` : '<span></span>'}${act || '<span></span>'}</div>` : ''}`;
+}
+function ytVideoHTML(id) {
+  const x = ytAll().find(v => v.id === id); if (!x) { UI.mPage = 'yt'; return ytPageHTML('yt'); }
+  const v = x.v, kv = (k, val) => `<div class="w-kv"><span>${k}</span><b>${val}</b></div>`;
+  const st = v ? (v.viral > 1 && v.viralDone ? '意外爆了' : (Date.now() - v.pubAt) / 86400e3 < 3 ? '正在传播' : '稳定') : '';
+  return mHead(x.short ? 'Shorts' : '视频', 'yt') + `<div class="card yt-vd">${ytThumb(x, x.short ? 's big' : 'big')}<b>${esc(x.title)}</b><span>${esc(x.kind)} · ${new Date(x.at).toLocaleDateString('zh-CN')}</span>
+      <div class="m-three" style="margin-top:12px"><div><b>${fmtNum(x.views)}</b><span>播放</span></div><div><b>${fmtNum(x.likes)}</b><span>点赞</span></div><div><b>${fmtNum(x.cmts)}</b><span>评论</span></div></div></div>
+    <div class="card w-ov">${v ? kv('参与', esc(v.parts.join(' · '))) + (v.orig ? kv('原唱', esc(v.orig)) : '') + kv('制作形式', esc((YT_CAT[v.cat][1].find(f => f[0] === v.fmt) || [])[1] || '')) + (v.cost ? kv('制作成本', won(v.cost) + '（公司承担）') : '') + kv('传播状态', st) : x.ch ? kv('合作', esc(`${x.ch.p.g} ${x.ch.p.z || x.ch.p.n}`)) + (x.ch.song && x.ch.song[1] ? kv('歌曲', `《${esc(x.ch.song[1])}》`) : '') + kv('拍摄日期', x.ch.date.replace(/-/g, '.')) + (x.ch.fans ? kv('带来涨粉', '+' + fmtNum(x.ch.fans)) : '') : kv('作品', `《${esc(x.alb.name)}》`) + kv('发行日期', x.alb.date.replace(/-/g, '.'))}</div>
+    ${v && v.cm ? `${mSec('评论')}<div class="card w-list">${v.cm.map(c => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t" style="font-size:13.5px">${esc(c)}</div></div></div>`).join('')}</div>` : ''}`;
+}
+function ytSubmit(editId) {
+  const F = UI.ytF, t = ($('#ytf-t')?.value || '').trim(); if (!t) { toast('写一下歌曲或主题'); return; }
+  F.title = t; F.orig = ($('#ytf-o')?.value || '').trim(); F.with = $('#ytf-w')?.value || ''; F.note = ($('#ytf-n')?.value || '').trim();
+  const Y = yt(), ppl = ytPeople(), c = F.with ? ppl.find(x => x.key === F.with) : null;
+  let p = editId && Y.plans.find(x => x.id === editId);
+  if (p) { Object.assign(p, { cat: F.cat, fmt: F.fmt, title: F.title, orig: F.orig, note: F.note, collab: c ? { ...c } : null, st: 'sub', dec: null, round: (p.round || 0) + 1 }); }
+  else { p = { id: uid(), cat: F.cat, fmt: F.fmt, title: F.title, orig: F.orig, note: F.note, collab: c ? { ...c } : null, st: 'sub', at: Date.now(), log: [] }; Y.plans.unshift(p); }
+  p.decideAt = Date.now() + rand(5, 40) * 60e3; ytLog(p, editId ? '修改后重新提交' : '');
+  UI.ytF = null; UI.mPage = 'ytp:' + p.id; save(); render(); toast('已提交给 STARSHIP');
+}
+/* =========================================================
    能力 / 休息周 / 经纪人邀约 / 📋 通告（每个行程当天一张机遇卡）
    ========================================================= */
 const SKILLS = [['vocal', '声乐'], ['dance', '舞蹈'], ['rap', 'Rap'], ['face', '表情管理'], ['stamina', '体能'], ['variety', '综艺感'], ['lang', '外语']];
@@ -3565,6 +3756,7 @@ function mgrCardMsg(m) {
     const g = GIFTS[m.card.t], sel = m.card.sel || [], btn = (t, l, z, cls) => `<button class="btn ${cls || 'ghost'} sm" data-act="mgift" data-mid="${m.id}" data-t="${t}"${z !== undefined ? ` data-z="${z}"` : ''}>${esc(l)}</button>`;
     const types = Object.entries(GIFTS).filter(([k, x]) => x.cats.includes(m.card.cat) && !sel.some(c => c.startsWith(k + ':'))).map(([k, x]) => btn(k, (sel.length ? '＋ ' : '') + x.short));
     return `${sel.length ? `<div class="kk-res" style="color:inherit">已选：${sel.map(c => esc(giftInfo(c).label)).join('、')}</div>` : ''}<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${g ? g.sizes.map((z, i) => btn(m.card.t, `${z[0] ? z[0] + ' · ' : ''}${fmtNum(z[1] / 10000)}–${fmtNum(z[2] / 10000)}万`, i)).join('') + btn('', '‹ 换一种') : [sel.length ? btn('done', '就这些', undefined, 'primary') : btn('-', '不用了'), ...types].join('')}</div>`; }
+  if (m.card.type === 'ytshoot') { const p = yt().plans.find(x => x.id === m.card.id); if (!p || m.res || p.st !== 'sched') return `<div class="kk-res">${esc(m.res || '已处理')}</div>`; return `<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${(p.slots || []).map((x, i) => `<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="${i}">${+x.dk.slice(5, 7)}/${+x.dk.slice(8)}（${WD[parseD(x.dk).getDay()]}）${x.start}</button>`).join('')}<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="-1">都不行</button></div>`; }
   if (m.card.type === 'chbook') { const o = (chal().book || {}).offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="chbkno" data-id="${o.id}">不拍</button><button class="btn primary sm" data-act="chbkok" data-id="${o.id}">好</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   if (m.card.type === 'deal') { const o = wallet().offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="wdeal" data-ok="0">拒绝</button><button class="btn primary sm" data-act="wdeal" data-ok="1">签约</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
   return '';
@@ -4858,7 +5050,7 @@ function tgSettle(k, r, key, today) {
     note = `${SKILLS.find(x => x[0] === sk)[1]} +${n.toFixed(1)}（${+dur.toFixed(1)} 小时）${c.hurt ? ' · 练太猛有点拉伤，体能 -2' : ''}`; if (c.hurt) skills().stamina -= 2;
   } else {
     const g = EVENT_GAIN[r.cat] || [10, 40]; fans = Math.round(rand(g[0], g[1]) * folRatio() * heat() * { S: 1.6, A: 1.2, B: 1, C: .6 }[grade]);
-    if (r.cat === '物料') { relQueue(r, fans, parseD(k).getTime() + toMin(r.end) * 60e3); fans = 0; } else addFans(fans, '行程：' + r.title); walletSchedFee(r, mult);
+    if (r.yt) fans = 0; else { if (r.cat === '物料') { relQueue(r, fans, parseD(k).getTime() + toMin(r.end) * 60e3); fans = 0; } else addFans(fans, '行程：' + r.title); walletSchedFee(r, mult); } // 官方 YouTube 拍摄：涨粉在视频发布时算，不重复
     { const dur = clamp((toMin(r.end) - toMin(r.start)) / 60 || 1, .5, 6), eff = dur <= 2 ? dur : 2 + (dur - 2) * .5; for (const [s, w] of Object.entries(CAT_SKILL[r.cat] || {})) skillUp(s, .2 * w * eff); } // 行程越长，相关能力涨得越多
     note = pick(r.cat === '物料' ? TG_NOTE_SHOOT[grade] : TG_NOTE[grade]) + (r.cat === '物料' ? ' · 成片 5～10 天后公开' : '');
     if (grade === 'S' && r.cat !== '物料' && Math.random() < .35) { const H = hotState(); if (!H.forced && HOT_EVENTS.some(e => e.id === 'sched')) H.forced = { id: 'sched', e: r.title, q: '', at: Date.now() + rand(1, 5) * 3600e3 }; }
@@ -4878,7 +5070,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [mkSrcFix, musPeakTick, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [mkSrcFix, musPeakTick, ytTick, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -6376,7 +6568,7 @@ function viewSched() {
   <div class="s-head"><div class="s-date"><b>${d0.getMonth() + 1}月${d0.getDate()}日</b><span>周${WD[d0.getDay()]}</span>${k === today ? '<em>今天</em>' : `<button class="link" data-act="sdate" data-k="${today}">回到今天</button>`}</div>
     <button class="btn ghost sm" data-act="tglist" style="position:relative">📋 通告<span class="badge" id="tg-badge">${(tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length) || ''}</span></button>
     <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
-  <div class="s-links"><button class="link" data-act="chlog">🎬 Challenge 记录${chal().list.length ? `（${chal().list.filter(x => x.st !== 'no').length}）` : ''} ›</button>${chBackfillList().length ? `<button class="link" data-act="chbfopen">有 ${chBackfillList().length} 个日子可以补 challenge ›</button>` : ''}</div>
+  <div class="s-links">${chBackfillList().length ? `<button class="link" data-act="chbfopen">有 ${chBackfillList().length} 个日子可以补 challenge ›</button>` : ''}</div>
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
     ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
@@ -8237,7 +8429,7 @@ function chLogHTML() {
 function chDayHTML(k) {
   const L = chal().list.filter(x => x.date === k);
   if (!L.length) return '';
-  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">已发布 · 播放 ${fmtNum(x.views)} · ❤️ ${fmtNum(x.likes || 0)} · +${fmtNum(x.fans)} 粉</span>`;
+  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : '<span style="color:var(--accent)">已发布到 Shorts</span>';
   return `<div class="card">${L.map(x => `<div class="rule"><span style="flex:1;min-width:0">🎬 ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? `（${esc(x.p.z)}）` : ''} ${x.song[1] ? ` · 《${esc(x.song[1])}》` : ''}</span>${st(x)}</div>`).join('')}
 </div>`;
 }
@@ -8752,6 +8944,20 @@ document.addEventListener('click', async e => {
     case 'wpre': walletSpend(+t.dataset.a, t.dataset.c, t.dataset.n.replace(/^\S+\s/, '')); save(); render(); toast('记下了 ✏️', `${t.dataset.n} · ${won(+t.dataset.a)}`); break;
     case 'wdel': { const W = wallet(), x = W.tx.find(y => y.id === t.dataset.id); if (!x) break; W.bal -= x.amt; W.tx = W.tx.filter(y => y !== x); save(); render(); break; }
     case 'wall': UI.wAll = !UI.wAll; render(); break;
+    case 'yttab': UI.ytTab = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'ytfcat': case 'ytffmt': { const F = UI.ytF || {}; F.title = $('#ytf-t')?.value || F.title || ''; F.orig = $('#ytf-o')?.value || F.orig || ''; F.with = $('#ytf-w')?.value ?? F.with; F.note = $('#ytf-n')?.value || F.note || ''; if (t.dataset.act === 'ytfcat') { F.cat = t.dataset.k; F.fmt = YT_CAT[F.cat][1][0][0]; } else F.fmt = t.dataset.k; UI.ytF = F; const y = window.scrollY; render(); window.scrollTo(0, y); break; }
+    case 'ytsubmit': ytSubmit(t.dataset.id); break;
+    case 'ytedit': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p) break; UI.ytF = { cat: p.cat, fmt: p.fmt, title: p.title, orig: p.orig || '', with: p.collab ? p.collab.key : '', note: p.note || '' }; UI.mPage = 'ytnew:' + p.id; render(); window.scrollTo(0, 0); break; }
+    case 'ytshot': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || p.st !== 'shoot') break; p.st = 'ready'; ytLog(p, '自己拍好了'); save(); render(); toast('拍好了 ✓', '可以发布了'); break; }
+    case 'ytpub': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p) break; ytPublish(p); render(); toast('已发布 ▶', p.title); break; }
+    case 'ytcancel': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || ['pub', 'cancel'].includes(p.st)) break; const r = p.rule && S.schedule.rules.find(x => x.id === p.rule); if (r && (r.date > dkey(Date.now()))) S.schedule.rules = S.schedule.rules.filter(x => x !== r); p.st = 'cancel'; ytLog(p, '你取消了'); mgrResolve('ytshoot', p.id, '已取消'); if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：《${p.title}》取消了`); save(); render(); break; }
+    case 'ytslot': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || p.st !== 'sched') break; const i = +t.dataset.i;
+      if (i < 0) { p.st = 'hold'; p.retryAt = Date.now() + 3 * 86400e3; p.dec = { st: 'ok', why: '' }; ytLog(p, '提供的时间都不方便，过几天再排'); mgrResolve('ytshoot', p.id, '都不行'); mgrReply(['알겠어요, 며칠 뒤에 다시 잡아볼게요', '好，过几天再重新排']); save(); break; }
+      const x = p.slots[i]; if (!x || rulesFor(x.dk).some(r => toMin(r.start) < toMin(x.end) && toMin(r.end) > toMin(x.start))) { toast('那个时间已经有行程了'); p.slots = ytSlots(p); mgrRefresh(); break; }
+      const id = uid(), loc = { vocal: '公司 录音室', dance: '公司 练习室', shorts: '公司', vlog: '公司 / 外景', special: '摄影棚' }[p.cat];
+      S.schedule.rules.push({ id, title: `官方 YouTube 拍摄：${p.title}`, cat: '物料', start: x.start, end: x.end, loc, repeat: 'once', days: [], date: x.dk, note: YT_CAT[p.cat][0] + (p.collab ? ` · with ${socName(p.collab)}` : ''), mgr: 1, yt: p.id, createdAt: Date.now() });
+      p.rule = id; p.st = 'booked'; ytLog(p, `拍摄定在 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} ${x.start}`); mgrResolve('ytshoot', p.id, `已定 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} ${x.start}`); mgrReply([`네, ${+x.dk.slice(5, 7)}월 ${+x.dk.slice(8)}일로 잡을게요`, `好，定在${+x.dk.slice(5, 7)}月${+x.dk.slice(8)}日`]);
+      if (p.collab) ytMem(p.collab.key, `和 Cyan 的合作企划：${YT_CAT[p.cat][0]}《${p.title}》定在 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} 拍`); save(); break; }
     case 'mgo': { const np = t.dataset.p || ''; if (np.startsWith('alb:') && !(UI.mPage || '').startsWith('alb:')) UI.mFrom = UI.mPage || ''; UI.mPage = np; render(); const nb = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, nb ? Math.max(0, nb.offsetTop - tH) : 0); break; }
     case 'shweek': UI.shWeek = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'wgo': { UI.wPage = t.dataset.p || ''; render(); const nb = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, nb ? Math.max(0, nb.offsetTop - tH) : 0); break; }
