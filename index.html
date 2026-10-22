@@ -687,7 +687,7 @@ function ago(ts) {
   if (s < 3600) return Math.floor(s / 60) + '分钟前';
   if (s < 86400) return Math.floor(s / 3600) + '小时前';
   if (s < 86400 * 7) return Math.floor(s / 86400) + '天前';
-  const d = new Date(ts); return `${d.getMonth() + 1}月${d.getDate()}日`;
+  const d = new Date(ts); return `${d.getFullYear() !== new Date().getFullYear() ? d.getFullYear() + '年' : ''}${d.getMonth() + 1}月${d.getDate()}日`; // 不是今年的带上年份
 }
 function hms(ms) { const s = Math.floor(ms / 1000); return `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; }
 
