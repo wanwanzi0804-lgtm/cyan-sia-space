@@ -6745,7 +6745,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
@@ -7479,8 +7479,9 @@ function dmWillRead(T, at) { const upto = Date.now(); if (!T.rd || T.rd.at > at)
 async function dmDueReply(T) {
   T.gen = 1; T.genAt = Date.now(); save(); const when = Math.min(T.due.at, Date.now()); let keep = null; // 他是在这个时间看到并回的（就算你那时没开着页面）
   try { const last = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) last.unshift(T.msgs[i].text);
-    const later = !!T.due.later, task = T.due.task, r = last.length ? await dmChatAi(T, last.join('\n'), when, later, task ? { task } : null) : null;
-    if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1, task }; T.rd = null; return; } // 现在回不了：先不点开（「1」留着），等能回的时候再看再回
+    const later = !!T.due.later, task = T.due.task, n = T.due.n || 0; let r = last.length ? await dmChatAi(T, last.join('\n'), when, later, task ? { task } : n >= 2 ? { task: '她发来的消息你已经拖了很久还没回，现在一定要回她（回答她的问题 / 接上她的话）。' } : null) : null;
+    if (r && r.later && n >= 4) { const ban = socBan(T.p); r = { list: [ban ? { text: '아 미안 이제 봤다ㅠ', zh: '啊抱歉现在才看到ㅠ' } : { text: '앗 죄송해요 이제 봤어요ㅠ', zh: '啊抱歉现在才看到ㅠ' }] }; } // 实在一直没空：至少先回一句
+    if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1, task, n: n + 1 }; T.rd = null; return; } // 现在回不了：先不点开（「1」留着），等能回的时候再看再回
     if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: r.list }); } else T.readTo = Math.max(T.readTo || 0, when); // 不回也已经读过了
   } finally { T.due = keep; T.gen = 0; save(); }
 }
@@ -7563,6 +7564,7 @@ ${socCtx(p, when)}
 他此刻的状态和心情（临时的，别说出来）：${VIBE_ZH[vibe]}。
 ${later ? `他之前没空看，现在（${socClock(when)}）才点开这些消息。熟的人不用解释为什么晚回。` : `他是在 ${socClock(when)} 看到这些消息的。${seenLate ? `她发消息是在 ${socClock(lastMe)}，隔了挺久他才看到：按他现在看到的这个时间点来回，不要假装还在她发消息的那个时间实时聊。` : ''}`}
 ${evt && evt.task ? `\n他答应过、现在要做的事：${evt.task}（这条一定要回，可以晚点但不能不回）\n` : ''}${evt && evt.what ? `\n刚才发生的事：「${evt.what}」\n${S.profile.name}的回应方向：${evt.opt}${evt.gist ? `\n剧情上他这次的反应（意思不能变，但要用他自己的话说，可以更短；如果是动作描写，就写成他会真的发出来的消息）：「${evt.gist}」` : ''}\n` : ''}
+今天是 ${socClock(when)}。说到星期几、明天后天时要和今天对得上：今天是周几就说「오늘」，指下周要说「다음 주」，不要让人分不清是哪一天。
 ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消息（上面聊天里标了「←他还没回」，合在一起看）：「${mine}」
 
 第一步，先看懂对话（写进 gist，不会发出去）：现在在聊什么、哪些事已经说清楚或说定了（谁说过要做什么）、她这几条到底是什么——在问他 / 告诉他一件新的事 / 只是同意、附和、收尾。
@@ -7602,7 +7604,7 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
     if (done) { const m = T.msgs.filter(m => m.me).pop(); if (m) T.quiet = m.id; } // 话已经说完了：之后也不用「补回」
     if (act === 'read' && !done && (dmAsk(mine) || close)) act = 'later'; // 问了问题 / 好朋友有话要回：不会就这么已读不回
     if (evt && evt.task && (act === 'read' || !msgs.length)) return { later: 1 }; // 答应过的事：现在不方便就晚点，但不会忘
-    if (later && act === 'later') act = msgs.length ? 'reply' : 'read';
+    if (later && act === 'later') { if (msgs.length) act = 'reply'; else if (done) act = 'read'; else return { later: 1 }; } // 拖过一次还是没空：继续等，不会变成已读不回
     if (act === 'later') return { later: 1 };
     if (act === 'read' || !msgs.length) return null;
     return { list: (act === 'react' ? msgs.slice(0, 1) : msgs.slice(0, 5)).map(m => ({ text: m.ko.trim(), zh: m.zh })) };
@@ -7709,6 +7711,17 @@ function ahFollowMig() {
   (T.polBak || (T.polBak = [])).push(...drop); T.msgs.splice(i + 1);
   T.readTo = T.msgs[i].at - 1; T.rd = null; T.pend = []; T.quiet = null;
   T.due = { at: Date.now() + rand(60, 150) * 60e3, later: 1, task: '你之前说过拍完看看日程，再告诉她哪天有空（你们在约见面）。现在该兑现了：跟她说你哪天有空，或者直接问她某天行不行。日子要和你自己的行程对得上，说法自然、短。' };
+  save();
+}
+// 一次性：之前「拖了两次就当成已读不回」的 bug 留下的：好朋友那边你最后发的、问了问题却被已读不回的，补上回复
+function dmUnstick1() {
+  const SO = social(); if (SO.unstick1) return; SO.unstick1 = 1; const now = Date.now();
+  for (const T of Object.values(dms())) { const m = T.msgs[T.msgs.length - 1];
+    if (!m || !m.me || T.due || T.gen || (T.pend && T.pend.length) || now - m.at > 3 * 86400e3 || !dmClose(T.p)) continue;
+    const mine = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) mine.unshift(T.msgs[i].text);
+    if (!dmAsk(mine.join('\n')) && mine.every(t => dmAgree(t) || dmAck(t) || dmBye(t))) continue;
+    T.quiet = null; T.due = { at: now + rand(2, 12) * 60e3, later: 1, n: 2, task: "她问了你问题（约哪天、几点见）你还没回，现在回她：对上她说的时间，说清楚是哪一天。" };
+  }
   save();
 }
 function dmCleanMig() {
