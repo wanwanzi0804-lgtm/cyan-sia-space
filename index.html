@@ -123,9 +123,29 @@ body.typing .bb-tick.bb-tick2{display:block}
 .bb-recbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);font-size:14px}
 .rec-dot{width:10px;height:10px;border-radius:50%;background:#ff2d55;animation:pulse 1s infinite}
 #bb-side{position:fixed;inset:0;z-index:85}
-.me-tabs{display:flex;gap:6px;margin:4px 0 2px;position:sticky;top:var(--topH,52px);z-index:5;background:var(--bg);padding:6px 0}
-.me-tabs button{flex:1;border:0;background:var(--card);color:var(--muted);border-radius:12px;padding:9px 0;font-size:14px;font-weight:600;box-shadow:var(--shadow)}
-.me-tabs button.on{background:var(--accent);color:#fff}
+.me-tabs{display:flex;gap:2px;margin:0 0 4px;position:sticky;top:var(--topH,52px);z-index:5;background:var(--bg);padding:6px 0 8px}
+.me-tabs button{flex:1;border:0;background:transparent;color:var(--muted);border-radius:10px;padding:8px 0;font-size:14.5px;font-weight:600;position:relative}
+.me-tabs button.on{color:var(--text)}.me-tabs button.on::after{content:'';position:absolute;left:30%;right:30%;bottom:2px;height:2.5px;border-radius:2px;background:var(--accent)}
+.prof{padding:0;overflow:hidden;text-align:center;padding-bottom:14px}
+.prof-cv{position:relative;height:118px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 70%,#fff),color-mix(in srgb,var(--accent2) 60%,#fff))}.prof-cv img{width:100%;height:100%;object-fit:cover;display:block}
+.prof-cvb{position:absolute;right:10px;bottom:10px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.35);color:#fff;display:grid;place-items:center;cursor:pointer}
+.prof-av{display:inline-block;margin-top:-40px;position:relative;cursor:pointer}.prof-av .av{width:80px;height:80px;font-size:30px;box-shadow:0 0 0 4px var(--card)}
+.prof-nm{font-size:20px;font-weight:800;margin-top:6px}.prof-co{font-size:11.5px;letter-spacing:.8px;color:var(--muted);margin-top:2px}.prof-fd{font-size:12.5px;color:var(--muted);margin-top:2px}.prof-fd b{color:var(--accent);font-weight:700}
+.prof-st{display:grid;grid-template-columns:repeat(4,1fr);margin:14px 14px 0;padding-top:12px;border-top:1px solid var(--line)}.prof-st div+div{border-left:1px solid var(--line)}.prof-st b{display:block;font-size:16.5px;font-weight:700;line-height:1.25}.prof-st span{font-size:11.5px;color:var(--muted)}
+.me-h{display:flex;align-items:center;justify-content:space-between;margin:18px 4px 8px;font-weight:700;font-size:15.5px}
+.pop{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;padding:16px}
+.pop-heat{display:flex;align-items:center;gap:10px}.pop-ic{font-size:30px;line-height:1}.pop-heat b{display:block;font-size:22px;font-weight:800;line-height:1.2}.pop-heat span{font-size:12px;color:var(--muted)}.pop-heat em{font-style:normal;font-weight:600}.tr-up{color:var(--accent)}.tr-down{color:var(--danger)}.tr-flat{color:var(--muted)}
+.pop-nums{display:flex;gap:18px;text-align:right}.pop-nums b{display:block;font-size:20px;font-weight:800;line-height:1.2}.pop-nums span{font-size:11.5px;color:var(--muted)}
+.pop-sub{grid-column:1/-1;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:9px;margin-top:4px}
+b.pos{color:var(--accent)}b.neg{color:#e5687e}b.zero{color:var(--muted)}
+.seg2{display:flex;background:var(--card);border-radius:9px;padding:2px;box-shadow:var(--shadow)}.seg2 button{border:0;background:none;font-size:12px;font-weight:600;color:var(--muted);padding:3px 10px;border-radius:7px}.seg2 button.on{background:var(--accent);color:#fff}
+.trend{padding:12px 12px 10px}.tr-sel{display:flex;align-items:center;gap:8px;font-size:13.5px;justify-content:center}.tr-sel span{color:var(--muted)}.tr-sel b{font-size:15px}.tr-sel .link{font-size:18px;padding:0 10px}.tr-sel .link:disabled{opacity:.25}
+.fbars.r30{gap:2px}.fbars.r30 .fb i{width:78%;border-radius:2px}.fb-up i.z{height:3px!important;min-height:3px;background:var(--muted)!important;opacity:.45;border-radius:2px}.fb-dn i{background:#e5687e!important}.fb.on .fb-up{border-bottom-color:var(--accent)}
+.srcs{padding:8px 14px}.src{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.chips+.src,.srcs>.src:first-child{border-top:0}.src>div{min-width:0;flex:1}.src-n{font-size:14.5px;line-height:1.4;word-break:break-word}.src-t{font-size:11.5px;color:var(--muted);margin-top:1px}.src>b{flex:none;font-size:15px;padding-top:1px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}.chips button{flex:none;border:1px solid var(--line);background:none;border-radius:999px;padding:3px 11px;font-size:12.5px;color:var(--muted)}.chips button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
+.src-more{display:block;width:100%;text-align:center;padding:10px 0 4px;border-top:1px solid var(--line)!important;font-size:13px}
+.hots{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.hot-card{display:block;width:100%;text-align:left;border:0;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;cursor:pointer}.hot-card.live{box-shadow:inset 3px 0 0 var(--accent),var(--shadow)}
+.hc-t{font-size:15px;font-weight:700;word-break:break-word}.hc-d{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.45}.hc-m{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:var(--muted)}.hc-m em{font-style:normal;font-weight:600}.hot-card.live .hc-m em{color:var(--accent)}.hc-m b{margin-left:auto;font-size:13.5px}
 .fbars{display:flex;gap:6px;align-items:stretch;height:96px;margin-top:14px}
 .fb{flex:1;display:flex;flex-direction:column;align-items:stretch;text-align:center}
 .fb-up,.fb-dn{flex:1;display:flex;justify-content:center}
@@ -161,7 +181,7 @@ body.typing .bb-tick.bb-tick2{display:block}
 .ch-row i.up{color:#e5484d}
 .ch-row i.dn{color:#3b82f6}
 .ch-s{margin-left:auto;font-size:12px}
-.me-tabs button{font-size:13px}
+.me-tabs button{font-size:14px}
 .sh-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
 .sh-row[data-act]{cursor:pointer}
 .sh-win{color:#e5a100}
@@ -8208,38 +8228,61 @@ function schedReminders() {
    我的 / 设置
    ========================================================= */
 const fanSign = n => `<b style="color:${n > 0 ? 'var(--accent)' : n < 0 ? 'var(--danger)' : 'var(--muted)'}">${n > 0 ? '+' : ''}${fmtNum(n)}</b>`;
+// 粉丝变化来源：记录里的原因写成「类型：名称」（Challenge：… / 行程：… / 热搜：…），其他的按名字归类
+const FAN_TYPE = { 自然增长: '自然增长', 帖子互动: '社区', 负面言论: '社区', 恋爱话题: '社区', 粉丝回礼: '粉丝回礼' };
+const fanSrcSplit = r => { const m = /^([^：]{1,10})：(.+)$/.exec(r); return m ? [m[2], m[1]] : [r, FAN_TYPE[r] || '其他']; };
+// 人气概览 + 粉丝增长趋势 + 变化来源（都读 fanState() 里原有的记录）
 function fanPanelHTML() {
-  const F = fanState(), today = dkey(Date.now());
-  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
-  const net = k => (F.days[k] || { net: 0 }).net;
-  const week = days.reduce((a, k) => a + net(k), 0), mx = Math.max(1, ...days.map(k => Math.abs(net(k))));
-  const sel = days.includes(UI.fanDay) ? UI.fanDay : today, src = Object.entries((F.days[sel] || {}).src || {}).filter(([r]) => !/校正|更正|重算/.test(r)).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-  const idle = Math.floor((Date.now() - lastActive()) / 86400e3);
-  return `<div class="kpi" style="margin-top:0"><div><b>${heatLabel()}</b><span>人气</span></div><div>${fanSign(net(today))}<span>今日</span></div><div>${fanSign(week)}<span>近 7 天</span></div><div><b>${idle ? idle + ' 天' : '今天'}</b><span>上次营业</span></div></div>
-    <div class="fbars">${days.map(k => { const n = net(k), h = Math.round(Math.abs(n) / mx * 100); return `<div class="fb${k === UI.fanDay ? ' on' : ''}" data-act="fanday" data-k="${k}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${k === today ? '今天' : WD[parseD(k).getDay()]}</span></div>`; }).join('')}</div>
-    <details class="me-more" id="fan-src"${UI.fanOpen ? ' open' : ''}><summary>${sel === today ? '今日' : `${+sel.slice(5, 7)}/${+sel.slice(8)}（${WD[parseD(sel).getDay()]}）`}变化来源${src.length ? ` · ${src.length} 项` : ''}</summary>${src.length ? src.map(([r, n]) => `<div class="rule"><span style="flex:1">${esc(r)}</span>${fanSign(n)}</div>`).join('') : `<div class="muted" style="padding:6px 0">${sel === today ? '今天还没有变化' : '这天没有变化'}</div>`}</details>`;
+  const F = fanState(), today = dkey(Date.now()), net = k => (F.days[k] || { net: 0 }).net, has = k => !!F.days[k];
+  const rng = UI.fanRange === 30 ? 30 : 7, first = Object.keys(F.days).sort()[0] || today;
+  const days = Array.from({ length: rng }, (_, i) => addDays(today, i - rng + 1)).filter(k => k >= first); // 记录开始之前的日子不画
+  const week = Array.from({ length: 7 }, (_, i) => net(addDays(today, -i))).reduce((a, b) => a + b, 0);
+  const prevKeys = Array.from({ length: 7 }, (_, i) => addDays(today, -7 - i)), prev = prevKeys.every(k => k >= first) ? prevKeys.reduce((a, k) => a + net(k), 0) : null; // 上一周有完整记录才比较
+  const trend = prev == null ? '' : week > prev * 1.15 + 5 ? ['up', '比上周涨得多'] : week < prev * .85 - 5 ? ['down', '比上周涨得少'] : ['flat', '和上周差不多'];
+  const idle = Math.max(0, Math.floor((Date.now() - lastActive()) / 86400e3)), [hIc, hTx] = heatLabel().split(' ');
+  const sel = days.includes(UI.fanDay) ? UI.fanDay : today, mx = Math.max(1, ...days.map(k => Math.abs(net(k)))), md = k => `${+k.slice(5, 7)}/${+k.slice(8)}`;
+  const all = Object.entries((F.days[sel] || {}).src || {}).filter(([r]) => !/校正|更正|重算/.test(r)).map(([r, n]) => [...fanSrcSplit(r), n]).sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
+  const types = [...new Set(all.map(x => x[1]))], ft = types.includes(UI.fanType) ? UI.fanType : '', L = ft ? all.filter(x => x[1] === ft) : all, show = UI.fanAll ? L : L.slice(0, 5);
+  const sgn = n => `<b class="${n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'}">${n > 0 ? '+' : ''}${fmtNum(n)}</b>`, i = days.indexOf(sel);
+  return `<div class="card pop">
+      <div class="pop-main"><div class="pop-heat"><span class="pop-ic">${hIc}</span><div><b>${hTx}</b><span>人气${trend ? ` · <em class="tr-${trend[0]}">${trend[0] === 'up' ? '↑' : trend[0] === 'down' ? '↓' : '→'} ${trend[1]}</em>` : ''}</span></div></div></div>
+      <div class="pop-nums"><div>${sgn(net(today))}<span>今日</span></div><div>${sgn(week)}<span>近 7 天</span></div></div>
+      <div class="pop-sub">上次营业 · ${idle ? idle + ' 天前' : '今天'}</div>
+    </div>
+    <div class="me-h"><span>粉丝增长趋势</span><div class="seg2">${[7, 30].map(n => `<button class="${rng === n ? 'on' : ''}" data-act="fanrange" data-n="${n}">${n} 天</button>`).join('')}</div></div>
+    <div class="card trend">
+      <div class="tr-sel"><button class="link" data-act="fanstep" data-k="${days[i - 1] || ''}" ${i > 0 ? '' : 'disabled'}>‹</button><span>${sel === today ? '今天' : `${md(sel)}（${WD[parseD(sel).getDay()]}）`}</span>${has(sel) ? sgn(net(sel)) : '<b class="zero">无记录</b>'}<button class="link" data-act="fanstep" data-k="${days[i + 1] || ''}" ${i < days.length - 1 ? '' : 'disabled'}>›</button></div>
+      <div class="fbars r${rng}">${days.map((k, j) => { const n = net(k), h = Math.max(n ? 4 : 0, Math.round(Math.abs(n) / mx * 100)); return `<div class="fb${k === sel ? ' on' : ''}" data-act="fanday" data-k="${k}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : n === 0 ? '<i class="z"></i>' : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${rng === 7 ? (k === today ? '今天' : WD[parseD(k).getDay()]) : (j % 5 === (days.length - 1) % 5 ? +k.slice(8) : '')}</span></div>`; }).join('')}</div>
+    </div>
+    <div class="me-h"><span>粉丝变化来源</span><span class="muted" style="font-size:12.5px">${sel === today ? '今天' : md(sel)}</span></div>
+    <div class="card srcs">${all.length ? `${types.length > 1 ? `<div class="chips">${['', ...types].map(t => `<button class="${ft === t ? 'on' : ''}" data-act="fantype" data-k="${esc(t)}">${t || '全部'}</button>`).join('')}</div>` : ''}
+      ${show.map(([nm, tp, n]) => `<div class="src"><div><div class="src-n">${esc(nm)}</div><div class="src-t">${esc(tp)}</div></div>${sgn(n)}</div>`).join('')}
+      ${L.length > 5 ? `<button class="link src-more" data-act="fanall">${UI.fanAll ? '收起' : `展开全部 ${L.length} 条`}</button>` : ''}` : `<div class="muted" style="padding:6px 0">${sel === today ? '今天还没有变化' : '这天没有变化'}</div>`}</div>`;
 }
+// 热搜：不排名，一条一张话题卡；正在发酵的在最前，之后按时间
 function hotPanelHTML() {
-  const H = hotState(), c = H.cur;
-  return `${c ? `<button class="hot-opt" data-act="hotopen">📰 #${esc(c.title)}#<span class="muted" style="font-size:12.5px"> · ${c.choice == null ? '还没回应' : c.task && !c.task.done ? '等你去做' : '等后续'}</span></button>` : '<div class="muted" style="padding:4px 0 8px">现在没有热搜，过几天可能就会有 👀</div>'}
-    ${H.hist.length ? H.hist.slice(-5).reverse().map(x => `<div class="rule" data-act="hotopen" data-k="${x.key || ''}" style="cursor:pointer"><div style="flex:1;min-width:0"><div>#${esc(x.title)}#</div><div class="muted" style="font-size:12px">${esc(x.choice)} · ${esc(x.result)}</div></div>${fanSign(x.net)}</div>`).join('') : ''}`;
+  const H = hotState(), c = H.cur, when = t => t ? `${ago(t)}` : '';
+  const cards = (c ? [`<button class="hot-card live" data-act="hotopen"><div class="hc-t">#${esc(c.title)}#</div><div class="hc-m"><em>${c.choice == null ? '正在发酵 · 还没回应' : c.task && !c.task.done ? '正在发酵 · 等你去做' : '正在发酵 · 等后续'}</em>${c.at ? `<span>${when(c.at)}</span>` : ''}</div></button>`] : [])
+    .concat(H.hist.slice(-5).reverse().map(x => `<button class="hot-card" data-act="hotopen" data-k="${x.key || ''}"><div class="hc-t">#${esc(x.title)}#</div><div class="hc-d">${esc(x.choice)} · ${esc(x.result)}</div><div class="hc-m"><em>已平息</em>${x.at ? `<span>${when(x.at)}</span>` : ''}${x.net ? `<b class="${x.net > 0 ? 'pos' : 'neg'}">${x.net > 0 ? '+' : ''}${fmtNum(x.net)}</b>` : ''}</div></button>`));
+  return cards.length ? `<div class="hots">${cards.join('')}</div>` : '<div class="card muted" style="text-align:center;padding:22px 10px">最近没有热搜</div>';
 }
 function viewMe() {
   const p = S.profile; const totalL = S.posts.reduce((s, x) => s + x.likes, 0), totalC = S.posts.reduce((s, x) => s + x.commentCount, 0);
+  const co = (p.company || 'STARSHIP').trim(), coFull = /ENTERTAINMENT|엔터/i.test(co) ? co : co.toUpperCase() + ' ENTERTAINMENT', tab = UI.meTab || 'stats';
   return `
-  <div class="card">
-    <div class="hero">
-      <label style="cursor:pointer" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label>
-      <div style="flex:1"><h2>${esc(p.name)} <span class="artist">ARTIST</span></h2><div class="muted">${esc(p.company || 'STARSHIP')} · ${ageOf()} 岁 · 出道日 ${esc(p.debut)} · D+${dday()} · 动物塑：${esc(p.animal)}</div><div class="muted">粉丝名：${esc(p.fandom)}</div></div>
-    </div>
-    <div class="kpi"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
-  </div>
-  <div class="me-tabs">${[['stats', '📈 动态'], ['wallet', '💰 钱包'], ['music', '💿 音乐'], ['persona', '🐱 人设'], ['set', '⚙ 设置']].map(([k, v]) => `<button class="${(UI.meTab || 'stats') === k ? 'on' : ''}" data-act="metab" data-k="${k}">${v}</button>`).join('')}</div>
+  ${tab === 'stats' ? `<div class="card prof">
+    <div class="prof-cv"${p.cover ? '' : ' data-empty'}>${p.cover ? `<img data-mid="${p.cover}" alt="">` : ''}<label class="prof-cvb" title="更换封面"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><input type="file" id="cv-file" accept="image/*" hidden></label></div>
+    <label class="prof-av" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label>
+    <div class="prof-nm">${esc(p.name)}<span class="artist">ARTIST</span></div>
+    <div class="prof-co">${esc(coFull)}</div>
+    <div class="prof-fd">粉丝名 <b>${esc(p.fandom)}</b></div>
+    <div class="prof-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
+  </div>` : ''}
+  <div class="me-tabs">${[['stats', '动态'], ['wallet', '钱包'], ['music', '音乐'], ['persona', '人设'], ['set', '设置']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-act="metab" data-k="${k}">${v}</button>`).join('')}</div>
   ${{ stats: () => `
-  <div class="sec-title">📈 粉丝动态</div>
-  <div class="card">${fanPanelHTML()}</div>
-  <div class="sec-title">📰 热搜</div>
-  <div class="card">${hotPanelHTML()}</div>`,
+  ${fanPanelHTML()}
+  <div class="me-h"><span>热搜</span></div>
+  ${hotPanelHTML()}`,
   wallet: () => walletHTML(),
   music: () => `
   <div class="pcats m-tabs">${[['chart', '🎧 音源'], ['sales', '💿 销量 & MV'], ['shows', '🏆 打歌'], ['awards', '🏅 颁奖'], ['make', '🎼 作品']].map(([k, v]) => `<button class="pcat ${mTab() === k ? 'on' : ''}" data-act="mtab" data-k="${k}">${v}</button>`).join('')}</div>
@@ -8322,7 +8365,7 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act;
   switch (a) {
-    case 'metab': UI.meTab = t.dataset.k; render(); break;
+    case 'metab': { const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); const nb = $('.me-tabs'); window.scrollTo(0, stuck && nb ? nb.offsetTop - tH : 0); break; } // 吸顶时切换：导航留在原位，不跳
     case 'tab': stopPreview(); UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
     case 'open': UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); break;
@@ -8579,7 +8622,10 @@ document.addEventListener('click', async e => {
     case 'mzsubcb': mzSubmit(t.dataset.id, true); render(); openModal(mzDetailHTML(t.dataset.id)); break;
     case 'pppref': { const o = prepOn(); if (!o) break; o.P.pref = o.P.pref === t.dataset.id ? '' : t.dataset.id; save(); render(); toast(o.P.pref ? '已经告诉公司你的想法' : '已取消'); break; }
     case 'ppdance': { const o = prepOn(); if (!o) break; o.P.dance = t.checked; if (t.checked && o.t.dance.skip) o.t.dance = { need: o.t.dance.need, prog: 0, done: false }; save(); render(); break; }
-    case 'fanday': UI.fanDay = t.dataset.k; UI.fanOpen = true; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'fanday': case 'fanstep': if (!t.dataset.k) break; UI.fanDay = t.dataset.k; UI.fanType = ''; UI.fanAll = false; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'fanrange': UI.fanRange = +t.dataset.n; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'fantype': UI.fanType = t.dataset.k; UI.fanAll = false; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'fanall': UI.fanAll = !UI.fanAll; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
@@ -8642,6 +8688,12 @@ document.addEventListener('change', async e => {
     }
     if (pending.length > 9) { pending.slice(9).forEach(f => URL.revokeObjectURL(f._url)); pending = pending.slice(0, 9); toast('最多 9 个图片/视频'); }
     t.value = ''; renderPending();
+  } else if (t.id === 'cv-file' && t.files[0]) {
+    const id = uid(); const f = t.files[0];
+    try { await idbPut(id, f); } catch (err) { }
+    urlCache[id] = URL.createObjectURL(f);
+    if (S.profile.cover) idbDel(S.profile.cover);
+    S.profile.cover = id; save(); render(); toast('封面已更新');
   } else if (t.id === 'av-file' && t.files[0]) {
     const id = uid(); const f = t.files[0];
     try { await idbPut(id, f); } catch (err) { }
