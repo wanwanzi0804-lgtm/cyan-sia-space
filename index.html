@@ -2474,7 +2474,7 @@ function recvAdd(src, title, date, gross, cost, why, kind = 'gen', payDays = 0) 
 }
 // 经纪人当天的活动经费（法人卡）：油费停车、餐费、临时采购。之后作为活动费用在结算里扣
 function mgrExpenses(dk) {
-  const ext = rulesFor(dk).filter(r => !['练习', '上课'].includes(r.cat)); if (!ext.length) return null;
+  const ext = rulesFor(dk).filter(r => !['练习', '上课'].includes(r.cat) && !isMusicRule(r)); if (!ext.length) return null; // 练习、上课、音乐创作是自己去，经纪人不接送
   const r = srng('mexp' + dk), v = (a, b) => Math.round((a + (b - a) * r()) / 1000) * 1000, mo = +dk.slice(5, 7);
   const car = ext.reduce(a => a + v(18000, 42000) + [0, 5000, 10000, 15000][Math.floor(r() * 4)], 0), meal = v(28000, 45000) * Math.min(3, ext.length);
   const etc = r() < .4 ? v(8000, 35000) : 0, etcN = [12, 1, 2].includes(mo) ? '핫팩·음료' : [7, 8].includes(mo) ? '얼음물·음료' : '음료·간식';
@@ -3201,6 +3201,14 @@ function mgrTrimMig() {
   save();
 }
 // 一次性：10/19 的通告后来做完了，那天的日报按现在的结果重写（不再写未参加）
+// 一次性：已经发出的日报里，只有练习 / 上课 / 音乐创作的那几天，把「活动经费」那一段删掉（经纪人那天没开车）
+function mgrCarFix() {
+  const M = mgrChat(); if (M.carFix) return; M.carFix = 1;
+  for (const m of M.chat) { const t = /^\[(\d+)\/(\d+)\(.\) 일정 보고\]/.exec(m.text || ''); if (m.me || !t) continue;
+    const dk = `${new Date(m.at).getFullYear()}-${t[1].padStart(2, '0')}-${t[2].padStart(2, '0')}`; if (mgrExpenses(dk)) continue;
+    m.text = m.text.replace(/\n*■ 활동 경비 \(법인카드\)[\s\S]*?영수증 제출 완료/, ''); if (m.zh) m.zh = m.zh.replace(/\n*■ 活动经费（公司卡）[\s\S]*?收据已提交/, ''); }
+  save();
+}
 function mgrRep1019() {
   const M = mgrChat(); if (M.rep1019) return; M.rep1019 = 1; const dk = '2026-10-19';
   for (const m of M.chat) if (!m.me && /^\[10\/19\(.\) 일정 보고\]/.test(m.text || '')) { const r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; }
@@ -6544,7 +6552,7 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmPolishMig(); serimNoteTick(); serimPingTick();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
