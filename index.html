@@ -8037,7 +8037,7 @@ function ahFollowMig() {
   save();
 }
 // 一次性：之前「拖了两次就当成已读不回」的 bug 留下的：好朋友那边你最后发的、问了问题却被已读不回的，补上回复
-function dmCallZh1() { const SO = social(); if (SO.callZh1 && SO.callKo1) return; SO.callZh1 = SO.callKo1 = 1; for (const T of Object.values(dms())) for (const m of T.msgs || []) { if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; if (m.me && m.text === '好啊，约个时间打给你' && m.zh && !hasHan(m.zh)) { const k = m.zh; m.zh = m.text; m.text = k; } } }
+function dmCallZh1() { for (const T of Object.values(dms())) { const bad = (T.msgs || []).findIndex(m => !m.me && m.text === '아 그거였구나ㅎㅎ'); if (bad >= 0) T.msgs.splice(bad, 1); } /* 把剧情说明当成台词的那条删掉 */ for (const T of Object.values(dms())) for (const m of T.msgs || []) { if (m.zh === '方便的时候能打个电话吗？有件事想当面问你') m.zh = '方便的时候能通个电话吗？有件事想直接问你'; if (m.me && m.text === '好啊，约个时间打给你' && m.zh && !hasHan(m.zh)) { const k = m.zh; m.zh = m.text; m.text = k; } } }
 function dmUnstick1() {
   const SO = social(); if (SO.unstick1) return; SO.unstick1 = 1; const now = Date.now();
   for (const T of Object.values(dms())) { const m = T.msgs[T.msgs.length - 1];
@@ -8213,7 +8213,7 @@ const SOC_OPT = {
   282: [['约个时间当面换', 1, 1, '+', ['你们约在公司附近见面']], ['让工作人员帮忙换', 0, 0, '0', ['外套第二天就送回来了']], ['寄快递给他', 0, -1, '-', ['他说收到了，谢谢']]]
 };
 // 同一件事搬到 KKT 上时，原来的选项可能对不上（比如电话里的选项）：这里单独写
-const SOC_DM_OPT = { call: [['好啊，约个时间打给你', 1, .1, '原来他想请你帮忙给团里的新歌提建议'], ['问他什么事，打字说也行', 1, 0, '原来是想问你们公司练习室的事'], ['说最近太忙了', -1, 0, '「好，那不打扰了」']] };
+const SOC_DM_OPT = { call: [['好啊，约个时间打给你', 1, .1, '他说好，问你今晚还是明天方便，顺便提一句是想请你听听他们团的新歌、给点建议'], ['问他什么事，打字说也行', 1, 0, '他说其实是想请你帮忙听听他们团的新歌、给点建议，打字说也可以'], ['说最近太忙了', -1, 0, '他说没关系，那不打扰了，等你有空再说']] };
 function socOpts(e, p, x) {
   if (e.old && x && x.dm && SOC_DM_OPT[e.id]) e = { ...e, o: SOC_DM_OPT[e.id] };
   if (e.th) return (x && x.o) || [];
@@ -8280,7 +8280,7 @@ function dmLogHTML(T, key, tr) {
   return kkLogHTML(T.msgs, { tr, unread: m => m.at > rd, av: kAv(key, 'mgr-av sm'), name: socDisp(T.p) });
 }
 function dmHTML(key) {
-  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
+  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (!m.me && !m.sys && m.text && !m.zh && !m._trTry && /[가-힣]/.test(m.text)) { m._trTry = 1; trText(m.text, 'zh').then(out => { if (out && out !== m.text && !trBad(m.text, out)) { m.zh = out; save(); if (UI.dmOpen === key) openModal(dmHTML(key)); } }).catch(() => {}); } /* 对方的消息漏了翻译：补上 */ if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
   return `<div class="kk-room${UI.kkDr === key ? ' dr' : ''}"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="kkdr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
     ${socMemHTML(key) ? `<div class="kk-note">${socMemHTML(key)}</div>` : ''}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
@@ -8296,7 +8296,8 @@ async function dmAnswer(key, mine, o, silent) {
   x.ans = 1; const res = socApply(x, o, mine); save(); openModal(dmHTML(key));
   const lvNote = res.up ? [{ sys: `你们现在算是${FR_LV[res.up]}了` }] : [];
   if (silent) { if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
-  const what = socText(socEv(x.ev), x.p, x), r = await dmChatAi(T, mine, Date.now(), false, { what, opt: o.t, gist: o.reply || '', tone: o.tone }).catch(() => null);
+  const dmL = !socEv(x.ev)?.th && SOC_DM[x.ev] && SOC_DM[x.ev][0] ? SOC_DM[x.ev] : null;
+  const what = dmL ? `${socWho(x.p)}在 KKT 上发来：「${dmL[0]}」（${socG(dmL[1], x.p)}）` : socText(socEv(x.ev), x.p, x), r = await dmChatAi(T, mine, Date.now(), false, { what, opt: o.t, gist: o.reply || '', tone: o.tone }).catch(() => null);
   if (r && r.later) { const d = dmDelay(T.p) + rand(30, 90) * 60e3; T.due = { at: Date.now() + d, later: 1 }; save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
   if (!r || !r.list) { dmWillRead(T, Date.now() + Math.min(dmDelay(T.p), rand(1, 20) * 60e3)); save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
   dmQueue(T.p, [...r.list, ...lvNote]);
