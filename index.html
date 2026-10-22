@@ -7064,16 +7064,18 @@ function socWins(k) {
 // 每天早上排今天的交集：0~2 个，时间要对得上行程
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
+  if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
   serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
   for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online && dmIsMsg(x.ev)) { x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } if (x.ko && aiOn() && !x.via) socThVoice(x).then(() => dmEvent(x)); else dmEvent(x); } // 线上的直接发到 KKT
   if (UI.socPop || UI.chPop || $('#modal').classList.contains('on')) return;
+  const op = SO.q.find(x => x.open && x.day === today && x.p); if (op) { if (SO.hist.some(h => h.id === op.id)) delete op.open; else { UI.socPop = { x: op }; openModal(socPopHTML()); return; } } // 弹出来还没处理就刷新了：重新弹
   const due = SO.q.find(x => x.day === today && !x.done && nm >= x.at); if (!due) return;
   if (nm > due.until) { due.done = 1; due.missed = 1; return; }
   if (!socThFill(due)) { due.done = 1; due.skip = 1; return; }
-  due.done = 1; UI.socPop = { x: due }; openModal(socPopHTML()); save();
+  due.done = 1; due.open = 1; UI.socPop = { x: due }; openModal(socPopHTML()); save();
 }
 const socName = p => SOLO_G.includes(p.g) ? p.g : p.z && /[一-鿿]/.test(p.z) ? p.z : `${p.n}`;
 const SOLO_G = ['EVAN']; // solo 艺人：只显示艺名
@@ -7103,7 +7105,7 @@ function socResolve(mine, d, risk, reply, act, dmX) {
   if (d > 0) SO.log.push({ day: x.day, key: p.key, pts: d + (risk > .1 ? 2 : 0) }); if (SO.log.length > 200) SO.log.splice(0, SO.log.length - 200);
   let rumor = false;
   if (risk && Math.random() < risk) { rumor = true; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人扒出 ${S.profile.name} 和 ${socWho(p)} ${{ cmt: '在评论区互动', seat: '颁奖礼全程同框', cvs: '在便利店偶遇，还都穿着拖鞋', taxi: '一起上了同一辆车', coat: '约在公司门口见面', mc: '在节目里点名欣赏对方', reveal: '私下认识', team: '在综艺里配合默契', chal2: '私下多拍了一条视频', dinner: '出现在同一个聚会' }[e.id] || '私下有来往'}，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
-  SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: socText(e, p), mine, reply, up, rumor }); if (SO.hist.length > 80) SO.hist.splice(0, SO.hist.length - 80);
+  delete x.open; SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: socText(e, p), mine, reply, up, rumor }); if (SO.hist.length > 80) SO.hist.splice(0, SO.hist.length - 80);
   if (dmX) { save(); return { up, rumor }; }
   Q.res = { mine, reply: reply + (up ? `（你们现在算是${FR_LV[up]}了）` : '') + (rumor ? ' · ⚠ 好像被人注意到了' : '') };
   save(); openModal(socPopHTML());
@@ -7698,7 +7700,7 @@ function socApplyTh(x, o, mine) {
   }
   let rumor = false;
   if (o.risk && Math.random() < o.risk) { rumor = true; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人拍到 ${S.profile.name} 和 ${socWho(p)} 晚上一起从${(socLast(P, ['meal', 'coffee']) || {}).pz || '一家店'}出来，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
-  SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: x.txt || `${socName(p)}：${x.zh}`, mine, reply: o.reply ? (x.ko ? '' : o.reply) : '', up, rumor }); if (SO.hist.length > 120) SO.hist.splice(0, SO.hist.length - 120);
+  delete x.open; SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: x.txt || `${socName(p)}：${x.zh}`, mine, reply: o.reply ? (x.ko ? '' : o.reply) : '', up, rumor }); if (SO.hist.length > 120) SO.hist.splice(0, SO.hist.length - 120);
   save(); return { up, rumor };
 }
 // 开着 AI 时，预设事件的第一条消息按这个人的说话卡重写（意思不变）
@@ -8184,7 +8186,7 @@ function socApply(x, o, mine) {
   else if (!e.old && o.tone === '+' && socAmbOk(p) && P.spark >= .55 && ['invite', 'msg', 'care'].includes(e.kind)) { P.amb = Math.min(12, P.amb + .5); P.th = Math.min(12, P.th + .3 * P.spark); } // 普通交集里的好回应，有火花的人会慢慢靠近一点
   let rumor = false;
   if (o.risk && Math.random() < o.risk) { rumor = true; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人扒出 ${S.profile.name} 和 ${socWho(p)} 私下好像很熟，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
-  SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: socText(e, p), mine, reply: o.reply, up, rumor }); if (SO.hist.length > 120) SO.hist.splice(0, SO.hist.length - 120);
+  delete x.open; SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: socText(e, p), mine, reply: o.reply, up, rumor }); if (SO.hist.length > 120) SO.hist.splice(0, SO.hist.length - 120);
   if (o.act === 'chal' && chSongs(x.day).length && !chLimit(x.day)) setTimeout(() => { UI.socPop = null; closeModal(); UI.chPop = { k: x.day, where: '', step: 'song', p: chFind(p.g, p.n) || p, onAct: true, music: false }; openModal(chPopHTML()); }, 1400);
   save(); return { up, rumor };
 }
@@ -8301,7 +8303,8 @@ async function serimReply(mine) {
 }
 function serimTick() {
   const SV = social().serim, now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
-  if (!SV || SV.day !== today || SV.done || SV.shown || nm < SV.at) return;
+  if (!SV || SV.day !== today || SV.done || nm < SV.at) return;
+  if (SV.shown) { if (!SV.dm && !SV.closed && !UI.socPop && !UI.chPop && !$('#modal').classList.contains('on')) { UI.socPop = { serim: 1 }; openModal(socPopHTML()); } return; } // 弹出来还没处理就刷新了：重新弹
   if (!SV.online && (UI.socPop || UI.chPop || $('#modal').classList.contains('on'))) return;
   if (!SV.gen && aiOn() && nm < SV.at + 3) return; // 给 AI 一点时间准备
   SV.shown = 1;
@@ -8924,7 +8927,7 @@ document.addEventListener('click', async e => {
     case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const e = socEv(Q.x.ev), neg = tone(v) === 'neg', o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: neg ? 0 : (e.fl.r || 0) * .5, reply: neg ? socG('他好像有点尴尬', Q.x.p) : socG(pick(SOC_REPLY['+']), Q.x.p) };
       if (Q.x.o && Q.x.o.length) { const b = neg ? Q.x.o[Q.x.o.length - 1] : Q.x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
       socDone(Q, v, o); break; }
-    case 'socclose': { const Q = UI.socPop; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
+    case 'socclose': { const Q = UI.socPop; if (Q && Q.x) delete Q.x.open; if (Q && Q.serim && !social().serim?.done) social().serim.closed = 1; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimopen': openModal(serimCardHTML()); break;
     case 'serimset': { const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v); toast('记下了'); openModal(serimCardHTML()); break; }
     case 'serimdel': { const N = serimNotes(), i = N.findIndex(n => n.id === t.dataset.id); if (i >= 0) N.splice(i, 1); save(); openModal(serimCardHTML()); break; }
