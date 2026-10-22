@@ -141,7 +141,7 @@ b.pos{color:var(--accent)}b.neg{color:#e5687e}b.zero{color:var(--muted)}
 .seg2{display:flex;background:var(--card);border-radius:9px;padding:2px;box-shadow:var(--shadow)}.seg2 button{border:0;background:none;font-size:12px;font-weight:600;color:var(--muted);padding:3px 10px;border-radius:7px}.seg2 button.on{background:var(--accent);color:#fff}
 .trend{padding:12px 12px 10px}.tr-sel{display:flex;align-items:center;gap:8px;font-size:13.5px;justify-content:center}.tr-sel span{color:var(--muted)}.tr-sel b{font-size:15px}.tr-sel .link{font-size:18px;padding:0 10px}.tr-sel .link:disabled{opacity:.25}
 .fbars.r30{gap:2px}.fbars.r30 .fb i{width:78%;border-radius:2px}.fb-up i.z{height:3px!important;min-height:3px;background:var(--muted)!important;opacity:.45;border-radius:2px}.fb-dn i{background:#e5687e!important}.fb.on .fb-up{border-bottom-color:var(--accent)}
-.srcs{padding:8px 14px}.src{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.chips+.src,.srcs>.src:first-child{border-top:0}.src>div{min-width:0;flex:1}.src-n{font-size:14.5px;line-height:1.4;word-break:break-word}.src-t{font-size:11.5px;color:var(--muted);margin-top:1px}.src>b{flex:none;font-size:15px;padding-top:1px}
+.srcs{padding:4px 14px}.sg{padding:11px 0;border-top:1px solid var(--line)}.sg:first-child{border-top:0}.sg-h{display:flex;justify-content:space-between;gap:12px;font-size:15px;font-weight:700}.sg-h b{font-size:15.5px}.sg-i{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:5px 0 0 12px;font-size:13px;color:var(--muted);line-height:1.45}.sg-i span{min-width:0;word-break:break-word}.sg-i b{flex:none;font-weight:600;font-size:13px}.src{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.chips+.src,.srcs>.src:first-child{border-top:0}.src>div{min-width:0;flex:1}.src-n{font-size:14.5px;line-height:1.4;word-break:break-word}.src-t{font-size:11.5px;color:var(--muted);margin-top:1px}.src>b{flex:none;font-size:15px;padding-top:1px}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}.chips button{flex:none;border:1px solid var(--line);background:none;border-radius:999px;padding:3px 11px;font-size:12.5px;color:var(--muted)}.chips button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
 .src-more{display:block;width:100%;text-align:center;padding:10px 0 4px;border-top:1px solid var(--line)!important;font-size:13px}
 .hots{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}.hot-card{display:block;width:100%;text-align:left;border:0;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:12px 14px;cursor:pointer}.hot-card.live{box-shadow:inset 3px 0 0 var(--accent),var(--shadow)}
@@ -8241,8 +8241,10 @@ function fanPanelHTML() {
   const trend = prev == null ? '' : week > prev * 1.15 + 5 ? ['up', '比上周涨得多'] : week < prev * .85 - 5 ? ['down', '比上周涨得少'] : ['flat', '和上周差不多'];
   const idle = Math.max(0, Math.floor((Date.now() - lastActive()) / 86400e3)), [hIc, hTx] = heatLabel().split(' ');
   const sel = days.includes(UI.fanDay) ? UI.fanDay : today, mx = Math.max(1, ...days.map(k => Math.abs(net(k)))), md = k => `${+k.slice(5, 7)}/${+k.slice(8)}`;
-  const all = Object.entries((F.days[sel] || {}).src || {}).filter(([r]) => !/校正|更正|重算/.test(r)).map(([r, n]) => [...fanSrcSplit(r), n]).sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
-  const types = [...new Set(all.map(x => x[1]))], ft = types.includes(UI.fanType) ? UI.fanType : '', L = ft ? all.filter(x => x[1] === ft) : all, show = UI.fanAll ? L : L.slice(0, 5);
+  // 按来源类别分组：行程用那条行程自己的类别（签售 / 打歌 / 公演…，大学庆典算校庆）
+  const rCat = (title, dk) => { const r = rulesFor(dk).find(x => x.title === title) || S.schedule.rules.find(x => x.title === title); return r ? (r.cat === '公演' && UNIV_RE.test(r.title) ? '校庆' : r.cat) : '行程'; };
+  const groups = {}; for (const [r, n] of Object.entries((F.days[sel] || {}).src || {})) { if (/校正|更正|重算/.test(r) || !n) continue; let [nm, tp] = fanSrcSplit(r); if (tp === '行程') tp = rCat(nm, sel); (groups[tp] || (groups[tp] = [])).push([nm, n]); }
+  const G = Object.entries(groups).map(([tp, L]) => [tp, L.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])), L.reduce((a, x) => a + x[1], 0)]).sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
   const sgn = n => `<b class="${n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'}">${n > 0 ? '+' : ''}${fmtNum(n)}</b>`, i = days.indexOf(sel);
   return `<div class="card pop">
       <div class="pop-main"><div class="pop-heat"><span class="pop-ic">${hIc}</span><div><b>${hTx}</b><span>人气${trend ? ` · <em class="tr-${trend[0]}">${trend[0] === 'up' ? '↑' : trend[0] === 'down' ? '↓' : '→'} ${trend[1]}</em>` : ''}</span></div></div></div>
@@ -8255,9 +8257,7 @@ function fanPanelHTML() {
       <div class="fbars r${rng}">${days.map((k, j) => { const n = net(k), h = Math.max(n ? 4 : 0, Math.round(Math.abs(n) / mx * 100)); return `<div class="fb${k === sel ? ' on' : ''}" data-act="fanday" data-k="${k}"><div class="fb-up">${n > 0 ? `<i style="height:${h}%"></i>` : n === 0 ? '<i class="z"></i>' : ''}</div><div class="fb-dn">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div><span>${rng === 7 ? (k === today ? '今天' : WD[parseD(k).getDay()]) : (j % 5 === (days.length - 1) % 5 ? +k.slice(8) : '')}</span></div>`; }).join('')}</div>
     </div>
     <div class="me-h"><span>粉丝变化来源</span><span class="muted" style="font-size:12.5px">${sel === today ? '今天' : md(sel)}</span></div>
-    <div class="card srcs">${all.length ? `${types.length > 1 ? `<div class="chips">${['', ...types].map(t => `<button class="${ft === t ? 'on' : ''}" data-act="fantype" data-k="${esc(t)}">${t || '全部'}</button>`).join('')}</div>` : ''}
-      ${show.map(([nm, tp, n]) => `<div class="src"><div><div class="src-n">${esc(nm)}</div><div class="src-t">${esc(tp)}</div></div>${sgn(n)}</div>`).join('')}
-      ${L.length > 5 ? `<button class="link src-more" data-act="fanall">${UI.fanAll ? '收起' : `展开全部 ${L.length} 条`}</button>` : ''}` : `<div class="muted" style="padding:6px 0">${sel === today ? '今天还没有变化' : '这天没有变化'}</div>`}</div>`;
+    <div class="card srcs">${G.length ? G.map(([tp, L, sum]) => `<div class="sg"><div class="sg-h"><span>${esc(tp)}</span>${sgn(sum)}</div>${L.length === 1 && L[0][0] === tp ? '' : L.map(([nm, n]) => `<div class="sg-i"><span>${esc(nm)}</span>${sgn(n)}</div>`).join('')}</div>`).join('') : `<div class="muted" style="padding:6px 0">${sel === today ? '今天还没有变化' : '这天没有变化'}</div>`}</div>`;
 }
 // 热搜：不排名，一条一张话题卡；正在发酵的在最前，之后按时间
 function hotPanelHTML() {
@@ -8622,10 +8622,8 @@ document.addEventListener('click', async e => {
     case 'mzsubcb': mzSubmit(t.dataset.id, true); render(); openModal(mzDetailHTML(t.dataset.id)); break;
     case 'pppref': { const o = prepOn(); if (!o) break; o.P.pref = o.P.pref === t.dataset.id ? '' : t.dataset.id; save(); render(); toast(o.P.pref ? '已经告诉公司你的想法' : '已取消'); break; }
     case 'ppdance': { const o = prepOn(); if (!o) break; o.P.dance = t.checked; if (t.checked && o.t.dance.skip) o.t.dance = { need: o.t.dance.need, prog: 0, done: false }; save(); render(); break; }
-    case 'fanday': case 'fanstep': if (!t.dataset.k) break; UI.fanDay = t.dataset.k; UI.fanType = ''; UI.fanAll = false; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
+    case 'fanday': case 'fanstep': if (!t.dataset.k) break; UI.fanDay = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'fanrange': UI.fanRange = +t.dataset.n; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
-    case 'fantype': UI.fanType = t.dataset.k; UI.fanAll = false; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
-    case 'fanall': UI.fanAll = !UI.fanAll; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
