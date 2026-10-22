@@ -2453,7 +2453,7 @@ const SPLITS = [
   [.3, '专辑收入', x => x.src === '专辑'],
   [.4, '品牌合作 · 广告代言', x => x.src === '代言' || /广告|画报|品牌|代言|时装|秀场|开幕|新店|门店/.test(x.title)],
   [.4, '视频通话签售 · 粉丝见面会', x => /签售|签名|见面会|生日会|Fan ?Meeting|팬미팅|팬사인|사인회/i.test(x.title)],
-  [.5, '大学庆典 · 商业商演', x => /大学(?!路)|庆典|大东祭|入实典|AKARAKA|LUCAUS|商演|演出|演唱会|巡演|音乐节|Live|KCON|Waterbomb|Dream Concert|歌谣|Showcase|路演|Busking|快闪/i.test(x.title)],
+  [.5, '大学庆典 · 商业商演', x => /大学(?!路)|庆典|大东祭|入实典|AKARAKA|LUCAUS|商演|演出|演唱会|Concert|公演|巡演|音乐节|Live|KCON|Waterbomb|Dream Concert|歌谣|Showcase|路演|Busking|快闪/i.test(x.title)],
   [.4, '网综 · 电台 · 采访', () => true]
 ];
 const FINE_SRC = ['取消违约金', '旷工罚款'];
@@ -2489,18 +2489,24 @@ const SCHED_ECON = {
   '打歌': [[/彩排|事前录制/, 0, 0, 300000, 800000, '彩排 / 事前录制'], [/Showcase|showcase/, 0, 0, 5000000, 12000000, 'Showcase 场地制作'], [/./, 0, 0, 1500000, 3000000, '服装妆造 · 舞者 · 工作人员']], // 常规打歌不单独算通告收入，成本公司承担
   '综艺': [[/网综|YouTube|vlog|Vlog|采访|自制/, 300000, 1000000, 300000, 600000, '妆造 · 经纪人'], [/./, 500000, 3000000, 400000, 800000, '妆造 · 服装 · 经纪人']],
   '电台': [[/./, 0, 300000, 100000, 300000, '妆造 · 交通']],
-  '物料': [[/MV 拍摄/, 0, 0, 30000000, 80000000, 'MV 制作'], [/封面|预告照/, 0, 0, 5000000, 15000000, '摄影棚 · 造型 · 后期'], [/Dance Practice|舞蹈挑战|Vlog/, 0, 0, 1000000, 4000000, '拍摄制作'], [/画报/, 500000, 3000000, 300000, 800000, '妆造'], [/广告/, 1000000, 10000000, 300000, 1000000, '妆造'], [/./, 0, 300000, 300000, 800000, '妆造 · 交通']],
+  '物料': [[/MV 拍摄/, 0, 0, 30000000, 80000000, 'MV 制作'], [/封面|预告照/, 0, 0, 5000000, 15000000, '摄影棚 · 造型 · 后期'], [/Dance Practice|舞蹈挑战|Vlog/, 0, 0, 1000000, 4000000, '拍摄制作'], [/花絮|Behind|Q&A|翻唱视频|短视频/, 0, 0, 500000, 2000000, '拍摄制作'], [/画报/, 500000, 3000000, 300000, 800000, '妆造'], [/广告/, 1000000, 10000000, 300000, 1000000, '妆造'], [/./, 0, 300000, 300000, 800000, '妆造 · 交通']],
   '签售': [[/视频通话/, 0, 0, 300000, 800000, '平台 · 工作人员'], [/./, 0, 0, 1000000, 3000000, '场地 · 工作人员 · 小礼物']],
   '公演': [[/大学(?!路)|大东祭|入实典|AKARAKA|LUCAUS/, 3000000, 10000000, 1000000, 2500000, '舞者 · 妆造 · 交通'], [/路演|Busking|busking|军队|公益/, 0, 0, 300000, 800000, '音响 · 交通'], [/歌谣|KCON|Music Bank World|Dream Concert|Waterbomb|音乐节/, 0, 3000000, 1500000, 4000000, '服装妆造 · 舞者'], [/./, 1000000, 5000000, 800000, 2000000, '舞者 · 妆造 · 音响']],
   '校庆': [[/./, 3000000, 10000000, 1000000, 2500000, '舞者 · 妆造 · 交通']],
-  '活动': [[/新歌宣传快闪/, 0, 0, 100000, 300000, '妆造 · 交通'], [/快闪店嘉宾|品牌快闪/, 800000, 2500000, 200000, 500000, '妆造 · 造型'], [/粉丝见面会/, 300000, 1200000, 200000, 500000, '妆造 · 场地布置'], [/开幕嘉宾/, 1000000, 3000000, 200000, 500000, '妆造'], [/AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/, 0, 0, 2000000, 6000000, '颁奖礼服装 · 舞台准备'], [/机场|观演|试映|探访|Weverse|会议|生日会|见面会/, 0, 0, 100000, 400000, '妆造 · 交通'], [/品牌|代言|快闪|时装周|秀场/, 1000000, 10000000, 500000, 1500000, '妆造 · 服装'], [/公益/, 0, 0, 200000, 500000, '妆造'], [/./, 1000000, 5000000, 800000, 2000000, '妆造 · 舞者 · 工作人员']],
+  '活动': [[/新歌宣传快闪/, 0, 0, 100000, 300000, '妆造 · 交通'], [/粉丝互动快闪/, 0, 500000, 200000, 500000, '妆造 · 场地布置'], [/唱片店一日/, 0, 500000, 100000, 300000, '妆造 · 交通'], [/一日店员|店铺访问|新品体验|社交媒体宣传/, 500000, 2000000, 200000, 500000, '妆造 · 造型'], [/快闪店嘉宾|品牌快闪/, 800000, 2500000, 200000, 500000, '妆造 · 造型'], [/粉丝见面会/, 300000, 1200000, 200000, 500000, '妆造 · 场地布置'], [/开幕嘉宾/, 1000000, 3000000, 200000, 500000, '妆造'], [/AWARDS|Awards|颁奖|大赏|金唱片|MAMA|AAA|MMA|SMA/, 0, 0, 2000000, 6000000, '颁奖礼服装 · 舞台准备'], [/机场|观演|试映|探访|Weverse|会议|生日会|见面会/, 0, 0, 100000, 400000, '妆造 · 交通'], [/品牌|代言|快闪|时装周|秀场/, 1000000, 10000000, 500000, 1500000, '妆造 · 服装'], [/公益/, 0, 0, 200000, 500000, '妆造'], [/./, 1000000, 5000000, 800000, 2000000, '妆造 · 舞者 · 工作人员']],
   '演唱会': [[/彩排/, 0, 0, 3000000, 8000000, '彩排场地']],
   '上课': [[/./, 0, 0, 80000, 200000, '课时费（公司垫付）']]
 };
 // 运气 + 热度 + 粉丝：0~1
 function luckQ() { const f = S.profile.followers, fq = clamp(Math.log10(Math.max(f, 1) / 5000) / Math.log10(40), 0, 1), hq = clamp((heat() - .6) / 1.2, 0, 1); return clamp(.3 * fq + .35 * hq + .35 * Math.random(), 0, 1); }
 function schedEcon(r) {
-  if (r.cat === '演唱会' && !/彩排/.test(r.title)) { const f = S.profile.followers, gross = f * rand(.05, .1) * 110000 * buzzNow(); return { gross, cost: gross * rand(.55, .8), why: '场馆 · 舞台制作 · 乐队舞者' }; }
+  if (r.cat === '演唱会' && !/彩排/.test(r.title)) {
+    const f = S.profile.followers, t = r.title + ' ' + (r.loc || '');
+    if (/联合/.test(t)) return { gross: rand(3e6, 1.2e7) * buzzNow(), cost: rand(1e6, 3e6), why: '妆造 · 舞者 · 乐队' }; // 联合演唱会：拿出场费，不是自己卖票
+    if (/线上/.test(t)) { const gross = f * rand(.02, .05) * 33000 * buzzNow(); return { gross, cost: gross * rand(.4, .6), why: '直播制作 · 平台' }; }
+    const cap = /Mini Concert|100–200/.test(t) ? 200 : /Acoustic/.test(t) ? 300 : /生日特别/.test(t) ? 500 : /Musinsa Garage/.test(t) ? 700 : /Wanderloch/.test(t) ? 1000 : Infinity; // 场馆坐得下多少人
+    const gross = Math.min(f * rand(.05, .1), cap * rand(.85, 1)) * 110000 * buzzNow(); return { gross, cost: gross * rand(.55, .8), why: '场馆 · 舞台制作 · 乐队舞者' };
+  }
   const row = (SCHED_ECON[r.cat] || []).find(x => x[0].test(r.title)); if (!row) return null;
   const q = luckQ(); return { gross: row[1] + (row[2] - row[1]) * Math.pow(q, 1.3), cost: rand(row[3], row[4]), why: row[5] };
 }
@@ -3196,9 +3202,11 @@ function mgrMakeOffer() {
   const w = [['综艺', 3 + K.variety / 25], ['电台', 2 + K.vocal / 40], ['活动', 2.5], ['物料', 1.5 + K.face / 40], ['公演', 2]];
   if ([3, 4, 5, 9, 10, 11].includes(mo)) w.push(['校庆', 2 + K.stamina / 50]);
   let x = Math.random() * w.reduce((s, a) => s + a[1], 0), cat = w[0][0]; for (const [c, v] of w) { x -= v; if (x <= 0) { cat = c; break; } }
-  const big = /认识的哥哥|Running Man|Radio Star|惊人的星期六|我独自生活|你好|玩什么好呢|VOGUE|ELLE|W Korea|Dazed|延世|高丽|KCON|Dream Concert|Waterbomb|Music Bank World/;
-  let pool = (cat === '校庆' ? UNIV_FEST : [...(PRESETS[cat] || []), ...(MGR_ONLY[cat] || [])]).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
-  pool = pool.filter(([t]) => (f >= 80000 || !big.test(t) || Math.random() < .05) && !Object.values(POPUPS).some(p => p.re.test(t)));
+  const big = /认识的哥哥|Running Man|Radio Star|惊人的星期六|我独自生活|你好|玩什么好呢|Pinggyego|Salon Drip|짠한형|Studio Choom|Killing Voice|Leemujin|VOGUE|ELLE|W Korea|Dazed|延世|高丽|成均馆|KCON|Dream Concert|Waterbomb|Music Bank World|时装周|秀场|海外 Showcase/;
+  let pool = (cat === '校庆' ? UNIV_FEST : [...(MGR_POOL[cat] || PRESETS[cat] || []), ...(MGR_ONLY[cat] || [])]).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
+  // 大型邀约（大综艺、大型公演、大校庆、高端画报）：不只看粉丝数，近期音源、销量、一位、话题热度一起算；STARSHIP 有一点资源加成
+  const Y = yearStats(), bigSc = 1.05 * (.3 * Math.min(1.5, Math.sqrt(Y.fol / 80000)) + .2 * Math.min(1.5, Math.sqrt(Y.strm / 2.5e7)) + .15 * Math.min(1.5, Math.sqrt(Y.alb / 50000)) + .15 * Math.min(1, Y.wins) + .2 * clamp((heat() - .6) / .7, 0, 1.5)), bigP = clamp((bigSc - .55) * 1.4, .03, .7);
+  pool = pool.filter(([t]) => (!big.test(t) || Math.random() < bigP) && !Object.values(POPUPS).some(p => p.re.test(t)));
   if (!pool.length) return null;
   let [title, loc] = pick(pool), pop = null;
   if (cat === '活动' && f < POP_MAX && Math.random() < .6) { pop = popupOffer(); title = pop.title; loc = pop.loc; }
@@ -6126,6 +6134,28 @@ const CAT_ORDER = ['练习', '签售', '上课', '电台', '公演', '综艺', '
 // 其他：艺人自己在宿舍 / 工作室处理的个人工作（没有通告卡、收入和罚款）
 PRESETS['其他'] = [['音乐创作', '宿舍'], ['专辑录音', '公司 录音室'], ['回归企划会议', '公司 会议室'], ['线上会议', '宿舍'], ['个人内容制作', '宿舍'], ['个人工作', '宿舍'], ['个人学习', '宿舍']];
 { const P = { ...PRESETS }; for (const k of Object.keys(PRESETS)) delete PRESETS[k]; for (const c of CAT_ORDER) PRESETS[c] = P[c]; }
+// 经纪人接洽的池子沿用原来的完整清单（大型综艺、颁奖、海外、大型校庆等都还能由经纪人邀约）；行程后台手动预设只留下面这份
+const MGR_POOL = { ...PRESETS };
+Object.assign(PRESETS, {
+  '打歌': [['KBS《Music Bank》', 'KBS 汝矣岛新馆公开厅'], ['MBC《Show! 音乐中心》', 'MBC 上岩公开厅'], ['SBS《人气歌谣》', 'SBS 上岩 Prism Tower'], ['Mnet《M Countdown》', 'CJ ENM 上岩中心'], ['SBS funE《THE SHOW》', 'SBS 上岩 Prism Tower'], ['MBC M《Show Champion》', 'MBC 一山 Dream Center'],
+    ['《Music Bank》事前录制', 'KBS 汝矣岛新馆公开厅'], ['《人气歌谣》事前录制', 'SBS 上岩 Prism Tower'], ['《M Countdown》事前录制', 'CJ ENM 上岩中心'], ['打歌彩排', ''], ['回归 Showcase', '小型演出场地 / 媒体活动场地'], ['回归媒体采访', '电视台 / 公司'], ['打歌后台短采访', ''], ['打歌结束粉丝 Mini Meeting', '电视台附近指定场地']],
+  '上课': [['声乐课', '公司 声乐室'], ['舞蹈课', '公司 练习室'], ['表演课', '公司 表演教室'], ['Rap 课', '公司 练习室'], ['韩语课', '公司 会议室'], ['英语课', '公司 会议室'], ['作曲课', '公司 工作室'], ['音乐制作课', '公司 工作室']],
+  '综艺': [['网综 嘉宾录制', '录制场地'], ['YouTube 频道合作', '录制场地'], ['偶像 YouTube 访谈', '录制场地'], ['Arirang TV《After School Club》', 'Arirang TV 演播室'], ['Arirang TV《Pops in Seoul》', 'Arirang TV 演播室'], ['地方台综艺', '地方电视台'],
+    ['音乐节目后台采访', ''], ['游戏 / 料理类网综', '摄影棚 / 外景'], ['同期好友 Vlog 客串', '公司 / 外景'], ['自制综艺拍摄', '公司 / 外景']],
+  '电台': [['电台嘉宾（深夜档）', '广播中心'], ['地方电台访谈', '地方广播中心'], ['播客 Podcast 录制', '录音室'], ['Naver NOW 直播节目', '录制场地'], ['SBS PowerFM《Cultwo Show》', 'SBS 木洞广播中心'], ['SBS PowerFM《朴笑炫的 Love Game》', 'SBS 木洞广播中心'],
+    ['MBC《Idol Radio》', '指定录制场地'], ['MBC《正午的希望歌谣》', 'MBC 上岩广播中心'], ['KBS CoolFM《Volume Up》', 'KBS 汝矣岛广播中心'], ['KBS CoolFM《Kiss the Radio》', 'KBS 汝矣岛广播中心'], ['电台可视直播', '广播中心'], ['网络音乐播客访谈', '录音室']],
+  '物料': [['MV 拍摄', '外景 / 摄影棚'], ['专辑封面拍摄', '摄影棚'], ['预告照拍摄', '摄影棚'], ['Dance Practice 拍摄', '公司 练习室'], ['舞蹈挑战拍摄', '公司 / 电视台后台'], ['1theK《Relay Dance》', '1theK 演播室'], ['《It\'s Live》', '录制场地'],
+    ['Vlog 拍摄', '宿舍 / 外景'], ['采访', '公司 / 录制场地'], ['专辑幕后花絮拍摄', '公司 / 摄影棚'], ['录音室 Behind 拍摄', '公司 录音室'], ['回归纪念 Q&A 拍摄', '公司'], ['特别翻唱视频拍摄', '录音室 / 摄影棚'], ['社交平台短视频拍摄', '公司 / 外景']],
+  '签售': [['小型签名会', '指定签售场地'], ['唱片店签售', '唱片店'], ['线上 Fan Meeting', '公司'], ['线下签售会', '弘大 签售场'], ['线下签售会', '江南 COEX 内指定活动空间'], ['视频通话签售（Soundwave）', '公司'], ['视频通话签售（Withmuu）', '公司'], ['视频通话签售（Makestar）', '公司'],
+    ['Apple Music 签售', '指定签售场地'], ['小型粉丝见面会', '小型活动厅'], ['生日见面会', '小型活动厅'], ['回归纪念特别签售', '指定签售场地'], ['限定人数 Mini Fan Meeting', '小型活动厅']],
+  '公演': [['弘大 Live Club 演出', '弘大 Rolling Hall'], ['小型 Live', 'KT&G 想象Madang Live Hall'], ['小型 Live', 'YES24 Wanderloch Hall'], ['小型 Live', 'Musinsa Garage'], ['路演 Busking', '弘大'], ['路演 Busking', '延南洞'], ['商场路演', '商场活动区域'],
+    ['大学路 小剧场演出', '大学路'], ['地方庆典 / 市民节', '地方庆典场地'], ['军队慰问演出', '军队指定场地'], ['线上 Live 演出', '公司 / 摄影棚'], ['合作舞台（和前辈 / 同期）', '指定演出场地'], ['音乐节演出', '音乐节场地'], ['地方庆典演出', '地方活动场地'],
+    ['地方青年音乐节', '地方演出场地'], ['小型品牌音乐会', '品牌活动场地'], ['拼盘演唱会', '演出场地'], ['新人音乐人联合公演', 'Live Hall'], ['韩国外国语大学 庆典', '韩国外国语大学'], ['釜山大学 庆典', '釜山大学'], ['中小型大学校庆', '大学指定舞台']],
+  '活动': [['商场 / 新店开幕嘉宾', '商场'], ['公益活动', '活动场地'], ['唱片店新歌宣传快闪', '唱片店'], ['咖啡厅粉丝见面会', '咖啡厅'], ['生日应援咖啡店探访', '弘大 / 圣水洞'], ['粉丝 Mini 生日会', '小型活动空间'], ['商场签名活动', '商场'],
+    ['美妆品牌快闪店嘉宾活动', '圣水洞'], ['服装品牌快闪', '圣水洞'], ['Weverse Live', '宿舍 / 公司'], ['小型品牌新品体验活动', '品牌门店'], ['美妆品牌一日店员', '品牌门店'], ['服装品牌店铺访问', '品牌门店'], ['唱片店一日特别嘉宾', '唱片店'],
+    ['小型公益宣传活动', '活动场地'], ['品牌社交媒体宣传活动', '品牌活动场地'], ['小型粉丝互动快闪', '品牌门店 / 小型活动场地']],
+  '演唱会': [['首场 Solo Mini Concert', '100–200 人小型演出场地'], ['小型演唱会', 'YES24 Wanderloch Hall'], ['小型演唱会', 'Musinsa Garage'], ['Acoustic Live Concert', '小型 Live Hall'], ['生日特别演唱会', '小型演出场地'], ['线上演唱会', '公司 / 摄影棚'], ['联合演唱会', '指定演出场地'], ['演唱会彩排', '']]
+});
 // 经纪人接下来的行程：后台只能看，不能改 / 删
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
 function rulesFor(k) {
@@ -8023,7 +8053,7 @@ function adminHTML(edit) {
   return `<div class="row"><h3 style="flex:1">⚙ 行程后台</h3><button class="btn ghost sm" data-act="close">完成</button></div>
   ${edit ? '' : `<div class="card">
     <b>从预设选择</b> <span class="muted">选好后在下面填写时间</span>
-    <input id="preset-q" placeholder="搜索预设，如：Music Bank、延世、画报" value="${esc(UI.presetQ || '')}" style="margin:8px 0">
+    <input id="preset-q" placeholder="搜索预设，如：Music Bank、校庆、签售" value="${esc(UI.presetQ || '')}" style="margin:8px 0">
     <div class="pcats">${Object.keys(PRESETS).map(c => `<button class="pcat ${c === UI.presetCat && !UI.presetQ ? 'on' : ''}" data-act="pcat" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
     <div class="plist" id="plist">${presetListHTML()}</div>
   </div>`}
