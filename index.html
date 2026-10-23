@@ -283,6 +283,12 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .kk-b.me{background:#fee500;color:#191919;border-radius:14px 4px 14px 14px}
 .kk-b.me.cont{border-radius:14px}
 #demo-ly{position:fixed;inset:0;z-index:160;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}.demo-card{background:var(--card);color:var(--text);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom))}
+#sheet .mt-prop{margin:0 0 8px;padding:12px}.mt-log{display:flex;flex-direction:column;gap:6px;margin-top:6px}.mt-co{background:var(--bg);border-radius:12px;padding:8px 11px;font-size:13.5px;line-height:1.5;max-width:92%}.mt-co span{display:block;font-size:11.5px;color:var(--muted);margin-bottom:2px}.mt-me{align-self:flex-end;background:var(--accent);color:#fff;border-radius:12px;padding:8px 11px;font-size:13.5px;max-width:85%;white-space:pre-wrap}.mt-sum{margin-top:10px;border:2px solid}
+.pp-ph{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.pp-pi{position:relative;aspect-ratio:4/5;border-radius:8px;overflow:hidden;background:var(--bg);display:grid;place-items:center;color:var(--muted);font-size:22px}.pp-pi img{width:100%;height:100%;object-fit:cover}.pp-pi button{position:absolute;top:3px;right:3px;border:0;background:rgba(0,0,0,.5);color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;padding:0}.pp-pi.add{border:1.5px dashed var(--line);cursor:pointer}
+.off-av{width:40px;height:40px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;flex:none}.off-b{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:6px;background:#191919;color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.4px;vertical-align:2px}.op-head{display:flex;gap:10px;align-items:center}.off-pin{font-size:11.5px;color:var(--muted);margin-bottom:6px}.off-tx{white-space:pre-wrap;font-size:14.5px;line-height:1.55;margin:8px 0 10px}.off-tag{color:#2f6fd6}.off-act{display:flex;gap:18px;color:var(--muted);font-size:13px;margin-top:10px}.off-cm{margin-top:10px;border-top:1px solid var(--line);padding-top:8px;font-size:13px;line-height:1.7}.off-cm b{font-weight:600;margin-right:6px}
+.op-poster{border-radius:12px;aspect-ratio:4/5;position:relative;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:18px}.op-poster .t1{font-size:10.5px;letter-spacing:3px;opacity:.85}.op-poster .t2{font-size:30px;font-weight:800;letter-spacing:2px;margin:4px 0 2px;word-break:break-word}.op-poster .t3{font-size:11.5px;opacity:.9}
+.op-sched{background:#f4f1ea;color:#1f2a3a;aspect-ratio:4/5;border-radius:12px;padding:20px 18px;display:flex;flex-direction:column}.op-sched h4{margin:0;font-size:10.5px;letter-spacing:3px;color:#6b7686}.op-sched h2{margin:2px 0 12px;font-size:24px;letter-spacing:1px;word-break:break-word}.op-q{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed #cfc8b8}.op-q b{font-weight:600}.op-f{margin-top:auto;font-size:10.5px;letter-spacing:2px;text-align:right;color:#6b7686}
+.op-trk{background:#0f1622;color:#e8eef7;aspect-ratio:4/5;border-radius:12px;padding:22px 20px;display:flex;flex-direction:column}.op-trk h2{margin:0 0 16px;font-size:22px;letter-spacing:2px;word-break:break-word}.op-w{font-size:13.5px;padding:5px 0;display:flex;gap:10px}.op-w .n{opacity:.5;width:18px}.op-w .tt{margin-left:6px;font-size:10px;border:1px solid #9fb6d6;border-radius:4px;padding:0 5px;color:#9fb6d6}
 .kk-b.att{background:none!important;padding:0;border-radius:0}
 .kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
 .kk-ph{width:160px;height:180px;max-width:52vw;border-radius:14px;background:linear-gradient(160deg,#d5dbe2,#aeb8c4);color:#fff;display:grid;place-items:center;position:relative}.kk-ph.v{background:linear-gradient(160deg,#5f6772,#2d323a)}.kk-ph em{position:absolute;right:9px;bottom:7px;font-style:normal;font-size:12px}
@@ -1848,7 +1854,7 @@ function cbHTML() {
       ${prepHTML()}
       ${(c.res || []).length ? `<div style="margin-top:8px">${c.res.map(x => `<div class="rule"><span style="flex:1">${esc(x.label || '第' + x.w + '周')} · 《${esc(x.song || albTitle(a))}》${x.gigs != null ? `<span class="muted" style="font-size:12px"> · 打歌 ${x.gigs} 次</span>` : ''}</span><b>${x.rank === 1 ? '🏆 一位' : '第 ' + x.rank + ' 位'}</b></div>`).join('')}</div>` : ''}`;
   }
-  return top;
+  return top + libHTML(); // 公司曲库：随时可以手动加 demo
 }
 function discoHTML() {
   const list = disco().slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''));
@@ -2283,7 +2289,7 @@ function mzRevise(id) {
    💿 回归准备：企划 → 制作 → 公开预热 → 发行活动（接在现有「计划回归」上）
    ========================================================= */
 const PREP_T = [
-  ['concept', '确定专辑概念', 'co'], ['pick', '候选歌曲筛选', 'co'], ['final', '确定最终曲目', 'co'], ['prod', '正式制作（作词 · 编曲 · 混音）', 'co'],
+  ['concept', '企划会议 · 确定概念', 'me'], ['pick', '公司推荐曲目', 'co'], ['final', '选定收录曲和主打', 'me'], ['prod', '正式制作（作词 · 编曲 · 混音）', 'co'],
   ['rec', '正式录音', 'me'], ['dance', '舞蹈学习及排练', 'me'], ['mv', 'MV 拍摄', 'me'], ['photo', '概念照拍摄', 'me'], ['promo', '宣传物料拍摄', 'me'], ['check', '发行前最终确认', 'co']
 ];
 const PREP_KEY = ['final', 'prod', 'rec']; // 关键：没完成就不能发行
@@ -2306,7 +2312,7 @@ function prepNew(a, date, tracksGiven) {
   const t = {}; for (const [k] of PREP_T) t[k] = { done: false };
   for (const k of ['rec', 'dance', 'mv', 'photo', 'promo']) Object.assign(t[k], { need: PREP_NEED[k][a.type] || PREP_NEED[k].single, prog: 0 });
   if (a.mood === 'ballad') t.dance.need = Math.round(t.dance.need * .35); // 抒情主打不需要高强度编舞
-  const P = { v: 1, created: today, scale: sc, t, cands, pref: '', dance: a.mood !== 'ballad', log: {}, delays: 0, ann: {} };
+  const P = { v: 2, created: today, scale: sc, t, cands: [], pref: '', dance: a.mood !== 'ballad', log: {}, delays: 0, ann: {} };
   P.conceptAt = addDays(today, Math.round(4 * sc)); P.pickAt = addDays(today, Math.max(2, Math.round(10 * sc))); P.finalDays = Math.max(1, Math.round(2 * sc)); P.prodDays = Math.max(3, Math.round(({ single: 7, mini: 12, full: 18 }[a.type] || 7) * sc));
   if (tracksGiven) { t.pick = { done: true, at: today, by: 'me' }; t.final = { done: true, at: today, by: 'me' }; P.finalAt = today; }
   return P;
@@ -2366,7 +2372,7 @@ function prepTick() {
       const res = (S.schedule.res || {})[key]; if (['练习', '物料'].includes(r.cat) && !res && k === today) continue; // 等通告结果
       if (res && ['旷', '缺'].includes(res.grade)) { P.log[key] = { skip: 'absent' }; continue; }
       const hrs = Math.min((e - s) / 60, 10), tk = r.cbTask;
-      if (tk === 'meet') { P.log[key] = { hrs, tk }; if (!t.concept.done) { t.concept = { done: true, at: k }; pushNotif({ type: 'cb', text: `💿 《${a.name}》专辑概念定下来了`, sub: '企划会议上和制作团队一起敲定了方向' }, true); } continue; }
+      if (tk === 'meet') { P.log[key] = { hrs, tk }; continue; } // 概念在会议弹窗里定
       const T0 = t[tk]; if (!T0 || T0.done) { P.log[key] = { hrs, tk, note: 'done' }; continue; }
       const need = tk === 'photo' || tk === 'promo' ? t.concept.done : t.final.done;
       if (!need) { P.log[key] = { hrs, tk, blocked: 1 }; pushNotif({ type: 'cb', text: `💿 「${r.title}」没算进回归准备`, sub: tk === 'photo' || tk === 'promo' ? '专辑概念还没定，先开企划会议' : '最终曲目还没定，正式录音 / 编舞 / MV 要等选曲结束' }, true); continue; }
@@ -2376,9 +2382,9 @@ function prepTick() {
     }
   }
   // ② 公司负责的任务
-  if (!t.concept.done && today >= P.conceptAt) { t.concept = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》专辑概念定下来了`, sub: '企划团队整理好了这次的概念方向' }, true); }
-  if (t.concept.done && !t.pick.done && today >= P.pickAt) { prepSelect(o); t.pick = { done: true, at: today }; const mine = P.sel.list.filter(x => x.mine); pushNotif({ type: 'cb', text: `💿 STARSHIP 制作团队完成了《${a.name}》的选曲`, sub: mine.length ? `你的作品入选了：${mine.map(x => '《' + x.name + '》' + (x.title ? '（主打）' : '')).join('、')}` : `从 ${prepPool(o).length} 首候选里选了 ${P.sel.list.length} 首` }, true); }
-  if (t.pick.done && !t.final.done && today >= addDays(t.pick.at, P.finalDays)) { prepFinalize(o); t.final = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》最终曲目确定`, sub: `主打《${albTitle(a)}》· 共 ${a.tracks.length} 首。可以开始正式录音和练舞了` }, true); }
+  cbFlowTick();
+  if (P.v < 2 && t.concept.done && !t.pick.done && today >= P.pickAt) { prepSelect(o); t.pick = { done: true, at: today }; const mine = P.sel.list.filter(x => x.mine); pushNotif({ type: 'cb', text: `💿 STARSHIP 制作团队完成了《${a.name}》的选曲`, sub: mine.length ? `你的作品入选了：${mine.map(x => '《' + x.name + '》' + (x.title ? '（主打）' : '')).join('、')}` : `从 ${prepPool(o).length} 首候选里选了 ${P.sel.list.length} 首` }, true); }
+  if (P.v < 2 && t.pick.done && !t.final.done && today >= addDays(t.pick.at, P.finalDays)) { prepFinalize(o); t.final = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》最终曲目确定`, sub: `主打《${albTitle(a)}》· 共 ${a.tracks.length} 首。可以开始正式录音和练舞了` }, true); }
   if (t.final.done && !t.prod.done && t.rec.done && today >= addDays(P.finalAt || t.final.at, P.prodDays) && today >= addDays(t.rec.at, 2)) { t.prod = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》正式制作完成`, sub: '作词、编曲、混音和母带都完成了' }, true); }
   if (t.final.done) for (const w of mz().works) if (w.status === 'cbcand') w.status = 'hold'; // 曲目定了，没选上的候选放回曲库
   if (!P.dance && !t.dance.done) { t.dance = { ...t.dance, done: true, at: today, skip: 1 }; }
@@ -2412,7 +2418,240 @@ function prepCancel() {
     if (w.status === 'cbcand') w.status = 'hold';
   }
 }
+/* =========================================================
+   💿 回归流程（第二版）
+   ① 企划会议：开会弹窗，企划组拿出概念提案，你可以选、可以自己说想法（AI 读了再回应），最后定下概念
+   ② 公司曲库：你自己放进去的 demo（加上你作品库里投给公司的），公司只从这里面推荐，不会编歌
+   ③ 选曲：公司按概念推荐，最终收录曲和主打由你定，公司收到后确认
+   ④ 专辑制作：曲目定下后、录音完成前，可以编辑专辑简介、每首歌的介绍、封面、概念照
+   ⑤ 预热期：官方账号按日程在社区发预告，粉丝会有反应
+   ========================================================= */
+function cbLib() { const L = S.cbLib || (S.cbLib = []); return L; }
+const LIB_NEED = { single: [1, 2], mini: [4, 6], full: [8, 12] };
+// 能用来选的歌：曲库里没被用过的 + 你作品库里投给公司 / 在公司曲库里的 demo
+function libPool(alb) {
+  const out = cbLib().filter(x => !x.used || x.used === alb).map(x => ({ id: x.id, name: x.name, genre: x.genre || '', tags: x.tags || '', writer: x.writer || '', desc: x.desc || '', src: '公司曲库' }));
+  for (const w of mz().works) if (['cbcand', 'cand', 'hold', 'demo', 'submitted'].includes(w.status) || (w.status === 'adopted' && w.adopted && w.adopted.for === 'company' && !w.adopted.album)) out.push({ id: w.id, name: mzName(w), genre: w.genre || '', tags: '', writer: S.profile.name, desc: (w.note || w.memo || '').slice(0, 80), src: '你的作品', mine: 1 });
+  return out;
+}
+function libHTML() {
+  const L = cbLib(), F = UI.libF;
+  const row = x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${[x.genre, x.tags, x.writer].filter(Boolean).map(esc).join(' · ')}${x.used ? ` · 已用于《${esc((disco().find(a => a.id === x.used) || {}).name || '')}》` : ''}</div>${x.desc ? `<div style="font-size:12.5px;margin-top:2px">${esc(x.desc)}</div>` : ''}</div><button class="link" data-act="libedit" data-id="${x.id}">编辑</button></div>`;
+  const form = F ? `<div class="card" style="margin:8px 0">
+      <div class="field"><label>曲名</label><input id="lib-n" value="${esc(F.name || '')}" placeholder="Demo 的名字"></div>
+      <div class="grid2"><div class="field"><label>曲风</label><select id="lib-g">${MZ_GENRES.map(g => `<option ${F.genre === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
+        <div class="field"><label>作词 / 作曲</label><input id="lib-w" value="${esc(F.writer || '')}"></div></div>
+      <div class="field"><label>风格关键词</label><input id="lib-t" value="${esc(F.tags || '')}" placeholder="比如：冬天、失恋、清冷、合成器"></div>
+      <div class="field"><label>简介</label><textarea id="lib-d" style="min-height:70px">${esc(F.desc || '')}</textarea></div>
+      <div class="row">${F.id ? `<button class="link" data-act="libdel" data-id="${F.id}" style="color:var(--danger)">删除</button>` : ''}<span class="sp"></span><button class="btn ghost sm" data-act="libcancel">取消</button><button class="btn primary sm" data-act="libsave">保存</button></div></div>` : '';
+  return `<details class="me-more" ${UI.libOpen ? 'open' : ''} data-libdet><summary>STARSHIP 曲库（${L.length}）</summary>${form}${L.map(row).join('') || '<div class="muted" style="font-size:13px;padding:6px 0">还没有 demo</div>'}${F ? '' : '<button class="link" data-act="libadd" style="margin-top:6px">＋ 添加 demo</button>'}</details>`;
+}
+function libSave() {
+  const n = ($('#lib-n')?.value || '').trim().replace(/[《》]/g, ''); if (!n) return toast('写一下曲名');
+  const F = UI.libF, x = F.id ? cbLib().find(y => y.id === F.id) : null, v = { name: n, genre: $('#lib-g').value, writer: ($('#lib-w').value || '').trim(), tags: ($('#lib-t').value || '').trim(), desc: ($('#lib-d').value || '').trim() };
+  if (x) Object.assign(x, v); else cbLib().push({ id: 'lib' + uid(), at: Date.now(), ...v });
+  UI.libF = null; UI.libOpen = 1; save(); render();
+}
+
+/* ---------- ① 企划会议 ---------- */
+const CONCEPT_PRESET = [
+  { name: '初雪告白', kw: ['冬天', '清冷', '心动'], desc: '第一场雪落下时说出口的心意。画面以白和冰蓝为主，干净、安静但有温度。', color: '#7fa6cf', music: '合成器流行，轻快的节拍配上空灵的副歌', visual: '雪地、温室、玻璃窗上的雾气' },
+  { name: '午夜电台', kw: ['复古', '都市', '孤独'], desc: '凌晨两点的城市和一个人收听的电台。带一点 City Pop 的怀旧和寂寞感。', color: '#3b3f6b', music: 'City Pop / R&B，贝斯线突出', visual: '霓虹、出租车后座、旧式收音机' },
+  { name: '少女英雄', kw: ['帅气', '自信', '能量'], desc: '把平凡的自己当成主角的故事，强烈的舞台感和自信的表情。', color: '#d64545', music: '强节奏舞曲，副歌有记忆点的口号', visual: '漫画分镜、街头、红色制服' },
+  { name: '温室花园', kw: ['温柔', '成长', '自然'], desc: '在玻璃温室里慢慢长大的植物，讲安静的成长和自我照顾。', color: '#6f9a6a', music: '原声吉他 + 轻快的流行节奏', visual: '温室、植物、自然光' },
+  { name: '镜中人', kw: ['神秘', '二面性', '暗黑'], desc: '镜子内外两个自己的对话，更成熟、更有张力的形象转变。', color: '#2b2b33', music: '暗调的电子舞曲，低音厚重', visual: '镜面、黑白对比、碎片' },
+  { name: '夏日汽水', kw: ['清爽', '青春', '活力'], desc: '冒着气泡的夏天和朋友们的笑声，轻松明亮的青春感。', color: '#3fb6c8', music: '明亮的 Pop，口哨和拍手声', visual: '海边、自行车、汽水瓶' }
+];
+function meetState(o) { const P = o.P; return P.meet || (P.meet = { msgs: [], props: [], st: 'open' }); }
+const MEET_WHO = ['企划组组长', '视觉总监', 'A&R'];
+async function meetStart(o) {
+  const M = meetState(o); if (M.props.length || M.gen) return; M.gen = 1;
+  const { a } = o, past = released().slice(-3).map(x => `《${x.name}》${x.intro ? '：' + x.intro.slice(0, 40) : ''}`).join('；');
+  let props = null;
+  if (aiOn()) try { const j = await aiRaw([{ type: 'text', text: `你是 STARSHIP 娱乐的回归企划组。艺人 ${S.profile.name}（女，solo，${S.profile.followers} 粉丝）准备${ALB_TYPE[a.type] || ''}《${a.name}》，曲风方向：${(MOODS[a.mood] || [''])[0]}。之前的作品：${past || '（暂无）'}。\n提出 3 个风格差别明显、贴近现实 K-pop 企划的概念方案。每个方案：name 概念名（中文，4~8 字）、kw 3 个关键词、desc 两句话说明故事和氛围、color 主色（#hex）、music 音乐方向一句、visual 视觉参考一句。` }], 900,
+    { type: 'object', additionalProperties: false, required: ['props'], properties: { props: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'kw', 'desc', 'color', 'music', 'visual'], properties: { name: { type: 'string' }, kw: { type: 'array', items: { type: 'string' } }, desc: { type: 'string' }, color: { type: 'string' }, music: { type: 'string' }, visual: { type: 'string' } } } } } }); props = (j.props || []).slice(0, 3); } catch (e) { }
+  if (!props || !props.length) props = pickN(CONCEPT_PRESET, 3).map(x => ({ ...x }));
+  M.props = props; M.gen = 0;
+  M.msgs.push({ who: MEET_WHO[0], text: `今天主要定《${a.name}》的概念方向。我们先准备了三个方案，你看看有没有喜欢的，也可以直接说你自己想做的。` });
+  save(); if (UI.meet) openModal(meetHTML());
+}
+function meetHTML() {
+  const o = prepOn(); if (!o) return ''; const M = meetState(o), a = o.a;
+  const prop = (x, i) => `<div class="card mt-prop" style="border-left:4px solid ${esc(x.color || '#888')}"><b>方案 ${i + 1} · ${esc(x.name)}</b><div class="muted" style="font-size:12px;margin:2px 0 4px">${(x.kw || []).map(esc).join(' · ')}</div><div style="font-size:13px">${esc(x.desc)}</div><div class="muted" style="font-size:12px;margin-top:4px">🎵 ${esc(x.music || '')}<br>🎬 ${esc(x.visual || '')}</div>${M.st === 'open' ? `<button class="link" data-act="meetpick" data-i="${i}" style="margin-top:4px">我喜欢这个方向</button>` : ''}</div>`;
+  const log = M.msgs.map(m => m.me ? `<div class="mt-me">${esc(m.text)}</div>` : `<div class="mt-co"><span>${esc(m.who)}</span>${esc(m.text)}</div>`).join('');
+  const sum = M.sum ? `<div class="card mt-sum" style="border-color:${esc(M.sum.color || '#888')}"><div class="muted" style="font-size:12px">概念总结</div><b style="font-size:16px">${esc(M.sum.name)}</b><div class="muted" style="font-size:12px;margin:2px 0 6px">${(M.sum.kw || []).map(esc).join(' · ')}</div><div style="font-size:13.5px">${esc(M.sum.desc)}</div><div class="muted" style="font-size:12px;margin-top:6px">🎵 ${esc(M.sum.music || '')}<br>🎬 ${esc(M.sum.visual || '')}</div>${M.st === 'sum' ? `<div class="row" style="margin-top:10px"><button class="btn ghost sm" data-act="meetmore">再聊聊</button><span class="sp"></span><button class="btn primary sm" data-act="meetok">就这么定</button></div>` : ''}</div>` : '';
+  return `<div class="row"><h3 style="flex:1">💿《${esc(a.name)}》回归企划会议</h3><button class="link" data-act="meetclose">${M.st === 'done' ? '关闭' : '先离开'}</button></div>
+    <div class="muted" style="font-size:12px;margin:-4px 0 10px">公司 会议室 · ${MEET_WHO.join('、')}</div>
+    ${M.props.length ? M.props.map(prop).join('') : '<div class="muted" style="padding:14px 0;text-align:center">企划组在整理提案…</div>'}
+    <div class="mt-log" id="mt-log">${log}${M.busy ? '<div class="mt-co muted">…</div>' : ''}</div>${sum}
+    ${M.st === 'open' ? `<div class="row" style="gap:6px;margin-top:8px"><textarea id="mt-in" rows="2" style="flex:1;min-width:0" placeholder="说说你想做的概念、想要的感觉…"></textarea><button class="btn sm" data-act="meetsend">说</button></div>
+      <div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary sm" data-act="meetsum" ${M.msgs.some(m => m.me) ? '' : 'disabled'}>整理成概念</button></div>` : ''}`;
+}
+const meetCtx = (o, M) => `艺人 ${S.profile.name} 的${ALB_TYPE[o.a.type] || ''}《${o.a.name}》企划会议。\n提案：${M.props.map((x, i) => `方案${i + 1}「${x.name}」${x.desc}`).join('；')}\n会议记录：\n${M.msgs.map(m => (m.me ? S.profile.name : m.who) + '：' + m.text).join('\n')}`;
+async function meetSay(text) {
+  const o = prepOn(); if (!o) return; const M = meetState(o); if (M.busy || M.st !== 'open') return;
+  M.msgs.push({ me: 1, text }); M.busy = 1; save(); openModal(meetHTML()); meetScroll();
+  let rs = null;
+  if (aiOn()) try { const j = await aiRaw([{ type: 'text', text: `${meetCtx(o, M)}\n\n你们是公司企划组（${MEET_WHO.join('、')}）。认真读艺人刚才说的话，像真的开会一样回应：先理解和肯定她想法里能用的部分，再从专业角度补充具体做法（音乐、视觉、造型、舞台），有不现实或和她形象冲突的地方要坦白说并给替代方案，必要时追问一个关键问题。1~2 个人发言，每人 1~3 句，口语，中文。` }], 600,
+    { type: 'object', additionalProperties: false, required: ['say'], properties: { say: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['who', 'text'], properties: { who: { type: 'string', enum: MEET_WHO }, text: { type: 'string' } } } } } }); rs = j.say; } catch (e) { }
+  if (!rs || !rs.length) rs = [{ who: MEET_WHO[0], text: pick(['好，这个方向记下来了。具体想怎么呈现？可以再多说一点。', '有意思。我们会把这个想法和提案结合一下，还有别的想加的吗？', '明白了。视觉这边可以往这个感觉靠，你觉得歌曲氛围要更亮还是更暗一点？']) }];
+  M.msgs.push(...rs.slice(0, 2)); M.busy = 0; save(); if (UI.meet) { openModal(meetHTML()); meetScroll(); }
+}
+async function meetSummary() {
+  const o = prepOn(); if (!o) return; const M = meetState(o); if (M.busy) return; M.busy = 1; save(); openModal(meetHTML());
+  let s = null;
+  if (aiOn()) try { s = await aiRaw([{ type: 'text', text: `${meetCtx(o, M)}\n\n把这次会议整理成最终概念：以艺人的想法为主，结合提案里她认可的部分。name 概念名（中文）、kw 3~4 个关键词、desc 三句话（故事 / 氛围 / 想传达的东西）、color 主色 #hex、music 音乐方向、visual 视觉方向。` }], 600,
+    { type: 'object', additionalProperties: false, required: ['name', 'kw', 'desc', 'color', 'music', 'visual'], properties: { name: { type: 'string' }, kw: { type: 'array', items: { type: 'string' } }, desc: { type: 'string' }, color: { type: 'string' }, music: { type: 'string' }, visual: { type: 'string' } } }); } catch (e) { }
+  if (!s || !s.name) { const base = M.props[M.like != null ? M.like : 0] || CONCEPT_PRESET[0], mine = M.msgs.filter(m => m.me).map(m => m.text).join('；'); s = { ...base, desc: base.desc + (mine ? `另外加入你的想法：${mine.slice(0, 80)}` : '') }; }
+  M.sum = s; M.st = 'sum'; M.busy = 0; save(); openModal(meetHTML()); meetScroll();
+}
+function meetScroll() { const sh = $('#sheet'); if (sh) sh.scrollTop = sh.scrollHeight; }
+function meetDone() {
+  const o = prepOn(); if (!o) return; const { a, P, t } = o, M = meetState(o); if (!M.sum) return;
+  M.st = 'done'; P.concept = M.sum; if (!t.concept.done) t.concept = { done: true, at: dkey(Date.now()) };
+  if (!a.intro) a.intro = M.sum.desc;
+  pushNotif({ type: 'cb', text: `💿 《${a.name}》概念定下来了：${M.sum.name}`, sub: (M.sum.kw || []).join(' · ') }, true);
+  mgrSay([`회의 수고했어요! 콘셉트는 '${M.sum.name}'으로 정리해서 제작팀에 넘길게요. 곡은 이 방향으로 추려서 보내줄게요`, `会议辛苦了！概念就按「${M.sum.name}」整理给制作组。歌会按这个方向挑好发给你`]);
+  save(); openModal(meetHTML());
+}
+// 会议时间到了：弹出来；错过了也可以从回归页进去
+function meetTick(o) {
+  const { a, P, t } = o, M = meetState(o); if (t.concept.done || M.st === 'done') return;
+  const dk = dkey(Date.now()), nm = new Date().getHours() * 60 + new Date().getMinutes(), r = rulesFor(dk).find(x => x.cbTask === 'meet' && x.cbAlbum === a.id);
+  if (r && nm >= toMin(r.start) && !M.called) { M.called = dk; mgrSay(['회의실로 와요~ 기획팀 다 모였어요', '来会议室吧~ 企划组都到了']); if (!UI.socPop && !UI.chPop && !$('#modal').classList.contains('on') && !UI.call) { UI.meet = 1; openModal(meetHTML()); meetStart(o); } }
+  if (!t.concept.done && dk >= addDays(P.conceptAt, 4) && !M.sum) { // 一直没开成：公司先按提案定一个
+    const base = M.props[0] || CONCEPT_PRESET[0]; M.sum = base; M.st = 'done'; P.concept = base; t.concept = { done: true, at: dk };
+    pushNotif({ type: 'cb', text: `💿 《${a.name}》概念先按企划组的方案定了：${base.name}`, sub: '企划会议一直没开成' }, true); }
+}
+
+/* ---------- ③ 选曲：公司推荐 → 你定 → 公司确认 ---------- */
+async function pickRecommend(o) {
+  const { a, P } = o; if (P.rec || P.recGen) return; P.recGen = 1;
+  const pool = libPool(a.id), C = P.concept || {}, [lo, hi] = LIB_NEED[a.type] || [1, 2];
+  if (!pool.length) { P.recGen = 0; if (!P.recEmpty) { P.recEmpty = 1; mgrSay([`회사 곡 리스트에 이번 콘셉트에 맞는 데모가 아직 없어요. 데모 들어오면 바로 추려볼게요`, `公司曲库里还没有合适的 demo。等有 demo 进来我们马上挑`]); } return; }
+  let picks = null;
+  if (aiOn()) try { const j = await aiRaw([{ type: 'text', text: `STARSHIP A&R 为 ${S.profile.name} 的${ALB_TYPE[a.type] || ''}《${a.name}》选曲。概念：「${C.name || ''}」${C.desc || ''} 关键词：${(C.kw || []).join('、')}；音乐方向：${C.music || ''}。\n曲库（只能从这里选，用 id）：\n${pool.map(x => `${x.id}｜${x.name}｜${x.genre}｜${x.tags}｜${x.desc}`).join('\n')}\n\n推荐 ${Math.min(pool.length, hi + 2)} 首以内最贴合概念的歌，按合适程度排序，每首写一句推荐理由（中文）；再从里面建议一首主打（title）。` }], 700,
+    { type: 'object', additionalProperties: false, required: ['picks', 'title'], properties: { picks: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['id', 'why'], properties: { id: { type: 'string' }, why: { type: 'string' } } } }, title: { type: 'string' } } });
+    const ok = new Set(pool.map(x => x.id)); picks = (j.picks || []).filter(x => ok.has(x.id)); if (picks.length) P.recTitle = ok.has(j.title) ? j.title : picks[0].id; } catch (e) { }
+  if (!picks || !picks.length) { // 没有 AI：按关键词 / 曲风和概念的重合来排
+    const kw = [...(C.kw || []), ...String(C.music || '').split(/[，、 ,/]+/)].filter(Boolean);
+    picks = pool.map(x => ({ x, s: kw.filter(k => (x.tags + x.desc + x.genre + x.name).includes(k)).length + (prepFit(a, x.genre) / 8) + Math.random() * .3 })).sort((p, q) => q.s - p.s).slice(0, Math.min(pool.length, hi + 2)).map(({ x, s }) => ({ id: x.id, why: s >= 1 ? '和这次概念的关键词对得上' : '曲风和这次的方向比较搭' }));
+    P.recTitle = picks[0].id; }
+  P.rec = { at: Date.now(), list: picks }; P.recGen = 0; o.t.pick = { done: true, at: dkey(Date.now()) };
+  mgrSay([`콘셉트에 맞춰서 곡 추려봤어요. 확인하고 수록곡이랑 타이틀 정해서 알려줘요`, `按概念挑了几首歌，你看看，定好收录曲和主打告诉我`], { type: 'cbpick', id: a.id }); save();
+}
+function pickHTML() {
+  const o = prepOn(); if (!o) return ''; const { a, P } = o, pool = libPool(a.id), rec = (P.rec && P.rec.list) || [], [lo, hi] = LIB_NEED[a.type] || [1, 2];
+  const S0 = UI.pick || (UI.pick = { sel: P.mySel ? [...P.mySel.ids] : [], title: P.mySel ? P.mySel.title : (P.recTitle || '') }), by = id => pool.find(x => x.id === id);
+  const done = P.mySel && P.mySel.ok, lock = !!P.mySel || done;
+  const row = (x, why) => { const on = S0.sel.includes(x.id); return `<div class="rule${on ? ' on' : ''}"><label class="row" style="gap:8px;flex:1;min-width:0;align-items:flex-start"><input type="checkbox" data-act="pickt" data-id="${x.id}" ${on ? 'checked' : ''} ${lock ? 'disabled' : ''} style="width:auto;margin-top:3px"><div style="min-width:0"><b>${esc(x.name)}</b> <span class="muted" style="font-size:11.5px">${esc(x.src)}${x.genre ? ' · ' + esc(x.genre) : ''}</span>${why ? `<div style="font-size:12.5px;color:var(--accent)">${esc(why)}</div>` : ''}${x.desc ? `<div class="muted" style="font-size:12px">${esc(x.desc)}</div>` : ''}</div></label>${on ? `<button class="trk-star ${S0.title === x.id ? 'on' : ''}" data-act="picktitle" data-id="${x.id}" ${lock ? 'disabled' : ''}>★</button>` : ''}</div>`; };
+  const recIds = new Set(rec.map(r => r.id)), rest = pool.filter(x => !recIds.has(x.id));
+  return `<div class="row"><h3 style="flex:1">🎼《${esc(a.name)}》选曲</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="muted" style="font-size:12.5px;margin:-4px 0 10px">${P.concept ? `概念「${esc(P.concept.name)}」· ` : ''}${ALB_TYPE[a.type] || ''}收 ${lo}～${hi} 首 · ★ 选主打</div>
+    ${rec.length ? `<div class="w-day">公司推荐</div><div class="card w-list">${rec.map(r => by(r.id) ? row(by(r.id), r.why) : '').join('')}</div>` : ''}
+    ${rest.length ? `<details class="me-more" ${rec.length ? '' : 'open'}><summary>曲库里的其他歌（${rest.length}）</summary>${rest.map(x => row(x, '')).join('')}</details>` : ''}
+    ${done ? `<div class="cb-warn ok">✓ 公司已确认：主打《${esc((by(P.mySel.title) || {}).name || albTitle(a))}》，共 ${P.mySel.ids.length} 首</div>` : P.mySel ? '<div class="cb-warn ok">已经发给公司了，等确认</div>' : `<div class="row" style="margin-top:10px"><span class="muted" style="font-size:12.5px">已选 ${S0.sel.length} 首</span><span class="sp"></span><button class="btn primary sm" data-act="picksend">发给公司</button></div>`}`;
+}
+function pickSend() {
+  const o = prepOn(); if (!o) return; const { a, P } = o, S0 = UI.pick || { sel: [] }, [lo, hi] = LIB_NEED[a.type] || [1, 2];
+  if (S0.sel.length < lo || S0.sel.length > hi) return toast(`${ALB_TYPE[a.type] || ''}要选 ${lo}～${hi} 首`);
+  if (!S0.sel.includes(S0.title)) return toast('点 ★ 选一首主打');
+  const pool = libPool(a.id), names = S0.sel.map(id => (pool.find(x => x.id === id) || {}).name), tn = (pool.find(x => x.id === S0.title) || {}).name;
+  P.mySel = { ids: [...S0.sel], title: S0.title, at: Date.now(), okAt: Date.now() + rand(3, 10) * 3600e3 };
+  const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: `수록곡은 ${names.join(', ')}로 하고 타이틀은 「${tn}」로 하고 싶어요`, zh: `收录曲想要 ${names.join('、')}，主打想定《${tn}》`, me: true }); M.readPlan = Date.now() + 700;
+  mgrResolve('cbpick', a.id, '已发给公司'); mgrReply(['네, 제작팀이랑 확인하고 다시 말해줄게요', '好，我跟制作组确认一下再告诉你']);
+  UI.pick = null; save(); openModal(pickHTML());
+}
+function pickTick(o) {
+  const { a, P, t } = o, today = dkey(Date.now());
+  if (t.concept.done && !P.rec && !P.recGen && !t.final.done && today >= addDays(t.concept.at, 1)) pickRecommend(o);
+  if (P.mySel && !P.mySel.ok && Date.now() >= P.mySel.okAt) {
+    const pool = libPool(a.id); P.mySel.ok = 1;
+    a.tracks = P.mySel.ids.map(id => pool.find(x => x.id === id)).filter(Boolean).map(x => ({ name: x.name, title: x.id === P.mySel.title, ...(x.mine ? { wid: x.id } : { lib: x.id }) }));
+    for (const x of a.tracks) { if (x.lib) { const L = cbLib().find(y => y.id === x.lib); if (L) L.used = a.id; } if (x.wid) { const w = mz().works.find(y => y.id === x.wid); if (w) { w.status = 'adopted'; w.adopted = { for: 'cb', album: a.id, at: Date.now() }; } } }
+    syncSongs(); t.final = { done: true, at: today }; P.finalAt = today;
+    mgrSay([`제작팀 확인 끝났어요! 타이틀 「${albTitle(a)}」 확정이에요. 이제 앨범 소개랑 곡 설명, 커버 같은 거 녹음 전까지 정리해줘요`, `制作组确认好了！主打《${albTitle(a)}》定了。录音前把专辑简介、歌曲介绍、封面这些整理一下`]);
+    pushNotif({ type: 'cb', text: `💿 《${a.name}》最终曲目确定`, sub: `主打《${albTitle(a)}》· 共 ${a.tracks.length} 首` }, true);
+  }
+}
+
+/* ---------- ④ 专辑制作：录音完成前可以编辑 ---------- */
+function prodHTML() {
+  const o = prepOn(); if (!o) return ''; const { a, t } = o, lock = t.rec.done;
+  const ph = a.cphotos || [];
+  return `<div class="row"><h3 style="flex:1">🛠《${esc(a.name)}》专辑制作</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    ${lock ? '<div class="cb-warn ok">录音已经完成，专辑内容已经定稿</div>' : '<div class="muted" style="font-size:12.5px;margin:-4px 0 10px">录音完成之前都可以改</div>'}
+    <div class="card"><div class="row" style="gap:12px;align-items:flex-start">${albCover(a, 'lg')}<div style="flex:1;min-width:0"><b>封面</b><div class="muted" style="font-size:12px;margin:2px 0 6px">${a.cover ? '已上传' : '还没有封面'}</div>${lock ? '' : '<label class="btn ghost sm">上传封面<input type="file" id="pp-cover" accept="image/*" hidden></label>'}</div></div></div>
+    <div class="card"><b>概念照</b><div class="muted" style="font-size:12px;margin:2px 0 6px">预热期官方号会按日程发出（前一半 #1，后一半 #2）</div><div class="pp-ph">${ph.map((id, i) => `<div class="pp-pi"><img data-mid="${id}" alt="">${lock ? '' : `<button data-act="ppphdel" data-i="${i}">✕</button>`}</div>`).join('')}${lock || ph.length >= 8 ? '' : '<label class="pp-pi add">＋<input type="file" id="pp-photo" accept="image/*" multiple hidden></label>'}</div></div>
+    <div class="card"><div class="field"><label>专辑简介</label><textarea id="pp-intro" style="min-height:90px" ${lock ? 'disabled' : ''}>${esc(a.intro || '')}</textarea></div>
+      ${a.tracks.map((x, i) => `<div class="field"><label>${String(i + 1).padStart(2, '0')}. ${esc(x.name)}${x.title ? ' <span class="alb-star">主打</span>' : ''}</label><textarea class="pp-td" data-i="${i}" style="min-height:52px" placeholder="这首歌的介绍" ${lock ? 'disabled' : ''}>${esc(x.desc || '')}</textarea></div>`).join('')}
+      ${lock ? '' : '<div class="row"><span class="sp"></span><button class="btn primary sm" data-act="ppsave">保存</button></div>'}</div>`;
+}
+function prodSave() {
+  const o = prepOn(); if (!o || o.t.rec.done) return; const a = o.a;
+  a.intro = ($('#pp-intro')?.value || '').trim(); $$('.pp-td').forEach(el => { const x = a.tracks[+el.dataset.i]; if (x) x.desc = el.value.trim(); });
+  save(); toast('专辑内容已保存');
+}
+
+/* ---------- ⑤ 预热期：官方账号 ---------- */
+function offState() { return S.off || (S.off = { posts: [] }); }
+function albLabel(a) {
+  const same = disco().filter(x => x.type === a.type && x.date && x.date <= a.date && x.id !== a.id).length + 1, ord = n => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
+  return a.type === 'single' ? `Digital Single [${a.name}]` : a.type === 'full' ? `The ${ord(same)} Album [${a.name}]` : `${ord(same)} Mini Album [${a.name}]`;
+}
+const OFF_PLAN = [[-14, 'soon', 'Coming Soon'], [-13, 'sched', 'SCHEDULER'], [-12, 'cp1', 'Concept Photo #1'], [-10, 'trk', 'TRACKLIST'], [-8, 'cp2', 'Concept Photo #2'], [-4, 'hl', 'HIGHLIGHT MEDLEY'], [-2, 'mvt', 'M/V TEASER'], [0, 'out', 'OUT NOW']];
+const OFF_CM = {
+  soon: [['sia_0829', '드디어!!! 기다렸어 언니ㅠㅠ'], ['雪落的时候', '终于等到了！！！'], ['cyan_daily', '컴백 축하해요 🎉'], ['blue_sia', 'COMEBACK IS REAL'], ['今天也想你', '这个色调已经爱上了']],
+  sched: [['cyan_daily', '스케줄러 떴다 다들 일정 체크!!'], ['sia_tw', '每天都有东西看 好幸福'], ['moon_cy', '달력에 다 적어놨어요'], ['今天也想你', 'MV预告那天我要请假']],
+  cp: [['snowy_cyan', '이 분위기 뭐야… 미쳤다'], ['雪落的时候', '这个概念我先哭为敬😭'], ['cy_bias', 'visual queen'], ['sia_0829', '사진 하나하나 다 예술이야'], ['今天也想你', '这套造型请多来几张'], ['moon_cy', '배경화면 바꾸러 갑니다']],
+  trk: [['bluehour_c', '타이틀 제목부터 감성'], ['sia_tw', '{n}首都想马上听到！'], ['cyan_daily', '수록곡 제목 다 좋아'], ['今天也想你', '主打名字好有画面感']],
+  hl: [['snowy_cyan', '수록곡 다 좋은데 어떡해'], ['雪落的时候', '第三首副歌直接上头'], ['sia_0829', '앨범 전곡 타이틀감'], ['cy_bias', 'the vocals!!!']],
+  mvt: [['cyan_daily', '뮤비 스케일 무슨 일이야'], ['sia_tw', '预告就这么好看正片怎么办'], ['moon_cy', '이틀 남았다 🥹'], ['今天也想你', '已经循环二十遍了']],
+  out: [['sia_0829', '컴백 축하해!!! 스밍 달린다'], ['雪落的时候', '打榜打榜！'], ['cyan_daily', '타이틀 미쳤어요 진짜'], ['blue_sia', 'MV is a masterpiece'], ['今天也想你', '整张专辑都好好听']]
+};
+function offTick(o) {
+  const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM (KST)`;
+  const tags = `#${S.profile.name} #시안 #${a.name.replace(/\s+/g, '')}`;
+  for (const [d, k, title] of OFF_PLAN) {
+    const at = rel + d * 86400e3 + (k === 'out' ? 18 * 3600e3 : 0); if (now < at || now > at + 6 * 86400e3) continue;
+    const id = a.id + ':' + k; if (O.posts.some(x => x.id === id)) continue;
+    let media = [], poster = null;
+    if (k === 'cp1') media = ph.slice(0, half); else if (k === 'cp2') media = ph.slice(half);
+    if ((k === 'cp1' || k === 'cp2') && !media.length) poster = 'logo'; else if (['soon', 'sched', 'trk', 'hl', 'mvt', 'out'].includes(k)) poster = k;
+    if (k === 'trk' && !o.t.final.done) continue; // 曲目还没定：先不发曲目表
+    const ttl = k === 'mvt' ? `'${albTitle(a)}' M/V TEASER` : k === 'out' ? `'${albTitle(a)}' M/V OUT NOW` : title;
+    const txt = `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM (KST) 발매' : when}\n\n${tags}`;
+    const f = S.profile.followers, base = Math.round(f * rand(.5, .9) * (k === 'out' ? 1.6 : k.startsWith('cp') || k === 'mvt' ? 1.2 : 1));
+    const pool = OFF_CM[k.startsWith('cp') ? 'cp' : k] || OFF_CM.soon;
+    O.posts.push({ id, alb: a.id, k, at, txt, media, poster, base, cc: Math.round(base * rand(.04, .08)), cm: pickN(pool, Math.min(3, pool.length)).map(([u, x]) => [u, x.replace('{n}', a.tracks.length)]) });
+    if (k === 'soon') mgrSay(['오늘부터 티저 들어가요! 공식 계정에서 일정대로 올라갈 거예요', '今天开始预热！官方号会按日程发预告']);
+    if (k === 'cp1') mgrSay(['콘셉트 포토 반응 좋아요ㅎㅎ', '概念照反应很好哈哈']);
+    addFans(Math.round(f * rand(.002, .005)), '回归预热');
+  }
+}
+function offCard(x) {
+  const a = disco().find(y => y.id === x.alb) || { name: '', tracks: [] }, C = (S.cb && S.cb.prep && S.cb.albumId === x.alb && S.cb.prep.concept) || {}, col = /^#[0-9a-f]{3,8}$/i.test(C.color || '') ? C.color : '#4b6a93';
+  const age = (Date.now() - x.at) / 86400e3, likes = Math.round(x.base * (1 - Math.exp(-age / .6))), cc = Math.round(x.cc * (1 - Math.exp(-age / .6)));
+  const dates = OFF_PLAN.map(([d, k, t]) => [addDays(a.date || dkey(x.at), d).slice(5).replace('-', '.'), k === 'mvt' ? 'M/V Teaser' : k === 'out' ? 'Album & M/V Release' : t.replace(/^SCHEDULER$/, 'Scheduler').replace(/^TRACKLIST$/, 'Tracklist').replace(/^HIGHLIGHT MEDLEY$/, 'Highlight Medley')]);
+  const P = x.poster, poster = !P ? '' : P === 'sched' ? `<div class="op-sched"><h4>${esc(S.profile.name.toUpperCase())} ${esc(albLabel(a).replace(/\s*\[.*$/, '').toUpperCase())}</h4><h2>${esc(a.name.toUpperCase())}</h2>${dates.map(([d, t]) => `<div class="op-q"><span>${d}</span><b>${t}</b></div>`).join('')}<div class="op-f">STARSHIP ENTERTAINMENT</div></div>`
+    : P === 'trk' ? `<div class="op-trk"><h2>${esc(a.name.toUpperCase())}</h2>${a.tracks.map((t, i) => `<div class="op-w"><span class="n">${String(i + 1).padStart(2, '0')}</span><span>${esc(t.name)}${t.title ? '<span class="tt">TITLE</span>' : ''}</span></div>`).join('')}</div>`
+    : `<div class="op-poster" style="background:linear-gradient(165deg,${col}cc,${col} 55%,#111)">${P === 'hl' || P === 'mvt' ? '<span class="kk-play" style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%)">▶</span>' : ''}<div class="t1">${esc(S.profile.name.toUpperCase())} ${esc(albLabel(a).replace(/\s*\[.*$/, '').toUpperCase())}</div><div class="t2">${esc(a.name.toUpperCase())}</div><div class="t3">${{ soon: 'COMING SOON', logo: 'CONCEPT PHOTO', hl: 'HIGHLIGHT MEDLEY', mvt: `'${esc(albTitle(a))}' M/V TEASER`, out: 'OUT NOW' }[P] || ''} · ${(a.date || '').replace(/-/g, '.')} 6PM</div></div>`;
+  const imgs = x.media.length ? `<div class="media n${Math.min(x.media.length, 4)}">${x.media.slice(0, 4).map(id => `<div class="m"><img data-mid="${id}" alt=""></div>`).join('')}</div>` : '';
+  const txt = esc(x.txt).replace(/(^|\s)(#(?![0-9])[^\s&<#]+)/g, '$1<span class="off-tag">$2</span>'); // 只有话题标签变蓝（引号转义和 #1 #2 不算）
+  return `<div class="card post off-post"><div class="op-head"><div class="off-av">${esc((S.profile.name || 'C')[0].toUpperCase())}</div><div style="min-width:0"><div class="ph-nm">${esc(S.profile.name)}<span class="off-b">OFFICIAL</span></div><div class="ph-t">${ago(x.at)}</div></div></div><div class="off-tx">${txt}</div>${imgs}${poster}<div class="off-act"><span>♡ ${fmtNum(likes)}</span><span>💬 ${fmtNum(cc)}</span></div>${x.cm.length && cc ? `<div class="off-cm">${x.cm.slice(0, Math.min(x.cm.length, 1 + Math.floor(age * 6))).map(([u, t]) => `<div><b>${esc(u)}</b>${esc(t)}</div>`).join('')}</div>` : ''}</div>`;
+}
+// 回归流程每次 tick：会议 / 选曲 / 官方号
+function cbFlowTick() { const o = prepOn(); if (!o) return; meetTick(o); pickTick(o); offTick(o); }
+
 function prepStage(o) { const d = cbDay(); return d <= 0 ? '正式发行与活动期' : d <= 14 ? '公开预热期' : o.t.final.done ? '回归制作期' : '回归企划期'; }
+function cbFlowBtns(o) {
+  const { P, t } = o, M = P.meet || {}, b = [];
+  if (!t.concept.done || (M.st && M.st !== 'done')) b.push(`<button class="btn ${t.concept.done ? 'ghost' : 'primary'} sm" data-act="meetopen">${M.msgs && M.msgs.length ? '继续企划会议' : '进入企划会议'}</button>`);
+  else if (P.concept) b.push(`<button class="btn ghost sm" data-act="meetopen">概念：${esc(P.concept.name)}</button>`);
+  if (P.rec || P.mySel) b.push(`<button class="btn ${P.mySel ? 'ghost' : 'primary'} sm" data-act="pickopen">${P.mySel ? (P.mySel.ok ? '查看曲目' : '选曲（等公司确认）') : '选曲'}</button>`);
+  if (t.final.done) b.push(`<button class="btn ${t.rec.done ? 'ghost' : 'primary'} sm" data-act="prodopen">${t.rec.done ? '专辑内容' : '编辑专辑'}</button>`);
+  return b.length ? `<div class="row" style="gap:6px;flex-wrap:wrap;margin:8px 0">${b.join('')}</div>` : '';
+}
 function prepHTML() {
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return '';
   if (!c.prep || c.prep.legacy) return '';
@@ -2423,7 +2662,7 @@ function prepHTML() {
   return `<div class="pp"><div class="row" style="margin-top:10px"><b style="flex:1">🛠 回归准备 · ${prepStage(o)}</b><span class="muted" style="font-size:12.5px">${c.tbd ? '日期待定' : d > 0 ? `D-${d}` : '已发行'}${P.delays ? ` · 延期 ${P.delays} 次` : ''}</span></div>
     ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 时间偏紧，可能延期</div>` : ''}
     ${PREP_T.map(row).join('')}
-    ${!t.pick.done ? `<details class="me-more"><summary>候选歌曲（${pool.length}）</summary>${pool.map(x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${esc(x.src)}</div></div>${x.mine ? `<button class="link" data-act="pppref" data-id="${x.id}">${P.pref === x.id ? '★ 想做主打' : '☆ 想做主打'}</button>` : ''}</div>`).join('')}</details>`
+    ${P.v >= 2 ? cbFlowBtns(o) : ''}${P.v < 2 && !t.pick.done ? `<details class="me-more"><summary>候选歌曲（${pool.length}）</summary>${pool.map(x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${esc(x.src)}</div></div>${x.mine ? `<button class="link" data-act="pppref" data-id="${x.id}">${P.pref === x.id ? '★ 想做主打' : '☆ 想做主打'}</button>` : ''}</div>`).join('')}</details>`
       : P.sel ? `<details class="me-more"><summary>选曲结果</summary>${P.sel.list.map(x => `<div class="rule"><span style="flex:1">${x.title ? '★ ' : ''}${esc(x.name)}</span><span class="muted" style="font-size:12px">${esc(x.src)}</span></div>`).join('')}</details>` : ''}
     ${!t.final.done || a.mood !== 'ballad' ? '' : ''}<label class="row" style="gap:6px;font-size:13px;margin-top:6px"><input type="checkbox" data-act="ppdance" ${P.dance ? 'checked' : ''} style="width:auto">主打有编舞</label></div>`;
 }
@@ -3895,6 +4134,7 @@ function mgrCardMsg(m) {
     const types = Object.entries(GIFTS).filter(([k, x]) => x.cats.includes(m.card.cat) && !sel.some(c => c.startsWith(k + ':'))).map(([k, x]) => btn(k, (sel.length ? '＋ ' : '') + x.short));
     return `${sel.length ? `<div class="kk-res" style="color:inherit">已选：${sel.map(c => esc(giftInfo(c).label)).join('、')}</div>` : ''}<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${g ? g.sizes.map((z, i) => btn(m.card.t, `${z[0] ? z[0] + ' · ' : ''}${fmtNum(z[1] / 10000)}–${fmtNum(z[2] / 10000)}万`, i)).join('') + btn('', '‹ 换一种') : [sel.length ? btn('done', '就这些', undefined, 'primary') : btn('-', '不用了'), ...types].join('')}</div>`; }
   if (m.card.type === 'aw') { const st = awardsState()[m.card.id]; return st && st.status === 'ask' && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="awno" data-id="${m.card.id}">不去</button><button class="btn primary sm" data-act="awok" data-id="${m.card.id}">去</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
+  if (m.card.type === 'cbpick') return m.res ? `<div class="kk-res">${esc(m.res)}</div>` : `<div class="kk-act"><button class="btn primary sm" data-act="pickopen">看推荐的歌</button></div>`;
   if (m.card.type === 'ytco') { const p = yt().plans.find(x => x.id === m.card.id); if (!p || m.res || p.st !== 'ask') return `<div class="kk-res">${esc(m.res || '已处理')}</div>`; return `<div class="kk-act"><button class="btn ghost sm" data-act="ytco" data-id="${p.id}" data-r="no">不拍</button><button class="btn ghost sm" data-act="ytco" data-id="${p.id}" data-r="idea">有想法</button><button class="btn primary sm" data-act="ytco" data-id="${p.id}" data-r="ok">好</button></div>`; }
   if (m.card.type === 'ytshoot') { const p = yt().plans.find(x => x.id === m.card.id); if (!p || m.res || p.st !== 'sched') return `<div class="kk-res">${esc(m.res || '已处理')}</div>`; return `<div class="kk-act" style="flex-wrap:wrap;justify-content:flex-start">${(p.slots || []).map((x, i) => `<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="${i}">${+x.dk.slice(5, 7)}/${+x.dk.slice(8)}（${WD[parseD(x.dk).getDay()]}）${x.start}</button>`).join('')}<button class="btn ghost sm" data-act="ytslot" data-id="${p.id}" data-i="-1">都不行</button></div>`; }
   if (m.card.type === 'chbook') { const o = (chal().book || {}).offer; return o && o.id === m.card.id && !m.res ? `<div class="kk-act"><button class="btn ghost sm" data-act="chbkno" data-id="${o.id}">不拍</button><button class="btn primary sm" data-act="chbkok" data-id="${o.id}">好</button></div>` : `<div class="kk-res">${esc(m.res || '已处理')}</div>`; }
@@ -5968,13 +6208,20 @@ function render() {
 function feedNav(on) {
   return `<nav class="fnav">${[['feed', '动态', 'feedsub" data-s="feed'], ['media', '媒体', 'feedsub" data-s="media'], ['live', 'LIVE', 'tab" data-tab="live']].map(([k, t, a]) => `<button class="${on === k ? 'on' : ''}" data-act="${a}">${t}</button>`).join('')}</nav>`;
 }
+function feedListHTML() {
+  const O = (S.off || { posts: [] }).posts, ph = cbPhase(), pin = ph === 'tease' || ph === 'promo' ? O.filter(x => Date.now() - x.at < 3 * 86400e3).slice(-1)[0] : null;
+  const L = [...S.posts.map(p => [p.createdAt, postCard(p)]), ...O.filter(x => x !== pin).map(x => [x.at, offCard(x)])].sort((a, b) => b[0] - a[0]).map(x => x[1]);
+  if (pin) L.unshift(offCard(pin).replace('<div class="op-head">', '<div class="off-pin">📌 置顶</div><div class="op-head">'));
+  return L.length ? `<div class="feed">${L.join('')}</div>` : '<div class="empty">还没有帖子，发第一条吧 🐱</div>';
+}
 function viewFeed() {
   const p = S.profile, sub = UI.feedSub === 'media' ? 'media' : 'feed', n = (fanState().days[dkey(Date.now())] || { net: 0 }).net;
   const hero = `<div class="card hero">${avatarHTML('md')}<div style="flex:1;min-width:0"><div class="hero-nm">${esc(p.name)}<span class="artist">ARTIST</span></div>${p.bio ? `<div class="muted hero-bio">${esc(p.bio)}</div>` : ''}</div>
     <div class="hero-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)}</b><span>今日</span></div></div></div>`;
   if (sub === 'media') {
-    const L = S.posts.filter(x => x.media.length);
-    return feedNav('media') + hero + (L.length ? `<div class="mgrid">${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : '<div class="empty">还没有发过图片或视频</div>');
+    const L = S.posts.filter(x => x.media.length), OF = ((S.off || { posts: [] }).posts || []).filter(x => x.media.length).sort((a, b) => b.at - a.at);
+    const offTiles = OF.flatMap(x => x.media.map(id => `<div class="mg"><img data-mid="${id}" alt=""><i class="mg-n" style="font-size:9.5px">OFFICIAL</i></div>`)).join('');
+    return feedNav('media') + hero + (offTiles && !L.length ? `<div class="mgrid">${offTiles}</div>` : '') + (L.length ? `<div class="mgrid">${offTiles}${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : (offTiles ? '' : '<div class="empty">还没有发过图片或视频</div>'));
   }
   const open = UI.cmpOpen || pending.length > 0;
   return `${feedNav('feed')}${hero}
@@ -5989,7 +6236,7 @@ function viewFeed() {
       <button class="btn primary sm" data-act="publish">发布</button>
     </div>
   </div>` : `<button class="card cmp-bar" data-act="cmpopen">${avatarHTML('sm')}<span${draft.trim() ? ' class="has"' : ''}>${draft.trim() ? esc(draft.trim().split('\n')[0]) : '和粉丝们分享点什么吧…'}</span><i>🖼</i></button>`}
-  ${S.posts.length ? `<div class="feed">${S.posts.map(postCard).join('')}</div>` : '<div class="empty">还没有帖子，发第一条吧 🐱</div>'}`;
+  ${feedListHTML()}`;
 }
 function mediaHTML(post, full) {
   if (!post.media.length) return '';
@@ -9264,6 +9511,25 @@ document.addEventListener('click', async e => {
     case 'callcancel': if (UI.call && UI.call.mode === 'out') { callRec(dms()[UI.call.key], 'me', 'cancel'); callEnd(); } break;
     case 'democlose': { const L = $('#demo-ly'); if (L) { L.querySelector('audio')?.pause(); L.remove(); } break; }
     case 'kkdemo': demoOpen(t.dataset.n, t.dataset.s, UI.dmOpen ? socDisp(dms()[UI.dmOpen].p) : ''); break;
+    case 'meetopen': { const o = prepOn(); if (!o) break; UI.mgrOpen = false; UI.meet = 1; openModal(meetHTML()); meetStart(o); meetScroll(); break; }
+    case 'meetclose': UI.meet = 0; closeModal(); render(); break;
+    case 'meetpick': { const o = prepOn(); if (!o) break; const M = meetState(o), x = M.props[+t.dataset.i]; if (!x) break; M.like = +t.dataset.i; meetSay(`我比较喜欢方案 ${+t.dataset.i + 1}「${x.name}」这个方向。`); break; }
+    case 'meetsend': { const v = ($('#mt-in')?.value || '').trim(); if (!v) { toast('说点什么吧'); break; } meetSay(v); break; }
+    case 'meetsum': meetSummary(); break;
+    case 'meetmore': { const o = prepOn(); if (!o) break; const M = meetState(o); M.st = 'open'; M.sum = null; save(); openModal(meetHTML()); meetScroll(); break; }
+    case 'meetok': meetDone(); break;
+    case 'pickopen': UI.mgrOpen = false; UI.pick = null; openModal(pickHTML()); break;
+    case 'pickt': { const P0 = UI.pick; if (!P0) break; const id = t.dataset.id; if (t.checked) { if (!P0.sel.includes(id)) P0.sel.push(id); } else { P0.sel = P0.sel.filter(x => x !== id); if (P0.title === id) P0.title = ''; } const sc = $('#sheet').scrollTop; openModal(pickHTML()); $('#sheet').scrollTop = sc; break; }
+    case 'picktitle': { if (!UI.pick) break; UI.pick.title = t.dataset.id; const sc = $('#sheet').scrollTop; openModal(pickHTML()); $('#sheet').scrollTop = sc; break; }
+    case 'picksend': pickSend(); break;
+    case 'prodopen': openModal(prodHTML()); break;
+    case 'ppsave': prodSave(); break;
+    case 'ppphdel': { const o = prepOn(); if (!o || o.t.rec.done) break; const L = o.a.cphotos || []; const [id] = L.splice(+t.dataset.i, 1); if (id) idbDel(id); save(); openModal(prodHTML()); break; }
+    case 'libadd': UI.libF = { genre: MZ_GENRES[0] }; UI.libOpen = 1; render(); break;
+    case 'libedit': UI.libF = { ...(cbLib().find(x => x.id === t.dataset.id) || {}) }; UI.libOpen = 1; render(); break;
+    case 'libcancel': UI.libF = null; render(); break;
+    case 'libsave': libSave(); break;
+    case 'libdel': if (confirm('从曲库删掉这首？')) { S.cbLib = cbLib().filter(x => x.id !== t.dataset.id); UI.libF = null; save(); render(); } break;
     case 'callopt': dmCallPick(+t.dataset.j); break;
     case 'callhang': dmCallPick(2); break;
     case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const o = socOpts(socEv(Q.x.ev), Q.x.p, Q.x)[+t.dataset.j]; if (!o) break; socDone(Q, o.t, o); break; }
@@ -9470,6 +9736,11 @@ document.addEventListener('change', async e => {
     }
     if (pending.length > 9) { pending.slice(9).forEach(f => URL.revokeObjectURL(f._url)); pending = pending.slice(0, 9); toast('最多 9 个图片/视频'); }
     t.value = ''; renderPending();
+  } else if ((t.id === 'pp-cover' || t.id === 'pp-photo') && t.files[0]) {
+    const o = prepOn(); if (!o || o.t.rec.done) return; const a = o.a;
+    if (t.id === 'pp-cover') { const id = uid(), f = t.files[0]; try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f); if (a.cover) idbDel(a.cover); a.cover = id; }
+    else { const L = a.cphotos || (a.cphotos = []); for (const f of [...t.files].slice(0, 8 - L.length)) { const id = uid(); try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f); L.push(id); } }
+    save(); openModal(prodHTML()); toast('已上传');
   } else if (t.id === 'alcv-file' && t.files[0]) {
     const a = disco().find(x => x.id === t.dataset.id); if (!a) return; const id = uid(), f = t.files[0];
     try { await idbPut(id, f); } catch (err) { }
