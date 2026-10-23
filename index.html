@@ -4444,7 +4444,7 @@ function mgrContext() {
   return `现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
 今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
 结算：每月 ${SETTLE_DAY} 日结算上月已到账收入，按收入类型分成（网综电台采访、品牌代言、签售见面会 艺人40%；大学庆典商演 50%；音源专辑 30%；打歌不单独算），只扣合同允许的直接成本；艺人可以申请预支已确认的活动款或提前发当月结算款，需要公司同意；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。未回收的公司前期投入 ${won(W.debt)}。（你不知道艺人私人账户里有多少钱，也不要猜。）
-${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
+${c && a && !c.over ? `回归：《${a.name}》${c.date}，现在${{ plan: '还在准备期', tease: '在预热期（还没发行）', promo: `在主打打歌期（第 ${Math.floor(-cbDay() / 7) + 1} / ${c.weeks} 周，打到 ${addDays(c.date, 7 * c.weeks - 1)}）`, rest: '在休息周', follow: `在后续打歌期（打到 ${addDays(c.date, cbPlan().followEnd - 1)}）`, end: '活动快结束了' }[cbPhase()] || ''}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
 ${relContext()}
 艺人的朋友：${chal().friends.map(f => `${f.g} ${f.z || f.n}（${FR_LV[f.lv || 'friend']}）`).join('、')}。合作规则：challenge 有活动的日子就能约，关系越好越容易答应，不认识的艺人要看咖位差，对方本人答应后还要看对方公司和档期，私人关系不能保证落实；音源合作要走公司企划、要几个月；综艺是节目组邀请，只能去争取；画报广告由品牌决定，自制内容可以请嘉宾。
 艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。`;
@@ -4455,8 +4455,24 @@ async function mgrAi(text) {
   while (hist.length && hist[0].role !== 'user') hist.shift();
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
-  const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。她说的事不在你的固定流程里时，就按一个真实经纪人的身份和性格看着办：她在倾诉焦虑、累、迷茫时，先接住情绪，再给具体、实在的想法（结合她现在的粉丝数、热度、行程、回归计划），这种时候可以多说几句、分几条发；不要空洞的鼓励，也不要编造没有的资源或承诺。用韩语回复，像真人经纪人发 KakaoTalk：口语、自然、干脆。只回应她这次真正需要回应的事，说完就停：不要顺带叮嘱（别太累、热身、嗓子不好就说、注意身体之类），不要额外加油打气，不要重复她已经知道的安排；她只是说谢谢、好的、收到这类话，回一句很短的就够了（比如「네~」「넵」），不用再加内容。语气词看情况用，不是每句都要带。一般 1 句，最多 2 句（她在倾诉情绪时除外），不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
-一个意思一个气泡：只有一个意思就发 1 条；有两三个不同的意思（比如先安慰、再给办法）就分成 2~3 条发，不要把几件事塞进一条长消息（ko 韩语，zh 中文翻译）。她没问规则就不要主动解释结算规则、分成比例这些。一定要接着她刚才说的内容回，不要答非所问，不要只说「확인해볼게요」这种空话。不要提到 App 界面（比如「在钱包里能看到」）。
+  const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是 STARSHIP 负责这位 solo 艺人的现场经纪人（매니저），三十岁出头，跟她天天一起跑行程，关系熟。现在在 KakaoTalk 上私聊。
+
+像真人经纪人一样发消息，不像客服、不像咨询师：
+- 短。大多数回复就一条，一条十几二十个字；她在倾诉时最多 2~3 条短的。不要长段落。
+- 用熟人之间的 -요 体口语：「넵」「아직요~」「그쵸」「ㅎㅎ」「헉」「에이」「그럼요」这种，句子可以不完整。不要书面句、不要「~하는 구조라서」「~할 수 있어요」这种说明腔。
+- 只回她这次说的那一句。她已经知道的事不要再讲（她自己的回归、日程、结算规则）；你前面说过的提议（比如预支）不要再提第二遍。
+- 她说「算了 / 没事 / 괜찮아요」时，不要继续劝、不要再给办法，回一句很短的就停，比如「진짜요? 힘들면 말해요」或者「넵ㅎㅎ」。
+- 不要心理咨询式的话：不要「많이 불안했구나」「솔직하게 말해줘요」「같이 정리해볼게요」「그 마음 이해해요」这种。真经纪人会直接说事，或者开个小玩笑。
+- 不要顺带叮嘱（别太累、注意身体、热身之类），不要加油打气，不要总结，不要列表和括号。
+- 她说错了事实，轻轻纠正一句就行：比如她说「活动结束了吧？」而其实还在打歌，就回「아직요ㅠ 이번 주까지 음방 있어요」，不要解释一大段。
+- 要结合现在的日期时间。资料里没有的数字不要编。你看不到她的私人账户。收入由财务按月结算，不当天到账。不要提 App 界面，不要提你是 AI。
+
+好的例子：
+她：「经理……再不发工资我要没钱吃饭了ㅠㅠ」→「헐ㅋㅋ 그 정도예요? 진짜 급하면 말해요, 확정된 거 먼저 당겨볼게요」
+她：「算了我没事ㅠㅠ」→「진짜요? 힘들면 바로 말해요」
+她：「谢谢！」→「넵~」
+
+一个意思一个气泡（ko 韩语，zh 中文翻译）。
 ${mgrContext()}`, messages: msgs, output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['msgs'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } } } } } } });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
   const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let msgs2 = [];
