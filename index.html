@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4048,6 +4048,13 @@ const ME_SAY = { ok: [['할게요!', '接！'], ['네 할게요', '嗯，接吧'
   dealOk: [['할게요! 진행해 주세요', '签！推进吧'], ['좋아요 계약해요', '好，签约吧']], dealNo: [['이건 거절할게요', '这个拒绝吧'], ['이번 광고는 안 할래요', '这个代言不接了']] };
 function mgrMeSay([ko, zh]) { const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); M.readPlan = Date.now() + 700; mgrRefresh(); }
 // 选时间的卡片以前没有你这边的回复：补上
+// 雅娴（망）对 demo 反馈的回复没接住重点：删掉她之后的回复，让她把你没被认真回应的几条重新看一遍再回
+function ahRedoFb1() { const SO = social(); if (SO.ahRedoFb1) return; SO.ahRedoFb1 = 1;
+  for (const T of Object.values(dms())) { const i = T.msgs.findIndex(m => !m.me && /솔직하게 말해달라고 했더니/.test(m.text || '')); if (i < 0) continue;
+    let j = i - 1; while (j >= 0 && T.msgs[j].me) j--; // 你那几条反馈的第一条
+    T.msgs = T.msgs.filter((m, k) => k <= i - 1 || m.me || m.sys || m.call);
+    T.readTo = (T.msgs[j + 1] || { at: Date.now() }).at - 1; Object.assign(T, { rd: null, pend: [], quiet: null, gen: 0, due: { at: Date.now() + rand(1, 3) * 60e3 } }); }
+  save(); }
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
   C.splice(i, 1, { ...m, text: '아이고 Cyan아, 많이 불안했구나ㅠ 지금 당장 밥 굶을 일은 없어요.', zh: '哎呀Cyan，你是不是很不安啊ㅠ 现在不会没饭吃的。' }, { ...m, id: uid(), at: m.at + 1200, text: '혹시 당장 생활비가 빠듯하면 확정된 활동비를 미리 받는 것도 방법이니까, 말만 해줘요. 제가 회사랑 바로 얘기해볼게요.', zh: '如果眼下生活费紧，已经确认的活动款可以提前领，你跟我说一声，我马上跟公司谈。' }); }
