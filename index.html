@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4062,6 +4062,9 @@ function ahRedoFb2() { const SO = social(); if (SO.ahRedoFb2) return; SO.ahRedoF
     const cut = T.msgs.slice(k + 1).filter(m => !m.sys); T.bak = (T.bak || []).concat(cut.map(m => ({ ...m }))); T.msgs = T.msgs.slice(0, k + 1).concat(T.msgs.slice(k + 1).filter(m => m.sys));
     T.readTo = T.msgs[j].at - 1; Object.assign(T, { rd: null, pend: [], quiet: null, gen: 0, due: { at: Date.now() + rand(1, 3) * 60e3 } }); }
   save(); }
+// 经纪人那两条旧人设的长回复：删掉（之后的都删，先存一份），用新人设重新回你「됐어 난 괜찮아요ㅠㅠ」那两句
+function mgrRedo2() { const M = mgrChat(); if (M.redo2) return; M.redo2 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /음악 활동이 끝난 게 아니라/.test(m.text || '')); if (i < 0) return;
+  M.bak = (M.bak || []).concat(C.slice(i).map(m => ({ ...m }))); M.chat = C.slice(0, i); M.readAt = Math.min(M.readAt || 0, (M.chat[M.chat.length - 1] || { at: 0 }).at - 1); M.replyAt = Date.now() + rand(5, 20) * 1000; save(); }
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
   C.splice(i, 1, { ...m, text: '아이고 Cyan아, 많이 불안했구나ㅠ 지금 당장 밥 굶을 일은 없어요.', zh: '哎呀Cyan，你是不是很不安啊ㅠ 现在不会没饭吃的。' }, { ...m, id: uid(), at: m.at + 1200, text: '혹시 당장 생활비가 빠듯하면 확정된 활동비를 미리 받는 것도 방법이니까, 말만 해줘요. 제가 회사랑 바로 얘기해볼게요.', zh: '如果眼下生活费紧，已经确认的活动款可以提前领，你跟我说一声，我马上跟公司谈。' }); }
