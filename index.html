@@ -8352,7 +8352,8 @@ ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消�
 - 不是每条都要完整回应。need 是 none 的时候，大多数情况就 read；要回也只是一两个字、一个笑或表情（act=react）。
 - 不用每次都反问、关心、鼓励、解释，也不用为了让聊天继续而找话。可以停在这里，也可以按他自己的心情顺手说点别的、吐槽一句。
 - 长短、条数、语气词（ㅋㅋ ㅎㅎ ㅠㅠ 感叹号 表情）由他的习惯、此刻的心情和这件事本身决定。语气词是情绪，不是装饰：真觉得好笑才 ㅋㅋ。不要每次都用「응 + …」「아 + …」开头。
-- 上面聊天记录里他以前的消息如果有复述、重复确认、句句带 ㅋㅋ 的毛病，那是之前写坏了，不要延续。
+- 上面聊天记录里他以前的消息如果有复述、重复确认、句句带 ㅋㅋ 的毛病，那是之前写坏了，不要延续。ㅋㅋ / ㅎㅎ 大部分消息都不带；最近几条带过了，这次就不要再带。
+- 她在认真回答你问过她、请她帮忙的事（比如你请她听 demo 提意见、问她的看法），要先针对她说的具体内容回应：哪几点你认同、哪点你有自己的想法或当时那样做的原因、打算怎么改或会不会参考。不能只评价她「说话直接 / 说得好」一句带过，也不能马上转去问别的。她说了好几点，至少接住其中两点。
 
 韩语：
 - 要发照片 / 视频 / 文件 / 语音时，单独一条，只写「[사진]」「[동영상]」「[파일] 文件名.扩展名」「[음성메시지]」，后面不要加描述（会显示成 KKT 里的附件）；想说明就另发一条文字。
@@ -8375,6 +8376,9 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
     if (j.todo === 'call') { const T2 = dmThread(p); if (!T2.call || T2.call.done) { dmCallSet(T2, (j.gist || '').slice(0, 40)); save(); } } else if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
     let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim()), done = j.need === 'none' && !dmAsk(mine);
+    { // ㅋㅋ / ㅎㅎ 不能句句都带：最近已经带了好几次，这次开头结尾的笑都去掉；一次回复里最多一条带笑
+      const kk = /[ㅋㅎ]{2,}/, recent = T.msgs.filter(m => !m.me && !m.sys && !m.call).slice(-4).filter(m => kk.test(m.text || '')).length; let used = 0;
+      for (const m of msgs) { if (!kk.test(m.ko)) continue; if (recent >= 2 || used) { const k2 = m.ko.replace(/^\s*[ㅋㅎ]{2,}\s*/, '').replace(/\s*[ㅋㅎ]{2,}\s*$/, '').trim(); if (k2) { m.ko = k2; if (m.zh) m.zh = m.zh.replace(/^\s*(哈|嘿|呵)+[，,！!\s]*/, '').replace(/[，,\s]*(哈|嘿|呵){2,}[！!]*\s*$/, '').trim(); } } if (kk.test(m.ko)) used = 1; } }
     if (done) { const m = T.msgs.filter(m => m.me).pop(); if (m) T.quiet = m.id; } // 话已经说完了：之后也不用「补回」
     if (act === 'read' && !done && (dmAsk(mine) || close)) act = 'later'; // 问了问题 / 好朋友有话要回：不会就这么已读不回
     if (evt && evt.task && (act === 'read' || !msgs.length)) return { later: 1 }; // 答应过的事：现在不方便就晚点，但不会忘
