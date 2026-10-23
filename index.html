@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4054,6 +4054,13 @@ function ahRedoFb1() { const SO = social(); if (SO.ahRedoFb1) return; SO.ahRedoF
     let j = i - 1; while (j >= 0 && T.msgs[j].me) j--; // 你那几条反馈的第一条
     T.msgs = T.msgs.filter((m, k) => k <= i - 1 || m.me || m.sys || m.call);
     T.readTo = (T.msgs[j + 1] || { at: Date.now() }).at - 1; Object.assign(T, { rd: null, pend: [], quiet: null, gen: 0, due: { at: Date.now() + rand(1, 3) * 60e3 } }); }
+  save(); }
+// 第二步：你后面接着她（已删）消息发的回复也删掉，只留 demo 反馈和「어쨌든 사실 괜찮아」；删掉的先存一份
+function ahRedoFb2() { const SO = social(); if (SO.ahRedoFb2) return; SO.ahRedoFb2 = 1;
+  for (const T of Object.values(dms())) { const k = T.msgs.findIndex(m => m.me && /어쨌든 사실 괜찮아/.test(m.text || '')); if (k < 0) continue;
+    let j = k; while (j > 0 && T.msgs[j - 1].me) j--; // 反馈那几条的第一条
+    const cut = T.msgs.slice(k + 1).filter(m => !m.sys); T.bak = (T.bak || []).concat(cut.map(m => ({ ...m }))); T.msgs = T.msgs.slice(0, k + 1).concat(T.msgs.slice(k + 1).filter(m => m.sys));
+    T.readTo = T.msgs[j].at - 1; Object.assign(T, { rd: null, pend: [], quiet: null, gen: 0, due: { at: Date.now() + rand(1, 3) * 60e3 } }); }
   save(); }
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
