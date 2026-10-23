@@ -7524,7 +7524,8 @@ function socPick(who) {
 }
 // 今天什么时段在哪：返回各种场合的时间窗 [开始, 结束]（分钟）
 function socWins(k) {
-  const rs = rulesFor(k), W = { online: [[9 * 60, 24 * 60 - 1]], day: [[9 * 60, 17 * 60 + 30]], late: [[22 * 60 + 30, 24 * 60 - 1]], out: [], work: [], company: [], show: [], music: [], brand: [] };
+  const night = Date.now() < SOC_BOOST_UNTIL; // 测试模式：深夜也会有线上 / 深夜的交集
+  const rs = rulesFor(k), W = { online: [[night ? 0 : 9 * 60, 24 * 60 - 1]], day: [[9 * 60, 17 * 60 + 30]], late: night ? [[0, 4 * 60], [22 * 60 + 30, 24 * 60 - 1]] : [[22 * 60 + 30, 24 * 60 - 1]], out: [], work: [], company: [], show: [], music: [], brand: [] };
   for (const r of rs) {
     const a = toMin(r.start), b = Math.max(a + 1, toMin(r.end)), loc = (r.loc || '') + r.title; if (/宿舍/.test(r.loc || '')) continue;
     W.out.push([a, b, r.title]);
@@ -7542,6 +7543,9 @@ function socTick() {
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
   serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
+  // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
+  if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
+    SO.boostAt = Date.now(); const n0 = SO.q.length; socSchedule(today, nm, 1); const x = SO.q[n0]; if (x && x.at > nm + 15) x.at = nm + ri(3, 15); save(); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
   for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online && dmIsMsg(x.ev)) { x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } if (x.ko && aiOn() && !x.via) socThVoice(x).then(() => dmEvent(x)); else dmEvent(x); } // 线上的直接发到 KKT
@@ -8656,9 +8660,10 @@ function socOk(e, p) {
   return true;
 }
 // 今天排交集：场合要对得上行程，人要对得上前置条件；优先承接已有的关系
-function socSchedule(today, nm) {
+const SOC_BOOST_UNTIL = new Date('2026-10-24T03:00:00').getTime();
+function socSchedule(today, nm, force) {
   const SO = social(), W = socWins(today), ppl = socPeople().concat([{ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }]);
-  const n = (r0 => r0 < .05 ? 0 : r0 < .3 ? 1 : r0 < .7 ? 2 : r0 < .95 ? 3 : 4)(Math.random()), recent = new Set(SO.hist.slice(-25).filter(h => !String(h.ev).startsWith('th_') || h.day === today).map(h => h.ev));
+  const n = force != null ? force : (r0 => r0 < .05 ? 0 : r0 < .3 ? 1 : r0 < .7 ? 2 : r0 < .95 ? 3 : 4)(Math.random()), recent = new Set(SO.hist.slice(-25).filter(h => !String(h.ev).startsWith('th_') || h.day === today).map(h => h.ev));
   for (let i = 0; i < n; i++) {
     const evs = ALL_SOC.filter(e => e.req !== 'live' && !e.manual && !recent.has(e.id) && (W[e.req] || []).some(([a, b]) => b > nm + 5));
     const ths = evs.filter(e => e.th), rest = evs.filter(e => !e.th), tries = [...ths, ...pickN(rest, Math.min(50, rest.length))]; let picked = null;
