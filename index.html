@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix();
+  ytSlotMeFix(); mgrBalFix1();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4048,6 +4048,9 @@ const ME_SAY = { ok: [['할게요!', '接！'], ['네 할게요', '嗯，接吧'
   dealOk: [['할게요! 진행해 주세요', '签！推进吧'], ['좋아요 계약해요', '好，签约吧']], dealNo: [['이건 거절할게요', '这个拒绝吧'], ['이번 광고는 안 할래요', '这个代言不接了']] };
 function mgrMeSay([ko, zh]) { const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); M.readPlan = Date.now() + 700; mgrRefresh(); }
 // 选时间的卡片以前没有你这边的回复：补上
+function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
+  if (i < 0) return; const m = C[i];
+  C.splice(i, 1, { ...m, text: '아이고 Cyan아, 많이 불안했구나ㅠ 지금 당장 밥 굶을 일은 없어요.', zh: '哎呀Cyan，你是不是很不安啊ㅠ 现在不会没饭吃的。' }, { ...m, id: uid(), at: m.at + 1200, text: '혹시 당장 생활비가 빠듯하면 확정된 활동비를 미리 받는 것도 방법이니까, 말만 해줘요. 제가 회사랑 바로 얘기해볼게요.', zh: '如果眼下生活费紧，已经确认的活动款可以提前领，你跟我说一声，我马上跟公司谈。' }); }
 function ytSlotMeFix() { const M = mgrChat(); if (M.slotMe1) return; M.slotMe1 = 1; const C = M.chat || []; for (let i = C.length - 1; i > 0; i--) { const m = C[i], g = !m.me && (m.text || '').match(/^네, (\d+)월 (\d+)일로 잡을게요$/); if (!g || C[i - 1].me) continue; C.splice(i, 0, { id: uid(), at: m.at - 1500, text: `${g[1]}월 ${g[2]}일 괜찮아요`, zh: `${g[1]}月${g[2]}日可以`, me: true }); } }
 function mgrMe(k) { const [ko, zh] = pick(ME_SAY[k]), M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); M.readPlan = Date.now() + 700; mgrRefresh(); }
 function mgrReply(t, now) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 900 + Math.random() * 2200 : now ? 200 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
@@ -4288,7 +4291,7 @@ function mgrFacts(t) {
     return rs.length ? [`${dk}은 이렇게 있어요~\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`, `${dz}是这些～\n${rs.map(r => `${hm(r)} ${r.title}${r.loc ? ' / ' + r.loc : ''}`).join('\n')}`] : [`${dk}은 일정 없어요.`, `${dz}没有日程。`];
   }
   if (/欠|还清|빚|채무/.test(t)) return W.debt > 0 ? [`아직 ${krw(W.debt)} 남아 있어요. 천천히 갚아가면 돼요.`, `还剩 ${krw(W.debt)}，慢慢还就行。`] : ['이제 하나도 안 남았어요!', '已经一点都不剩了！'];
-  if (/余额|存款|还有多少钱|卡里|잔액|잔고/.test(t)) return [`${krw(W.bal)}이에요.`, `${krw(W.bal)}。`];
+  if (/余额|存款|还有多少钱|卡里|잔액|잔고/.test(t)) return ['개인 통장은 제가 볼 수가 없어요ㅎㅎ 정산은 매달 3일에 들어가요', '你个人账户我看不到哈哈，结算是每个月3号打过去'];
   if (/粉丝|涨粉|掉粉|팬/.test(t)) { const n = Math.round((fanState().days[today] || { net: 0 }).net); return [`지금 ${f.toLocaleString()}명이에요. ${n === 0 ? '오늘은 변동 없어요.' : n > 0 ? `오늘 ${n.toLocaleString()}명 늘었어요 👍` : `오늘은 ${(-n).toLocaleString()}명 빠졌네요ㅠ`}`, `现在 ${fmtNum(f)}，${n === 0 ? '今天没变化。' : n > 0 ? `今天涨了 ${n} 👍` : `今天掉了 ${-n}ㅠ`}`]; }
   if (/成绩|销量|音源|排名|榜|播放|mv|성적|음원|차트|판매/i.test(t)) {
     const SS = salesState(), T = salesTargets(today), top = Object.entries(T.trk).sort((a, b) => b[1] - a[1])[0], a = relList().slice(-1)[0];
@@ -4440,7 +4443,7 @@ function mgrContext() {
   const D = dayState(), now = new Date();
   return `现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
 今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
-结算：每月 ${SETTLE_DAY} 日结算上月已到账收入，按收入类型分成（网综电台采访、品牌代言、签售见面会 艺人40%；大学庆典商演 50%；音源专辑 30%；打歌不单独算），只扣合同允许的直接成本；艺人可以申请预支已确认的活动款或提前发当月结算款，需要公司同意；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。艺人账户余额 ${won(W.bal)}，未回收的公司前期投入 ${won(W.debt)}。
+结算：每月 ${SETTLE_DAY} 日结算上月已到账收入，按收入类型分成（网综电台采访、品牌代言、签售见面会 艺人40%；大学庆典商演 50%；音源专辑 30%；打歌不单独算），只扣合同允许的直接成本；艺人可以申请预支已确认的活动款或提前发当月结算款，需要公司同意；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。未回收的公司前期投入 ${won(W.debt)}。（你不知道艺人私人账户里有多少钱，也不要猜。）
 ${c && a && !c.over ? `回归：《${a.name}》${c.date}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
 ${relContext()}
 艺人的朋友：${chal().friends.map(f => `${f.g} ${f.z || f.n}（${FR_LV[f.lv || 'friend']}）`).join('、')}。合作规则：challenge 有活动的日子就能约，关系越好越容易答应，不认识的艺人要看咖位差，对方本人答应后还要看对方公司和档期，私人关系不能保证落实；音源合作要走公司企划、要几个月；综艺是节目组邀请，只能去争取；画报广告由品牌决定，自制内容可以请嘉宾。
@@ -4453,7 +4456,7 @@ async function mgrAi(text) {
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
   const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是韩国娱乐公司 STARSHIP 负责这位 solo 艺人的经纪人（매니저），在 KakaoTalk 上和她私聊。她说的事不在你的固定流程里时，就按一个真实经纪人的身份和性格看着办：她在倾诉焦虑、累、迷茫时，先接住情绪，再给具体、实在的想法（结合她现在的粉丝数、热度、行程、回归计划），这种时候可以多说几句、分几条发；不要空洞的鼓励，也不要编造没有的资源或承诺。用韩语回复，像真人经纪人发 KakaoTalk：口语、自然、干脆。只回应她这次真正需要回应的事，说完就停：不要顺带叮嘱（别太累、热身、嗓子不好就说、注意身体之类），不要额外加油打气，不要重复她已经知道的安排；她只是说谢谢、好的、收到这类话，回一句很短的就够了（比如「네~」「넵」），不用再加内容。语气词看情况用，不是每句都要带。一般 1 句，最多 2 句（她在倾诉情绪时除外），不要列表、不要括号注释、不要报告腔；对艺人用 -요 体。要结合现在的日期和时间理解问题（比如今天是不是结算日）。资料里没有的具体数字不要编，可以说会确认。收入不是当天到账，由财务按月结算。不要提到你是 AI。
-大多数时候只发 1 条；确实有两件不同的事要说、或者她在倾诉时才分 2~3 条（ko 韩语，zh 中文翻译）。一定要接着她刚才说的内容回，不要答非所问，不要只说「확인해볼게요」这种空话。不要提到 App 界面（比如「在钱包里能看到」）。
+一个意思一个气泡：只有一个意思就发 1 条；有两三个不同的意思（比如先安慰、再给办法）就分成 2~3 条发，不要把几件事塞进一条长消息（ko 韩语，zh 中文翻译）。她没问规则就不要主动解释结算规则、分成比例这些。一定要接着她刚才说的内容回，不要答非所问，不要只说「확인해볼게요」这种空话。不要提到 App 界面（比如「在钱包里能看到」）。
 ${mgrContext()}`, messages: msgs, output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['msgs'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } } } } } } });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
   const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let msgs2 = [];
