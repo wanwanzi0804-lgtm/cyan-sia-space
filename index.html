@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4070,6 +4070,12 @@ function ahPhotoFix1() { const SO = social(); if (SO.ahPhotoFix1) return; SO.ahP
   for (const T of Object.values(dms())) { const i = T.msgs.findIndex(m => !m.me && /^야 이거 봐ㅋ+$/.test(m.text || '')); if (i < 0) continue;
     T.msgs[i].text = '[사진]\n' + T.msgs[i].text; if (T.msgs[i].zh) T.msgs[i].zh = '[照片]\n' + T.msgs[i].zh;
     const m = T.msgs.slice(i + 1).find(m => m.me && /간단하게 한마디만 대답해줘/.test(m.text || '')); if (m) { m.text = 'ㅋㅋㅋㅋ 이게 뭐야'; m.zh = '哈哈哈哈这是什么'; delete m.opt; } }
+  save(); }
+function dm1Fix1() { const SO = social(); if (SO.dm1Fix1) return; SO.dm1Fix1 = 1;
+  for (const [k, T] of Object.entries(dms())) { const i = T.msgs.findIndex(m => !m.me && m.text === '오늘 무대 너무 좋았어요!'); if (i < 0) continue;
+    const dk = dkey(T.msgs[i].at); if (rulesFor(dk).some(r => ['打歌', '公演', '演唱会', '活动'].includes(r.cat))) continue;
+    let j = i + 1; while (j < T.msgs.length && T.msgs[j].me) j++; T.msgs.splice(i, j - i); SO.hist = SO.hist.filter(h => !(h.ev === 'dm1' && h.day === dk));
+    if (!T.msgs.length) delete dms()[k]; }
   save(); }
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
@@ -7556,7 +7562,7 @@ function socTick() {
     SO.boostAt = Date.now(); const n0 = SO.q.length; socSchedule(today, nm, 1); const x = SO.q[n0]; if (x && x.at > nm + 15) x.at = nm + ri(3, 15); save(); }
   // 直播中：偶尔粉丝刷某位男爱豆的名字
   if (typeof LIVE !== 'undefined' && LIVE && !LIVE._socDone && Date.now() - LIVE.start > 5 * 60e3 && Math.random() < .002) { LIVE._socDone = 1; const p = socPick('any'); SO.q.push({ id: uid(), day: today, ev: 'livespam', at: nm, until: nm + 30, p }); for (let i = 0; i < 4; i++) LIVE.queue.push({ lang: 'zh', text: pick([`${p.z || p.n}！！`, `认识${p.z || p.n}吗`, `${p.z || p.n}${p.z || p.n}`, `和${p.z || p.n}熟吗？`]) }); }
-  for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online && dmIsMsg(x.ev)) { x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } if (x.ko && aiOn() && !x.via) socThVoice(x).then(() => dmEvent(x)); else dmEvent(x); } // 线上的直接发到 KKT
+  for (const x of SO.q) if (x.day === today && !x.done && nm >= x.at && (socEv(x.ev) || {}).online && dmIsMsg(x.ev)) { if (x.ev === 'dm1' && !socStageDone()) { if (nm > x.until) { x.done = 1; x.skip = 1; } continue; } x.done = 1; if (!socThFill(x)) { x.skip = 1; continue; } if (x.ko && aiOn() && !x.via) socThVoice(x).then(() => dmEvent(x)); else dmEvent(x); } // 线上的直接发到 KKT
   for (const x of SO.q) if (x.day === today && !x.done && !x.gen && !x.popOk && nm >= x.at && nm <= x.until && aiOn() && !x.via && socEv(x.ev) && SOC2_DM_OK(socEv(x.ev))) { x.gen = 1; socDmGen(x).then(ok => { x.gen = 0; if (ok) { x.done = 1; socDmSend(x); } else x.popOk = 1; save(); }).catch(() => { x.gen = 0; x.popOk = 1; }); }
   if (UI.socPop || UI.chPop || $('#modal').classList.contains('on')) return;
   const op = SO.q.find(x => x.open && x.day === today && x.p); if (op) { if (SO.hist.some(h => h.id === op.id)) delete op.open; else { UI.socPop = { x: op }; openModal(socPopHTML()); return; } } // 弹出来还没处理就刷新了：重新弹
@@ -8154,7 +8160,7 @@ const SOC_TH = {
       O('已读，先不回', '-', '', { th: -.2 })] };
   } },
   care: { grp: '私聊', on: 1, late: 1, ok: c => c.P.facts.contact && c.st !== 'new' && socWins(dkey(Date.now())).work.length > 0, make: c => {
-    const [ko, zh] = { acq: ['오늘 무대 잘 봤어요! 수고 많았어요', '今天的舞台看了！辛苦了'], friend: ['오늘 고생했어요ㅠ 밥은 먹었어요?', '今天辛苦了ㅠ 吃饭了吗？'], close: ['오늘 눈 좀 부었던데ㅋㅋ 잠 못 잤지', '今天眼睛有点肿哈哈，没睡好吧'], amb: ['오늘 늦게 끝났지? 집 도착하면 연락 줘', '今天结束得很晚吧？到家了跟我说一声'] }[c.st];
+    const [ko, zh] = { acq: socStageDone() ? ['오늘 무대 잘 봤어요! 수고 많았어요', '今天的舞台看了！辛苦了'] : ['오늘 스케줄 많았다면서요? 수고 많았어요', '听说今天行程很多？辛苦了'], friend: ['오늘 고생했어요ㅠ 밥은 먹었어요?', '今天辛苦了ㅠ 吃饭了吗？'], close: ['오늘 눈 좀 부었던데ㅋㅋ 잠 못 잤지', '今天眼睛有点肿哈哈，没睡好吧'], amb: ['오늘 늦게 끝났지? 집 도착하면 연락 줘', '今天结束得很晚吧？到家了跟我说一声'] }[c.st];
     return { ko, zh, o: [O('道谢', '+', c.st === 'amb' ? '응 기다릴게｜嗯，我等你' : c.k('ㅎㅎ 푹 쉬어요｜呵呵好好休息', 'ㅎㅎ 푹 쉬어｜呵呵好好休息'), { fam: 1, th: c.st === 'amb' ? .4 : 0, fx: [{ ex: ['chat', `下班后他发来「${zh}」`] }] }),
       O('开个玩笑回过去', '+', c.k('ㅋㅋㅋㅋ 뭐예요｜哈哈哈哈什么啊', 'ㅋㅋㅋㅋ 뭐야｜哈哈哈哈什么啊'), { fam: 1, fx: [{ ex: ['chat', `下班后他发来「${zh}」，你开玩笑回了`] }] }),
       O('简单回个表情', '0', '', { fx: [{ ex: ['chat', `下班后他发来「${zh}」`] }] })] };
@@ -8654,7 +8660,9 @@ function socP(p) {
   return P[key];
 }
 function socLv(p) { const fr = friendOf(p.g, p.n); const a = fr ? { acq: 2, friend: 3, close: 4, best: 5 }[fr.lv || 'friend'] : 0, v = social().rp[p.key] || 0, b = v >= 12 ? 4 : v >= 7 ? 3 : v >= 3 ? 2 : v > 0 ? 1 : 0; return Math.max(a, b, socP(p).facts.met ? 1 : 0); }
+function socStageDone() { const dk = dkey(Date.now()), nm = new Date().getHours() * 60 + new Date().getMinutes(); return rulesFor(dk).some(r => ['打歌', '公演', '演唱会', '活动'].includes(r.cat) && toMin(r.start) <= nm); }
 function socOk(e, p) {
+  if (e.id === 'dm1' && !socStageDone()) return false; // 「今天的舞台很好看」：今天得真的上过台
   const fl = e.fl, P = socP(p), lv = socLv(p), today = dkey(Date.now());
   if (fl.m && p.f) return false; if (fl.f && !p.f) return false;
   if (e.th) { if (e.manual) return false; const c = socThCtx({ p, ev: e.id }); if (p.key === 'CRAVITY|세림' && c.st !== 'amb') return false; if (e.th.needEve && !socEve(today).length) return false; return e.th.ok(c); }
