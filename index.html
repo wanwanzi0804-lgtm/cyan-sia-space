@@ -7317,7 +7317,9 @@ function chEvDone(Q, score, text) {
 function chPopHTML() {
   const Q = UI.chPop; if (!Q) return '';
   const nm = p => `${esc(p.g)} ${esc(p.n)}${p.z ? ` <span class="muted" style="font-size:12px">${esc(p.z)}</span>` : ''}`;
-  const head = `<div class="row"><h3 style="flex:1">🎬 ${Q.post ? 'Challenge 发布后' : Q.book ? '约好的 challenge' : Q.step === 'visit' ? '有人来找你' : '拍个 challenge？'}</h3></div>${Q.where ? `<div class="muted" style="font-size:13px;margin-bottom:10px">${esc(Q.where)}${Q.onAct === false ? '' : ' 现场'}</div>` : ''}`;
+  const head = `<div class="row"><h3 style="flex:1">🎬 ${Q.post ? 'Challenge 发布后' : Q.book ? '约好的 challenge' : Q.step === 'visit' ? '有人来找你' : Q.bf ? '补 challenge' : '拍个 challenge？'}</h3></div>${Q.where ? `<div class="muted" style="font-size:13px;margin-bottom:10px">${Q.bf ? `${+Q.k.slice(5, 7)}/${+Q.k.slice(8)} · ` : ''}${esc(Q.where)}${Q.onAct === false ? '' : ' 现场'}</div>` : ''}`;
+  if (Q.step === 'bfpick') return head + `<div class="muted" style="font-size:13px;margin-bottom:8px">那天现场碰到了这几位，当时有和谁拍 challenge 吗？</div>${Q.cands.map((p, i) => `<button class="hot-opt" data-act="chbfpick" data-i="${i}">${nm(p)}${friendOf(p.g, p.n) ? ` <span class="muted" style="font-size:12px">· ${FR_LV[friendOf(p.g, p.n).lv || 'friend']}</span>` : ''}</button>`).join('')}<div class="row" style="margin-top:8px"><button class="link" data-act="chbfskip">剩下的都没拍</button><span class="sp"></span><button class="btn ghost" data-act="chbfnone">那天没拍</button></div>`;
+  if (Q.step === 'bfsong') return head + `<div style="margin-bottom:10px">和 ${nm(Q.p)} 拍的是哪首？</div>${chSongs(Q.k).map(([a, n, ti]) => `<button class="hot-opt" data-act="chbfsong" data-v="${esc(a + '|' + n)}">《${esc(n)}》${ti ? ' <span class="muted" style="font-size:12px">主打</span>' : ''}</button>`).join('')}`;
   if (Q.step === 'visit') return head + `<div style="margin-bottom:10px">${nm(Q.p)} 过来找你，说想一起拍你的 challenge。</div><button class="hot-opt" data-act="chvisok">好啊，拍！</button><button class="hot-opt" data-act="chpopclose">不好意思，现在不太方便</button>`;
   if (Q.step === 'ev') return head + chEvBody(Q);
   if (Q.step === 'postdone') return head + `<div style="text-align:center;padding:16px 0"><div style="font-size:30px">💬</div><div style="margin-top:8px">${Q.score >= .7 ? '评论区更热闹了' : Q.score >= .45 ? '大家看得很开心' : '反应平平'}${Q.postAdd > 0 ? ` · 涨粉 +${fmtNum(Q.postAdd)}` : ''}</div></div><div class="row"><span class="sp"></span><button class="btn primary" data-act="chpopclose">好</button></div>`;
@@ -9063,6 +9065,14 @@ function chLimit(k) {
   const near = L.filter(x => Math.abs((parseD(x.date) - parseD(k)) / 86400e3) < 7).length;
   return near >= cap ? `前后一周已经有 ${near} 个 challenge 了，太密粉丝会腻` : '';
 }
+// 补 challenge：一天一天弹出来，和平时一样随机碰到三个人，选当时和谁拍了（已经拍了，不用再问对方）
+function chBfNext(n) {
+  const C = chal(); C.bf = C.bf || {}; let l = chBackfillList();
+  while (l.length) { const x = l[0], r = x.rs.find(r => r.cat === '打歌') || x.rs[0], cands = chPopCands(r.cat === '打歌', x.k);
+    if (cands.length && chSongs(x.k).length) { UI.chPop = { k: x.k, where: x.rs.map(r => r.title).join('、'), cands, step: 'bfpick', bf: 1, n: n || 0 }; openModal(chPopHTML()); return; }
+    C.bf[x.k] = 1; l = chBackfillList(); }
+  S.chBF = 1; UI.chPop = null; closeModal(); save(); render(); if (n) toast(`🎬 补上了 ${n} 个 challenge`);
+}
 // 补 challenge：最近 30 天有活动的日子，当时如果和别人拍过可以补上
 function chBackfillList() { const today = dkey(Date.now()), D = chal().bf || {}, out = []; for (let i = 1; i <= 30; i++) { const k = addDays(today, -i); if (D[k] || chal().list.some(x => x.date === k)) continue; const rs = rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) out.push({ k, rs }); } return out; }
 function chGroupOpts() { const F = chal().friends; return `<option value="">没有</option>${F.length ? '<option value="好友">好友</option>' : ''}<optgroup label="同公司">${CH_SAME.map(x => `<option value="${esc(x[0])}">${esc(x[0])}</option>`).join('')}</optgroup><optgroup label="其他艺人">${CH_OTHERS.map(x => `<option value="${esc(x[0])}">${esc(x[0])}</option>`).join('')}</optgroup>`; }
@@ -9403,7 +9413,7 @@ function openModal(html) {
   for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
 }
 function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; }
-$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+$('#modal').addEventListener('click', e => { if (e.target.id !== 'modal') return; if (UI.socPop) { const b = document.querySelector('#sheet [data-act=socclose]'); if (b) { b.click(); return; } UI.socPop = null; } if (UI.chPop) UI.chPop = null; if (UI.meet) UI.meet = 0; closeModal(); }); // 点外面关掉：弹窗状态也要清掉，不然之后的事件会被卡住
 
 /* =========================================================
    事件
@@ -9589,8 +9599,12 @@ document.addEventListener('click', async e => {
     case 'serimpick': { const SV = social().serim, g = (SV && SV.gen) || { opts: SV && SV.dm ? ['好呀', '哈哈哈', '怎么了？'] : ['笑着回应他', '和他多聊几句', '开个玩笑'] }; serimReply(g.opts[+t.dataset.j]); break; }
     case 'serimwrite': { const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } serimReply(v); break; }
     case 'chlog': openModal(chLogHTML()); break;
-    case 'chbfopen': { const l = chBackfillList(); if (l.length) openModal(chBackfillHTML(l)); else toast('没有可以补的日子'); break; }
-    case 'chbfskip': { const C = chal(); C.bf = C.bf || {}; for (const el of $$('[data-chbf]')) C.bf[el.dataset.chbf] = 1; S.chBF = 1; save(); closeModal(); render(); break; }
+    case 'chbfopen': { if (chBackfillList().length) chBfNext(0); else toast('没有可以补的日子'); break; }
+    case 'chbfpick': { const Q = UI.chPop; if (!Q || !Q.bf) break; Q.p = Q.cands[+t.dataset.i]; Q.step = 'bfsong'; openModal(chPopHTML()); break; }
+    case 'chbfnone': { const Q = UI.chPop; if (!Q || !Q.bf) break; const C = chal(); C.bf = C.bf || {}; C.bf[Q.k] = 1; save(); chBfNext(Q.n); break; }
+    case 'chbfsong': { const Q = UI.chPop; if (!Q || !Q.bf || !Q.p) break; const C = chal(), p = Q.p, v = t.dataset.v, i = v.indexOf('|'); C.bf = C.bf || {}; C.bf[Q.k] = 1;
+      C.list.push({ id: uid(), date: Q.k, p: { g: p.g, gk: p.gk, n: p.n, z: p.z, tier: p.tier, kind: chKind(p) }, song: [v.slice(0, i), v.slice(i + 1)], st: 'ok', ok: true, at: Date.now(), resAt: 0, bf: 1 }); chalTick(); save(); chBfNext((Q.n || 0) + 1); break; }
+    case 'chbfskip': { const C = chal(); C.bf = C.bf || {}; for (const el of $$('[data-chbf]')) C.bf[el.dataset.chbf] = 1; for (const x of chBackfillList()) C.bf[x.k] = 1; const n0 = (UI.chPop && UI.chPop.n) || 0; S.chBF = 1; UI.chPop = null; save(); closeModal(); render(); if (n0) toast(`🎬 补上了 ${n0} 个 challenge`); break; }
     case 'chbfok': { const C = chal(); C.bf = C.bf || {}; let n = 0;
       for (const el of $$('[data-chbf]')) { const k = el.dataset.chbf, pv = el.querySelector('.chbf-p').value, sv = el.querySelector('.chbf-s').value; C.bf[k] = 1; if (!pv || !sv) continue;
         const [g, nm] = pv.split('|'), p = chFind(g, nm); if (!p) continue; const i = sv.indexOf('|');
@@ -9882,7 +9896,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
-setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; openModal(chBackfillHTML(l)); }, 6000); // 补 challenge 只弹一次
+setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; chBfNext(0); }, 6000); // 补 challenge 只弹一次
 setInterval(flushAgg, 6000);
 setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
 window.addEventListener('beforeunload', () => { S.sim.lastTick = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } });
