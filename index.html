@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4041,7 +4041,7 @@ async function trText(text, to, who) {
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
 }
-async function mgrTrMe(m) { if (m.zh || m._tr) return; m._tr = 1; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh'); m._tr = 0; if (out && out !== m.text) { m.zh = out; save(); mgrRefresh(); } }
+async function mgrTrMe(m) { if (m.zh || m._tr) return; m._tr = 1; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh'); m._tr = 0; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; save(); mgrRefresh(); } }
 // 点卡片上的按钮 = 你回了一句话
 const ME_SAY = { ok: [['할게요!', '接！'], ['네 할게요', '嗯，接吧'], ['좋아요 해요!', '好啊，接！']], no: [['이번엔 패스할게요', '这次就算了'], ['이건 안 할래요', '这个不接了'], ['죄송한데 이번엔 못 할 것 같아요', '不好意思，这次不行']],
   giftNo: [['이번엔 안 해도 될 것 같아요', '这次就不用了'], ['괜찮아요 이번엔 패스!', '没事，这次先不了！']], giftOk: [['이렇게 준비해 주세요!', '就按这个准备吧！'], ['이걸로 부탁드려요~', '就这些，拜托啦～']],
@@ -4077,6 +4077,8 @@ function dm1Fix1() { const SO = social(); if (SO.dm1Fix1) return; SO.dm1Fix1 = 1
     let j = i + 1; while (j < T.msgs.length && T.msgs[j].me) j++; T.msgs.splice(i, j - i); SO.hist = SO.hist.filter(h => !(h.ev === 'dm1' && h.day === dk));
     if (!T.msgs.length) delete dms()[k]; }
   save(); }
+function koFirstMig1() { if (S.koFirst1) return; S.koFirst1 = 1; const sw = m => { if (m.me && !m.call && hasHan(m.text) && m.zh && !hasHan(m.zh) && /[가-힣]/.test(m.zh)) { const z = m.text; m.text = m.zh; m.zh = z; } };
+  for (const T of Object.values(dms())) (T.msgs || []).forEach(sw); (mgrChat().chat || []).forEach(sw); save(); }
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
   C.splice(i, 1, { ...m, text: '아이고 Cyan아, 많이 불안했구나ㅠ 지금 당장 밥 굶을 일은 없어요.', zh: '哎呀Cyan，你是不是很不安啊ㅠ 现在不会没饭吃的。' }, { ...m, id: uid(), at: m.at + 1200, text: '혹시 당장 생활비가 빠듯하면 확정된 활동비를 미리 받는 것도 방법이니까, 말만 해줘요. 제가 회사랑 바로 얘기해볼게요.', zh: '如果眼下生活费紧，已经确认的活动款可以提前领，你跟我说一声，我马上跟公司谈。' }); }
@@ -8803,7 +8805,7 @@ function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
-async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { if (m.opt && hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
@@ -8811,7 +8813,7 @@ function dmLogHTML(T, key, tr) {
   return kkLogHTML(T.msgs, { tr, unread: m => m.at > rd, av: kAv(key, 'mgr-av sm'), name: socDisp(T.p) });
 }
 function dmHTML(key) {
-  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.call) return; if (!m.me && !m.sys && m.text && !m.zh && !m._trTry && /[가-힣]/.test(m.text)) { m._trTry = 1; trText(m.text, 'zh').then(out => { if (out && out !== m.text && !trBad(m.text, out)) { m.zh = out; save(); if (UI.dmOpen === key) openModal(dmHTML(key)); } }).catch(() => {}); } /* 对方的消息漏了翻译：补上 */ if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.zh && !m._tr && !m._trTry) { m._trTry = 1; setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
+  const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.call) return; if (!m.me && !m.sys && m.text && !m.zh && !m._trTry && /[가-힣]/.test(m.text)) { m._trTry = 1; trText(m.text, 'zh').then(out => { if (out && out !== m.text && !trBad(m.text, out)) { m.zh = out; save(); if (UI.dmOpen === key) openModal(dmHTML(key)); } }).catch(() => {}); } /* 对方的消息漏了翻译：补上 */ if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.call && !m.zh && !m._tr && (!m._trTry || Date.now() - m._trTry > 30e3)) { m._trTry = Date.now(); setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
   return `<div class="kk-room${UI.kkDr === key ? ' dr' : ''}"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="kkdr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
     ${socMemHTML(key) ? `<div class="kk-note">${socMemHTML(key)}</div>` : ''}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
