@@ -3788,7 +3788,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4092,6 +4092,11 @@ function dpMove1() { if (S.dpMove1) return; S.dpMove1 = 1; const from = '2026-10
     if (m.text) m.text = m.text.replace('10월 24일 10시', '10월 26일 10시').replace('10월 24일 괜찮아요', '10월 26일 괜찮아요').replace('네, 10월 24일로 잡을게요', '네, 10월 26일로 잡을게요');
     if (m.zh) m.zh = m.zh.replace('10月24日10点', '10月26日10点').replace('10月24日可以', '10月26日可以').replace('好，定在10月24日', '好，定在10月26日'); }
   save(); if (typeof updTgBadge === 'function') updTgBadge(); }
+// 把 10/24 拍摄留下的痕迹也清掉：行程提醒、旷工 / 通告通知、提醒和完成标记
+function dpMove2() { if (S.dpMove2) return; S.dpMove2 = 1; const from = '2026-10-24', r = S.schedule.rules.find(x => x.yt && /Dance Practice/.test(x.title)); if (!r) return;
+  const key = from + '|' + r.id; delete (S.schedule.reminded || {})[key]; delete (S.schedule.done || {})[key];
+  S.notifs = (S.notifs || []).filter(n => !(dkey(n.at || n.t || 0) === from && /Dance Practice/.test((n.text || '') + (n.sub || ''))));
+  save(); if (typeof updBadges === 'function') updBadges(); }
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
   C.splice(i, 1, { ...m, text: '아이고 Cyan아, 많이 불안했구나ㅠ 지금 당장 밥 굶을 일은 없어요.', zh: '哎呀Cyan，你是不是很不安啊ㅠ 现在不会没饭吃的。' }, { ...m, id: uid(), at: m.at + 1200, text: '혹시 당장 생활비가 빠듯하면 확정된 활동비를 미리 받는 것도 방법이니까, 말만 해줘요. 제가 회사랑 바로 얘기해볼게요.', zh: '如果眼下生活费紧，已经确认的活动款可以提前领，你跟我说一声，我马上跟公司谈。' }); }
