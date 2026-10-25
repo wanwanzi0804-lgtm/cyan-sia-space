@@ -3844,7 +3844,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); univDel1(); todayRestDel1(); todayAllDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); tplDel2(); univDel1(); todayRestDel1(); todayAllDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4156,6 +4156,10 @@ function dpMove2() { if (S.dpMove2) return; S.dpMove2 = 1; const from = '2026-10
 // 一次性：和世琳从今天开始秘密交往（只有 CRAVITY 队友知道）
 function serimLove1() { if (S.serimLove) { const td = dkey(Date.now()); if (S.serimLove.since > td) { S.serimLove.since = td; save(); } return; } S.serimLove = { since: dkey(Date.now()) }; const P = socPX({ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }); P.amb = Math.max(P.amb || 0, 8); P.th = Math.max(P.th || 0, 8); P.spark = Math.max(P.spark || 0, .8); save(); }
 // 一次性：AI 没回出来时发出去的那句套话（「나 촬영 끝났어! 언제가 좋아?」）删掉，不留痕迹
+// 一次性：上面那个只找了第一条套话（之前也出现过、你回过），这次把你最后一条消息之后的套话都删掉
+function tplDel2() { const SO = social(); if (SO.tplDel2) return; SO.tplDel2 = 1; const re = /^(나 촬영 끝났어! 언제가 좋아\?|촬영 끝났어요! 언제가 좋아요\?)$/;
+  for (const T of Object.values(dms())) { const lastMe = T.msgs.map(m => !!m.me).lastIndexOf(true); const gone = T.msgs.filter((m, j) => j > lastMe && !m.me && re.test(String(m.text || '').trim())); if (!gone.length) continue; T.msgs = T.msgs.filter(m => !gone.includes(m)); if (T.unread) T.unread = Math.max(0, T.unread - gone.length); }
+  S.notifs = (S.notifs || []).filter(n => !/촬영 끝났어|我拍完了！你哪天方便/.test((n.text || '') + (n.sub || ''))); save(); if (typeof updBadges === 'function') updBadges(); }
 function tplDel1() { const SO = social(); if (SO.tplDel1) return; SO.tplDel1 = 1; const re = /^(나 촬영 끝났어! 언제가 좋아\?|촬영 끝났어요! 언제가 좋아요\?)$/;
   for (const T of Object.values(dms())) { const i = (T.msgs || []).findIndex(m => !m.me && re.test(m.text || '')); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) continue;
     const gone = T.msgs.filter((m, j) => j >= i && !m.me && re.test(m.text || '')); T.msgs = T.msgs.filter(m => !gone.includes(m)); if (T.unread) T.unread = Math.max(0, T.unread - gone.length); }
