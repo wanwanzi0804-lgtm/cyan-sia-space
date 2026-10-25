@@ -2075,8 +2075,20 @@ function mzFix1018() {
   }
   save();
 }
+// 一次性：今天有创作事件、你还没选就先结算了的，撤回结算，等你选完再算
+function mzUndoEv1() {
+  const M = mz(); if (M.undoEv1) return; M.undoEv1 = 1; const k = dkey(Date.now()), R = S.schedule.res || {};
+  for (const r of rulesFor(k)) {
+    if (!isMusicRule(r)) continue; const key = k + '|' + r.id, L = M.log[key]; if (!L || L.skip || L.err) continue;
+    const c = mzCard(k, r, key); if (!c || c.done) continue;
+    const w = mzWork(L.wid); if (w && L.gain) { if (w.status === 'revising' && w.rev) w.rev.prog = Math.max(0, w.rev.prog - L.gain); else if (w.status === 'writing') w.prog = Math.max(0, w.prog - L.gain); const i = (w.sessions || []).map(x => x.date).lastIndexOf(k); if (i >= 0) w.sessions.splice(i, 1); }
+    if (L.exp) M.exp = Math.max(0, M.exp - L.exp); delete M.log[key]; delete R[key];
+    S.notifs = (S.notifs || []).filter(n => !(n.at >= L.at - 5e3 && n.at <= L.at + 5e3 && /结束/.test(n.text || '') && n.sub === L.note));
+  }
+  save(); if (typeof updBadges === 'function') updBadges();
+}
 function mzTick() {
-  mzRetro1019(); mzReroll1019(); mzFix1018();
+  mzRetro1019(); mzReroll1019(); mzFix1018(); mzUndoEv1();
   { const M0 = mz(); if (!M0.lateRedo1) { M0.lateRedo1 = 1; const d0 = addDays(dkey(Date.now()), -1); for (const [kk, v] of Object.entries(M0.log)) if (v && (v.skip === 'late' || v.err) && kk.slice(0, 10) >= d0) delete M0.log[kk]; } if (!M0.errRedo1) { M0.errRedo1 = 1; for (const [kk, v] of Object.entries(M0.log)) if (v && v.err) delete M0.log[kk]; } }
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
   for (let i = 45; i >= 0; i--) {
@@ -2086,7 +2098,7 @@ function mzTick() {
       const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440;
       const endAt = parseD(k).getTime() + e * 60e3; if (now < endAt) continue;
       if (r.createdAt && r.createdAt > endAt && dkey(r.createdAt) > addDays(k, 1) && r.retroOk !== k) { M.log[key] = { skip: 'late', at: now }; continue; } // 隔了好几天才补录的不算；当天 / 第二天补上的照算
-      const card = T.cards[key]; if (card && !card.done && k === today) continue; // 创作事件还没做，等今天结束
+      const card = k === today ? mzCard(k, r, key) : T.cards[key]; if (card && !card.done && k === today) continue; // 创作事件还没做，等今天结束（没打开过行程页也先把事件抽出来）
       try { mzSettle(k, r, key, s, e, card); } catch (err) { console.error('mz', err); const n = ((L0 && L0.n) || 0) + 1; if (n >= 3) { const h = (e - s) / 60, ex = h * 8; M.exp += ex; M.log[key] = { iv: [s, e], hrs: +h.toFixed(2), at: now, exp: ex, note: '写了一会儿' }; (S.schedule.res || (S.schedule.res = {}))[key] = { grade: '🎼', note: `写了 ${h.toFixed(1)} 小时，整理了一些想法`, at: now }; } else M.log[key] = { err: 1, n, at: now, msg: String(err && err.message || err).slice(0, 200) }; }
     }
   }
@@ -4142,7 +4154,7 @@ function dpMove2() { if (S.dpMove2) return; S.dpMove2 = 1; const from = '2026-10
   S.notifs = (S.notifs || []).filter(n => !(dkey(n.at || n.t || 0) === from && /Dance Practice/.test((n.text || '') + (n.sub || ''))));
   save(); if (typeof updBadges === 'function') updBadges(); }
 // 一次性：和世琳从今天开始秘密交往（只有 CRAVITY 队友知道）
-function serimLove1() { if (S.serimLove) return; S.serimLove = { since: '2026-10-25' }; const P = socPX({ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }); P.amb = Math.max(P.amb || 0, 8); P.th = Math.max(P.th || 0, 8); P.spark = Math.max(P.spark || 0, .8); save(); }
+function serimLove1() { if (S.serimLove) { const td = dkey(Date.now()); if (S.serimLove.since > td) { S.serimLove.since = td; save(); } return; } S.serimLove = { since: dkey(Date.now()) }; const P = socPX({ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }); P.amb = Math.max(P.amb || 0, 8); P.th = Math.max(P.th || 0, 8); P.spark = Math.max(P.spark || 0, .8); save(); }
 function serimHateFix1() { const SO = social(); if (SO.serimHate1) return; SO.serimHate1 = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
   const L = T.msgs.filter(m => !m.sys).slice(-1)[0]; if (!L || L.me || !/이따 들어볼게/.test(L.text || '')) return;
   T.fu = { at: Date.now() + rand(20, 60) * 60e3, task: '你说过等下去听 Key 和太妍的《Hate that》，现在听完了：告诉她你的音域合不合适、喜欢哪一段、想怎么一起翻唱（怎么分 part / 要不要改调），接着聊翻唱的事' }; save(); }
