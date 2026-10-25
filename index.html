@@ -3844,7 +3844,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); univDel1(); todayRestDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); univDel1(); todayRestDel1(); todayAllDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4182,14 +4182,18 @@ function univDel1() {
   save(); if (typeof updBadges === 'function') updBadges();
 }
 // 一次性：今天还没结束的行程全部悄悄删掉（重复的行程只跳过今天）；相关的消息、通知、结果都清掉
-function todayRestDel1() {
+function todayAllDel1() { const SC = S.schedule; if (SC.allDel1) return; SC.allDel1 = 1; SC.restDel1 = 0; todayRestDel1(true); }
+function todayRestDel1(all) {
   const SC = S.schedule; if (SC.restDel1) return; SC.restDel1 = 1; const k = dkey(Date.now()), now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
-  const L = rulesFor(k).filter(r => { const s0 = toMin(r.start); let e = toMin(r.end); if (e <= s0) e += 1440; return e > nm && !(SC.done || {})[k + '|' + r.id]; }); if (!L.length) { save(); return; }
+  const L = rulesFor(k).filter(r => { const s0 = toMin(r.start); let e = toMin(r.end); if (e <= s0) e += 1440; return all || (e > nm && !(SC.done || {})[k + '|' + r.id]); }); if (!L.length) { save(); return; }
   const M = mgrChat(), T = tgState(), c0 = M.chat.length;
   const mo = +k.slice(5, 7), da = +k.slice(8), dayRe = new RegExp(`${mo}월 ${da}일|${mo}/${da}|${mo}月${da}日`), aboutToday = m => dkey(m.at) === k || dayRe.test((m.text || '') + (m.zh || ''));
   for (const r of L) {
     const key = k + '|' + r.id, t = r.title;
-    delete (SC.res || {})[key]; delete (SC.reminded || {})[key]; delete T.cards[key];
+    const x = (SC.res || {})[key]; if (x && x.fans) { S.profile.followers = Math.max(0, S.profile.followers - x.fans); const F = fanState(), d = F.days[k], src = '行程：' + t; if (d && d.src && d.src[src]) { d.net -= d.src[src]; delete d.src[src]; } }
+    { const F = fanState(); F.relQ = (F.relQ || []).filter(q => q.title !== t); }
+    { const Mz = mz(), Lg = Mz.log[key]; if (Lg) { const w = mzWork(Lg.wid); if (w && Lg.gain) { if (w.status === 'revising' && w.rev) w.rev.prog = Math.max(0, w.rev.prog - Lg.gain); else if (w.status === 'writing') w.prog = Math.max(0, w.prog - Lg.gain); const i = (w.sessions || []).map(z => z.date).lastIndexOf(k); if (i >= 0) w.sessions.splice(i, 1); } if (Lg.exp) Mz.exp = Math.max(0, Mz.exp - Lg.exp); Mz.log[key] = { skip: 'del', at: Date.now() }; } }
+    delete (SC.res || {})[key]; delete (SC.reminded || {})[key]; delete (SC.done || {})[key]; delete T.cards[key];
     if (r.repeat !== 'once') { (r.skip || (r.skip = [])).push(k); continue; } // 每周固定的：只跳过今天，消息不动
     const p = r.yt && yt().plans.find(q => q.id === r.yt); if (p && p.st === 'booked') { p.st = 'hold'; p.retryAt = Date.now() + 3 * 86400e3; p.rule = null; if (p.log) p.log = p.log.filter(l => !/拍摄定在/.test(l.msg || '')); }
     const W = wallet(); W.recv = (W.recv || []).filter(y => !(y.title === t && y.date === k));
