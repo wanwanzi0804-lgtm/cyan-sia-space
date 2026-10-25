@@ -1053,7 +1053,7 @@ function aiSystem() {
 在这个世界里，她的歌和专辑都是她自己的原创作品：就算歌名或专辑名和现实中其他歌手的作品一样，也当作那些作品不存在，不要提到原唱或其他歌手。
 偶像资料：艺名 ${p.name}，${p.company || 'STARSHIP'}（星船娱乐）旗下 solo 女歌手（同公司有 IVE、CRAVITY、KiiiKiii），${ageOf()} 岁（生日 ${p.birth || '2007-08-29'}），${(p.trainee || '2022-10').replace('-', ' 年 ')} 月成为练习生，出道日 ${p.debut}（今天是出道第 ${dday()} 天），动物塑是${p.animal}，粉丝名「${p.fandom}」（粉丝偶尔才会自称粉丝名，不要频繁提），总粉丝约 ${p.followers} 人。粉丝常用昵称：${p.nicks.join('、')}（「老婆」「老公」是粉丝之间的玩笑称呼）。${p.bio ? '简介：' + p.bio : ''}
 粉丝群体设定：${p.fanRules || '（无）'}
-世琳（韩文 세림）是她的好朋友（对外对内都是朋友关系）：她一提到世琳，粉丝反应热烈：一部分嗑两人的友情（羡慕、守护友谊、想看同框、问候世琳），一部分开玩笑嗑 CP（起哄、发糖），少数提醒别乱捆绑。不要说她们在恋爱。
+世琳（韩文 세림）是她的好朋友（粉丝眼里是朋友关系）：她一提到世琳，粉丝反应热烈：一部分嗑两人的友情（羡慕、守护友谊、想看同框、问候世琳），一部分开玩笑嗑 CP（起哄、发糖），少数提醒别乱捆绑。不要说她们在恋爱。
 ${aiNews()}写作要求：
 - 像 Weverse / 微博超话里的真实粉丝：口语化、短句为主（多数 4~30 字），偶尔长一点；可以用表情、网络用语、「啊啊啊」「呜呜呜」、玩梗。语气多样：激动、温柔、搞笑、关心、提问。
 - 必须紧扣偶像发的具体内容（文字里的细节、图片/画面里看得到的东西：衣服颜色、背景、表情、物品、动作等），不要泛泛而谈，不要彼此重复。
@@ -3791,7 +3791,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4100,6 +4100,8 @@ function dpMove2() { if (S.dpMove2) return; S.dpMove2 = 1; const from = '2026-10
   const key = from + '|' + r.id; delete (S.schedule.reminded || {})[key]; delete (S.schedule.done || {})[key];
   S.notifs = (S.notifs || []).filter(n => !(dkey(n.at || n.t || 0) === from && /Dance Practice/.test((n.text || '') + (n.sub || ''))));
   save(); if (typeof updBadges === 'function') updBadges(); }
+// 一次性：和世琳从今天开始秘密交往（只有 CRAVITY 队友知道）
+function serimLove1() { if (S.serimLove) return; S.serimLove = { since: '2026-10-25' }; const P = socPX({ ...chFind('CRAVITY', '세림'), key: 'CRAVITY|세림' }); P.amb = Math.max(P.amb || 0, 8); P.th = Math.max(P.th || 0, 8); P.spark = Math.max(P.spark || 0, .8); save(); }
 function serimHateFix1() { const SO = social(); if (SO.serimHate1) return; SO.serimHate1 = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
   const L = T.msgs.filter(m => !m.sys).slice(-1)[0]; if (!L || L.me || !/이따 들어볼게/.test(L.text || '')) return;
   T.fu = { at: Date.now() + rand(20, 60) * 60e3, task: '你说过等下去听 Key 和太妍的《Hate that》，现在听完了：告诉她你的音域合不合适、喜欢哪一段、想怎么一起翻唱（怎么分 part / 要不要改调），接着聊翻唱的事' }; save(); }
@@ -8035,10 +8037,14 @@ function socTodoOpen(P, t) { return (P.todo || []).find(x => x.st === 'open' && 
 function socTodo(p, t, d, by) { const P = socPX(p); let x = socTodoOpen(P, t); if (x) return x; x = { id: uid(), t, d, by, day: dkey(Date.now()), st: 'open' }; P.todo.push(x); if (P.todo.length > 20) P.todo.splice(0, P.todo.length - 20); return x; }
 function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || ts.includes(P.ex[i].t)) return P.ex[i]; return null; }
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
+function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
+function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
+function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；只有 CRAVITY 的队友知道。`; }
 function socAmbOk(p) { if (p.key === 'CRAVITY|세림') return true; if (p.f) return false; return !FRIEND_DEF.some(d => d[0] === p.g && d[1] === p.n); }
 function socStage(p) {
   const P = socPX(p), lv = socLv(p);
   if (!lv && !P.facts.met) return 'new';
+  if (p.key === 'CRAVITY|세림' && serimLove()) return 'amb';
   if (socAmbOk(p) && P.spark >= .55 && P.amb >= 6 && P.th >= 5 && ((P.cnt.meal || 0) + (P.cnt.coffee || 0) >= 2 || p.key === 'CRAVITY|세림')) return 'amb';
   return lv >= 4 ? 'close' : lv >= 3 ? 'friend' : 'acq';
 }
@@ -8084,8 +8090,8 @@ function socCtx(p, when) {
   const thL = !socAmbOk(p) ? '' : P.th >= 5 ? '对方对她有明显好感（但没说破）' : P.th >= 2 ? '对方对她有一点好感' : '对方对她没有特别的想法';
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
   return `对方：${p.g} ${socName(p)}（${p.f ? '女' : '男'}，${same ? '和她同公司' : '别家公司'}）。${socCardTxt(p)}
-关系阶段：${STAGE_ZH[st]}。称呼她：${socBan(p) ? `你们是好朋友了，有时叫艺名「${S.profile.name}」，有时叫本名「은설」（은설아 / 은설이，中文写恩雪），随口来，不用每句都叫` : `叫她艺名「${S.profile.name}」（不熟时可以加 씨），不要叫本名`}。语气：${socBan(p) ? '你们已经是很熟的朋友，用半语（반말）' : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
-${p.key === 'CRAVITY|세림' ? `世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
+关系阶段：${p.key === 'CRAVITY|세림' && serimLove() ? '秘密交往中的恋人' : STAGE_ZH[st]}。称呼她：${socBan(p) ? `${p.key === 'CRAVITY|세림' && serimLove() ? '你们在交往，' : '你们是好朋友了，'}有时叫艺名「${S.profile.name}」，有时叫本名「은설」（은설아 / 은설이，中文写恩雪），随口来，不用每句都叫` : `叫她艺名「${S.profile.name}」（不熟时可以加 씨），不要叫本名`}。语气：${socBan(p) ? (p.key === 'CRAVITY|세림' && serimLove() ? '用半语（반말）' : '你们已经是很熟的朋友，用半语（반말）') : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL && !(p.key === 'CRAVITY|세림' && serimLove()) ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
+${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? `他知道她和世琳在秘密交往（只有 CRAVITY 队友知道，公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的语气：有点黏人，会主动报备日常、发自拍，关心她吃饭睡觉，偶尔一个❤️，睡前잘자구❤️；但不是每句都腻歪，还是平时那个说话方式。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
@@ -8813,10 +8819,10 @@ const SOC_GO = { 32: ['去看他的舞台彩排', '리허설 보러 가는 거']
 async function socAiReply(x, mine, o, dm) {
   if (!aiOn()) return null;
   if (x.p) try { const e0 = socEv(x.ev), what = socText(e0, x.p, x);
-    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆，STARSHIP，单身）和 ${socWho(x.p)} 之间${dm ? '在 KKT 上' : '刚刚'}发生了这件事：「${what}」\n${socCtx(x.p)}\n\n${S.profile.name}的回应：「${mine}」\n\n${SOC_RULES}\n${dm ? `用${socName(x.p)}的口吻回一条 KKT（ko 写韩语，zh 写中文意思）。` : `用一句中文写${socName(x.p)}的反应（可以有一句对白，用「」）。写在 ko 里，zh 留空。`}` }], 300, { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } }, dm ? KKT_SYS() : undefined);
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆，STARSHIP，${socSingle(x.p)}）和 ${socWho(x.p)} 之间${dm ? '在 KKT 上' : '刚刚'}发生了这件事：「${what}」\n${socCtx(x.p)}\n\n${S.profile.name}的回应：「${mine}」\n\n${SOC_RULES}\n${dm ? `用${socName(x.p)}的口吻回一条 KKT（ko 写韩语，zh 写中文意思）。` : `用一句中文写${socName(x.p)}的反应（可以有一句对白，用「」）。写在 ko 里，zh 留空。`}` }], 300, { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } }, dm ? KKT_SYS() : undefined);
     return dm ? (j.ko ? j : null) : j.ko || null; } catch (err) { return null; }
   const e = socEv(x.ev), p = x.p, P = socP(p), lv = socLv(p), facts = Object.keys(P.facts).map(f => ({ met: '见过面', contact: '有私人联系方式', chal: '一起拍过 challenge', collab: '合作过', meal: '一起吃过饭', alone: '单独见过面', party: '一起参加过聚会', gift: '送过东西', call: '打过电话' }[f] || f)).join('、') || '还没有什么交集';
-  try { const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆，单身）和 ${socWho(p)}（${p.f ? '女' : '男'}）之间发生了这件事：「${socText(e, p)}」\n他们的关系：${['不认识', '见过', '熟人', '朋友', '很熟的朋友', '最要好的朋友'][lv]}；已经发生过的事：${facts}${P.amb >= 3 && !p.f ? '；两人之间有一点暧昧' : ''}。\n${S.profile.name}的回应：「${mine}」\n用${socName(p)}的口吻回一句（可以中韩混，韩语后面括号写中文意思），符合他们现在的关系，不要编造没发生过的过去，不要突然表白。` }], 300, { type: 'object', additionalProperties: false, required: ['r'], properties: { r: { type: 'string' } } }); return j.r || null; } catch (err) { return null; }
+  try { const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆，${socSingle(p)}）和 ${socWho(p)}（${p.f ? '女' : '男'}）之间发生了这件事：「${socText(e, p)}」\n他们的关系：${['不认识', '见过', '熟人', '朋友', '很熟的朋友', '最要好的朋友'][lv]}；已经发生过的事：${facts}${P.amb >= 3 && !p.f ? '；两人之间有一点暧昧' : ''}。\n${S.profile.name}的回应：「${mine}」\n用${socName(p)}的口吻回一句（可以中韩混，韩语后面括号写中文意思），符合他们现在的关系，不要编造没发生过的过去，不要突然表白。` }], 300, { type: 'object', additionalProperties: false, required: ['r'], properties: { r: { type: 'string' } } }); return j.r || null; } catch (err) { return null; }
 }
 async function socDone(Q, mine, o) {
   const r = socApply(Q.x, o, mine); Q.res = { mine, reply: o.reply + (r.up ? `（你们现在算是${FR_LV[r.up]}了）` : '') + (r.rumor ? ' · ⚠ 好像被人注意到了' : '') }; openModal(socPopHTML());
@@ -8964,7 +8970,7 @@ async function serimGen() {
   const SV = social().serim; if (!SV || SV.gen || !aiOn()) return;
   try {
     const schema = { type: 'object', additionalProperties: false, required: ['scene', 'line', 'ko', 'zh', 'opts'], properties: { scene: { type: 'string' }, line: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' }, opts: { type: 'array', items: { type: 'string' } } } };
-    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）之间会发生这件事：「${SV.text}」。\n（设定：她和世琳平时在这个模拟器之外还有别的聊天软件，这里的 KKT 只是他们聊天的一小部分，不需要交代前因后果。）\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，不要加戏到恋爱；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。ko / zh：如果这件事是在 KKT 上发生的，世琳发来的那条消息的原文（他平时跟最好的朋友发 KKT 的样子：半语、口语、短，不是把中文翻成韩语）和中文意思；不是线上的就照样写一句他会发的。只按描述扩写，不要改变事件。` }], 800, schema);
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（女，solo 爱豆）今天和${serimLove() ? '男朋友世琳（CRAVITY 成员）' : '好朋友世琳（CRAVITY 成员，男，两人是最要好的朋友）'}之间会发生这件事：「${SV.text}」。\n（设定：她和世琳平时在这个模拟器之外还有别的聊天软件，这里的 KKT 只是他们聊天的一小部分，不需要交代前因后果。）\n把它写成一个手机游戏里的弹窗事件：scene 是 2~3 句第二人称（「你」）的场景描写，具体、有画面，${serimLove() ? '可以有恋人之间的小甜蜜，但要自然、生活化，不要偶像剧式的夸张台词' : '不要加戏到恋爱'}；line 是世琳在这个场景里对你说的一句话（口语，可以中韩混一点，附中文意思）；opts 是 3 个你可能的回应（每个 15 字以内，语气各不相同）。ko / zh：如果这件事是在 KKT 上发生的，世琳发来的那条消息的原文（${serimLove() ? '他平时跟女朋友' : '他平时跟最好的朋友'}发 KKT 的样子：半语、口语、短，不是把中文翻成韩语）和中文意思；不是线上的就照样写一句他会发的。只按描述扩写，不要改变事件。` }], 800, schema);
     SV.gen = { scene: j.scene, line: j.line, ko: j.ko, zh: j.zh, opts: (j.opts || []).slice(0, 3) }; save();
   } catch (e) { }
 }
@@ -8982,7 +8988,7 @@ async function serimReply(mine) {
     if (L) dmQueue(sp, L, rand(3, 12) * 1e3); SV.reply = L ? L.map(m => m.text).join(' / ') : ''; social().hist.push({ id: uid(), day: SV.day, ev: 'serim', who: 'CRAVITY 世琳', text: SV.text, mine, reply: SV.reply }); save(); return;
   }
   let rep = pick(['ㅋㅋㅋ 진짜? 고마워', '哈哈你今天怎么这么会说', '那下次我请你吃饭', '야 갑자기 왜 그래ㅋㅋ（喂你突然干嘛啦哈哈）', '嘿嘿，你也是']);
-  if (aiOn()) { try { const j = await aiRaw([{ type: 'text', text: `场景：${(SV.gen || {}).scene || SV.text}\n${S.profile.name}对世琳说：「${mine}」\n以世琳（最要好的朋友，男，CRAVITY）的口吻回一句，口语、自然、像好朋友，不要暧昧。可以中韩混，韩语后面括号写中文。` }], 300, { type: 'object', additionalProperties: false, required: ['r'], properties: { r: { type: 'string' } } }); if (j.r) rep = j.r; } catch (e) { } }
+  if (aiOn()) { try { const j = await aiRaw([{ type: 'text', text: `场景：${(SV.gen || {}).scene || SV.text}\n${S.profile.name}对世琳说：「${mine}」\n以世琳（${serimLove() ? '她的男朋友，两人秘密交往中' : '最要好的朋友'}，男，CRAVITY）的口吻回一句，口语、自然、${serimLove() ? '像恋人，有点黏人但不腻' : '像好朋友，不要暧昧'}。可以中韩混，韩语后面括号写中文。` }], 300, { type: 'object', additionalProperties: false, required: ['r'], properties: { r: { type: 'string' } } }); if (j.r) rep = j.r; } catch (e) { } }
   Q.res.reply = rep; SV.done = true; SV.mine = mine; SV.reply = rep; if (SV.dm) setTimeout(() => { dmPush(sp, { text: rep }); save(); }, rand(3000, 12000)); if (SV.dm && UI.dmOpen === 'CRAVITY|세림') openModal(dmHTML('CRAVITY|세림'));
   const SO = social(); SO.hist.push({ id: uid(), day: SV.day, ev: 'serim', who: 'CRAVITY 世琳', text: SV.text, mine, reply: rep }); save(); if (UI.socPop === Q) openModal(socPopHTML());
 }
@@ -9004,7 +9010,7 @@ async function serimNoteAdd(text) {
   if (!aiOn()) return n; const ask = /消息|kkt|私信|发给我|问我|找我|叫我|约我|연락|카톡|톡/i.test(text);
   if (!ask) return n;
   try {
-    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}记下了一条关于好朋友世琳（CRAVITY 세림）的真实情况：「${text}」\n现在是 ${socClock()}。\n${socCtx(serimP())}\n\n只有这条里明确写了「世琳接下来会在 KKT 上给她发消息」时，send 才是 true：time 按写的时间填（"HH:MM"，24 小时制；只写了大概时段就在那个时段里挑一个自然的时间；没写就填 ""）；ko 写他真的会发出来的那条消息（他平时跟最好的朋友发 KKT 的样子：半语、口语、短，只表达写的那个意思，不加别的内容），zh 写中文意思。已经发生过的、不是 KKT 消息的，send=false，其他留空。\nsum：把这条用一句很短的中文笼统概括（12 个字以内，不写具体几点），只用来在列表里显示。` }], 300,
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}记下了一条关于${serimLove() ? '男朋友' : '好朋友'}世琳（CRAVITY 세림）的真实情况：「${text}」\n现在是 ${socClock()}。\n${socCtx(serimP())}\n\n只有这条里明确写了「世琳接下来会在 KKT 上给她发消息」时，send 才是 true：time 按写的时间填（"HH:MM"，24 小时制；只写了大概时段就在那个时段里挑一个自然的时间；没写就填 ""）；ko 写他真的会发出来的那条消息（${serimLove() ? '他平时跟女朋友' : '他平时跟最好的朋友'}发 KKT 的样子：半语、口语、短，只表达写的那个意思，不加别的内容），zh 写中文意思。已经发生过的、不是 KKT 消息的，send=false，其他留空。\nsum：把这条用一句很短的中文笼统概括（12 个字以内，不写具体几点），只用来在列表里显示。` }], 300,
       { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh', 'sum'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' }, sum: { type: 'string' } } }, KKT_SYS());
     if (j.sum) n.sum = j.sum.trim();
     if (j.send && j.ko) { const now = new Date(), nm = now.getHours() * 60 + now.getMinutes(), t = /^(\d{1,2}):(\d{2})$/.exec((j.time || '').trim()); let at = t ? +t[1] * 60 + +t[2] : nm + ri(10, 60); if (at <= nm) at = nm + 1; n.kkt = { at: Math.min(at, 1439), ko: j.ko.trim(), zh: j.zh || '' }; save(); }
