@@ -3844,7 +3844,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); univDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4160,6 +4160,27 @@ function tplDel1() { const SO = social(); if (SO.tplDel1) return; SO.tplDel1 = 1
   for (const T of Object.values(dms())) { const i = (T.msgs || []).findIndex(m => !m.me && re.test(m.text || '')); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) continue;
     const gone = T.msgs.filter((m, j) => j >= i && !m.me && re.test(m.text || '')); T.msgs = T.msgs.filter(m => !gone.includes(m)); if (T.unread) T.unread = Math.max(0, T.unread - gone.length); }
   S.notifs = (S.notifs || []).filter(n => !/촬영 끝났어|我拍完了！你哪天方便/.test((n.text || '') + (n.sub || ''))); save(); if (typeof updBadges === 'function') updBadges(); }
+// 一次性：今天上午的大学庆典悄悄删掉（行程、经纪人那段对话、通知、结果、粉丝和收入记录都撤回）
+function univDel1() {
+  const SC = S.schedule; if (SC.univDel1) return; SC.univDel1 = 1; const k = dkey(Date.now());
+  const L = SC.rules.filter(r => r.repeat === 'once' && r.date === k && (UNIV_RE.test(r.title || '') || /校庆|庆典|축제/.test(r.title || '')) && toMin(r.start) < 12 * 60); if (!L.length) { save(); return; }
+  const M = mgrChat(), F = fanState(), W = wallet(), T = tgState(), c0 = M.chat.length; let gone = 0;
+  for (const r of L) {
+    const key = k + '|' + r.id, x = (SC.res || {})[key], t = r.title;
+    if (x && x.fans) { S.profile.followers -= x.fans; for (const d of Object.values(F.days || {})) { const src = '行程：' + t; if (d.src && d.src[src]) { d.net -= d.src[src]; delete d.src[src]; } } }
+    F.relQ = (F.relQ || []).filter(q => q.title !== t);
+    W.recv = (W.recv || []).filter(y => !(y.title === t && y.date === k));
+    delete (SC.res || {})[key]; delete (SC.done || {})[key]; delete (SC.reminded || {})[key]; delete T.cards[key];
+    const i = M.chat.findIndex(m => m.card && m.card.type === 'offer' && (m.text + (m.zh || '')).includes(t));
+    if (i >= 0) { const drop = new Set([M.chat[i]]); const me = M.chat.slice(i + 1).find(m => m.me); if (me) drop.add(me); const ok = M.chat.slice(i + 1).find(m => !m.me && /일정 추가했어요/.test(m.text || '')); if (ok) drop.add(ok); M.chat = M.chat.filter(m => !drop.has(m)); }
+    const g = M.chat.findIndex(m => m.card && m.card.type === 'gift' && m.card.id === r.id);
+    if (g >= 0) { const drop = new Set([M.chat[g]]); const after = M.chat.slice(g + 1, g + 6); const me = after.find(m => m.me); if (me) drop.add(me); after.filter(m => !m.me && /준비해둘게요|비용은 그날|네 알겠어요~/.test(m.text || '')).forEach(m => drop.add(m)); M.chat = M.chat.filter(m => !drop.has(m)); }
+    const n0 = M.chat.length; M.chat = M.chat.filter(m => { if (m.me || m.card || !(m.text + (m.zh || '')).includes(t)) return true; const ln = String(m.text).split('\n'); if (ln.length < 2) return false; m.text = ln.filter(l => !l.includes(t)).join('\n'); if (m.zh) m.zh = String(m.zh).split('\n').filter(l => !l.includes(t)).join('\n'); return true; }); gone += n0 - M.chat.length;
+    S.notifs = (S.notifs || []).filter(n => !((n.text || '') + (n.sub || '')).includes(t));
+  }
+  SC.rules = SC.rules.filter(r => !L.includes(r)); if (M.unread) M.unread = Math.max(0, M.unread - (c0 - M.chat.length));
+  save(); if (typeof updBadges === 'function') updBadges();
+}
 function serimHateFix1() { const SO = social(); if (SO.serimHate1) return; SO.serimHate1 = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
   const L = T.msgs.filter(m => !m.sys).slice(-1)[0]; if (!L || L.me || !/이따 들어볼게/.test(L.text || '')) return;
   T.fu = { at: Date.now() + rand(20, 60) * 60e3, task: '你说过等下去听 Key 和太妍的《Hate that》，现在听完了：告诉她你的音域合不合适、喜欢哪一段、想怎么一起翻唱（怎么分 part / 要不要改调），接着聊翻唱的事' }; save(); }
