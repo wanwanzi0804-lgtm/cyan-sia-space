@@ -613,7 +613,7 @@ video.bv-glow{pointer-events:none}
 .voice-bg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;padding-top:17vh;background:radial-gradient(circle at 50% 35%,#2fd3d8,#6a5cff 60%,#1b1442)}
 .voice-av{transition:transform .12s,box-shadow .12s;box-shadow:0 0 0 6px rgba(255,255,255,.2)}
 .voice-tag{font-size:14px;opacity:.85}
-#lv-beauty{position:absolute;left:10px;right:10px;bottom:118px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:14px;padding:10px;z-index:3}
+#lv-beauty{position:absolute;left:10px;right:10px;bottom:70px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:14px;padding:10px;z-index:3}
 #lv-beauty .pcat{background:rgba(255,255,255,.12);border-color:transparent;color:#fff}
 #lv-beauty .pcat.on{background:var(--accent)}
 .lv-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 22%,transparent 55%,rgba(0,0,0,.6));pointer-events:none}
@@ -623,22 +623,21 @@ video.bv-glow{pointer-events:none}
 .lv-pill{background:rgba(0,0,0,.35);border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums}
 .lv-end{border:0;background:rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:5px 14px;font-weight:700}
 .lv-title{position:absolute;top:calc(env(safe-area-inset-top) + 50px);left:14px;font-size:13px;opacity:.9;text-shadow:0 1px 4px rgba(0,0,0,.5)}
-#lv-chat{position:absolute;left:10px;right:80px;bottom:168px;max-height:42vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;-webkit-mask-image:linear-gradient(transparent,#000 22%)}
+#lv-chat{position:absolute;left:10px;right:80px;bottom:120px;max-height:42vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;-webkit-mask-image:linear-gradient(transparent,#000 22%)}
 .lc{background:rgba(0,0,0,.32);border-radius:12px;padding:4px 10px;font-size:14px;align-self:flex-start;max-width:100%;animation:fadein .3s;text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .lc b{font-weight:600;margin-right:6px;opacity:.85}
 .lc .ltr{display:block;font-size:12px;opacity:.75}
 .lc.host{background:linear-gradient(90deg,rgba(22,194,200,.75),rgba(123,108,255,.75))}
 .lc.q{background:rgba(255,184,46,.32);border:1px solid rgba(255,214,102,.75)}
 .lc.sys{background:rgba(255,255,255,.18);font-size:12.5px}
-#lv-sub{position:absolute;left:14px;right:14px;bottom:124px;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);min-height:22px}
+#lv-sub{position:absolute;left:14px;right:14px;bottom:76px;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);min-height:22px}
 #lv-sub .interim{opacity:.6}
-.lv-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px)}
-.lv-bottom input{flex:1 1 calc(100% - 90px);min-width:0;height:40px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px}
+.lv-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px)}
+.lv-bottom input{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px}
 .lv-bottom input::placeholder{color:rgba(255,255,255,.7)}
-.lv-bottom button{height:40px;min-width:44px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap}
+.lv-bottom button{border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap}
 .lv-bottom button.on{background:#ff2d55}
-#lv-sing{margin-left:auto}
-#lv-hearts{position:absolute;right:16px;bottom:128px;width:60px;height:60vh;pointer-events:none}
+#lv-hearts{position:absolute;right:16px;bottom:80px;width:60px;height:60vh;pointer-events:none}
 .ht{position:absolute;bottom:0;right:10px;font-size:22px;animation:float 3s ease-out forwards}
 @keyframes float{0%{transform:translate(0,0) scale(.6);opacity:0}10%{opacity:1}100%{transform:translate(var(--dx),-55vh) scale(1.1);opacity:0}}
 .preview{position:relative;border-radius:16px;overflow:hidden;background:#111;aspect-ratio:3/4;max-height:420px;margin:0 auto 12px;display:grid;place-items:center;color:#aaa}
@@ -6784,7 +6783,7 @@ async function startLive() {
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
     <div id="lv-beauty" hidden></div>
-    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button><button id="lv-ai" class="${S.prefs.liveAi !== false ? 'on' : ''}" title="AI 弹幕">AI</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
   if (mode === 'video') { if (ext) { applyBeauty(layer); $$('video', layer).forEach(v => v.play && v.play().catch(() => { })); } else attachPair(layer, stream); }
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
@@ -6798,7 +6797,6 @@ async function startLive() {
     } catch (e) { }
   }
   LIVE.ai = S.prefs.liveAi !== false;
-  $('#lv-ai').onclick = () => { const L = LIVE; L.ai = !L.ai; S.prefs.liveAi = L.ai; save(); $('#lv-ai').classList.toggle('on', L.ai); sysChat(L.ai ? (aiOn() ? '🤖 AI 弹幕已打开' : '🤖 还没设置 AI，打开也只有普通弹幕') : '🤖 AI 弹幕已关闭，只有普通弹幕'); };
   $('#lv-end').onclick = endLive;
   $('#lv-send').onclick = liveSend;
   $('#lv-lang').onclick = () => { const L = ['zh-CN', 'ko-KR', 'en-US'], cur = S.prefs.srLang || 'zh-CN', nx = L[(L.indexOf(cur) + 1) % L.length]; S.prefs.srLang = nx; save(); $('#lv-lang').textContent = { 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[nx]; sysChat(`语音识别改成${{ 'zh-CN': '中文', 'ko-KR': '韩语', 'en-US': '英语' }[nx]}`); if (LIVE.micOn) { stopRec(); setTimeout(startRec, 300); } };
