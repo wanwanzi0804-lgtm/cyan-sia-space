@@ -8078,6 +8078,8 @@ function socTodoOpen(P, t) { return (P.todo || []).find(x => x.st === 'open' && 
 function socTodo(p, t, d, by) { const P = socPX(p); let x = socTodoOpen(P, t); if (x) return x; x = { id: uid(), t, d, by, day: dkey(Date.now()), st: 'open' }; P.todo.push(x); if (P.todo.length > 20) P.todo.splice(0, P.todo.length - 20); return x; }
 function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || ts.includes(P.ex[i].t)) return P.ex[i]; return null; }
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
+// 交往后世琳私下打字的样子：照他泡泡原文整理（泡泡里粉丝名会显示成「은설」，那些话本来就像在对她说）
+const SERIM_LOVE_TONE = '半语；一个意思一个气泡，常一口气连发 3~8 条，长短混着；常单独发一条「은설」/「은설아」叫她再接着说；会主动报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，还会发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
 function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
 function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
 function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；只有 CRAVITY 的队友知道。`; }
@@ -8113,7 +8115,7 @@ function socVoice(p) {
 function socCardTxt(p) {
   const c = socCard(p), voice = socVoice(p);
   if (!c || c.conf === '基线' || !(c.tone || c.pers || c.like)) return `这个人：公开资料不多。私下打字的习惯：${voice}。不要给他加强烈的个性或口头禅。`;
-  const tone = c.toneAmb && socStage(p) === 'amb' ? c.toneAmb : c.tone, priv = p.key === 'CRAVITY|세림' || c.bub;
+  const tone = p.key === 'CRAVITY|세림' && serimLove() ? SERIM_LOVE_TONE : c.toneAmb && socStage(p) === 'amb' ? c.toneAmb : c.tone, priv = p.key === 'CRAVITY|세림' || c.bub;
   return `这个人（公开形象整理，可信度${c.conf}${c.conf === '低' ? '，只当很轻的倾向' : ''}）：
 - 性格：${c.pers || '（没有资料）'}
 - 打字习惯：${priv && tone ? `（从他本人真实发的消息整理，私下跟朋友聊天也是这个习惯，只是没有对粉丝的那种营业）${tone}` : ''}${voice ? `${priv && tone ? '；' : ''}${voice}` : ''}
@@ -8132,7 +8134,7 @@ function socCtx(p, when) {
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
   return `对方：${p.g} ${socName(p)}（${p.f ? '女' : '男'}，${same ? '和她同公司' : '别家公司'}）。${socCardTxt(p)}
 关系阶段：${p.key === 'CRAVITY|세림' && serimLove() ? '秘密交往中的恋人' : STAGE_ZH[st]}。称呼她：${socBan(p) ? `${p.key === 'CRAVITY|세림' && serimLove() ? '你们在交往，' : '你们是好朋友了，'}有时叫艺名「${S.profile.name}」，有时叫本名「은설」（은설아 / 은설이，中文写恩雪），随口来，不用每句都叫` : `叫她艺名「${S.profile.name}」（不熟时可以加 씨），不要叫本名`}。语气：${socBan(p) ? (p.key === 'CRAVITY|세림' && serimLove() ? '用半语（반말）' : '你们已经是很熟的朋友，用半语（반말）') : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL && !(p.key === 'CRAVITY|세림' && serimLove()) ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
-${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? `他知道她和世琳在秘密交往（只有 CRAVITY 队友知道，公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的语气：有点黏人，会主动报备日常、发自拍，关心她吃饭睡觉，偶尔一个❤️，睡前잘자구❤️；但不是每句都腻歪，还是平时那个说话方式。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
+${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? `他知道她和世琳在秘密交往（只有 CRAVITY 队友知道，公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的样子：有点黏人，会主动报备日常、发自拍、关心她吃饭睡觉，打字习惯按上面写的来；不是每句都腻歪。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
@@ -8364,22 +8366,22 @@ function dmDelay(p) {
   const P = socPers(p), T = dms()[p.key], now = Date.now(), st = socNow(p), D = socDay(p);
   const stg = socStage(p), fr = friendOf(p.g, p.n), Pp = socPX(p);
   // 关系越好越优先回：最要好 > 暧昧 > 很熟 > 普通朋友 > 刚认识；最近拒绝过 / 冷下来的会更慢
-  let rel = fr && fr.lv === 'best' ? .4 : stg === 'amb' ? .45 : stg === 'close' ? .6 : stg === 'friend' ? .85 : stg === 'acq' ? 1.8 : 3;
+  let rel = p.key === 'CRAVITY|세림' && serimLove() ? .25 : fr && fr.lv === 'best' ? .4 : stg === 'amb' ? .45 : stg === 'close' ? .6 : stg === 'friend' ? .85 : stg === 'acq' ? 1.8 : 3;
   if (Pp.cool && Pp.cool > dkey(now)) rel *= 1.8;
   const med = Math.sqrt(P.sp[0] * P.sp[1]); let m;
   if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
   else if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .7) m = lognorm(1.5, .8); // 正聊着
-  else if (st.busy) m = Math.random() < (rel < .5 ? .3 : rel < .9 ? .15 : .06) ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机（越亲的人越会偷偷回），大多等下一次空隙
+  else if (st.busy) m = Math.random() < (rel < .3 ? .5 : rel < .5 ? .3 : rel < .9 ? .15 : .06) ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机（越亲的人越会偷偷回），大多等下一次空隙
   else {
     const nm = new Date().getHours() * 60 + new Date().getMinutes(), late = nm < 300 || nm >= 1380;
     if (late && D.promo && Math.random() < .2) m = (D.wake - nm + (nm >= 1380 ? 1440 : 0)) + lognorm(25, 1); // 太累了，消息没看就睡着了
-    else if (Math.random() < (P.id === 'warm' ? .45 : .35) + (rel < .5 ? .1 : 0)) m = Math.max(lognorm(med, .8) * rel, lognorm(1.2, .5)); // 正好在看手机（看完、打字也要一会儿）
+    else if (Math.random() < (P.id === 'warm' ? .45 : .35) + (rel < .3 ? .3 : rel < .5 ? .1 : 0)) m = Math.max(lognorm(med, .8) * rel, lognorm(1.2, .5)); // 正好在看手机（看完、打字也要一会儿）
     else m = lognorm(22, 1) * (rel < .5 ? .7 : rel > 1.2 ? 1.5 : 1); // 醒着但在忙别的：洗澡、吃夜宵、打游戏、跟成员闹
   }
-  if (Math.random() < (rel < .5 ? .05 : rel > 1.2 ? .2 : .12)) m += lognorm(70, .9); // 看到了但忙忘了（不熟的更容易忘）
+  if (Math.random() < (rel < .3 ? .02 : rel < .5 ? .05 : rel > 1.2 ? .2 : .12)) m += lognorm(70, .9); // 看到了但忙忘了（不熟的更容易忘）
   return Math.max(.5, m) * 60e3;
 }
-function dmQueue(p, list, delay) { const T = dmThread(p), d = delay == null ? dmDelay(p) : delay, at = Date.now() + d; (T.pend || (T.pend = [])).push({ at, list }); dmWillRead(T, at - Math.min(d * .4, rand(20, 150) * 1e3)); save(); }
+function dmQueue(p, list, delay) { const T = dmThread(p), d = delay == null ? dmDelay(p) : delay, at = Date.now() + d; (T.pend || (T.pend = [])).push({ at, list }); dmWillRead(T, p.key === 'CRAVITY|세림' && serimLove() ? Date.now() + d * rand(.2, .5) : at - Math.min(d * .4, rand(20, 150) * 1e3)); save(); }
 // 对方什么时候点开看（看了「1」才消失）；不回的人也可能已读不回
 function dmWillRead(T, at) { const upto = Date.now(); if (!T.rd || T.rd.at > at) T.rd = { at, upto }; else T.rd.upto = Math.max(T.rd.upto, upto); }
 // 到点了：他看了你发的所有消息，一次性回（不会每条各回一遍、前后矛盾）
@@ -9071,38 +9073,38 @@ function serimPingOdds(T, at) {
   const p = serimP(), st = socNow(p, at), h = new Date(at).getHours(), SP = social().sping || (social().sping = {});
   if (st.sleep || (h >= 2 && h < 9)) return 0;
   const msgs = T ? T.msgs.filter(m => !m.sys) : [], last = msgs[msgs.length - 1];
-  if (last && at - last.at < 3 * 3600e3) return 0; // 刚聊过 / 正在聊：不算「主动找」
+  const love = !!serimLove(); if (last && at - last.at < (love ? 1.5 : 3) * 3600e3) return 0; // 刚聊过 / 正在聊：不算「主动找」
   if (T && (T.due || T.gen || (T.pend && T.pend.length))) return 0; // 他那边本来就有要回的
   if (last && last.me) return 0; // 你的消息还没回：那是回复的事，不是主动找
   let tail = 0; for (let i = msgs.length - 1; i >= 0 && !msgs[i].me; i--) if (msgs[i].ping) tail++;
-  if (tail >= 2) return 0; // 主动找了两次你都没回：不再追
-  const dk = dkey(at); if (SP.day !== dk) { SP.day = dk; SP.mood = pick([0, 0, 0, .6, 1, 1, 1, 1.8]); } // 有的日子就是不会想起来找人
-  let o = .06 * SP.mood;
+  if (tail >= (love ? 3 : 2)) return 0; // 主动找了两三次你都没回：不再追
+  const dk = dkey(at); if (SP.day !== dk) { SP.day = dk; SP.mood = love ? pick([.6, 1, 1, 1.4, 1.4, 1.8, 2.2]) : pick([0, 0, 0, .6, 1, 1, 1, 1.8]); } // 有的日子就是不会想起来找人
+  let o = (love ? .14 : .06) * SP.mood;
   const quiet = last ? (at - last.at) / 86400e3 : 3; o *= .5 + Math.min(quiet, 4) * .5; // 好几天没聊了，更容易想起来
-  if (tail === 1) o *= .15;
+  if (tail === 1) o *= love ? .4 : .15; else if (tail === 2) o *= .15;
   if (st.busy) o *= .3; else if (h >= 23 || h < 2) o *= .8;
   if (serimNotes().some(n => n.day === dk)) o *= 1.3; // 你记下了他今天的事：今天的他更「在场」
   return Math.min(o, .5);
 }
 async function serimPingTick() {
   const SO = social(), now = Date.now(), T = dms()[SERIM_K]; if (!aiOn() || serimPingBusy) return;
-  const SP = SO.sping || (SO.sping = {}); if (!SP.next) { SP.next = now + rand(40, 120) * 60e3; save(); return; }
+  const SP = SO.sping || (SO.sping = {}); if (!SP.next) { SP.next = now + (serimLove() ? rand(25, 70) : rand(40, 120)) * 60e3; save(); return; }
   if (now < SP.next) return;
   const miss = Math.min(12, 1 + (now - SP.next) / (80 * 60e3)), when = now - SP.next > 20 * 60e3 ? rand(SP.next, now - 60e3) : now; // 网页关着时错过的那几次合成一次：在那段时间里随便某一刻
-  SP.next = now + rand(40, 120) * 60e3; save();
+  SP.next = now + (serimLove() ? rand(25, 70) : rand(40, 120)) * 60e3; save();
   if (Math.random() >= 1 - Math.pow(1 - serimPingOdds(T, when), miss)) return;
   serimPingBusy = 1;
   try {
     const p = serimP(), Th = dmThread(p), vibe = socVibe(p, when);
-    const j = await aiRaw([{ type: 'text', text: `现在是 ${socClock(when)}。世琳（CRAVITY 세림）拿起手机，在想要不要给最好的朋友 ${S.profile.name}（은설）发 KKT。最近一次聊天已经是一段时间以前了，这次是他主动找她，不是在回她的消息。
+    const j = await aiRaw([{ type: 'text', text: `现在是 ${socClock(when)}。世琳（CRAVITY 세림）拿起手机，在想要不要给${serimLove() ? '女朋友' : '最好的朋友'} ${S.profile.name}（은설）发 KKT。最近一次聊天已经是一段时间以前了，这次是他主动找她，不是在回她的消息。
 ${socCtx(p, when)}
 他此刻的状态和心情（临时的，别说出来）：${VIBE_ZH[vibe]}。
 
-他会不会发、发什么，按一个真实的二十岁男生想起好朋友时的样子来：
+他会不会发、发什么，按一个真实的二十多岁男生想起${serimLove() ? '刚开始交往的女朋友' : '好朋友'}时的样子来：
 - 很多时候拿起手机也不会发，send=false 很正常。
 - 发的话，理由可以很随便：手头的事、刚看到的好笑的东西、吐槽工作、吃了什么、突然想到她、问问她最近怎么样、接着之前没聊完的话、她之前提过的事想起来问一句。不需要有明确目的，也不用每次都跟过去有关。
 - 只能用上面记录里真的有的事（聊天记录、她记下的世琳的情况、她提过的事、共同经历），不能编没发生过的共同经历；他自己的近况要和他现在的状态、她记下的他的事对得上。
-- 半语，KKT 的口语：短、随意，可以拆成两三条短的，可以是没头没尾的一句。不要客服式的关心（「밥은 잘 챙겨 먹고 있어?」这种），不要特意表达友情或给情绪价值，不要用问候开头当固定格式。
+- 半语，KKT 的口语：短、随意，可以拆成两三条短的，可以是没头没尾的一句。${serimLove() ? '交往中，他会更常找她：报备自己在干嘛、发自拍、问她吃了没、说想她都很自然；打字习惯照上面写的；但不要每条都是甜话，也不要用问候开头当固定格式。' : '不要客服式的关心（「밥은 잘 챙겨 먹고 있어?」这种），不要特意表达友情或给情绪价值，不要用问候开头当固定格式。'}
 - 上面聊天里他最后发的如果是主动找她、她还没回，这次就不要再追问同一件事。
 
 msgs：ko 写原文，zh 写中文意思。` }], 500,
