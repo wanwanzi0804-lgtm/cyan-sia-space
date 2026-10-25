@@ -2077,17 +2077,17 @@ function mzFix1018() {
 }
 function mzTick() {
   mzRetro1019(); mzReroll1019(); mzFix1018();
-  { const M0 = mz(); if (!M0.errRedo1) { M0.errRedo1 = 1; for (const [kk, v] of Object.entries(M0.log)) if (v && v.err) delete M0.log[kk]; } }
+  { const M0 = mz(); if (!M0.lateRedo1) { M0.lateRedo1 = 1; const d0 = addDays(dkey(Date.now()), -1); for (const [kk, v] of Object.entries(M0.log)) if (v && (v.skip === 'late' || v.err) && kk.slice(0, 10) >= d0) delete M0.log[kk]; } if (!M0.errRedo1) { M0.errRedo1 = 1; for (const [kk, v] of Object.entries(M0.log)) if (v && v.err) delete M0.log[kk]; } }
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
   for (let i = 45; i >= 0; i--) {
     const k = addDays(today, -i);
     for (const r of rulesFor(k)) {
-      if (!isMusicRule(r)) continue; const key = k + '|' + r.id; if (M.log[key]) continue;
+      if (!isMusicRule(r)) continue; const key = k + '|' + r.id, L0 = M.log[key]; if (L0 && L0.err && (L0.n || 1) < 3 && now - (L0.at || 0) > 10 * 60e3) delete M.log[key]; if (M.log[key]) continue;
       const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440;
       const endAt = parseD(k).getTime() + e * 60e3; if (now < endAt) continue;
-      if (r.createdAt && r.createdAt > endAt && r.retroOk !== k) { M.log[key] = { skip: 'late', at: now }; continue; } // 事后补录的不算
+      if (r.createdAt && r.createdAt > endAt && dkey(r.createdAt) > addDays(k, 1) && r.retroOk !== k) { M.log[key] = { skip: 'late', at: now }; continue; } // 隔了好几天才补录的不算；当天 / 第二天补上的照算
       const card = T.cards[key]; if (card && !card.done && k === today) continue; // 创作事件还没做，等今天结束
-      try { mzSettle(k, r, key, s, e, card); } catch (err) { console.error('mz', err); M.log[key] = { err: 1 }; }
+      try { mzSettle(k, r, key, s, e, card); } catch (err) { console.error('mz', err); const n = ((L0 && L0.n) || 0) + 1; if (n >= 3) { const h = (e - s) / 60, ex = h * 8; M.exp += ex; M.log[key] = { iv: [s, e], hrs: +h.toFixed(2), at: now, exp: ex, note: '写了一会儿' }; (S.schedule.res || (S.schedule.res = {}))[key] = { grade: '🎼', note: `写了 ${h.toFixed(1)} 小时，整理了一些想法`, at: now }; } else M.log[key] = { err: 1, n, at: now, msg: String(err && err.message || err).slice(0, 200) }; }
     }
   }
   for (const kk of Object.keys(M.log)) if (kk.slice(0, 10) < addDays(today, -60)) delete M.log[kk];
