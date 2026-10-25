@@ -2349,6 +2349,26 @@ function prepSlot(dk, h) { for (const st of h >= 7 ? [9, 10] : [13, 10, 15, 18])
 // 这段时间有没有被占：已有行程 + 还没回复的邀约
 function schedBusy(dk, a, b, skip) { const hit = r => { if (r === skip) return false; const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; }; return rulesFor(dk).some(hit) || mgr().offers.some(o => o.date === dk && hit(o)); }
 // 经纪人 / 公司排的行程撞了：能挪的那个挪到空的时间，经纪人在 KKT 说一声（你自己排的、颁奖礼不动）
+// 还没回复的邀约：和行程 / 别的邀约撞了就在后台悄悄调到同一天空着的时间（邀约消息里的时间一起改），调不开就当没来过
+function offerFixTick() {
+  const M = mgr(); if (!M.offers || !M.offers.length) return; let ch = 0;
+  for (const o of [...M.offers]) {
+    const s0 = toMin(o.start); let e0 = toMin(o.end); if (e0 <= s0) e0 += 1440; const dur = e0 - s0;
+    const busy = (a, b) => { const hit = r => { if (r === o) return false; const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b + 30 && e + 30 > a; }; return rulesFor(o.date).some(hit) || M.offers.some(x => x !== o && x.date === o.date && hit(x)); };
+    if (!busy(s0, e0)) continue;
+    const C = []; for (let st = 10 * 60; st + dur <= 22 * 60; st += 30) C.push(st); C.sort((u, v) => Math.abs(u - s0) - Math.abs(v - s0));
+    const st = C.find(x => !busy(x, x + dur)), msg = (mgrChat().chat || []).find(m => m.card && m.card.type === 'offer' && m.card.id === o.id);
+    if (st == null) { M.offers = M.offers.filter(x => x !== o); if (msg) { const C2 = mgrChat(); C2.chat = C2.chat.filter(m => m !== msg); } ch = 1; continue; }
+    const old = o.start; o.start = hhmm(st); o.end = hhmm(st + dur); if (msg) { msg.text = msg.text.replace(old, o.start); if (msg.zh) msg.zh = msg.zh.replace(old, o.start); } ch = 1;
+  }
+  if (ch) { save(); mgrRefresh(); }
+}
+// 一次性：删掉经纪人说「时间撞了，挪到…」的消息和对应通知，不留痕迹
+function clashMsgDel1() { const M = mgr(); if (M.clashDel1) return; M.clashDel1 = 1; const re = /时间撞了，挪到/, C = mgrChat(), n0 = C.chat.length;
+  C.chat = C.chat.filter(m => !(m.zh && re.test(m.zh))); const k = n0 - C.chat.length; if (k && C.unread) C.unread = Math.max(0, C.unread - k);
+  S.notifs = (S.notifs || []).filter(n => !re.test((n.text || '') + (n.sub || '')));
+  for (const p of yt().plans || []) for (const l of p.log || []) if (/撞了，改到/.test(l.msg || '')) l.msg = l.msg.replace(/^和「.*?」撞了，改到/, '拍摄时间调整到');
+  save(); if (typeof updBadges === 'function') updBadges(); }
 function schedClashTick() {
   const now = new Date(), hk = dkey(now) + '|' + now.getHours(), SC = S.schedule; if (SC._clashH === hk) return; SC._clashH = hk;
   const today = dkey(now), nowM = now.getHours() * 60 + now.getMinutes(), md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`, mk = d => `${+d.slice(5, 7)}월 ${+d.slice(8)}일`;
@@ -2359,8 +2379,7 @@ function schedClashTick() {
       const [s0, e0] = span(mv), dur = e0 - s0; let to = null;
       for (let j = 0; j <= 7 && !to; j++) { const k = addDays(dk, j); if (k < today) continue; const C = []; for (let st = 9 * 60; st + dur <= 22 * 60; st += 30) C.push(st); C.sort((u, v) => Math.abs(u - s0) - Math.abs(v - s0)); for (const st of C) { if (k === today && st <= nowM + 120) continue; if (!schedBusy(k, st, st + dur, mv)) { to = [k, st]; break; } } }
       if (!to) continue; const old = `${md(dk)} ${mv.start}`; mv.date = to[0]; mv.start = hhmm(to[1]); mv.end = hhmm(to[1] + dur);
-      const p = mv.yt && yt().plans.find(q => q.id === mv.yt); if (p) ytLog(p, `和「${other.title}」撞了，改到 ${md(mv.date)} ${mv.start}`);
-      mgrSay([`${mk(dk)} ${mv.title.replace(/^官方 YouTube 拍摄：/, '')} 시간이 ${other.title}랑 겹쳐서 ${to[0] === dk ? '' : mk(to[0]) + ' '}${+mv.start.slice(0, 2)}시로 옮겼어요`, `${md(dk)}的「${mv.title.replace(/^官方 YouTube 拍摄：/, '')}」和「${other.title}」时间撞了，挪到${to[0] === dk ? '' : md(to[0]) + ' '}${mv.start}了`]);
+      const p = mv.yt && yt().plans.find(q => q.id === mv.yt); if (p) ytLog(p, `拍摄时间调整到 ${md(mv.date)} ${mv.start}`);
       save(); } }
 }
 function prepAuto(o) {
@@ -3813,7 +3832,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); schedClashTick();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); clashMsgDel1(); offerFixTick(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -9782,7 +9801,7 @@ document.addEventListener('click', async e => {
     case 'tgord': tgOrd(+t.dataset.j); break;
     case 'tgordreset': UI.tgOrd = []; openModal(tgCardHTML(UI.tgKey)); break;
     case 'tgrh': tgRhythm(); break;
-    case 'ofok': { { const o0 = mgr().offers.find(x => x.id === t.dataset.id), cl = o0 && rulesFor(o0.date).find(r => { const a = toMin(o0.start), b = toMin(o0.end), s = toMin(r.start), e = toMin(r.end); return s < b && e > a; }); if (cl) { mgrMe('ok'); mgrResolve('offer', o0.id, '时间冲突'); mgrReply([`앗 그날 ${cl.start}에 「${cl.title}」 있어서 이건 안 되겠어요. 거절할게요`, `啊那天 ${cl.start} 已经有「${cl.title}」了，这个接不了，我回掉`]); mgr().offers = mgr().offers.filter(x => x !== o0); save(); break; } } mgrMe('ok'); mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
+    case 'ofok': { offerFixTick(); if (!mgr().offers.some(x => x.id === t.dataset.id)) { render(); break; } { const o0 = mgr().offers.find(x => x.id === t.dataset.id), cl = o0 && rulesFor(o0.date).find(r => { const a = toMin(o0.start), b = toMin(o0.end), s = toMin(r.start), e = toMin(r.end); return s < b && e > a; }); if (cl) { mgrMe('ok'); mgrResolve('offer', o0.id, '时间冲突'); mgrReply([`앗 그날 ${cl.start}에 「${cl.title}」 있어서 이건 안 되겠어요. 거절할게요`, `啊那天 ${cl.start} 已经有「${cl.title}」了，这个接不了，我回掉`]); mgr().offers = mgr().offers.filter(x => x !== o0); save(); break; } } mgrMe('ok'); mgrResolve('offer', t.dataset.id, '已接'); mgrReply(['네, 일정 추가했어요.', '好，加到行程了。']); const M = mgr(), o = M.offers.find(x => x.id === t.dataset.id); if (!o) break; M.offers = M.offers.filter(x => x !== o); M.mood = Math.min(100, M.mood + 3); const rid = uid(); if (GIFT_CATS.includes(o.cat)) setTimeout(() => { mgrSay([`${o.title} 때 팬분들 역조공 준비할까요?`, `${o.title}那天要给粉丝准备逆应援吗？`], { type: 'gift', id: rid, cat: o.cat }); save(); }, 4000 + Math.random() * 4000);
       S.schedule.rules.push({ id: rid, title: o.title, cat: o.cat, start: o.start, end: o.end, loc: o.loc || '', repeat: 'once', days: [], date: o.date, note: '经纪人接的活动', mgr: 1, popup: o.popup, partner: o.partner, createdAt: Date.now() }); save(); render(); toast('接了 ✓', `${o.date.slice(5).replace('-', '/')} ${o.title} 已加到行程`); break; }
     case 'ofno': { mgrMe('no'); mgrResolve('offer', t.dataset.id, '已拒绝'); mgrReply(['네, 거절할게요.', '好，回绝。']); const M = mgr(); M.offers = M.offers.filter(x => x.id !== t.dataset.id); M.mood = Math.max(0, M.mood - 4); save(); render(); break; }
     case 'mgropen': { const M = mgrChat(); M.chat.filter(m => m.me && !m.zh).slice(-30).forEach(mgrTrMe); UI.mgrOpen = true; M.unread = 0; updBadges(); save(); openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; break; }
