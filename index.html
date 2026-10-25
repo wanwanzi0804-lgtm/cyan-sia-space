@@ -2345,7 +2345,24 @@ function prepFinalize(o) {
 }
 // 完成的准备行程 → 对应任务；公司任务按时间推进；发行前检查 / 延期 / 预热物料
 // 企划会议和专辑录音由公司安排（不是你手动加的）：经纪人排进行程，算进回归准备
-function prepSlot(dk, h) { for (const st of h >= 7 ? [9, 10] : [13, 10, 15, 18]) { const a = st * 60, b = (st + h) * 60; if (b > 22 * 60) continue; if (!rulesFor(dk).some(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; })) return [st, st + h]; } return null; }
+function prepSlot(dk, h) { for (const st of h >= 7 ? [9, 10] : [13, 10, 15, 18]) { const a = st * 60, b = (st + h) * 60; if (b > 22 * 60) continue; if (!schedBusy(dk, a, b)) return [st, st + h]; } return null; }
+// 这段时间有没有被占：已有行程 + 还没回复的邀约
+function schedBusy(dk, a, b, skip) { const hit = r => { if (r === skip) return false; const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return s < b && e > a; }; return rulesFor(dk).some(hit) || mgr().offers.some(o => o.date === dk && hit(o)); }
+// 经纪人 / 公司排的行程撞了：能挪的那个挪到空的时间，经纪人在 KKT 说一声（你自己排的、颁奖礼不动）
+function schedClashTick() {
+  const now = new Date(), hk = dkey(now) + '|' + now.getHours(), SC = S.schedule; if (SC._clashH === hk) return; SC._clashH = hk;
+  const today = dkey(now), nowM = now.getHours() * 60 + now.getMinutes(), md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`, mk = d => `${+d.slice(5, 7)}월 ${+d.slice(8)}일`;
+  const span = r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return [s, e]; }, rank = r => r.yt || r.cbTask ? 2 : r.mgr ? 1 : 0;
+  for (let i = 0; i <= 30; i++) { const dk = addDays(today, i), L = SC.rules.filter(r => r.repeat === 'once' && r.date === dk && !(i === 0 && toMin(r.start) <= nowM + 60));
+    for (const x of L) for (const y of L) { if (x === y || x.date !== dk || y.date !== dk) continue; const [a, b] = span(x), [c, d] = span(y); if (!(a < d && c < b)) continue;
+      const mv = rank(x) > rank(y) || (rank(x) === rank(y) && (x.createdAt || 0) > (y.createdAt || 0)) ? x : y, other = mv === x ? y : x; if (!rank(mv) || (!rank(other) && !other.aw)) continue;
+      const [s0, e0] = span(mv), dur = e0 - s0; let to = null;
+      for (let j = 0; j <= 7 && !to; j++) { const k = addDays(dk, j); if (k < today) continue; const C = []; for (let st = 9 * 60; st + dur <= 22 * 60; st += 30) C.push(st); C.sort((u, v) => Math.abs(u - s0) - Math.abs(v - s0)); for (const st of C) { if (k === today && st <= nowM + 120) continue; if (!schedBusy(k, st, st + dur, mv)) { to = [k, st]; break; } } }
+      if (!to) continue; const old = `${md(dk)} ${mv.start}`; mv.date = to[0]; mv.start = hhmm(to[1]); mv.end = hhmm(to[1] + dur);
+      const p = mv.yt && yt().plans.find(q => q.id === mv.yt); if (p) ytLog(p, `和「${other.title}」撞了，改到 ${md(mv.date)} ${mv.start}`);
+      mgrSay([`${mk(dk)} ${mv.title.replace(/^官方 YouTube 拍摄：/, '')} 시간이 ${other.title}랑 겹쳐서 ${to[0] === dk ? '' : mk(to[0]) + ' '}${+mv.start.slice(0, 2)}시로 옮겼어요`, `${md(dk)}的「${mv.title.replace(/^官方 YouTube 拍摄：/, '')}」和「${other.title}」时间撞了，挪到${to[0] === dk ? '' : md(to[0]) + ' '}${mv.start}了`]);
+      save(); } }
+}
 function prepAuto(o) {
   const { c, a, P, t } = o, today = dkey(Date.now()); if (P.autoDay === today) return; P.autoDay = today; if (!c.tbd && cbDay() <= 0) return; // 发行之后不再排准备行程
   const add = (dk, h, title, loc, tk, cat) => { const sl = prepSlot(dk, h); if (!sl) return 0; const hh = x => String(x).padStart(2, '0') + ':00'; S.schedule.rules.push({ id: uid(), title, cat: cat || '其他', start: hh(sl[0]), end: hh(sl[1]), loc, repeat: 'once', days: [], date: dk, note: `《${a.name}》`, mgr: 1, cbTask: tk, cbAlbum: a.id, createdAt: Date.now() }); return sl; };
@@ -3723,7 +3740,7 @@ function ytCost(p, cut) { const [, , lo, hi] = ytFmt(p), r = srng('ytc' + p.id)(
 function ytSlots(p) {
   const out = [], today = dkey(Date.now()), dur = ytFmt(p)[3] >= 15e5 ? 6 : 3;
   for (let i = 2; i <= 12 && out.length < 3; i++) { const dk = addDays(today, i);
-    const st = [10, 13, 15].find(h => !rulesFor(dk).some(r => toMin(r.start) < (h + dur) * 60 && toMin(r.end) > h * 60)); if (st == null) continue;
+    const st = [10, 13, 15].find(h => !schedBusy(dk, h * 60, (h + dur) * 60)); if (st == null) continue;
     if (p.collab && socDay(p.collab, dk).gig) continue; out.push({ dk, start: `${String(st).padStart(2, '0')}:00`, end: `${String(st + dur).padStart(2, '0')}:00` }); }
   return out;
 }
@@ -3796,7 +3813,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -9724,7 +9741,7 @@ document.addEventListener('click', async e => {
     case 'ytcoidea': { const v = ($('#ytco-in')?.value || '').trim(); if (!v) { toast('写一下你的想法'); break; } ytCoAns(UI.ytIdea, 'idea', v); UI.ytIdea = null; { const M = mgrChat(); UI.mgrOpen = true; M.unread = 0; openModal(mgrChatHTML()); const el = $('#mgr-log'); if (el) el.scrollTop = el.scrollHeight; } break; }
     case 'ytslot': { const p = yt().plans.find(x => x.id === t.dataset.id); if (!p || p.st !== 'sched') break; const i = +t.dataset.i;
       if (i < 0) { p.st = 'hold'; p.retryAt = Date.now() + 3 * 86400e3; p.dec = { st: 'ok', why: '' }; ytLog(p, '提供的时间都不方便，过几天再排'); mgrMeSay(['그 날짜들은 다 안 될 것 같아요', '这几个时间都不太行']); mgrResolve('ytshoot', p.id, '都不行'); mgrReply(['알겠어요, 며칠 뒤에 다시 잡아볼게요', '好，过几天再重新排']); save(); break; }
-      const x = p.slots[i]; if (!x || rulesFor(x.dk).some(r => toMin(r.start) < toMin(x.end) && toMin(r.end) > toMin(x.start))) { toast('那个时间已经有行程了'); p.slots = ytSlots(p); mgrRefresh(); break; }
+      const x = p.slots[i]; if (!x || schedBusy(x.dk, toMin(x.start), toMin(x.end))) { toast('那个时间已经有行程了'); p.slots = ytSlots(p); mgrRefresh(); break; }
       const id = uid(), loc = { vocal: '公司 录音室', dance: '公司 练习室', shorts: '公司', vlog: '公司 / 外景', special: '摄影棚' }[p.cat];
       S.schedule.rules.push({ id, title: `官方 YouTube 拍摄：${p.title}`, cat: '物料', start: x.start, end: x.end, loc, repeat: 'once', days: [], date: x.dk, note: YT_CAT[p.cat][0] + (p.collab ? ` · with ${socName(p.collab)}` : ''), mgr: 1, yt: p.id, createdAt: Date.now() });
       p.rule = id; p.st = 'booked'; ytLog(p, `拍摄定在 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} ${x.start}`); mgrMeSay([`${+x.dk.slice(5, 7)}월 ${+x.dk.slice(8)}일 ${+x.start.slice(0, 2)}시 괜찮아요`, `${+x.dk.slice(5, 7)}月${+x.dk.slice(8)}日${+x.start.slice(0, 2)}点可以`]); mgrResolve('ytshoot', p.id, `已定 ${+x.dk.slice(5, 7)}/${+x.dk.slice(8)} ${x.start}`); mgrReply([`네, ${+x.dk.slice(5, 7)}월 ${+x.dk.slice(8)}일로 잡을게요`, `好，定在${+x.dk.slice(5, 7)}月${+x.dk.slice(8)}日`]);
