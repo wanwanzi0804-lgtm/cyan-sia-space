@@ -602,6 +602,9 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 /* live */
 #live-layer{position:fixed;inset:0;z-index:80;background:#000;color:#fff;overflow:hidden}
 #live-layer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#live-layer .ext,.preview .ext{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:none}
+img.ext{animation:extSway 7s ease-in-out infinite}@keyframes extSway{0%,100%{transform:scale(1.04) translate(0,0)}50%{transform:scale(1.06) translate(-.6%,.5%)}}
+.ext-pick{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.ext-pick input{display:none}
 video.bv-glow{pointer-events:none}
 .seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;margin-bottom:12px}
 .seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:8px 0;font-weight:600;color:var(--muted)}
@@ -6703,14 +6706,18 @@ function beautyFilter() { const b = beautyCfg(); return BEAUTY[b.preset].f(b.lev
 // 磨皮：同一路视频叠一层模糊的，透明度越高皮肤越柔和
 function applyBeauty(root = document) {
   const b = beautyCfg(), l = b.level / 100, p = BEAUTY[b.preset];
-  $$('video.bv-main', root).forEach(v => v.style.filter = p.f(l));
-  $$('video.bv-glow', root).forEach(v => { v.style.filter = `blur(${2 + 3 * l}px) ${p.f(l) === 'none' ? '' : p.f(l)}`; v.style.opacity = (p.smooth * l * .6).toFixed(2); });
+  $$('.bv-main', root).forEach(v => v.style.filter = p.f(l));
+  $$('.bv-glow', root).forEach(v => { v.style.filter = `blur(${2 + 3 * l}px) ${p.f(l) === 'none' ? '' : p.f(l)}`; v.style.opacity = (p.smooth * l * .6).toFixed(2); });
 }
 function beautyPanelHTML() {
   const b = beautyCfg();
   return `<div class="bpanel"><div class="pcats">${Object.entries(BEAUTY).map(([k, v]) => `<button class="pcat ${k === b.preset ? 'on' : ''}" data-act="bpreset" data-k="${k}">${v.name}</button>`).join('')}</div>
     <div class="row" style="margin-top:6px"><span style="font-size:13px;white-space:nowrap">强度</span><input type="range" id="b-level" min="0" max="100" value="${b.level}" style="padding:0" ${b.preset === 'raw' ? 'disabled' : ''}><span id="b-val" style="font-size:13px;width:28px">${b.level}</span></div></div>`;
 }
+// 外接画面：选一段视频（循环播放）或一张照片当直播画面，不开摄像头
+let EXT = null;
+function extPair() { if (!EXT) return ''; return EXT.kind === 'video' ? `<video class="bv-main ext" src="${EXT.url}" autoplay loop muted playsinline></video><video class="bv-glow ext" src="${EXT.url}" autoplay loop muted playsinline></video>` : `<img class="bv-main ext" src="${EXT.url}" alt=""><img class="bv-glow ext" src="${EXT.url}" alt="">`; }
+function extPick(f) { if (!f) return; if (EXT) URL.revokeObjectURL(EXT.url); EXT = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; const box = $('#pv-box'); if (box) { box.innerHTML = extPair(); applyBeauty(box); $$('video', box).forEach(v => v.play && v.play().catch(() => { })); } }
 function videoPair(stream) { return `<video class="bv-main" autoplay playsinline muted></video><video class="bv-glow" autoplay playsinline muted></video>`; }
 function attachPair(root, stream) { $$('video.bv-main, video.bv-glow', root).forEach(v => { v.srcObject = stream; v.play && v.play().catch(() => { }); }); applyBeauty(root); }
 
@@ -6718,13 +6725,15 @@ function viewLive() {
   const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video';
   return `${feedNav('live')}<div class="card">
     <h3 style="margin:2px 0 10px">开始直播</h3>
-    <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button></div>
-    ${mode === 'video' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>
+    <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button><button class="${mode === 'ext' ? 'on' : ''}" data-act="lmode" data-m="ext">🖼 外接画面</button></div>
+    ${mode === 'ext' ? `<div class="preview" id="pv-box">${EXT ? extPair() : '<span>选一段视频或一张照片当直播画面</span>'}</div>
+    <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
+    : mode === 'video' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>
     <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
     : `<div class="preview voice-pv">${bigAvatar(110)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">语音直播不开摄像头，粉丝只听得到你的声音</span></div>`}
     <div class="field"><label>弹幕量</label><div class="seg" style="margin:0">${[[.5, '少'], [1, '适中'], [1.6, '多']].map(([v, t]) => `<button class="${(S.prefs.chatRate || 1) == v ? 'on' : ''}" data-act="crate" data-v="${v}">${t}</button>`).join('')}</div></div>
     <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
-    <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'video' ? '视频' : '语音'}直播</button></div>
+    <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : mode === 'ext' ? `<label class="btn ghost ext-pick">${EXT ? '换一个' : '选视频 / 照片'}<input type="file" id="ext-in" accept="image/*,video/*"></label>` : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'voice' ? '语音' : '视频'}直播</button></div>
     ${IN_FRAME ? '<p class="muted" style="margin:10px 0 0;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头和麦克风，只能用「纯聊天直播」。</p>' : ''}
     <p class="muted" style="margin:10px 0 0">直播中可以直接说话（浏览器语音识别），粉丝会根据你说的内容刷弹幕；也可以打字。iPhone 需要在 设置 → 通用 → 键盘 里打开「启用听写」。</p>
   </div>
@@ -6754,8 +6763,9 @@ async function startLive() {
   const want = S.prefs.liveMode || 'video';
   S.prefs.lastLiveTitle = title;
   stopPreview();
-  let stream = null, mode = want;
-  try {
+  let stream = null, mode = want, ext = false;
+  if (want === 'ext') { if (!EXT) { toast('先选一段视频或一张照片'); return; } ext = true; mode = 'video'; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { toast('没有拿到麦克风，只能打字互动'); } }
+  else try {
     stream = await navigator.mediaDevices.getUserMedia(want === 'video' ? { video: { facingMode: 'user' }, audio: true } : { audio: true });
   } catch (e) {
     if (want === 'video') {
@@ -6767,14 +6777,14 @@ async function startLive() {
     }
   }
   const layer = document.createElement('div'); layer.id = 'live-layer';
-  layer.innerHTML = `${mode === 'video' ? videoPair() : `<div class="voice-bg">${bigAvatar(150)}<div class="voice-tag">${mode === 'voice' ? '🎙 语音直播中' : '💬 聊天直播中'}</div></div>`}<div class="lv-shade"></div>
+  layer.innerHTML = `${mode === 'video' ? (ext ? extPair() : videoPair()) : `<div class="voice-bg">${bigAvatar(150)}<div class="voice-tag">${mode === 'voice' ? '🎙 语音直播中' : '💬 聊天直播中'}</div></div>`}<div class="lv-shade"></div>
     <div class="lv-top"><span class="lv-badge">LIVE</span><span class="lv-pill" id="lv-time">00:00:00</span><span class="lv-pill">👁 <span id="lv-view">0</span></span><span class="lv-pill">♥ <span id="lv-heart">0</span></span><span class="sp"></span><button class="lv-end" id="lv-end">结束</button></div>
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
     <div id="lv-beauty" hidden></div>
     <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
-  if (mode === 'video') attachPair(layer, stream);
+  if (mode === 'video') { if (ext) { applyBeauty(layer); $$('video', layer).forEach(v => v.play && v.play().catch(() => { })); } else attachPair(layer, stream); }
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
   hotTaskCheck('live', [mode], title);
   // 语音直播：头像跟着说话音量跳动
@@ -9957,6 +9967,7 @@ document.addEventListener('click', async e => {
   }
 });
 document.addEventListener('change', async e => {
+  if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
   if (e.target.id === 'r-work') syncWorkField();
   if (e.target.id === 'r-cbt') e.target.dataset.touched = 1;
