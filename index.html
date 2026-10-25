@@ -3844,7 +3844,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); univDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
+  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); univDel1(); todayRestDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4179,6 +4179,28 @@ function univDel1() {
     S.notifs = (S.notifs || []).filter(n => !((n.text || '') + (n.sub || '')).includes(t));
   }
   SC.rules = SC.rules.filter(r => !L.includes(r)); if (M.unread) M.unread = Math.max(0, M.unread - (c0 - M.chat.length));
+  save(); if (typeof updBadges === 'function') updBadges();
+}
+// 一次性：今天还没结束的行程全部悄悄删掉（重复的行程只跳过今天）；相关的消息、通知、结果都清掉
+function todayRestDel1() {
+  const SC = S.schedule; if (SC.restDel1) return; SC.restDel1 = 1; const k = dkey(Date.now()), now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+  const L = rulesFor(k).filter(r => { const s0 = toMin(r.start); let e = toMin(r.end); if (e <= s0) e += 1440; return e > nm && !(SC.done || {})[k + '|' + r.id]; }); if (!L.length) { save(); return; }
+  const M = mgrChat(), T = tgState(), c0 = M.chat.length;
+  const mo = +k.slice(5, 7), da = +k.slice(8), dayRe = new RegExp(`${mo}월 ${da}일|${mo}/${da}|${mo}月${da}日`), aboutToday = m => dkey(m.at) === k || dayRe.test((m.text || '') + (m.zh || ''));
+  for (const r of L) {
+    const key = k + '|' + r.id, t = r.title;
+    delete (SC.res || {})[key]; delete (SC.reminded || {})[key]; delete T.cards[key];
+    if (r.repeat !== 'once') { (r.skip || (r.skip = [])).push(k); continue; } // 每周固定的：只跳过今天，消息不动
+    const p = r.yt && yt().plans.find(q => q.id === r.yt); if (p && p.st === 'booked') { p.st = 'hold'; p.retryAt = Date.now() + 3 * 86400e3; p.rule = null; if (p.log) p.log = p.log.filter(l => !/拍摄定在/.test(l.msg || '')); }
+    const W = wallet(); W.recv = (W.recv || []).filter(y => !(y.title === t && y.date === k));
+    const i = M.chat.findIndex(m => m.card && m.card.type === 'offer' && (m.text + (m.zh || '')).includes(t));
+    if (i >= 0) { const drop = new Set([M.chat[i]]); const me = M.chat.slice(i + 1).find(m => m.me); if (me) drop.add(me); const ok = M.chat.slice(i + 1).find(m => !m.me && /일정 추가했어요/.test(m.text || '')); if (ok) drop.add(ok); M.chat = M.chat.filter(m => !drop.has(m)); }
+    const g = M.chat.findIndex(m => m.card && m.card.type === 'gift' && m.card.id === r.id);
+    if (g >= 0) { const drop = new Set([M.chat[g]]); const after = M.chat.slice(g + 1, g + 6); const me = after.find(m => m.me); if (me) drop.add(me); after.filter(m => !m.me && /준비해둘게요|비용은 그날|네 알겠어요~/.test(m.text || '')).forEach(m => drop.add(m)); M.chat = M.chat.filter(m => !drop.has(m)); }
+    M.chat = M.chat.filter(m => { if (m.me || m.card || !(m.text + (m.zh || '')).includes(t) || !aboutToday(m)) return true; const ln = String(m.text).split('\n'); if (ln.length < 2) return false; m.text = ln.filter(l => !l.includes(t)).join('\n'); if (m.zh) m.zh = String(m.zh).split('\n').filter(l => !l.includes(t)).join('\n'); return true; });
+    S.notifs = (S.notifs || []).filter(n => !(((n.text || '') + (n.sub || '')).includes(t) && aboutToday(n)));
+  }
+  SC.rules = SC.rules.filter(r => !(r.repeat === 'once' && L.includes(r))); if (M.unread) M.unread = Math.max(0, M.unread - (c0 - M.chat.length));
   save(); if (typeof updBadges === 'function') updBadges();
 }
 function serimHateFix1() { const SO = social(); if (SO.serimHate1) return; SO.serimHate1 = 1; const T = dms()['CRAVITY|세림']; if (!T) return;
