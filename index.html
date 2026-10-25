@@ -613,7 +613,7 @@ video.bv-glow{pointer-events:none}
 .voice-bg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;padding-top:17vh;background:radial-gradient(circle at 50% 35%,#2fd3d8,#6a5cff 60%,#1b1442)}
 .voice-av{transition:transform .12s,box-shadow .12s;box-shadow:0 0 0 6px rgba(255,255,255,.2)}
 .voice-tag{font-size:14px;opacity:.85}
-#lv-beauty{position:absolute;left:10px;right:10px;bottom:70px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:14px;padding:10px;z-index:3}
+#lv-beauty{position:absolute;left:10px;right:10px;bottom:118px;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);border-radius:14px;padding:10px;z-index:3}
 #lv-beauty .pcat{background:rgba(255,255,255,.12);border-color:transparent;color:#fff}
 #lv-beauty .pcat.on{background:var(--accent)}
 .lv-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),transparent 22%,transparent 55%,rgba(0,0,0,.6));pointer-events:none}
@@ -623,21 +623,22 @@ video.bv-glow{pointer-events:none}
 .lv-pill{background:rgba(0,0,0,.35);border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums}
 .lv-end{border:0;background:rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:5px 14px;font-weight:700}
 .lv-title{position:absolute;top:calc(env(safe-area-inset-top) + 50px);left:14px;font-size:13px;opacity:.9;text-shadow:0 1px 4px rgba(0,0,0,.5)}
-#lv-chat{position:absolute;left:10px;right:80px;bottom:120px;max-height:42vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;-webkit-mask-image:linear-gradient(transparent,#000 22%)}
+#lv-chat{position:absolute;left:10px;right:80px;bottom:168px;max-height:42vh;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;-webkit-mask-image:linear-gradient(transparent,#000 22%)}
 .lc{background:rgba(0,0,0,.32);border-radius:12px;padding:4px 10px;font-size:14px;align-self:flex-start;max-width:100%;animation:fadein .3s;text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .lc b{font-weight:600;margin-right:6px;opacity:.85}
 .lc .ltr{display:block;font-size:12px;opacity:.75}
 .lc.host{background:linear-gradient(90deg,rgba(22,194,200,.75),rgba(123,108,255,.75))}
 .lc.q{background:rgba(255,184,46,.32);border:1px solid rgba(255,214,102,.75)}
 .lc.sys{background:rgba(255,255,255,.18);font-size:12.5px}
-#lv-sub{position:absolute;left:14px;right:14px;bottom:76px;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);min-height:22px}
+#lv-sub{position:absolute;left:14px;right:14px;bottom:124px;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.8);min-height:22px}
 #lv-sub .interim{opacity:.6}
-.lv-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px)}
-.lv-bottom input{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px}
+.lv-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px)}
+.lv-bottom input{flex:1 1 calc(100% - 90px);min-width:0;height:40px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px}
 .lv-bottom input::placeholder{color:rgba(255,255,255,.7)}
-.lv-bottom button{border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap}
+.lv-bottom button{height:40px;min-width:44px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap}
 .lv-bottom button.on{background:#ff2d55}
-#lv-hearts{position:absolute;right:16px;bottom:80px;width:60px;height:60vh;pointer-events:none}
+#lv-sing{margin-left:auto}
+#lv-hearts{position:absolute;right:16px;bottom:128px;width:60px;height:60vh;pointer-events:none}
 .ht{position:absolute;bottom:0;right:10px;font-size:22px;animation:float 3s ease-out forwards}
 @keyframes float{0%{transform:translate(0,0) scale(.6);opacity:0}10%{opacity:1}100%{transform:translate(var(--dx),-55vh) scale(1.1);opacity:0}}
 .preview{position:relative;border-radius:16px;overflow:hidden;background:#111;aspect-ratio:3/4;max-height:420px;margin:0 auto 12px;display:grid;place-items:center;color:#aaa}
@@ -6732,6 +6733,7 @@ function viewLive() {
     <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
     : `<div class="preview voice-pv">${bigAvatar(110)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">语音直播不开摄像头，粉丝只听得到你的声音</span></div>`}
     <div class="field"><label>弹幕量</label><div class="seg" style="margin:0">${[[.5, '少'], [1, '适中'], [1.6, '多']].map(([v, t]) => `<button class="${(S.prefs.chatRate || 1) == v ? 'on' : ''}" data-act="crate" data-v="${v}">${t}</button>`).join('')}</div></div>
+    <div class="field"><div class="rest-tg" style="margin:0;padding:0"><span>🤖 AI 弹幕${aiOn() ? '' : '<span class="muted" style="font-size:12px">（还没设置 AI，现在只有普通弹幕）</span>'}</span><label class="sw"><input type="checkbox" data-act="liveai" ${S.prefs.liveAi !== false ? 'checked' : ''}><i></i></label></div></div>
     <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
     <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : mode === 'ext' ? `<label class="btn ghost ext-pick">${EXT ? '换一个' : '选视频 / 照片'}<input type="file" id="ext-in" accept="image/*,video/*"></label>` : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'voice' ? '语音' : '视频'}直播</button></div>
     ${IN_FRAME ? '<p class="muted" style="margin:10px 0 0;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头和麦克风，只能用「纯聊天直播」。</p>' : ''}
@@ -6782,7 +6784,7 @@ async function startLive() {
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
     <div id="lv-beauty" hidden></div>
-    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button><button id="lv-ai" class="${S.prefs.liveAi !== false ? 'on' : ''}" title="AI 弹幕">AI</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
   if (mode === 'video') { if (ext) { applyBeauty(layer); $$('video', layer).forEach(v => v.play && v.play().catch(() => { })); } else attachPair(layer, stream); }
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
@@ -6795,6 +6797,8 @@ async function startLive() {
       LIVE.audio = { ac, an, buf: new Uint8Array(an.fftSize) };
     } catch (e) { }
   }
+  LIVE.ai = S.prefs.liveAi !== false;
+  $('#lv-ai').onclick = () => { const L = LIVE; L.ai = !L.ai; S.prefs.liveAi = L.ai; save(); $('#lv-ai').classList.toggle('on', L.ai); sysChat(L.ai ? (aiOn() ? '🤖 AI 弹幕已打开' : '🤖 还没设置 AI，打开也只有普通弹幕') : '🤖 AI 弹幕已关闭，只有普通弹幕'); };
   $('#lv-end').onclick = endLive;
   $('#lv-send').onclick = liveSend;
   $('#lv-lang').onclick = () => { const L = ['zh-CN', 'ko-KR', 'en-US'], cur = S.prefs.srLang || 'zh-CN', nx = L[(L.indexOf(cur) + 1) % L.length]; S.prefs.srLang = nx; save(); $('#lv-lang').textContent = { 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[nx]; sysChat(`语音识别改成${{ 'zh-CN': '中文', 'ko-KR': '韩语', 'en-US': '英语' }[nx]}`); if (LIVE.micOn) { stopRec(); setTimeout(startRec, 300); } };
@@ -6834,7 +6838,7 @@ function liveTick() {
   $('#lv-heart').textContent = fmtNum(L.hearts);
   // AI 弹幕
   // 说话后最多 30 秒请一次 AI；不说话时每 3 分钟少量请一次；其余时间都是免费模板弹幕
-  if (aiOn() && !L.aiBusy && ((L.newSpeech && Date.now() - L.lastAi > 30000) || Date.now() - Math.max(L.lastAi, L.start) > 180000)) liveAI();
+  if (aiOn() && L.ai && !L.aiBusy && ((L.newSpeech && Date.now() - L.lastAi > 30000) || Date.now() - Math.max(L.lastAi, L.start) > 180000)) liveAI();
 }
 const LIVE_AMB = {
   common: ['哈哈哈哈', '笑死', '啊啊啊啊', '爱你', '{n}吃饭了吗', '今天练习累不累', '什么时候回归呀', '唱首歌吧', '猫猫在吗', '下次多播一会', '我在这里！', '{n}看评论！', '第一次看直播好紧张', '可以叫我名字吗', '{n}在宿舍吗', '有点卡吗还是我网不好', '老婆贴贴', '想{n}了', '今天也来打卡了', '一边写作业一边看', '在食堂偷偷看', '好治愈', '{n}说话好好听', '{n}的笑声好可爱', '刷到直播立刻点进来', '好久没看到{n}直播了', '在地铁上看', '我妈问我在笑什么', '已经录屏了', '今天也被可爱到了', '这个时间开播太好了', '{n}看看我', '抽空来看一眼', '给{n}点了好多爱心', '{n}今天好有精神', '安可～', '今天心情好好呀'],
@@ -7085,7 +7089,7 @@ async function liveAI() {
   const L = LIVE; L.aiBusy = true; L.lastAi = Date.now(); const speech = L.speech, idle = !L.newSpeech; L.newSpeech = false; L.speech = '';
   try {
     const content = [];
-    const v = L.layer.querySelector('video.bv-main'); const data = v ? drawB64(v, v.videoWidth, v.videoHeight, 512, beautyFilter()) : '';
+    const v = L.layer.querySelector('.bv-main'); const data = v ? (v.tagName === 'IMG' ? drawB64(v, v.naturalWidth, v.naturalHeight, 512, beautyFilter()) : drawB64(v, v.videoWidth, v.videoHeight, 512, beautyFilter())) : '';
     if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
     content.push({ type: 'text', text:
 `${S.profile.name} 正在${L.mode === 'video' ? '视频' : L.mode === 'voice' ? '语音（没有画面，只有声音）' : '纯文字聊天'}直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
@@ -10015,6 +10019,7 @@ document.addEventListener('change', async e => {
     save(); openModal(bbSettingsHTML());
   } else if (t.id === 'r-rep') syncRepFields();
   else if (t.id === 'ch-sel') { UI.chartTrk = t.value; render(); }
+  else if (t.dataset && t.dataset.act === 'liveai') { S.prefs.liveAi = t.checked; save(); }
   else if (t.dataset && t.dataset.act === 'resttg') { const R = S.schedule.rest || (S.schedule.rest = {}); if (t.checked) R[t.dataset.k] = 1; else delete R[t.dataset.k]; save(); render(); }
   else if (t.id === 'pf-tr') { S.prefs.autoTr = t.checked; save(); }
   else if (t.id === 'pf-speed') { S.prefs.speed = +t.value; save(); toast(`时间流速 ${t.value}×`); }
