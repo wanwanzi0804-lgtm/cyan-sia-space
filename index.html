@@ -2000,11 +2000,11 @@ function mzSettle(k, r, key, s, e, card) {
   if (fx.text && card && card.wact === 'name' && !w.name) w.name = fx.text.replace(/[《》「」"]/g, '').slice(0, 30);
   if (fx.text && card && card.wact === 'desc') w.concept = fx.text.slice(0, 200);
   if (fx.fl) (w.flags || (w.flags = {}))[fx.fl] = 1; if (card && card.clr && w.flags) delete w.flags[card.clr]; // 连续剧情：记下前因 / 用掉
-  if (fx.partner && !w.partners.includes(fx.partner)) { w.partners.push(fx.partner); w.share = .35; }
+  if (fx.partner && !(w.partners || (w.partners = [])).includes(fx.partner)) { w.partners.push(fx.partner); w.share = .35; }
   w.qb += fx.q || 0; w.cb += fx.c || 0;
   if (fx.d) (w.events || (w.events = [])).push({ date: k, d: fx.d });
-  if (card && card.done) w.events.push({ date: k, d: `${String(card.d).split('\n')[0].slice(0, 40)} → ${String(card.pickText || '').slice(0, 30)}` });
-  if (w.events.length > 30) w.events.splice(0, w.events.length - 30);
+  if (card && card.done) (w.events || (w.events = [])).push({ date: k, d: `${String(card.d).split('\n')[0].slice(0, 40)} → ${String(card.pickText || '').slice(0, 30)}` });
+  if (w.events && w.events.length > 30) w.events.splice(0, w.events.length - 30);
   if (w.status === 'revising') {
     w.rev.prog = Math.max(0, w.rev.prog + gain);
     if (w.rev.prog >= w.rev.need) { // 返工完成：质量小幅提升，越改越难再提高
@@ -2019,7 +2019,7 @@ function mzSettle(k, r, key, s, e, card) {
     else note = `${hrs >= 3.5 ? pick(['连续写了很久，慢慢进入了状态', '越写越顺，找到了想要的感觉', '中途卡了一下，后面又找回了方向']) : hrs >= 2 ? pick(['写得还算顺利', '整理了几段旋律', '慢慢摸到了一点方向']) : pick(['时间有点短，刚进入状态就结束了', '只来得及整理一下思路'])} · 《${mzName(w)}》进度 ${pct}%${dp > 0 ? `（+${dp}%）` : dp < 0 ? `（返工 ${dp}%）` : ''}`;
   }
   if (k < w.start) w.start = k;
-  w.sessions.push({ date: k, hrs: +hrs.toFixed(2), gain: +gain.toFixed(2) }); if (w.sessions.length > 80) w.sessions.splice(0, w.sessions.length - 80);
+  (w.sessions || (w.sessions = [])).push({ date: k, hrs: +hrs.toFixed(2), gain: +gain.toFixed(2) }); if (w.sessions.length > 80) w.sessions.splice(0, w.sessions.length - 80);
   M.exp += ex + (doneNow && w.revs === 0 && w.done === k ? 60 : 0);
   fin(note, { gain: +gain.toFixed(2), exp: ex });
   if (doneNow) pushNotif({ type: 'system', text: `🎼 ${note.split('：')[0].split('！')[0]}`, sub: '去「音乐 → 作品 → 个人作品库」看看评价，可以修改或提交 STARSHIP 评估' }, true);
@@ -2072,6 +2072,7 @@ function mzFix1018() {
 }
 function mzTick() {
   mzRetro1019(); mzReroll1019(); mzFix1018();
+  { const M0 = mz(); if (!M0.errRedo1) { M0.errRedo1 = 1; for (const [kk, v] of Object.entries(M0.log)) if (v && v.err) delete M0.log[kk]; } }
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
   for (let i = 45; i >= 0; i--) {
     const k = addDays(today, -i);
