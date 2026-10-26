@@ -9525,13 +9525,20 @@ async function srDayEnsure(dk) {
 ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${done.length ? `这天已经过去的部分（照这个，不能改）：\n${done.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${prev ? `前两天他做了这些（别照抄，生活有变化也有重复）：\n${prev}\n` : ''}
 要求：
 - 从 00:00 到 24:00 排满这一天（含睡觉；偶像作息偏晚，凌晨 2~4 点睡很常见），6~10 段，每段写具体但普通的事：和谁、在哪、干嘛。
+- 时间像真实生活一样不规整：起床、出门、到达、结束都不会刚好卡在整点或半点（比如 10:40 起、13:05 到公司、18:50 练完），只有公司排的正式行程才是整点。
+- 路上的时间要合理：宿舍到公司 / 练习室 15~30 分钟，市区里去吃饭、见朋友一般 20~40 分钟；短的路程不用单独写成一段，并进前后的安排里就行。
+- 怎么去：日常练习、去公司、私人安排都是自己去——走路、打车、坐地铁（戴帽子口罩）、或者自己开车，不是经纪人接送；只有打歌、拍摄、活动这类正式行程才是经纪人开车。写 move 段时在 what 里写清楚怎么去（比如「坐地铁去公司」「打车去汉南洞」）。
 - 不要只有工作和录音：吃饭、健身、跑步、和成员闹、洗澡躺着刷手机、去常去的店、开车兜风、和 99line 朋友约饭、打电话给家里……按他的性格和这天的情况挑，不要每天一样。
 - 喜好是性格的一部分，不是每天的固定节目：看足球只在有比赛的时候、隔几天才一次；爆米花这类零食很偶尔；他平时健身、饮食自律；他不怎么打游戏，除非和成员凑热闹，很少安排。前两天已经出现过的活动，今天尽量换别的。
 - 不编大事（受伤、生病、出事、绯闻、新工作合同这类都不要）；人物只用成员、他的朋友、经纪人、家人、工作人员。
 - share：这段经历他会不会想跟女朋友说（0~1，大多数是 0~0.3，真的好笑 / 好吃 / 有意思 / 累坏了的才高）。
 - kind：sleep 睡觉 / work 工作 / social 和别人一起玩或吃饭 / out 自己外出 / free 在宿舍等空闲 / move 路上。`, 3000,
       { type: 'object', additionalProperties: false, required: ['segs'], properties: { segs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['s', 'e', 'what', 'where', 'with', 'kind', 'share'], properties: { s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] }, share: { type: 'number' } } } } } }, true);
-    const segs = (j.segs || []).map(x => ({ id: uid(), s: toMin(x.s), e: x.e === '24:00' || toMin(x.e) <= toMin(x.s) ? 1440 : toMin(x.e), what: String(x.what || '').slice(0, 40), where: String(x.where || '').slice(0, 20), with: String(x.with || '').slice(0, 20), kind: x.kind, src: 'gen', st: '', share: clamp(+x.share || 0, 0, 1), c: 0 })).filter(g => g.what && g.e > g.s);
+    // 时间不全卡在整点 / 半点：AI 给的整点边界随机挪几分钟（前后两段共用同一个边界，挪了也还是接上的）；路上太久的压短，多出来的给前一段
+    const jit = {}, J = m => m <= 0 || m >= 1440 || m % 30 ? m : (jit[m] ?? (jit[m] = m + ri(-12, 12)));
+    const raw = (j.segs || []).map(x => ({ ...x, s: J(toMin(x.s)), e: x.e === '24:00' ? 1440 : J(toMin(x.e)) }));
+    for (let i = 0; i < raw.length; i++) { const x = raw[i]; if (x.kind === 'move' && x.e - x.s > 50) { const ns = x.e - ri(18, 40); if (i && raw[i - 1].e === x.s) raw[i - 1].e = ns; x.s = ns; } }
+    const segs = raw.map(x => ({ id: uid(), s: x.s, e: x.e <= x.s ? 1440 : x.e, what: String(x.what || '').slice(0, 40), where: String(x.where || '').slice(0, 20), with: String(x.with || '').slice(0, 20), kind: x.kind, src: 'gen', st: '', share: clamp(+x.share || 0, 0, 1), c: 0 })).filter(g => g.what && g.e > g.s);
     if (segs.length >= 3) { const keep = nowM > 0 ? D.segs.filter(g => (g.src === 'fb' || g.src === 'gen') && g.s < nowM).map(g => ({ ...g, e: Math.min(g.e, nowM) })) : []; D.segs = D.segs.filter(g => g.src !== 'fb' && g.src !== 'gen').concat(keep, nowM > 0 ? segs.filter(g => g.e > nowM).map(g => ({ ...g, s: Math.max(g.s, nowM) })) : segs); D.gen = Date.now(); save(); }
   } catch (e) { console.warn('srDay', e.message); } finally { srGenBusy = 0; }
 }
@@ -9952,6 +9959,7 @@ function srCardMsgFix1() { const R = SR(); if (R.cardMsg1) return; R.cardMsg1 = 
   for (const u of R.urges || []) if (/小卡/.test(u.t)) u.t = '外套口袋里翻出了敏熙的小卡（恩雪借他衣服穿时放的）'; save(); }
 function srV3Backup() { const R = SR(); if (R.v3bak) return; srBackup('v3'); R.v3bak = 1; save(); }
 function srUrgeCard1() { const R = SR(); if (R.urgeCard1) return; R.urgeCard1 = 1; const n = serimNotes().find(x => /小卡/.test(x.text)); if (n) srUrge('他在外套口袋里发现了她留下的敏熙小卡，有点吃醋', .9, n.at, n.id); save(); }
+function srRegenToday2() { const R = SR(); if (R.rgd2) return; R.rgd2 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); } // 新的作息规则（不卡整点、通勤合理、日常自己去）：今天还没到的部分和明天重新排
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
@@ -9977,7 +9985,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
