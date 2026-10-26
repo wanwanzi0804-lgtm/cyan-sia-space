@@ -9160,7 +9160,7 @@ function srAIState() {
 async function srAI(text, max, schema, bg, effort) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
   try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
-  catch (e) { if (!e.sr) { const A = SR().ai; A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
+  catch (e) { if (!e.sr && /connection|network|fetch|load failed|timeout|超时|401|403|429|529|overload|rate|api.?key|authentication/i.test(String(e && e.message || e))) { const A = SR().ai; /* 只有连不上 / 没权限 / 太忙这类才让所有任务一起等；某个任务自己出错只影响它自己 */ A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
 /* ---------- 记忆库 ---------- */
@@ -9665,12 +9665,13 @@ function srTick() {
   const aiOk = srAIState().ok;
   while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   srNoteRetry();
-  const job = R.jobs.find(j => j.at <= now && (!j.next || j.next <= now)); if (!job) return;
+  const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
+  const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
   const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest, reparse: async jb => { for (const id of jb.ids) { const n = serimNotes().find(x => x.id === id); if (n && !n.parsed) await srNoteParse(n); } return true; } }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
   if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
   srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId; job.rid = rid;
   run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
-    .finally(() => { if (rid === srRunId) srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); });
+    .finally(() => { if (rid === srRunId) srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); else if ($('#serim-in')) openModal(serimCardHTML()); });
   // 注：卡住被放弃的旧请求晚回来时 rid 已经过期，它的结果直接丢掉（不会再发一遍）
 }
 // 技术状态：只在世琳的聊天里显示，和他「已读不回」是两回事
@@ -9835,6 +9836,7 @@ function serimCardHTML() {
   return `<div class="row"><h3 style="flex:1">💙 世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="card"><textarea id="serim-in" style="min-height:64px" placeholder="比如：世琳今天下午去了咖啡馆，晚上准备和成员一起吃饭"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
     ${N.length ? `<div class="sec-title" style="margin-top:10px">你记下的</div><div class="card" style="padding:4px 12px">${N.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === td ? '今天' : '昨天'} ${hhmm(srMin(n.at))}${n.parsed === 'fb' ? ' · 粗略记录（AI 恢复后会重新理解）' : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link" data-act="serimdel" data-id="${n.id}">删</button></div>`).join('')}</div>` : ''}
+    ${SR().jobs.some(j => j.type === 'reparse') || serimNotes().some(n => n.day === td && !n.parsed) ? '<div class="muted" style="font-size:12.5px;margin:10px 4px 0">⏳ 正在根据你记的内容更新时间线…</div>' : ''}
     ${srTimelineHTML()}`;
 }
 function socHistHTML() {
