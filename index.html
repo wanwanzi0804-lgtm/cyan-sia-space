@@ -607,6 +607,14 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 img.ext{animation:extSway 7s ease-in-out infinite}@keyframes extSway{0%,100%{transform:scale(1.04) translate(0,0)}50%{transform:scale(1.06) translate(-.6%,.5%)}}
 .ext-pick{display:inline-flex;align-items:center;gap:6px;cursor:pointer}.ext-pick input{display:none}
 video.bv-glow{pointer-events:none}
+#live-layer .lv-cam{position:absolute;inset:0}
+#live-layer .lv-scr{position:absolute;inset:0;display:none;background:#000}
+#live-layer .lv-scr .scr{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transform:none}
+#live-layer.sharing .lv-scr{display:block}
+#live-layer.sharing .lv-cam{inset:auto;top:64px;right:12px;width:28vw;max-width:200px;aspect-ratio:3/4;border-radius:14px;overflow:hidden;z-index:3;box-shadow:0 4px 18px rgba(0,0,0,.5);border:2px solid rgba(255,255,255,.7);cursor:pointer}
+#live-layer.sharing .lv-cam.p1{right:auto;left:12px}#live-layer.sharing .lv-cam.p2{top:auto;bottom:130px;right:auto;left:12px}#live-layer.sharing .lv-cam.p3{top:auto;bottom:130px}
+#live-layer.sharing .lv-cam.none{display:none}
+.lv-cam .voice-bg{padding-top:17vh}
 .seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;margin-bottom:12px}
 .seg button{flex:1;border:0;background:transparent;border-radius:10px;padding:8px 0;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
@@ -636,7 +644,9 @@ video.bv-glow{pointer-events:none}
 .lv-bottom{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px calc(env(safe-area-inset-bottom) + 12px)}
 .lv-bottom input{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px}
 .lv-bottom input::placeholder{color:rgba(255,255,255,.7)}
-.lv-bottom button{border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap}
+.lv-bottom button{border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700;white-space:nowrap;flex:none}
+.lv-bottom input{flex:1;min-width:84px}
+@media (max-width:440px){.lv-bottom{gap:5px;padding-left:8px;padding-right:8px}.lv-bottom button{padding:0 9px}}
 .lv-bottom button.on{background:#ff2d55}
 #lv-hearts{position:absolute;right:16px;bottom:80px;width:60px;height:60vh;pointer-events:none}
 .ht{position:absolute;bottom:0;right:10px;font-size:22px;animation:float 3s ease-out forwards}
@@ -6732,25 +6742,53 @@ function beautyPanelHTML() {
 }
 // 外接画面：选一段视频（循环播放）或一张照片当直播画面，不开摄像头
 let EXT = null;
+// 屏幕共享：这台设备的屏幕（电脑浏览器）/ 外接设备（采集卡、第二个摄像头）/ 一段录屏视频；和摄像头、外接画面可以同时开
+let SHFILE = null, SHDEVS = [];
+const canScreen = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+async function shareDevs(ask) {
+  try { if (ask) { const t = await navigator.mediaDevices.getUserMedia({ video: true }); t.getTracks().forEach(x => x.stop()); } SHDEVS = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    if (!SHDEVS.length) toast('没找到外接设备', '确认采集卡已经连好'); else if (!S.prefs.shareDev || !SHDEVS.some(d => d.deviceId === S.prefs.shareDev)) { S.prefs.shareDev = (SHDEVS.find(d => /capture|hdmi|usb|采集|cam link|elgato|uvc/i.test(d.label)) || SHDEVS[SHDEVS.length - 1]).deviceId; save(); }
+  } catch (e) { toast('找不到设备', camErr(e)); }
+}
+async function shareOpen() {
+  const k = S.prefs.shareSrc || (canScreen() ? 'screen' : 'dev');
+  if (k === 'screen') { if (!canScreen()) throw new Error('这个浏览器不支持共享屏幕，换成「外接设备」或「录屏视频」'); return { k, stream: await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }) }; }
+  if (k === 'dev') { const id = S.prefs.shareDev; return { k, stream: await navigator.mediaDevices.getUserMedia({ video: id ? { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 } } : true, audio: false }) }; }
+  if (!SHFILE) throw new Error('先选一段录屏视频或截图'); return { k, file: SHFILE };
+}
+function shareShow(sh) {
+  const L = LIVE; if (!L || L.mode !== 'video') return; shareStop(true); L.share = sh; const box = L.layer.querySelector('.lv-scr');
+  box.innerHTML = sh.stream ? '<video class="scr" autoplay playsinline muted></video>' : sh.file.kind === 'video' ? `<video class="scr" src="${sh.file.url}" autoplay loop muted playsinline></video>` : `<img class="scr" src="${sh.file.url}" alt="">`;
+  const v = box.querySelector('video'); if (v) { if (sh.stream) v.srcObject = sh.stream; v.play && v.play().catch(() => { }); }
+  if (sh.stream) sh.stream.getVideoTracks().forEach(t => t.onended = () => { if (LIVE === L && L.share === sh) { shareStop(); sysChat('🖥 屏幕共享已结束'); } });
+  L.layer.classList.add('sharing'); $('#lv-scr')?.classList.add('on'); sysChat('🖥 开始共享屏幕'); L.topic = { cat: 'share', until: Date.now() + 30000 };
+}
+function shareStop(quiet) { const L = LIVE; if (!L || !L.share) return; if (L.share.stream) L.share.stream.getTracks().forEach(t => t.stop()); L.share = null; L.layer.classList.remove('sharing'); const box = L.layer.querySelector('.lv-scr'); if (box) box.innerHTML = ''; $('#lv-scr')?.classList.remove('on'); if (!quiet) save(); }
+async function shareToggle() { if (!LIVE) return; if (LIVE.share) { shareStop(); sysChat('🖥 屏幕共享已关闭'); return; } if ((S.prefs.shareSrc || (canScreen() ? 'screen' : 'dev')) === 'file' && !SHFILE) { $('#lv-scr-file')?.click(); return; } try { shareShow(await shareOpen()); } catch (e) { if (e && e.name !== 'NotAllowedError') toast('屏幕共享没打开', e.message || String(e)); } }
 function extPair() { if (!EXT) return ''; return EXT.kind === 'video' ? `<video class="bv-main ext" src="${EXT.url}" autoplay loop muted playsinline></video><video class="bv-glow ext" src="${EXT.url}" autoplay loop muted playsinline></video>` : `<img class="bv-main ext" src="${EXT.url}" alt=""><img class="bv-glow ext" src="${EXT.url}" alt="">`; }
 function extPick(f) { if (!f) return; if (EXT) URL.revokeObjectURL(EXT.url); EXT = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; const box = $('#pv-box'); if (box) { box.innerHTML = extPair(); applyBeauty(box); $$('video', box).forEach(v => v.play && v.play().catch(() => { })); } }
 function videoPair(stream) { return `<video class="bv-main" autoplay playsinline muted></video><video class="bv-glow" autoplay playsinline muted></video>`; }
 function attachPair(root, stream) { $$('video.bv-main, video.bv-glow', root).forEach(v => { v.srcObject = stream; v.play && v.play().catch(() => { }); }); applyBeauty(root); }
 
 function viewLive() {
-  const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video';
+  if (S.prefs.liveMode === 'ext') { S.prefs.liveMode = 'video'; S.prefs.liveSrc = 'ext'; }
+  const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video', src = S.prefs.liveSrc || 'cam', shs = S.prefs.shareSrc || (canScreen() ? 'screen' : 'dev');
   return `${feedNav('live')}<div class="card">
     <h3 style="margin:2px 0 10px">开始直播</h3>
-    <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button><button class="${mode === 'ext' ? 'on' : ''}" data-act="lmode" data-m="ext">🖼 外接画面</button></div>
-    ${mode === 'ext' ? `<div class="preview" id="pv-box">${EXT ? extPair() : '<span>选一段视频或一张照片当直播画面</span>'}</div>
-    <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
-    : mode === 'video' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>
-    <div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>`
+    <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button></div>
+    ${mode === 'video' ? `<div class="field"><label>画面</label><div class="seg" style="margin:0">${[['cam', '📷 摄像头'], ['ext', '🖼 外接画面'], ['none', '🙈 不露脸']].map(([k, t]) => `<button class="${src === k ? 'on' : ''}" data-act="lsrc" data-k="${k}">${t}</button>`).join('')}</div></div>
+    ${src === 'ext' ? `<div class="preview" id="pv-box">${EXT ? extPair() : '<span>选一段视频或一张照片当直播画面</span>'}</div>` : src === 'cam' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>` : `<div class="preview voice-pv">${bigAvatar(90)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">不开摄像头：没共享屏幕时粉丝看到的是头像</span></div>`}
+    ${src !== 'none' ? `<div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>` : ''}
+    <div class="field"><div class="rest-tg" style="margin:0;padding:0"><span>🖥 屏幕共享<span class="muted" style="font-size:12px">（像游戏直播：屏幕铺满，${src === 'none' ? '' : '你的画面变成角落小窗，'}直播中也能随时开关）</span></span><label class="sw"><input type="checkbox" data-act="lshare" ${S.prefs.liveShare ? 'checked' : ''}><i></i></label></div>
+    ${S.prefs.liveShare ? `<div class="seg" style="margin:8px 0 0">${[['screen', '💻 这台设备的屏幕'], ['dev', '🔌 外接设备'], ['file', '🎞 录屏视频']].map(([k, t]) => `<button class="${shs === k ? 'on' : ''}" data-act="shsrc" data-k="${k}">${t}</button>`).join('')}</div>
+    ${shs === 'screen' ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${canScreen() ? '开播时浏览器会让你选共享整个屏幕、某个窗口或标签页。想共享电脑屏幕：在电脑浏览器上打开这个页面开播就行。' : '⚠️ 手机浏览器不支持共享自己的屏幕。要共享电脑 / 游戏机的画面，用采集卡连到手机或平板后选「外接设备」，或者选一段「录屏视频」。'}</p>`
+      : shs === 'dev' ? `<div class="row" style="margin-top:8px;gap:8px"><select id="sh-dev" style="flex:1">${SHDEVS.length ? SHDEVS.map((d, i) => `<option value="${esc(d.deviceId)}" ${S.prefs.shareDev === d.deviceId ? 'selected' : ''}>${esc(d.label || '视频设备 ' + (i + 1))}</option>`).join('') : '<option value="">（还没找设备）</option>'}</select><button class="btn ghost" data-act="shdevs">找设备</button></div><p class="muted" style="margin:6px 0 0;font-size:12.5px">采集卡、HDMI 转接器、第二个摄像头都会出现在这里（电脑屏幕 / Switch / PS 接采集卡就能当屏幕共享）。</p>`
+      : `<div class="row" style="margin-top:8px"><label class="btn ghost ext-pick">${SHFILE ? '换一个（' + esc(SHFILE.name.slice(0, 16)) + '）' : '选录屏视频 / 截图'}<input type="file" id="shfile-in" accept="video/*,image/*"></label></div>`}` : ''}</div>`
     : `<div class="preview voice-pv">${bigAvatar(110)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">语音直播不开摄像头，粉丝只听得到你的声音</span></div>`}
     <div class="field"><label>弹幕量</label><div class="seg" style="margin:0">${[[.5, '少'], [1, '适中'], [1.6, '多']].map(([v, t]) => `<button class="${(S.prefs.chatRate || 1) == v ? 'on' : ''}" data-act="crate" data-v="${v}">${t}</button>`).join('')}</div></div>
     <div class="field"><div class="rest-tg" style="margin:0;padding:0"><span>🤖 AI 弹幕${aiOn() ? '' : '<span class="muted" style="font-size:12px">（还没设置 AI，现在只有普通弹幕）</span>'}</span><label class="sw"><input type="checkbox" data-act="liveai" ${S.prefs.liveAi !== false ? 'checked' : ''}><i></i></label></div></div>
     <div class="field"><label>直播标题</label><input id="lv-title-in" value="${esc(S.prefs.lastLiveTitle || '来聊聊天吧 🐱')}" maxlength="40"></div>
-    <div class="row wrap">${mode === 'video' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : mode === 'ext' ? `<label class="btn ghost ext-pick">${EXT ? '换一个' : '选视频 / 照片'}<input type="file" id="ext-in" accept="image/*,video/*"></label>` : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'voice' ? '语音' : '视频'}直播</button></div>
+    <div class="row wrap">${mode === 'video' && src === 'cam' ? '<button class="btn ghost" data-act="pvcam">预览摄像头</button>' : mode === 'video' && src === 'ext' ? `<label class="btn ghost ext-pick">${EXT ? '换一个' : '选视频 / 照片'}<input type="file" id="ext-in" accept="image/*,video/*"></label>` : ''}<span class="sp"></span><button class="btn primary" data-act="golive">🔴 开始${mode === 'voice' ? '语音' : '视频'}直播</button></div>
     ${IN_FRAME ? '<p class="muted" style="margin:10px 0 0;color:var(--danger)">⚠️ 在 Claude 链接里打开时，平台不允许使用摄像头和麦克风，只能用「纯聊天直播」。</p>' : ''}
     <p class="muted" style="margin:10px 0 0">直播中可以直接说话（浏览器语音识别），粉丝会根据你说的内容刷弹幕；也可以打字。iPhone 需要在 设置 → 通用 → 键盘 里打开「启用听写」。</p>
   </div>
@@ -6777,11 +6815,14 @@ function camErr(e) {
 }
 async function startLive() {
   const title = ($('#lv-title-in')?.value || '').trim() || '直播中';
-  const want = S.prefs.liveMode || 'video';
+  const want = S.prefs.liveMode === 'voice' ? 'voice' : 'video', src = want === 'video' ? (S.prefs.liveSrc || 'cam') : '', wantShare = want === 'video' && S.prefs.liveShare;
+  if (src === 'none' && !wantShare) { toast('不露脸的话，打开屏幕共享再开播'); return; }
+  if (src === 'ext' && !EXT) { toast('先选一段视频或一张照片'); return; }
   S.prefs.lastLiveTitle = title;
   stopPreview();
+  let sh0 = null; if (wantShare) try { sh0 = await shareOpen(); } catch (e) { if (src === 'none') { toast('屏幕共享没打开', (e && e.message) || ''); return; } toast('屏幕共享没打开，先只开' + (src === 'ext' ? '外接画面' : '摄像头'), (e && e.message) || ''); } // 共享屏幕要先问（浏览器要求在点按钮的那一下发起）
   let stream = null, mode = want, ext = false;
-  if (want === 'ext') { if (!EXT) { toast('先选一段视频或一张照片'); return; } ext = true; mode = 'video'; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { toast('没有拿到麦克风，只能打字互动'); } }
+  if (src === 'ext' || src === 'none') { ext = src === 'ext'; mode = 'video'; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { toast('没有拿到麦克风，只能打字互动'); } }
   else try {
     stream = await navigator.mediaDevices.getUserMedia(want === 'video' ? { video: { facingMode: 'user' }, audio: true } : { audio: true });
   } catch (e) {
@@ -6794,14 +6835,14 @@ async function startLive() {
     }
   }
   const layer = document.createElement('div'); layer.id = 'live-layer';
-  layer.innerHTML = `${mode === 'video' ? (ext ? extPair() : videoPair()) : `<div class="voice-bg">${bigAvatar(150)}<div class="voice-tag">${mode === 'voice' ? '🎙 语音直播中' : '💬 聊天直播中'}</div></div>`}<div class="lv-shade"></div>
+  layer.innerHTML = `${mode === 'video' ? `<div class="lv-scr"></div><div class="lv-cam${src === 'none' ? ' none' : ''}">${src === 'none' ? `<div class="voice-bg">${bigAvatar(150)}</div>` : ext ? extPair() : videoPair()}</div>` : `<div class="voice-bg">${bigAvatar(150)}<div class="voice-tag">${mode === 'voice' ? '🎙 语音直播中' : '💬 聊天直播中'}</div></div>`}<div class="lv-shade"></div>
     <div class="lv-top"><span class="lv-badge">LIVE</span><span class="lv-pill" id="lv-time">00:00:00</span><span class="lv-pill">👁 <span id="lv-view">0</span></span><span class="lv-pill">♥ <span id="lv-heart">0</span></span><span class="sp"></span><button class="lv-end" id="lv-end">结束</button></div>
     <div class="lv-title">🐱 ${esc(S.profile.name)} · ${esc(title)}</div>
     <div id="lv-hearts"></div><div id="lv-chat"></div><div id="lv-sub"></div>
     <div id="lv-beauty" hidden></div>
-    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button>${mode === 'video' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
+    <div class="lv-bottom"><input id="lv-input" placeholder="说点什么…" maxlength="100"><button id="lv-send">发送</button><button id="lv-sing" title="唱歌">🎵</button><button id="lv-lang" title="识别语言">${{ 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[S.prefs.srLang || 'zh-CN']}</button>${mode === 'video' ? `<button id="lv-scr" title="屏幕共享">🖥</button><input type="file" id="lv-scr-file" accept="video/*,image/*" hidden>${src !== 'none' ? '<button id="lv-bty" title="美颜">✨</button>' : ''}` : ''}${stream && stream.getAudioTracks().length ? '<button id="lv-mic" title="语音识别">🎤</button>' : ''}</div>`;
   document.body.appendChild(layer); hydrate(layer);
-  if (mode === 'video') { if (ext) { applyBeauty(layer); $$('video', layer).forEach(v => v.play && v.play().catch(() => { })); } else attachPair(layer, stream); }
+  if (mode === 'video') { if (ext) { applyBeauty(layer); $$('.lv-cam video', layer).forEach(v => v.play && v.play().catch(() => { })); } else if (src === 'cam') attachPair(layer.querySelector('.lv-cam'), stream); }
   LIVE = { title, mode, stream, start: Date.now(), viewers: 0, peak: 0, target: Math.round(rand(S.profile.activeMin, S.profile.activeMax) * rand(.08, .16) * (mode === 'video' ? 1 : .75) * heat() * folRatio()), hearts: 0, comments: 0, lastTpl: [], seen: [], seenT: [], users: [], topic: null, asked: [], lastQ: null, fanD: 0, toneHit: {}, acc: 0, hacc: 0, queue: [], recent: [], speech: '', newSpeech: false, lastAi: 0, aiBusy: false, rec: null, micOn: false, layer };
   hotTaskCheck('live', [mode], title);
   // 语音直播：头像跟着说话音量跳动
@@ -6812,7 +6853,10 @@ async function startLive() {
       LIVE.audio = { ac, an, buf: new Uint8Array(an.fftSize) };
     } catch (e) { }
   }
-  LIVE.ai = S.prefs.liveAi !== false;
+  LIVE.ai = S.prefs.liveAi !== false; LIVE.src = src;
+  if (sh0) shareShow(sh0);
+  if ($('#lv-scr')) { $('#lv-scr').onclick = shareToggle; $('#lv-scr-file').onchange = e => { const f = e.target.files && e.target.files[0]; if (!f) return; if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; shareShow({ k: 'file', file: SHFILE }); }; }
+  { const cam = layer.querySelector('.lv-cam'); if (cam) cam.onclick = () => { if (!layer.classList.contains('sharing')) return; const n = ((+(cam.className.match(/p(\d)/) || [0, 0])[1]) + 1) % 4; cam.className = cam.className.replace(/\s?p\d/, '') + (n ? ' p' + n : ''); }; } // 点小窗换个角落
   $('#lv-end').onclick = endLive;
   $('#lv-send').onclick = liveSend;
   $('#lv-lang').onclick = () => { const L = ['zh-CN', 'ko-KR', 'en-US'], cur = S.prefs.srLang || 'zh-CN', nx = L[(L.indexOf(cur) + 1) % L.length]; S.prefs.srLang = nx; save(); $('#lv-lang').textContent = { 'zh-CN': '中', 'ko-KR': '한', 'en-US': 'EN' }[nx]; sysChat(`语音识别改成${{ 'zh-CN': '中文', 'ko-KR': '韩语', 'en-US': '英语' }[nx]}`); if (LIVE.micOn) { stopRec(); setTimeout(startRec, 300); } };
@@ -7103,10 +7147,12 @@ async function liveAI() {
   const L = LIVE; L.aiBusy = true; L.lastAi = Date.now(); const speech = L.speech, idle = !L.newSpeech; L.newSpeech = false; L.speech = '';
   try {
     const content = [];
-    const v = L.layer.querySelector('.bv-main'); const data = v ? (v.tagName === 'IMG' ? drawB64(v, v.naturalWidth, v.naturalHeight, 512, beautyFilter()) : drawB64(v, v.videoWidth, v.videoHeight, 512, beautyFilter())) : '';
+    const sv = L.share && L.layer.querySelector('.lv-scr .scr'), sd = sv ? (sv.tagName === 'IMG' ? drawB64(sv, sv.naturalWidth, sv.naturalHeight, 768, 'none') : drawB64(sv, sv.videoWidth, sv.videoHeight, 768, 'none')) : '';
+    if (sd) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: sd } });
+    const v = L.layer.querySelector('.lv-cam .bv-main'); const data = v ? (v.tagName === 'IMG' ? drawB64(v, v.naturalWidth, v.naturalHeight, 512, beautyFilter()) : drawB64(v, v.videoWidth, v.videoHeight, 512, beautyFilter())) : '';
     if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
     content.push({ type: 'text', text:
-`${S.profile.name} 正在${L.mode === 'video' ? '视频' : L.mode === 'voice' ? '语音（没有画面，只有声音）' : '纯文字聊天'}直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
+`${S.profile.name} 正在${L.mode === 'video' ? '视频' : L.mode === 'voice' ? '语音（没有画面，只有声音）' : '纯文字聊天'}直播（标题：${L.title}；已开播 ${Math.floor((Date.now() - L.start) / 60000)} 分钟；在线 ${L.viewers} 人）。${sd ? `她正在共享屏幕（像游戏直播）：${data ? '第一张是共享的屏幕画面，第二张是角落小窗里她自己的画面（摄像头是镜像的）' : '上面是共享的屏幕画面，她没露脸'}。弹幕可以聊屏幕上正在发生的事（游戏、在看的东西、在做的东西）。` : data ? '上面是此刻的直播画面（摄像头是镜像的）。' : ''}
 ${L.singing ? '她现在正在唱歌（不是在说话），🎵 后面是她唱的歌词或歌名：粉丝的弹幕要对她的歌声和演唱作出反应（好听、点歌、跟唱、安可等），不要把歌词当成她在聊天。\n' : ''}${speech.trim() ? `她刚刚说（语音识别/打字，可能有错字）：「${speech.trim()}」` : '她这会儿没怎么说话：粉丝可以聊画面里的细节、互相聊天，或者向她提问（TMI、OOTD、最近的行程等）。'}
 最近的弹幕：
 ${L.recent.slice(-10).join('\n')}
@@ -7119,7 +7165,7 @@ ${L.recent.slice(-10).join('\n')}
 function endLive() {
   const L = LIVE; if (!L) return;
   if (!confirm('确定结束直播吗？')) return;
-  LIVE = null;
+  shareStop(true); LIVE = null;
   clearInterval(L.timer); L.micOn = false; try { L.rec && L.rec.stop(); } catch (e) { }
   if (L.stream) L.stream.getTracks().forEach(t => t.stop()); if (L.audio) try { L.audio.ac.close(); } catch (e) { } L.layer.remove();
   const rec = { title: L.title, mode: L.mode, start: L.start, end: Date.now(), peak: L.peak, hearts: L.hearts, comments: L.comments, said: (L.said || []).slice(-40) };
@@ -9382,7 +9428,7 @@ function srReachEval(at) {
   if (R.jobs.some(j => j.type === 'reply' || j.type === 'reach')) return;
   const C = R.chat; if (C.sess && at < C.sess) return; // 正聊着
   const msgs = T.msgs.filter(m => !m.sys && m.at <= at), last = msgs[msgs.length - 1];
-  if (last && last.me) return; // 她的消息他读了没回：不会转头去聊别的
+  if (last && last.me && T.quiet !== last.id && at - last.at < 3 * 3600e3) return; // 她的消息他读了没回：不会马上转头去聊别的（对话已经自然结束、或者过了好几个小时就不算）
   // 他主动找过她、她还没回：不追着发。（他回完她的话、对话自然结束，不算在这里）
   const herI = msgs.map(m => !!m.me).lastIndexOf(true), pings = msgs.slice(herI + 1).filter(m => m.ping), lastPing = pings[pings.length - 1];
   if (pings.length && new Set(pings.map(m => Math.floor(m.at / 600e3))).size >= 2) return;
@@ -9398,7 +9444,7 @@ function srReachEval(at) {
   const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
   if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .3 + .1 * (dMeet - 3), `有 ${Math.round(dMeet)} 天没见了（约的话要先看双方的安排）`);
   const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 8, `已经 ${Math.round(quiet)} 小时没聊了`);
-  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.4, `他心里一直想跟她说：${u.t}`, 'urge' + u.id);
+  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.4 * ((u.tries || 0) >= 2 ? .5 : 1), `他心里一直想跟她说：${u.t}`, 'urge' + u.id);
   if (Math.abs(R.mood.val) >= 1.3) add('mood', .4, `他心情${R.mood.val > 0 ? '不错' : '不太好'}（${R.mood.why || '没说原因'}）`);
   if (/想/.test(R.mood.to || '')) add('mood', .3, `他有点${R.mood.to}`);
   if (!Mo.length) return;
@@ -9583,7 +9629,7 @@ async function srReach(job) {
   const j = await srAI(`CRAVITY 世琳拿起手机，在想要不要给 Cyan 发 KKT。不是在回她，是他自己想找她。
 ${srCtx(when, w.d || '')}
 
-他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${w.kind === 'promise' ? '' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}${R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? `\n注意：你们之间还有没解决的事（${R.conv.open.join('；')}），这时候若无其事地聊别的会很奇怪：要么先面对这件事，要么这次就不发。` : ''}
+他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${w.kind === 'promise' ? '' : w.kind === 'urge' ? '\n第一条是他憋在心里、一直想跟她说的事：除非现在说真的不合适，否则会发（可以很随便、很短，按他的性格和情绪来）。' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}${R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? `\n注意：你们之间还有没解决的事（${R.conv.open.join('；')}），这时候若无其事地聊别的会很奇怪：要么先面对这件事，要么这次就不发。` : ''}
 ${recent ? `最近几次他主动找她说的是：${recent}。这次别重复同样的话题和开头。` : ''}
 按真人来：理由不够、现在其实没什么想说的，就 send=false。发的话可以很随便，一两句、没头没尾都行；不要用「在干嘛」「想你」当固定开头，也不要默认说自己在工作 / 录音，除非他确实在做而且跟要说的事有关。
 topic：一句中文写这次说的是什么。promise_done：如果这次兑现了上面答应的事，true。
@@ -9594,6 +9640,7 @@ msgs：ko 原文，zh 中文意思。`, 3000,
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
   srMemOps(j.mem, when, 'him');
+  if (w.kind === 'urge' && !j.send) { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; return true; } } // 憋着想说的事这次没发出去：过一阵还会再想起来（最多再想两次）
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
   if (!j.send || !(j.msgs || []).length) { if (pm) pm.cond.at = when + 40 * 60e3; return true; } // 答应的事这次没说出口：过一会儿再想起来（窗口过了就算没做到）
@@ -9688,6 +9735,7 @@ function srRegenTomorrow1() { const R = SR(); if (R.rgt1) return; R.rgt1 = 1; co
 // 一次性：之前被套在「记下的那一刻」的几分钟时间段删掉
 function srNoteTiny1() { const R = SR(); if (R.tiny1) return; R.tiny1 = 1; const N = serimNotes();
   for (const D of Object.values(R.day)) D.segs = D.segs.filter(g => { if (g.src !== 'note' || !g.nid) return true; const n = N.find(x => x.id === g.nid); return !(n && g.e - g.s < 30 && Math.abs(g.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)); }); save(); }
+function srUrgeCard2() { const R = SR(); if (R.urgeCard2) return; R.urgeCard2 = 1; const u = (R.urges || []).find(x => /小卡/.test(x.t)); if (u && !R.reach.some(x => x.kind === 'urge' && x.at >= u.at)) { u.used = 0; u.tries = 0; u.at = Date.now(); R.chat.lastEval = 0; R.chat.segSeen = '-'; } save(); } // 小卡那件事他想过但没发出去：重新记着
 function srUrgeCard1() { const R = SR(); if (R.urgeCard1) return; R.urgeCard1 = 1; const n = serimNotes().find(x => /小卡/.test(x.text)); if (n) srUrge('他在外套口袋里发现了她留下的敏熙小卡，有点吃醋', .9, n.at, n.id); save(); }
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
@@ -9714,7 +9762,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srUrgeCard2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -10340,6 +10388,9 @@ document.addEventListener('click', async e => {
     case 'opennotif': { const n = S.notifs.find(x => x.id === t.dataset.nid); if (n) openNotif(n); break; }
     case 'clearnotif': if (confirm('清空所有通知？')) { S.notifs = []; save(); render(); } break;
     case 'pvcam': previewCam(); break;
+    case 'lsrc': stopPreview(); S.prefs.liveSrc = t.dataset.k; save(); render(); break;
+    case 'shsrc': S.prefs.shareSrc = t.dataset.k; save(); if (t.dataset.k === 'dev' && !SHDEVS.length) await shareDevs(); render(); break;
+    case 'shdevs': await shareDevs(true); render(); break;
     case 'bbmenu': bbSideOpen(); break;
     case 'bbtickopen': { const g = [...S.bubble.groups].reverse().find(x => x.fans.length); if (g) bbListOpen(g); break; }
     case 'bbrlclose': $('#bb-rl')?.remove(); break;
@@ -10673,6 +10724,8 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', async e => {
   if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
+  if (e.target.id === 'shfile-in') { const f = e.target.files && e.target.files[0]; if (f) { if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; } render(); return; }
+  if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
   if (e.target.id === 'r-work') syncWorkField();
   if (e.target.id === 'r-cbt') e.target.dataset.touched = 1;
@@ -10721,6 +10774,7 @@ document.addEventListener('change', async e => {
   } else if (t.id === 'r-rep') syncRepFields();
   else if (t.id === 'ch-sel') { UI.chartTrk = t.value; render(); }
   else if (t.dataset && t.dataset.act === 'liveai') { S.prefs.liveAi = t.checked; save(); }
+  else if (t.dataset && t.dataset.act === 'lshare') { S.prefs.liveShare = t.checked; save(); render(); }
   else if (t.dataset && t.dataset.act === 'resttg') { const R = S.schedule.rest || (S.schedule.rest = {}); if (t.checked) R[t.dataset.k] = 1; else delete R[t.dataset.k]; save(); render(); }
   else if (t.id === 'pf-tr') { S.prefs.autoTr = t.checked; save(); }
   else if (t.id === 'pf-speed') { S.prefs.speed = +t.value; save(); toast(`时间流速 ${t.value}×`); }
