@@ -9634,6 +9634,9 @@ function srNoteRebuild1() {
   R.jobs.push({ id: uid(), type: 'reparse', ids: N.map(n => n.id), at: Date.now(), n: 0 }); save();
 }
 function srRegenTomorrow1() { const R = SR(); if (R.rgt1) return; R.rgt1 = 1; const tm = addDays(dkey(Date.now()), 1), D = R.day[tm]; if (D && D.gen !== 'fb' && D.gen) { D.segs = D.segs.filter(g => g.src !== 'gen'); D.gen = 0; } save(); }
+// 一次性：之前被套在「记下的那一刻」的几分钟时间段删掉
+function srNoteTiny1() { const R = SR(); if (R.tiny1) return; R.tiny1 = 1; const N = serimNotes();
+  for (const D of Object.values(R.day)) D.segs = D.segs.filter(g => { if (g.src !== 'note' || !g.nid) return true; const n = N.find(x => x.id === g.nid); return !(n && g.e - g.s < 30 && Math.abs(g.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)); }); save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
@@ -9658,7 +9661,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -9698,7 +9701,7 @@ ${srChatLog(dmThread(srP()), now, 14) || '（无）'}
 今天 ${td}：
 ${tl(td)}${SR().day[yd] ? `\n昨天 ${yd}：\n${tl(yd)}` : ''}
 
-segs：只写这条记录里说到的他的活动，拆成时间段，不要把上面已有的时间段抄回来。day 写 YYYY-MM-DD；s / e 写 HH:MM。只说了「下午」「晚上」就按常理给合理范围；「现在在」就从现在前后算；「今天主要在练习，七点结束」这种就从合理的开始时间一直写到七点。st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。
+segs：只写这条记录里说到的、有具体时间或能推出时间的他的活动，拆成时间段，不要把上面已有的时间段抄回来。只是补充感受、状态或细节（比如「今天特别累」「发现了一张小卡，有点吃醋」）、没说什么时候的，不要建时间段，也不要拿现在这个时间去套，写进 mem 和 state 就够了。day 写 YYYY-MM-DD；s / e 写 HH:MM。只说了「下午」「晚上」就按常理给合理范围；「现在在」就从现在前后算；「今天主要在练习，七点结束」这种就从合理的开始时间一直写到七点。st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。
 drop：上面已有时间段里，和这条记录矛盾、应该删掉的编号（比如这条说他凌晨去见了恩雪，那段时间原来写的「睡觉」就要删；被新时间段盖住的部分系统会自动改，不用列）。
 mem：这条里其他值得长期记住的（他的近况、喜好、和谁有关的事；他的感受用 k=feel，比如吃醋），k / who / t / imp，when 可空。
 state：这条对他现在状态的影响。energy：他现在的精力 0~100（说很累就低，没提到填 -1）；mood_val：心情 -2~2（没提到填 0）；mood_to：他现在对 Cyan 的情绪（比如 有点吃醋 / 想她，没有就空）；why：一句原因。
@@ -9729,6 +9732,7 @@ function srNoteSegs(n, list, drop) {
   for (const id of drop || []) for (const D of Object.values(SR().day)) for (const g of D.segs) if (g.id === id && g.src !== 'official' && !g.del) g.del = g.src === 'note' ? 'old' : 'drop';
   for (const x of list) {
     const dk = /^\d{4}-\d\d-\d\d$/.test(x.day) ? x.day : dkey(n.at); if (!(x.e > x.s)) continue; const D = srDay(dk);
+    if (dk === dkey(n.at) && x.e - x.s < 30 && Math.abs(x.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)) continue; // 没说时间的感受 / 细节被套在「记下的这一刻」：不算时间段
     // AI 偶尔会把已有的时间段原样抄回来：和已有的几乎一样的就不当成新记录
     if (D.segs.some(g => !g.del && g.nid !== n.id && srSim(g.what, x.what) >= .6 && Math.min(g.e, x.e) - Math.max(g.s, x.s) >= .7 * Math.max(g.e - g.s, x.e - x.s))) continue;
     srCut(D, x.s, x.e, n.id);
