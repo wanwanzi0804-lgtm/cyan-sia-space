@@ -7989,6 +7989,7 @@ function socText(e, p, x) { if (x && (x.txt || x.zh)) return x.txt || `${socWho(
 function socPopHTML() {
   const Q = UI.socPop; if (!Q) return '';
   if (Q.serim) return serimPopHTML();
+  if (Q.srev) return srEvHTML();
   const x = Q.x, e = socEv(x.ev), p = x.p; if (!e) return '';
   const head = `<div class="row"><h3 style="flex:1">💞 ${esc(e.grp)}</h3></div><div class="muted" style="font-size:12.5px;margin-bottom:6px">👤 ${esc(socWho(p))}</div>`;
   if (Q.res) return head + `<div style="margin-bottom:10px">${esc(socText(e, p, x))}</div><div class="card" style="margin:0"><div style="margin-bottom:6px">你：${esc(Q.res.mine)}</div><div class="muted">${esc(Q.res.reply)}</div></div><div class="row" style="margin-top:10px"><span class="sp"></span><button class="btn primary" data-act="socclose">好</button></div>`;
@@ -8413,9 +8414,9 @@ function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || 
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
 // 交往后世琳私下打字的样子：照他泡泡原文整理（泡泡里粉丝名会显示成「은설」，那些话本来就像在对她说）
 const SERIM_LOVE_TONE = '半语；说得起劲时一句话会按回车拆成好几个气泡连着发（这是打字节奏，不是一次多说几件事），平常也常常就一两个；有时先单独发一条「은설아」再说事；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
-function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
+function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? (crvKnows(p.n) ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和他的队友世琳秘密交往，他不知道') : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
 function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
-function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；只有 CRAVITY 的队友知道。`; }
+function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；${crvKnowTxt()}`; }
 function socAmbOk(p) { if (p.key === 'CRAVITY|세림') return true; if (p.f) return false; return !FRIEND_DEF.some(d => d[0] === p.g && d[1] === p.n); }
 function socStage(p) {
   const P = socPX(p), lv = socLv(p);
@@ -8473,7 +8474,7 @@ function socCtx(p, when) {
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
   return `对方：${p.g} ${socName(p)}（${p.f ? '女' : '男'}，${same ? '和她同公司' : '别家公司'}）。${socCardTxt(p)}
 关系阶段：${p.key === 'CRAVITY|세림' && serimLove() ? '秘密交往中的恋人' : STAGE_ZH[st]}。称呼她：${socBan(p) ? `${p.key === 'CRAVITY|세림' && serimLove() ? '你们在交往，' : '你们是好朋友了，'}有时叫艺名「${S.profile.name}」，有时叫本名「은설」（은설아 / 은설이，中文写恩雪），随口来，不用每句都叫` : `叫她艺名「${S.profile.name}」（不熟时可以加 씨），不要叫本名`}。语气：${socBan(p) ? (p.key === 'CRAVITY|세림' && serimLove() ? '用半语（반말）' : '你们已经是很熟的朋友，用半语（반말）') : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL && !(p.key === 'CRAVITY|세림' && serimLove()) ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
-${crvGroupTxt(p, when)}${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? `他知道她和世琳在秘密交往（只有 CRAVITY 队友知道，公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的样子：有点黏人，会主动报备日常、发自拍、关心她吃饭睡觉，打字习惯按上面写的来；不是每句都腻歪。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
+${crvGroupTxt(p, when)}${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? (crvKnows(p.n) ? `他知道她和世琳在秘密交往（${crvKnowTxt()}公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : (crvKnow()[p.n] || {}).st === 'suspect' ? `他隐约觉得她和世琳关系有点不一般（${(crvKnow()[p.n] || {}).why || '最近常看到他们在一起'}），但不确定，也不会直接问；不要提「交往」。\n` : `他不知道她和世琳在交往，只知道他们是关系很好的朋友 / 同公司前后辈。\n`) : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的样子：有点黏人，会主动报备日常、发自拍、关心她吃饭睡觉，打字习惯按上面写的来；不是每句都腻歪。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
@@ -9534,6 +9535,140 @@ function srDayFb(dk) {
 }
 function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off' + dk, s: Math.max(0, g[2] - 420), e: Math.min(1440, g[2] + 210), what: g[3], where: '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', share: .6, c: 0 }] : []; }
 let srGenBusy = 0, srBitBusy = 0;
+/* =========================================================
+   💙 世琳秘密恋爱事件：按两个人此刻真实的行程、地点、关系触发（对不上就不触发）；
+   A/B/C 和自由输入都只是你的行动，后面怎么发展由 AI 按情境和人物状态写，可以简单结束，也可以接着走两三轮
+   ========================================================= */
+const SR_EVS = [{"id": 1, "g": "公司日常", "w": "co", "n": [], "m": "", "near": 0, "d": "你结束练习准备下楼，电梯门打开，发现世琳正站在里面。他看到你后往旁边挪了挪。电梯里还有两位工作人员。", "o": ["像普通同事一样打招呼，站到一旁", "站到他旁边，趁别人没注意轻轻碰一下他的手", "装作没看见他，低头看手机"]}, {"id": 2, "g": "公司日常", "w": "co", "n": [], "m": "", "near": 0, "d": "你路过 CRAVITY 的练习室，正好碰到世琳出来接水。他看到你，停下来问你是不是刚结束练习。", "o": ["告诉他刚练完，累得不想动", "问他还有多久结束", "开玩笑说自己只是路过，没想找他"]}, {"id": 3, "g": "公司日常", "w": "co", "n": [], "m": "", "near": 0, "d": "公司休息区的冰箱里只剩下一瓶你喜欢的饮料。你刚准备拿，另一只手也伸了过来。抬头发现是世琳。", "o": ["直接拿走，说自己先看到的", "让给他，叫他下次请你喝", "提议两个人分着喝"]}, {"id": 4, "g": "公司日常", "w": "co", "n": [], "m": "", "near": 0, "d": "你站在公司内部通道门口，翻了半天包都没找到门禁卡。世琳恰好从后面走过来。", "o": ["让他帮忙刷一下门", "假装镇定，说自己正在找东西", "抱怨今天怎么这么倒霉"]}, {"id": 5, "g": "公司日常", "w": "co", "n": [], "m": "", "near": 0, "d": "你到公司楼下买东西，发现世琳正在货架前认真挑零食。他还没注意到你。", "o": ["悄悄走过去，突然叫他的名字", "从旁边伸手拿走他正准备买的零食", "走过去问他在买什么"]}, {"id": 6, "g": "公司日常", "w": "lunch", "n": ["laterWork"], "m": "", "near": 0, "d": "你正准备一个人去吃饭，世琳发来消息说他刚结束工作，问你吃过没有。但他下午还有团体练习。", "o": ["问他要不要一起吃", "让他先去吃饭，自己还有事情要做", "告诉他你还没决定吃什么，让他推荐"]}, {"id": 7, "g": "公司日常", "w": "herPractice", "n": ["coBoth"], "m": "", "near": 0, "d": "你正在练习室反复练习一段舞蹈，世琳敲门进来拿之前落下的东西。你让他顺便帮你看一下动作。", "o": ["从头跳一遍，让他认真提意见", "只跳最不熟练的部分", "开玩笑让他先跳一遍示范"]}, {"id": 8, "g": "公司日常", "w": "co", "n": [], "m": "", "near": 0, "d": "你的手机快没电了，恰好世琳在隔壁休息室。他有充电器，但说自己一会儿还要用。", "o": ["拿过去充一会儿，等下亲自还给他", "直接坐在休息室里充电", "说算了，自己去找其他人借"]}, {"id": 9, "g": "公司日常", "w": "co", "n": ["newHair"], "m": "", "near": 0, "d": "你今天换了新发型，去公司开会时在走廊碰见世琳。他看了你一眼，又看了第二眼。", "o": ["主动问他新发型怎么样", "装作没发现，继续和他聊工作", "故意问他为什么一直看你"]}, {"id": 10, "g": "公司日常", "w": "co", "n": ["herRec"], "m": "", "near": 0, "d": "你结束录音走出录音室，发现世琳正坐在外面的沙发上看手机。他说自己也在等录音安排。", "o": ["坐到旁边，问他今天录什么", "抱怨刚才有一句怎么唱都不满意", "让他听听刚才录好的片段"]}, {"id": 11, "g": "公司日常", "w": "coEnd", "n": ["rain"], "m": "", "near": 0, "d": "你结束工作才发现外面下起了大雨。世琳正好从公司出来，手里拿着一把伞。", "o": ["问他能不能一起走到停车的地方", "让他先走，自己等经纪人", "开玩笑问他是不是特意来接你的"]}, {"id": 12, "g": "公司日常", "w": "coLate", "n": [], "m": "", "near": 0, "d": "已经很晚了，你收拾东西准备离开，听见隔壁练习室还有音乐声。透过门上的玻璃，你发现世琳还在练习。", "o": ["敲门问他怎么还没回去", "发消息告诉他别练太晚", "不打扰他，先回宿舍"]}, {"id": 13, "g": "秘密恋爱的日常", "w": "co", "n": [], "m": "", "near": 1, "d": "你和世琳在公司走廊聊天，正准备像平时私下那样叫他，忽然看见有工作人员从拐角走过来。", "o": ["立刻改成平时在公司使用的称呼", "停顿一下，装作忘记自己要说什么", "干脆继续说完，假装没什么特别的"]}, {"id": 14, "g": "秘密恋爱的日常", "w": "dinner", "n": [], "m": "", "near": 0, "d": "公司聚餐时，你和世琳恰好坐在一起。大家正在聊最近的工作，世琳的手无意间碰到了你的手。", "o": ["悄悄勾住他的小指", "不动声色地把手收回来", "转头看他一眼，观察他的反应"]}, {"id": 15, "g": "秘密恋爱的日常", "w": "co", "n": [], "m": "", "near": 1, "d": "你和世琳正在休息区讨论晚上吃什么。他刚说出「那我们晚上……」就被路过的工作人员打断，对方问你们在讨论什么。", "o": ["自然地说在讨论晚饭", "把话题转到公司附近的餐厅", "让世琳自己解释"]}, {"id": 16, "g": "秘密恋爱的日常", "w": "herCoEve", "n": ["hisNearCo"], "m": "", "near": 0, "d": "你晚上还要继续工作，世琳发消息说给你带了吃的，现在放在公司休息室。他一会儿就要离开。", "o": ["过去拿，顺便见他一面", "发消息问他怎么知道自己还没吃饭", "让他先走，等工作结束再去拿"]}, {"id": 17, "g": "秘密恋爱的日常", "w": "co", "n": [], "m": "", "near": 0, "d": "你在公司休息室拍了一张自拍发给世琳。几分钟后，他回了一张照片，背景看起来和你所在的地方几乎一样。", "o": ["问他是不是也在这一层", "让他猜自己坐在哪里", "直接打电话给他"]}, {"id": 18, "g": "秘密恋爱的日常", "w": "co", "n": ["herMeeting"], "m": "", "near": 0, "d": "公司会议结束后，其他人陆续离开。你留下来收拾资料，世琳则在门口等着拿落下的外套。房间里暂时只剩你们两个。", "o": ["走过去抱他一下", "一边收拾东西一边和他聊天", "问他等会儿有没有时间"]}, {"id": 19, "g": "秘密恋爱的日常", "w": "eve", "n": ["afterMeet"], "m": "", "near": 0, "d": "世琳送了你一个小挂件。你很喜欢，但如果直接挂在常用包上，可能会被眼尖的粉丝发现。", "o": ["挂在包包内侧，平时自己看", "放在宿舍里好好保存", "问他介不介意你公开使用"]}, {"id": 20, "g": "秘密恋爱的日常", "w": "morning", "n": [], "m": "", "near": 0, "d": "你准备出门时发现，今天穿的外套和世琳最近在照片里穿过的款式很像。", "o": ["照常穿出门", "换一件，避免被人联想", "拍照发给世琳，问他怎么看"]}, {"id": 21, "g": "秘密恋爱的日常", "w": "eve", "n": ["busyDay"], "m": "", "near": 0, "d": "你今天一整天都在忙，直到晚上才看到世琳下午发来的消息：「今天怎么这么安静？」", "o": ["告诉他今天忙得没时间看手机", "撒娇说自己也想他了", "直接给他打电话"]}, {"id": 22, "g": "秘密恋爱的日常", "w": "coEvent", "n": [], "m": "", "near": 0, "d": "公司活动结束后，工作人员正在给大家拍合照。世琳原本站在你旁边，但摄影师让大家重新调整位置。", "o": ["顺着安排站到其他人旁边", "小声跟世琳说等下再拍一张", "站在原地等摄影师指示"]}, {"id": 23, "g": "秘密恋爱的日常", "w": "prep", "n": [], "m": "", "near": 0, "d": "你正在化妆间准备行程，手机突然响了，来电显示是世琳。化妆师和工作人员都在旁边。", "o": ["先挂断，发消息问他什么事", "找个合适的机会出去接", "当着大家的面正常接电话"]}, {"id": 24, "g": "秘密恋爱的日常", "w": "meetToday", "n": ["tomEarly"], "m": "", "near": 0, "d": "你们原本约好今晚见面，但世琳突然收到通知，CRAVITY 明早有提前开始的拍摄，需要早点休息。", "o": ["告诉他没关系，改天再见", "问他能不能至少打十分钟电话", "表示有点失望，但理解他的工作"]}, {"id": 25, "g": "CRAVITY 成员", "w": "co", "n": ["members"], "m": "정모", "near": 0, "d": "你和世琳正在公司休息区聊天，廷谟端着咖啡走了过来，顺势坐到旁边，问你们在聊什么。", "o": ["自然地邀请廷谟一起聊天", "把话题转到最近的行程", "让世琳回答"]}, {"id": 26, "g": "CRAVITY 成员", "w": "coMeal", "n": ["members"], "m": "우빈", "near": 0, "d": "宇彬在公司遇到你，问你要不要一起吃饭，说 CRAVITY 几个成员也准备去。世琳也在其中，但你们原本没有约好见面。", "o": ["答应一起去", "问都有谁去", "婉拒，说自己还有工作"]}, {"id": 27, "g": "CRAVITY 成员", "w": "co", "n": ["members"], "m": "성민", "near": 0, "d": "大家在休息室闲聊，话题不知怎么转到了理想型。成民突然问 Cyan 喜欢什么样的人。世琳正坐在不远处。", "o": ["认真回答自己的理想型", "开玩笑说这是秘密", "反过来问成民喜欢什么类型"]}, {"id": 28, "g": "CRAVITY 成员", "w": "co", "n": ["members"], "m": "민희", "near": 0, "d": "你和世琳因为一件小事互相斗嘴。旁边的敏熙听了一会儿，笑着说你们怎么每次见面都在吵。", "o": ["笑着说因为世琳总是惹你", "说只是开玩笑", "问敏熙要不要来评评理"]}, {"id": 29, "g": "CRAVITY 成员", "w": "co", "n": ["members"], "m": "형준", "near": 1, "d": "你正在给世琳看手机里的一段视频，两个人靠得有点近。亨俊突然从练习室出来，问你们在看什么。", "o": ["直接把视频给他看", "自然地收起手机，解释视频内容", "让世琳告诉他"]}, {"id": 30, "g": "CRAVITY 成员", "w": "co", "n": ["members"], "m": "*", "near": 0, "d": "CRAVITY 几个成员正在讨论最近的舞台，世琳提到 Cyan 的一次表演，评价得很认真。有人顺口问他怎么记得这么清楚。", "o": ["开玩笑说看来他是自己的粉丝", "认真谢谢他的评价", "假装没听见，继续吃东西"]}, {"id": 31, "g": "CRAVITY 成员", "w": "dinner", "n": ["members"], "m": "*", "near": 0, "d": "公司聚餐时有人提议玩双人合作小游戏。你和世琳恰好被分到一组，其他成员开始起哄说要看看你们的默契。", "o": ["认真玩，争取拿第一", "故意逗他，打乱他的节奏", "提议重新随机分组"]}, {"id": 32, "g": "CRAVITY 成员", "w": "co", "n": ["members"], "m": "*", "near": 0, "d": "你给世琳带了一包他喜欢的零食，暂时放在休息室的桌上。其他成员看到了，问是谁买的。", "o": ["说是自己带来给大家吃的", "让世琳自己解释", "直接说是给世琳买的"]}, {"id": 33, "g": "CRAVITY 成员", "w": "co", "n": ["members", "herStage"], "m": "*", "near": 0, "d": "CRAVITY 成员正在休息室看最近的舞台录像，刚好播到 Cyan 的表演。你进门时，大家招呼你一起看。", "o": ["坐下来一起看", "不好意思地说不想看自己的舞台", "问大家觉得表演怎么样"]}, {"id": 34, "g": "CRAVITY 成员", "w": "co", "n": ["members", "coFreq"], "m": "?", "near": 1, "d": "最近你和世琳在公司碰面的次数比较多。某天一位与你熟悉的成员私下随口问：「你最近跟世琳哥很熟啊？」", "o": ["自然地说因为经常在公司碰见", "笑着反问他为什么突然这么问", "承认最近确实经常聊天，但不提恋爱"]}, {"id": 35, "g": "暧昧与亲密", "w": "co", "n": [], "m": "", "near": 1, "d": "你们在公司一间暂时没人使用的休息室短暂见面。世琳刚张开手准备抱你，门外就传来了脚步声。", "o": ["立刻退开，假装正在聊天", "站着不动，听听外面是谁", "小声笑他怎么挑这个时候"]}, {"id": 36, "g": "暧昧与亲密", "w": "co", "n": [], "m": "", "near": 0, "d": "你和世琳准备分别去工作。你发现他的衣领折了一角，伸手帮他整理。他低头看着你，忽然问：「好了没？」", "o": ["故意慢吞吞地整理", "整理好后轻轻拍一下他的肩膀", "抬头看他，说还没有"]}, {"id": 37, "g": "暧昧与亲密", "w": "herPracticeEnd", "n": ["hisFree"], "m": "", "near": 0, "d": "你今天练习得很累，世琳结束自己的行程后，来到你所在的练习室门口。确认周围没人后，他问你是不是累坏了。", "o": ["走过去抱住他", "坐在地上朝他伸出手", "告诉他今天发生了什么"]}, {"id": 38, "g": "暧昧与亲密", "w": "co", "n": [], "m": "", "near": 0, "d": "你和世琳一起从休息室往外走。他忽然停下来查看手机上的通知，你没注意，差点撞到他背上。", "o": ["轻轻推他一下，抱怨怎么突然停下", "顺势拉住他的衣角", "抬头问他看到什么了"]}, {"id": 39, "g": "暧昧与亲密", "w": "co", "n": ["hisSoon"], "m": "", "near": 0, "d": "你们好不容易找到机会在公司见面，但世琳五分钟后就要去集合。他看了一眼时间，问你还有什么想说的。", "o": ["让他抱你一下再走", "告诉他今晚记得联系你", "说没什么，就是想见见他"]}, {"id": 40, "g": "暧昧与亲密", "w": "eve", "n": ["maleTalk"], "m": "", "near": 0, "d": "你今天和另一位熟悉的男艺人聊了很久。晚上世琳提起这件事，问你们是不是最近很熟，语气听起来有点在意。", "o": ["笑着问他是不是吃醋了", "正常解释刚才聊了什么", "故意逗他说确实挺熟的"]}, {"id": 41, "g": "暧昧与亲密", "w": "date", "n": [], "m": "", "near": 0, "d": "你和世琳私下见面时准备拍张合照。他站在你身后，刚准备按下快门，突然伸手捏了一下你的脸。", "o": ["立刻转头抗议", "抓住他的手，不让他继续捣乱", "趁他不注意也捏回去"]}, {"id": 42, "g": "暧昧与亲密", "w": "dateEnd", "n": [], "m": "", "near": 0, "d": "你们难得一起吃了顿晚饭。准备分别时，世琳看了看时间，问你是不是该回去了。", "o": ["拉住他的手，说再待五分钟", "问他明天什么时候有空", "点点头，但站在原地没动"]}, {"id": 43, "g": "暧昧与亲密", "w": "date", "n": [], "m": "", "near": 0, "d": "你们坐在一起看手机里的照片。世琳凑过来看其中一张，你刚好转头，两个人的距离突然变得很近。他停了一下，没有马上移开。", "o": ["看着他，暂时不说话", "笑着问他靠这么近干什么", "主动凑过去亲他一下"]}, {"id": 44, "g": "突发状况", "w": "any", "n": ["evid1"], "m": "", "near": 1, "d": "社区里有人发帖，发现你和世琳最近使用了同一款配饰。评论区有人觉得只是巧合，也有人开始猜测你们的关系。", "o": ["暂时不回应，观察后续讨论", "联系经纪人询问是否需要处理", "私下联系世琳，商量接下来怎么办"]}, {"id": 45, "g": "突发状况", "w": "any", "n": ["hisItem"], "m": "", "near": 1, "d": "你准备上传一张日常照片到官方账号，检查时发现背景里有一件世琳的私人物品。虽然不显眼，但熟悉他的粉丝可能认得出来。", "o": ["换一张照片发布", "裁掉相关部分", "暂时不发布，先发给世琳看看"]}, {"id": 46, "g": "突发状况", "w": "co", "n": ["coFreq"], "m": "", "near": 1, "d": "一位与你熟悉的工作人员发现，最近世琳经常在你结束工作前后出现在同一层。某天对方随口问你们是不是最近有合作安排。", "o": ["说没有，只是偶尔碰见", "反问为什么会这么觉得", "笑着说可能因为大家都经常加班"]}, {"id": 47, "g": "突发状况", "w": "stage", "n": [], "m": "", "near": 1, "d": "你和世琳在音乐节目后台的走廊短暂聊天。你注意到不远处有工作人员正举着手机拍摄花絮，镜头方向可能扫到你们。", "o": ["自然结束聊天，先回待机室", "继续保持正常前后辈的交流", "提醒世琳有人在拍摄"]}, {"id": 48, "g": "突发状况", "w": "any", "n": ["evid2"], "m": "", "near": 1, "d": "一条关于你和世琳关系的猜测帖突然被大量转发，登上了社区热搜。帖子主要整理了同款物品和公开活动中的互动，目前没有直接证据。", "o": ["联系经纪人，了解公司的处理意见", "先联系世琳，确认彼此的想法", "暂时不公开回应，观察讨论走势"]}, {"id": 49, "g": "突发状况", "w": "any", "n": ["rumor"], "m": "", "near": 1, "d": "经纪人私下找你谈话，说最近网上有一些关于你和世琳的讨论。对方没有直接质问，只是提醒你注意公开场合的行为。", "o": ["认真听取建议", "询问公司目前掌握了哪些情况", "主动谈谈自己对恋情公开的看法"]}, {"id": 50, "g": "突发状况", "w": "eveTalk", "n": [], "m": "", "near": 0, "d": "某天晚上，你和世琳聊到最近另一对艺人公开恋情的新闻。网上的评价有支持也有反对。世琳看完评论后，问你怎么看待公开恋爱这件事。", "o": ["说自己希望有一天能够公开", "觉得目前保持秘密比较好", "反问他是怎么想的"]}];
+const CRV_KZ = { 앨런: 'Allen', 정모: '廷谟', 우빈: '宇彬', 원진: '元进', 민희: '敏熙', 형준: '亨俊', 태영: '太煐', 성민: '成民' };
+// CRAVITY 成员各自知不知道：knows 知道 / suspect 有点察觉 / 没有就是不知道
+function crvKnow() { const R = SR(); if (!R.know) R.know = { 원진: { st: 'knows' }, 민희: { st: 'knows' }, 성민: { st: 'knows' } }; return R.know; }
+const crvKnows = n => (crvKnow()[n] || {}).st === 'knows';
+function crvKnowTxt() { const K = crvKnow(), L = Object.keys(CRV_KZ); const k = L.filter(n => (K[n] || {}).st === 'knows').map(n => CRV_KZ[n]), q = L.filter(n => (K[n] || {}).st === 'suspect').map(n => CRV_KZ[n]); return `CRAVITY 里知道他们在交往的：${k.join('、') || '没有'}${q.length ? `；有点察觉的：${q.join('、')}` : ''}；其他成员不知道。`; }
+function srEvState(now) {
+  const dk = dkey(now), m = srMin(now), R = SR(), rs = rulesFor(dk), win = r => { const a = toMin(r.start); let b = toMin(r.end); if (b <= a) b = 1440; return [a, b]; };
+  const herNow = rs.find(r => { const [a, b] = win(r); return a <= m && b > m; }), herJust = rs.find(r => { const [, b] = win(r); return b <= m && m - b <= 20; }), herNext = rs.map(r => win(r)[0]).filter(a => a > m).sort((a, b) => a - b)[0];
+  const g = srSegAt(dk, m), st = srNow(now) || {}, gs = srSegs(dk), nxt = gs.find(x => x.s > m), meet = rs.find(r => r.srMeet), mw = meet && win(meet);
+  return { dk, m, rs, herNow, herJust, herNext, g, st, gs, nxt, meet, mw, herCo: !!(herNow && herCoRule(herNow)), hisCo: hisAtCo(g), awake: !st.sleep, hisWork: st.kind === 'work', R };
+}
+const SR_EV_W = {
+  co: x => x.herCo && x.hisCo && x.m >= 9 * 60,
+  lunch: x => x.m >= 690 && x.m <= 830 && !(x.herNow && PUB_CATS.includes(x.herNow.cat)) && x.awake,
+  herPractice: x => x.herNow && x.herNow.cat === '练习' && x.hisCo,
+  coEnd: x => x.herJust && herCoRule(x.herJust) && x.hisCo,
+  coLate: x => x.m >= 21 * 60 + 30 && (x.herCo || (x.herJust && herCoRule(x.herJust))) && x.hisCo,
+  dinner: x => [x.herNow && x.herNow.title, x.g && x.g.what].some(t => /聚餐|회식|会食|聚会/.test(t || '')),
+  herCoEve: x => x.m >= 18 * 60 && x.herCo,
+  eve: x => x.m >= 19 * 60 && x.m <= 23 * 60 + 30 && x.awake && !x.hisWork && !(x.herNow && PUB_CATS.includes(x.herNow.cat)),
+  eveTalk: x => SR_EV_W.eve(x),
+  morning: x => x.m < 13 * 60 && x.herNext != null && x.herNext - x.m >= 25 && x.herNext - x.m <= 120 && !x.herNow,
+  coEvent: x => x.herNow && /STARSHIP|스타쉽|公司活动|家族|패밀리/.test(x.herNow.title) && x.hisCo,
+  prep: x => x.herNow && PUB_CATS.includes(x.herNow.cat) && x.m - win0(x.herNow) <= 60 && x.awake && !x.hisWork,
+  meetToday: x => x.meet && x.mw[0] > x.m + 60,
+  coMeal: x => SR_EV_W.co(x) && ((x.m >= 690 && x.m <= 810) || (x.m >= 1050 && x.m <= 1170)),
+  herPracticeEnd: x => x.herJust && x.herJust.cat === '练习' && x.m >= 17 * 60,
+  date: x => x.meet && x.mw[0] <= x.m && x.mw[1] > x.m + 10,
+  dateEnd: x => x.meet && Math.abs(x.mw[1] - x.m) <= 15,
+  stage: x => x.herNow && x.herNow.cat === '打歌' && (socPromo('CRAVITY', x.dk) || gigOn('CRAVITY', x.dk)) && x.hisWork,
+  any: x => x.m >= 10 * 60 && x.m <= 23 * 60 + 30 && x.awake,
+};
+const win0 = r => toMin(r.start);
+const SR_EV_N = {
+  laterWork: x => x.gs.some(g => g.kind === 'work' && g.s > x.m),
+  coBoth: x => x.hisCo,
+  rain: x => srng('rain' + x.dk)() < .12,
+  newHair: x => [1, 2, 3].some(d => rulesFor(addDays(x.dk, -d)).some(r => r.cat === '物料')),
+  herRec: x => [x.herNow, x.herJust].some(r => r && /录音|녹음|recording/i.test(r.title)),
+  herMeeting: x => [x.herNow, x.herJust].some(r => r && /会议|회의|企划|미팅/.test(r.title)),
+  hisNearCo: x => x.hisCo || (x.nxt && hisAtCo(x.nxt) && x.nxt.s - x.m <= 40),
+  afterMeet: x => [0, 1, 2].some(d => rulesFor(addDays(x.dk, -d)).some(r => r.srMeet)),
+  busyDay: x => x.rs.length >= 3,
+  tomEarly: x => { const t = addDays(x.dk, 1), o = srOfficial(t)[0], w = (SR().day[t] ? srSegs(t) : []).find(g => g.kind === 'work'); return (o && o.s < 9 * 60) || (w && w.s < 9 * 60); },
+  members: x => !!(crvGroupNow(Date.now()) || (x.g && /成员|团体|合练|CRAVITY/.test(`${x.g.with} ${x.g.what}`))),
+  herStage: x => Array.from({ length: 14 }, (_, i) => addDays(x.dk, -i)).some(d => rulesFor(d).some(r => r.cat === '打歌')),
+  coFreq: x => (x.R.evLog || []).filter(e => e.co && e.dk >= addDays(x.dk, -10)).length >= 3,
+  hisFree: x => x.awake && !x.hisWork,
+  hisSoon: x => x.nxt && x.nxt.kind === 'work' && x.nxt.s - x.m <= 15,
+  maleTalk: x => social().hist.some(h => h.day === x.dk && h.who && !/CRAVITY/.test(h.who) && h.ev !== 'serim'),
+  evid1: x => ((x.R.risk || {}).evid || 0) >= 1 && !((x.R.risk || {}).seen44),
+  evid2: x => ((x.R.risk || {}).evid || 0) >= 2 && !((x.R.risk || {}).rumorAt > Date.now() - 30 * 864e5),
+  hisItem: x => !!((x.R.risk || {}).item),
+  rumor: x => (x.R.risk || {}).rumorAt > Date.now() - 7 * 864e5 && !(x.R.risk || {}).talked,
+};
+function srEvPick(now) {
+  if (!serimLove()) return null; const x = srEvState(now), R = x.R, used = R.evUsed || {}, lastNear = Math.max(0, ...(R.evLog || []).filter(e => e.near).map(e => e.at));
+  const ok = SR_EVS.filter(e => SR_EV_W[e.w] && SR_EV_W[e.w](x) && e.n.every(k => SR_EV_N[k] && SR_EV_N[k](x)) && !(used[e.id] && used[e.id] > addDays(x.dk, -30)) && !(e.near && now - lastNear < 6 * 864e5));
+  if (!ok.length) return null; const W = ok.map(e => e.near ? .45 : e.w === 'any' ? 1.5 : 1); let r = Math.random() * W.reduce((a, b) => a + b, 0), e = ok[0]; for (let i = 0; i < ok.length; i++) { r -= W[i]; if (r <= 0) { e = ok[i]; break; } }
+  const place = x.herCo || x.hisCo ? '公司' : x.meet && /date/.test(e.w) ? '约会' : '';
+  return { id: e.id, at: now, dk: x.dk, until: now + 40 * 60e3, round: 0, log: [], opts: e.o.slice(), where: place, her: (x.herNow || x.herJust || {}).title || '', his: x.g ? x.g.what : '', co: /^co/.test(e.w) || e.w === 'herPractice' || e.w === 'herCoEve' };
+}
+function srEvTick(now) {
+  const R = SR(), E = R.evNow;
+  if (E && !E.st) { if (now > E.until && !E.log.length) { R.evNow = null; save(); return; } if (!UI.socPop && !UI.chPop && !$('#modal').classList.contains('on')) { E.shown = 1; UI.socPop = { srev: 1 }; openModal(socPopHTML()); save(); } return; } // 弹出来还没处理就刷新了：重新弹
+  if (R.evDay === dkey(now) || (R.evChk && now - R.evChk < 25 * 60e3)) return; R.evChk = now;
+  if (Math.random() > .35) return; const pk = srEvPick(now); if (!pk) return;
+  R.evNow = pk; R.evDay = pk.dk; (R.evUsed || (R.evUsed = {}))[pk.id] = pk.dk; save();
+}
+function srEvHTML() {
+  const E = SR().evNow; if (!E) return ''; const e = SR_EVS.find(x => x.id === E.id), busy = E.busy;
+  const head = `<div class="row"><h3 style="flex:1">💙 世琳 · ${esc(e.g)}</h3></div><div class="muted" style="font-size:12.5px;margin-bottom:8px">${hhmm(srMin(E.at))}${E.where ? ' · ' + esc(E.where) : ''}${E.her ? ' · 你：' + esc(E.her) : ''}${E.his ? ' · 世琳：' + esc(E.his) : ''}</div>`;
+  const body = `<div style="margin-bottom:10px;line-height:1.65">${esc(e.d)}</div>` + E.log.map(l => `<div class="card" style="margin:0 0 8px"><div style="margin-bottom:6px">你：${esc(l.mine)}</div><div class="muted" style="line-height:1.65">${l.narr ? esc(l.narr) : '…'}</div></div>`).join('');
+  if (E.st === 'end') return head + body + `<div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary" data-act="srevclose">好</button></div>`;
+  if (busy) return head + body + `<div class="muted" style="text-align:center;padding:8px 0">…</div>`;
+  return head + body + E.opts.map((o, j) => `<button class="hot-opt" data-act="srevpick" data-j="${j}">${esc(o)}</button>`).join('') + `
+    <div class="row" style="gap:6px;margin-top:6px"><input id="soc-in" placeholder="自己写你怎么做 / 说什么…" style="flex:1;min-width:0"><button class="btn sm" data-act="srevwrite">好</button></div>
+    <div class="row" style="margin-top:8px"><span class="sp"></span><button class="link" data-act="srevclose">${E.log.length ? '就到这里' : '先不管'}</button></div>`;
+}
+async function srEvAct(mine) {
+  const R = SR(), E = R.evNow; if (!E || E.busy || E.st) return; const e = SR_EVS.find(x => x.id === E.id), now = Date.now();
+  E.busy = 1; E.log.push({ mine, narr: '' }); save(); openModal(socPopHTML());
+  const last = E.round >= 2, mem = e.m === '?' ? Object.keys(CRV_KZ).filter(n => !crvKnows(n))[0] : e.m;
+  try {
+    const j = await srAI(`这是模拟器里 Cyan（恩雪，STARSHIP solo 女歌手）和 CRAVITY 世琳（同公司，两人秘密交往中）之间正在发生的一件事。你来写接下来发生了什么。
+下面是世琳这边的背景（他知道的事、他今天的安排、他们的聊天和经历）：
+${srCtx(now, e.d + ' ' + mine)}
+${crvKnowTxt()}公司、经纪人和外界都不知道。外面对偶像恋爱是一半人能接受、一半人接受不了。
+此刻：${hhmm(srMin(E.at))}${E.where ? '，在' + E.where : ''}${E.her ? `；她在：${E.her}` : ''}${E.his ? `；世琳在：${E.his}` : ''}。
+
+情境：${e.d}${mem && mem !== '*' ? `\n（情境里的成员：${CRAV_ZH(mem)}，${crvKnows(mem) ? '他知道他们在交往' : (crvKnow()[mem] || {}).st === 'suspect' ? '他有点察觉，但不确定' : '他不知道他们在交往'}）` : e.m === '*' ? '\n（在场的其他成员各自知不知道，按上面的名单来）' : ''}
+${E.log.slice(0, -1).map(l => `她：${l.mine}\n→ ${l.narr}`).join('\n')}
+她现在：${mine}
+
+写接下来发生的事（narr，中文，2~5 句，第三人称叙述，像生活里真的会发生的那样）：
+- 只写世琳和周围的人怎么反应、说了什么；世琳说的话写成「韩语原话」（中文意思）。她的心理活动、感受和下一步动作不要替她写——她做什么由她自己决定。
+- 她的行动可能超出原来的情境（自由输入），就顺着她做的事发展，不要拉回原来的设定。
+- 世琳按他自己的性格和此刻的状态反应：他也有自己的工作和顾虑，不是每次都说撩人的话；轻松、好笑、普通、有点甜、有点尴尬都可以，看情境。周围人的反应要符合他们知不知道这段关系、符合韩国偶像公司里的真实环境（工作人员、经纪人、成员都各忙各的）。
+- 不要把小事写成差点被发现的大事件；风险只有在情境里真的有（有人在场、在拍、在问）时才出现，结果也和这件事的分量相称。
+- end：这件事是不是自然告一段落了${last ? '（这已经是第三轮，写一个自然的收尾，end=true）' : ''}；没结束的话 opts 给她 3 个接下来可以做的事（短，不带情绪描写，不替她决定心情），结束了 opts 空。
+sum：这件事整体发生了什么（一句中文，给世琳的记忆用；写事实，不写情绪名）。
+know：这件事之后，某个成员对他们关系的知情程度有变化才写（who 写韩文名：${Object.keys(CRV_KZ).join('/')}；st：suspect 开始察觉 / knows 知道了；why 一句原因），没有就空。
+evid：这件事有没有在外界留下能被粉丝 / 媒体注意到的痕迹（公开场合同框太亲近、被拍到、同款东西被公开使用等）：0 没有 / 1 有一点 / 2 明显；大多数事件是 0。
+plan：如果这次说定了见面或打电话（meet / call），when 写 YYYY-MM-DD HH:MM，confirmed 只有说定了才 true；没有就 type 空。cancel_meet：如果这件事让今天原本约好的见面取消了，true。
+${SR_MEM_HINT}`, 12000, { type: 'object', additionalProperties: false, required: ['narr', 'end', 'opts', 'sum', 'know', 'evid', 'plan', 'cancel_meet', 'mem'], properties: { narr: { type: 'string' }, end: { type: 'boolean' }, opts: { type: 'array', items: { type: 'string' } }, sum: { type: 'string' }, evid: { type: 'integer' }, cancel_meet: { type: 'boolean' }, mem: SR_MEM_SCHEMA,
+      know: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['who', 'st', 'why'], properties: { who: { type: 'string' }, st: { type: 'string', enum: ['suspect', 'knows'] }, why: { type: 'string' } } } },
+      plan: SR_REPLY_SCHEMA.properties.plan } }, false, 'medium');
+    E.log[E.log.length - 1].narr = String(j.narr || '').trim(); E.round++;
+    const end = j.end || last || !(j.opts || []).length; E.opts = end ? [] : j.opts.slice(0, 3).map(x => String(x).slice(0, 40));
+    srMemOps(j.mem, now, 'him');
+    for (const k of j.know || []) if (CRV_KZ[k.who] && !crvKnows(k.who)) crvKnow()[k.who] = { st: k.st, why: String(k.why || '').slice(0, 60), at: now };
+    const RK = R.risk || (R.risk = { evid: 0 }); RK.evid = Math.min(5, (RK.evid || 0) + clamp(+j.evid || 0, 0, 2));
+    if (j.plan && j.plan.type === 'meet') srMeet(j.plan, now); else if (j.plan && j.plan.type === 'call' && j.plan.confirmed) { const T = dmThread(srP()); if (!T.call || T.call.done) dmCallSet(T, '刚才说好的'); }
+    if (j.cancel_meet) { const mt = rulesFor(E.dk).find(r => r.srMeet); if (mt) srMeetCancel(mt.id, now); }
+    if (end) srEvEnd(E, String(j.sum || '').slice(0, 120));
+  } catch (err) { E.log[E.log.length - 1].narr = '（AI 暂时连不上，这件事先记下你的选择）'; srEvEnd(E, `${e.d.slice(0, 40)}……她：${mine}`); }
+  finally { E.busy = 0; save(); if (UI.socPop && UI.socPop.srev) openModal(socPopHTML()); }
+}
+const CRAV_ZH = n => CRV_KZ[n] || n;
+function srEvEnd(E, sum) {
+  const R = SR(), e = SR_EVS.find(x => x.id === E.id), now = Date.now(); E.st = 'end';
+  if (sum) srMemAdd({ k: 'event', who: 'us', t: sum, src: 'sys', imp: e.near || e.id >= 44 ? 4 : 3, at: E.at }, now);
+  (R.evLog || (R.evLog = [])).push({ id: E.id, dk: E.dk, at: E.at, co: E.co, near: e.near, sum }); if (R.evLog.length > 60) R.evLog.splice(0, R.evLog.length - 60);
+  const RK = R.risk || (R.risk = { evid: 0 });
+  if (E.id === 19) RK.item = 1; if (E.id === 44) RK.seen44 = 1; if (E.id === 49) RK.talked = 1;
+  if (E.id === 48) { RK.rumorAt = now; RK.talked = 0; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: '和世琳', q: `有人整理了 ${S.profile.name} 和 CRAVITY 世琳的同款物品和公开活动里的互动，猜两人在交往（没有直接证据）`, at: now + 60e3 }; }
+  social().hist.push({ id: uid(), day: E.dk, ev: 'srev' + E.id, who: 'CRAVITY 世琳', text: e.d, mine: E.log.map(l => l.mine).join(' / '), reply: sum || '' }); if (social().hist.length > 120) social().hist.splice(0, social().hist.length - 120);
+  save();
+}
 /* ---------- 同公司：CRAVITY 和 Cyan 都是 STARSHIP 的，练习、开会、录音都在同一栋楼。她在公司的时候他也在的话，可能会在走廊、练习室门口、休息室碰到 ---------- */
 const CO_WHERE = /公司|练习室|录音室|作业室|작업실|工作室|会议室|회사|연습실|녹음실|STARSHIP|스타쉽/i;
 const herCoRule = r => !PUB_CATS.includes(r.cat) && (['练习', '上课', '物料'].includes(r.cat) || CO_WHERE.test(`${r.title} ${r.loc || ''} ${r.note || ''}`) || /会议|회의|录音|녹음|企划/.test(r.title));
@@ -9808,7 +9943,7 @@ function srCtx(when, q) {
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}${st && st.seg && T.msgs.some(x => !x.me && !x.sys && x.at <= when && x.at >= srTs(dk, st.seg.s)) ? '（这段时间里他已经跟她聊过，她知道他在做这个）' : ''}；${srMoodZh()}
-【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。外面对偶像谈恋爱是一半人能接受、一半人接受不了，所以他们要保密。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
+【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。外面对偶像谈恋爱是一半人能接受、一半人接受不了，所以他们要保密。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${herCoTxt(dk) ? `她今天在公司的安排：${herCoTxt(dk)}。` : ''}${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、还没跟她提的事】${urg}（只是事实。他在不在意、在意到什么程度、提不提、什么时候提、怎么提，看他的性格和当时的气氛；可以顺嘴带出来，也可以先不提）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
@@ -10079,6 +10214,7 @@ function srRedoFrom(re) { const R = SR(), T = dmThread(srP()), M = T.msgs;
   R.conv = null; R.jobs = R.jobs.filter(x => x.type !== 'reply'); T.pend = [];
   const her = srHer(T, Date.now()); T.readTo = her.length ? her[0].at - 1 : T.readTo; T.quiet = null;
   const prev = M.filter(m => !m.me && !m.sys && m.at < t0).pop(); R.chat.him = prev ? prev.at : 0; R.chat.sess = 0; R.chat.next = Date.now() + rand(1, 4) * 60e3; save(); }
+function crvKnowMig1() { const R = SR(); if (R.knowMig1) return; R.knowMig1 = 1; R.know = { 원진: { st: 'knows' }, 민희: { st: 'knows' }, 성민: { st: 'knows' } }; for (const m of R.mem) if (/只有 CRAVITY 队友知道/.test(m.t)) m.t = m.t.replace(/（只有 CRAVITY 队友知道）/, ''); save(); } // 知情的只有元进、敏熙、成民
 function srCardMsgFix1() { const R = SR(); if (R.cardMsg1) return; R.cardMsg1 = 1; const T = dmThread(srP());
   for (const m of T.msgs) if (!m.me && /나 좀 삐짐/.test(m.text || '')) { m.text = '그거 뭐야.. 왜 민희 소카가 거기서 나와'; m.zh = '那是什么…敏熙的小卡怎么会在那里'; }
   const fx = t => typeof t === 'string' ? t.replace(/나 좀 삐짐/g, '왜 민희 소카가 거기서 나와').replace(/我有点不高兴/g, '敏熙的小卡怎么会在那里') : t;
@@ -10100,7 +10236,7 @@ function srMigrate() {
   for (const e of (P.ex || []).filter(e => !(e.t === 'chat' && e.ai))) srMemAdd({ k: 'event', who: 'us', t: e.d, at: parseD(e.day).getTime() + 12 * 3600e3, src: 'sys', imp: ['meal', 'coffee', 'call', 'gift', 'chal'].includes(e.t) ? 3 : 2 }, parseD(e.day).getTime() + 12 * 3600e3);
   for (const x of P.todo || []) srMemAdd({ k: 'plan', who: 'us', t: x.d, src: 'sys', st: x.st === 'open' ? 'planned' : 'done', imp: 3 }, parseD(x.day).getTime() + 12 * 3600e3);
   if (T.fu) { srMemAdd({ k: 'promise', who: 'him', t: T.fu.task, src: 'him', imp: 3, cond: { at: T.fu.at, win: T.fu.at + 6 * 3600e3 } }); delete T.fu; }
-  if (serimLove()) srMemAdd({ k: 'event', who: 'us', t: '正式开始秘密交往（只有 CRAVITY 队友知道）', at: srTs(serimLove().since, 12 * 60), src: 'sys', imp: 5 }, srTs(serimLove().since, 12 * 60));
+  if (serimLove()) srMemAdd({ k: 'event', who: 'us', t: '正式开始秘密交往', at: srTs(serimLove().since, 12 * 60), src: 'sys', imp: 5 }, srTs(serimLove().since, 12 * 60));
   T.due = null; T.gen = 0; // 原来的回复排队交给新的节奏
   R.chat.next = Date.now() + 30e3; R.jobs.push({ id: uid(), type: 'digest', at: Date.now(), n: 0 });
   for (let i = 1; i <= 3; i++) R.jobs.push({ id: uid(), type: 'daily', dk: addDays(td, -i), at: Date.now() + i * 1000, n: 0 });
@@ -10112,7 +10248,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -10121,7 +10257,7 @@ function srTick() {
   const aiOk = srAIState().ok;
   while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   try { srScriptTick(now); } catch (e) { console.error('sr script', e); }
-  try { srCoTick(now); } catch (e) { console.error('sr co', e); }
+  try { srEvTick(now); } catch (e) { console.error('sr ev', e); }
   srNoteRetry();
   const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
   const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
@@ -10905,6 +11041,9 @@ document.addEventListener('click', async e => {
     case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const e = socEv(Q.x.ev), neg = tone(v) === 'neg', o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: neg ? 0 : (e.fl.r || 0) * .5, reply: neg ? socG('他好像有点尴尬', Q.x.p) : socG(pick(SOC_REPLY['+']), Q.x.p) };
       if (Q.x.o && Q.x.o.length) { const b = neg ? Q.x.o[Q.x.o.length - 1] : Q.x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
       socDone(Q, v, o); break; }
+    case 'srevpick': { const E = SR().evNow; if (!E || E.busy || E.st) break; const v = E.opts[+t.dataset.j]; if (v) srEvAct(v); break; }
+    case 'srevwrite': { const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } srEvAct(v); break; }
+    case 'srevclose': { const R = SR(), E = R.evNow; if (E && !E.st) { if (E.log.length) srEvEnd(E, `${SR_EVS.find(x => x.id === E.id).d.slice(0, 50)}……她：${E.log.map(l => l.mine).join(' / ')}`); else E.st = 'skip'; } R.evNow = null; UI.socPop = null; closeModal(); save(); break; }
     case 'socclose': { const Q = UI.socPop; if (Q && Q.x) delete Q.x.open; if (Q && Q.serim && !social().serim?.done) social().serim.closed = 1; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimopen': openModal(serimCardHTML()); break;
     case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
