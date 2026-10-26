@@ -9624,6 +9624,14 @@ function srFix1026b() {
   S.notifs = (S.notifs || []).filter(n => !(n.at >= cutAt && /^💬/.test(n.text || '') && (n.text || '').includes(nm)));
   save(); if (typeof updBadges === 'function') updBadges();
 }
+// 一次性：今天你记的几条按新的方式重新理解一遍（之前 AI 抄回来的时间段清掉，被覆盖的旧内容恢复后重新覆盖）
+function srNoteRebuild1() {
+  const R = SR(); if (R.nrb1) return; R.nrb1 = 1; const td = dkey(Date.now()), N = serimNotes().filter(n => n.day === td).sort((a, b) => a.at - b.at); if (!N.length) { save(); return; }
+  srBackup('nrb1'); const ids = new Set(N.map(n => n.id));
+  for (const D of Object.values(R.day)) { D.segs = D.segs.filter(g => !(g.nid && ids.has(g.nid))); for (const g of D.segs) if (g.del === 'old' || g.del === 'cover' || g.del === 'drop') delete g.del; }
+  for (const n of N) { srNoteDrop(n.id); delete n.parsed; delete n.re; }
+  R.jobs.push({ id: uid(), type: 'reparse', ids: N.map(n => n.id), at: Date.now(), n: 0 }); save();
+}
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
@@ -9648,7 +9656,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -9658,7 +9666,7 @@ function srTick() {
   while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   srNoteRetry();
   const job = R.jobs.find(j => j.at <= now && (!j.next || j.next <= now)); if (!job) return;
-  const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
+  const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest, reparse: async jb => { for (const id of jb.ids) { const n = serimNotes().find(x => x.id === id); if (n && !n.parsed) await srNoteParse(n); } return true; } }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
   if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
   srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId; job.rid = rid;
   run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
@@ -9675,28 +9683,52 @@ function srTechHTML() {
 
 /* ---------- 你记下的世琳日常：拆成时间段（已发生 / 正在 / 计划），覆盖系统生成的日常 ---------- */
 async function srNoteParse(n) {
-  const now = n.at, td = dkey(now), m = srMin(now);
+  const now = n.at, td = dkey(now), yd = addDays(td, -1), m = srMin(now);
+  const tl = dk => srSegs(dk, now).map(g => `- [${g.id}] ${srSegZh(g, dk, now)}`).join('\n') || '（无）';
   try {
-    const j = await srAI(`Cyan 记下了一条 CRAVITY 世琳的真实情况（这是确认的事实，模拟器里以它为准）：「${n.text}」
-现在是 ${srClock(now)}。他今天目前的时间线：
-${srSegs(td).map(g => '- ' + srSegZh(g, td, now)).join('\n') || '（无）'}
+    const j = await srAI(`Cyan 记下了一条 CRAVITY 世琳的真实情况。这是确认的事实，模拟器里以它为准，系统原来的安排和它冲突的都要改：「${n.text}」
+现在是 ${srClock(now)}（今天 ${td}）。
+理解时间：现在如果是晚上，「昨天凌晨」「昨晚后半夜」通常指今天 0~6 点（过了午夜还没睡的那段），要结合下面聊天的时间判断最合理的是哪一段。
+最近的聊天（帮你判断时间和前因后果）：
+${srChatLog(dmThread(srP()), now, 14) || '（无）'}
+他现有的时间线（方括号里是编号，只用来对照，不要抄回来）：
+今天 ${td}：
+${tl(td)}${SR().day[yd] ? `\n昨天 ${yd}：\n${tl(yd)}` : ''}
 
-segs：把这条里提到的他的具体活动拆成时间段。day 写 YYYY-MM-DD（今天 ${td}，明天 ${addDays(td, 1)}）；s / e 写 HH:MM（只说了「下午」「晚上」这种就按常理给一个合理的范围；说「现在在」就从现在前后算）；st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。没有具体活动就空数组。
-mem：这条里其他值得长期记住的（他的近况、喜好、和谁有关的事），k / who / t / imp，when 可空。
+segs：只写这条记录里说到的他的活动，拆成时间段，不要把上面已有的时间段抄回来。day 写 YYYY-MM-DD；s / e 写 HH:MM。只说了「下午」「晚上」就按常理给合理范围；「现在在」就从现在前后算；「今天主要在练习，七点结束」这种就从合理的开始时间一直写到七点。st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。
+drop：上面已有时间段里，和这条记录矛盾、应该删掉的编号（比如这条说他凌晨去见了恩雪，那段时间原来写的「睡觉」就要删；被新时间段盖住的部分系统会自动改，不用列）。
+mem：这条里其他值得长期记住的（他的近况、喜好、和谁有关的事；他的感受用 k=feel，比如吃醋），k / who / t / imp，when 可空。
+state：这条对他现在状态的影响。energy：他现在的精力 0~100（说很累就低，没提到填 -1）；mood_val：心情 -2~2（没提到填 0）；mood_to：他现在对 Cyan 的情绪（比如 有点吃醋 / 想她，没有就空）；why：一句原因。
 kkt：只有这条里明确写了「世琳会在 KKT 上给她发消息」时 send=true：time 按写的时间（HH:MM），ko 他会真的发出来的那条（半语、口语、短），zh 中文；否则 send=false 其他留空。
-sum：12 个字以内的笼统概括。`, 2500, { type: 'object', additionalProperties: false, required: ['segs', 'mem', 'kkt', 'sum'], properties: {
+sum：12 个字以内的笼统概括。`, 3000, { type: 'object', additionalProperties: false, required: ['segs', 'drop', 'mem', 'state', 'kkt', 'sum'], properties: {
       segs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['day', 's', 'e', 'what', 'where', 'with', 'kind', 'st'], properties: { day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] }, st: { type: 'string', enum: ['done', 'now', 'planned'] } } } },
-      mem: SR_MEM_SCHEMA, kkt: { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' } } }, sum: { type: 'string' } } });
-    srNoteSegs(n, (j.segs || []).map(x => ({ ...x, s: toMin(x.s), e: x.e === '24:00' ? 1440 : toMin(x.e) })));
+      drop: { type: 'array', items: { type: 'string' } },
+      mem: SR_MEM_SCHEMA, state: { type: 'object', additionalProperties: false, required: ['energy', 'mood_val', 'mood_to', 'why'], properties: { energy: { type: 'number' }, mood_val: { type: 'number' }, mood_to: { type: 'string' }, why: { type: 'string' } } },
+      kkt: { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' } } }, sum: { type: 'string' } } });
+    srNoteSegs(n, (j.segs || []).map(x => ({ ...x, s: toMin(x.s), e: x.e === '24:00' || (toMin(x.e) <= toMin(x.s) && toMin(x.s) > 0) ? 1440 : toMin(x.e) })), j.drop);
     srMemOps(j.mem, now, 'note'); if (j.sum) n.sum = String(j.sum).slice(0, 20);
+    const st = j.state || {}, M = SR().mood; // 你记的「很累」「吃醋」真的会改到他现在的状态
+    if (st.energy >= 0) M.en = clamp(+st.energy, 5, 100); if (st.mood_val) M.val = clamp(+st.mood_val, -2, 2); if (st.mood_to) M.to = String(st.mood_to).slice(0, 20); if (st.why && (st.energy >= 0 || st.mood_val || st.mood_to)) M.why = String(st.why).slice(0, 40); M.at = Date.now();
     if (j.kkt && j.kkt.send && j.kkt.ko) { let at = /^\d{1,2}:\d\d$/.test(j.kkt.time || '') ? toMin(j.kkt.time) : m + ri(5, 30); if (at < m) at = m + ri(2, 8); n.kkt = { at, ko: j.kkt.ko.trim(), zh: (j.kkt.zh || '').trim() }; }
     n.parsed = 1; save(); return true;
   } catch (e) { srNoteFb(n); return false; }
 }
-function srNoteSegs(n, list) {
+// 把一段确认的时间放进时间线：和它重叠的旧内容（系统生成的、他说的、你之前记的）真的被删掉或截短，官方日程不动
+function srCut(D, s, e, nid) {
+  for (const g of D.segs.slice()) {
+    if (g.del || g.st === 'cancel' || g.src === 'official' || (nid && g.nid === nid) || g.e <= s || g.s >= e) continue;
+    if (g.s >= s && g.e <= e) g.del = g.src === 'note' ? 'old' : 'cover';
+    else if (g.s < s && g.e > e) { D.segs.push({ ...g, id: uid(), s: e }); g.e = s; }
+    else if (g.s < s) g.e = s; else g.s = e;
+  }
+}
+function srNoteSegs(n, list, drop) {
+  for (const id of drop || []) for (const D of Object.values(SR().day)) for (const g of D.segs) if (g.id === id && g.src !== 'official' && !g.del) g.del = g.src === 'note' ? 'old' : 'drop';
   for (const x of list) {
-    const dk = /^\d{4}-\d\d-\d\d$/.test(x.day) ? x.day : dkey(n.at); if (!(x.e > x.s)) continue;
-    const D = srDay(dk); for (const g of D.segs) if (g.src === 'note' && g.nid !== n.id && g.s < x.e && g.e > x.s) g.del = 'old'; // 新记的覆盖旧记的
+    const dk = /^\d{4}-\d\d-\d\d$/.test(x.day) ? x.day : dkey(n.at); if (!(x.e > x.s)) continue; const D = srDay(dk);
+    // AI 偶尔会把已有的时间段原样抄回来：和已有的几乎一样的就不当成新记录
+    if (D.segs.some(g => !g.del && g.nid !== n.id && srSim(g.what, x.what) >= .6 && Math.min(g.e, x.e) - Math.max(g.s, x.s) >= .7 * Math.max(g.e - g.s, x.e - x.s))) continue;
+    srCut(D, x.s, x.e, n.id);
     D.segs.push({ id: uid(), s: clamp(x.s, 0, 1440), e: clamp(x.e, 0, 1440), what: String(x.what || n.text).slice(0, 40), where: String(x.where || '').slice(0, 20), with: String(x.with || '').slice(0, 20), kind: x.kind || 'out', src: 'note', st: x.st || 'done', share: x.st === 'planned' ? 0 : .3, c: n.at, nid: n.id });
     srMemAdd({ k: x.st === 'planned' ? 'plan' : 'event', who: 'him', t: `${x.what}${x.where ? '（' + x.where + '）' : ''}${x.with ? '，和' + x.with : ''}`, at: srTs(dk, x.s), src: 'note', st: x.st === 'planned' ? 'planned' : 'ok', imp: 2, nid: n.id }, n.at);
   }
@@ -10387,7 +10419,7 @@ document.addEventListener('click', async e => {
     case 'serimdel': { const N = serimNotes(), i = N.findIndex(n => n.id === t.dataset.id); if (i >= 0) N.splice(i, 1); srNoteDrop(t.dataset.id); save(); openModal(serimCardHTML()); break; }
     case 'srsegdel': { const D = srDay(t.dataset.dk), g = D.segs.find(x => x.id === t.dataset.id); if (g) { if (['note', 'plan', 'him'].includes(g.src)) D.segs = D.segs.filter(x => x !== g); else g.del = 1; } save(); openModal(serimCardHTML()); break; }
     case 'srsegedit': openModal(srSegEditHTML(t.dataset.dk, t.dataset.id)); break;
-    case 'srsegsave': { const D = srDay(t.dataset.dk), g = D.segs.find(x => x.id === t.dataset.id), s0 = toMin($('#sr-s').value), e0 = $('#sr-e').value === '23:59' ? 1440 : toMin($('#sr-e').value); if (g && e0 > s0) { const ng = { ...g, id: uid(), s: s0, e: e0, what: ($('#sr-w').value || g.what).trim().slice(0, 40), where: $('#sr-l').value.trim().slice(0, 20), with: $('#sr-p').value.trim().slice(0, 20), st: $('#sr-st').value, src: 'note', c: Date.now() }; if (['note', 'plan', 'him'].includes(g.src)) D.segs = D.segs.filter(x => x !== g); else g.del = 1; D.segs.push(ng); srMemAdd({ k: ng.st === 'planned' ? 'plan' : 'event', who: 'him', t: `${ng.what}${ng.where ? '（' + ng.where + '）' : ''}${ng.with ? '，和' + ng.with : ''}`, at: srTs(t.dataset.dk, s0), src: 'note', st: ng.st === 'planned' ? 'planned' : 'ok', imp: 2 }); save(); } openModal(serimCardHTML()); break; }
+    case 'srsegsave': { const D = srDay(t.dataset.dk), g = D.segs.find(x => x.id === t.dataset.id), s0 = toMin($('#sr-s').value), e0 = $('#sr-e').value === '23:59' ? 1440 : toMin($('#sr-e').value); if (g && e0 > s0) { const ng = { ...g, id: uid(), s: s0, e: e0, what: ($('#sr-w').value || g.what).trim().slice(0, 40), where: $('#sr-l').value.trim().slice(0, 20), with: $('#sr-p').value.trim().slice(0, 20), st: $('#sr-st').value, src: 'note', c: Date.now() }; if (['note', 'plan', 'him'].includes(g.src)) D.segs = D.segs.filter(x => x !== g); else g.del = 1; srCut(D, s0, e0); D.segs.push(ng); srMemAdd({ k: ng.st === 'planned' ? 'plan' : 'event', who: 'him', t: `${ng.what}${ng.where ? '（' + ng.where + '）' : ''}${ng.with ? '，和' + ng.with : ''}`, at: srTs(t.dataset.dk, s0), src: 'note', st: ng.st === 'planned' ? 'planned' : 'ok', imp: 2 }); save(); } openModal(serimCardHTML()); break; }
     case 'srretry': { const R = SR(); R.ai.next = 0; for (const j of R.jobs) j.next = 0; save(); openModal(dmHTML(SR_K)); break; }
     case 'serimclear': social().serim = null; save(); openModal(serimCardHTML()); break;
     case 'serimpick': { const SV = social().serim, g = (SV && SV.gen) || { opts: SV && SV.dm ? ['好呀', '哈哈哈', '怎么了？'] : ['笑着回应他', '和他多聊几句', '开个玩笑'] }; serimReply(g.opts[+t.dataset.j]); break; }
