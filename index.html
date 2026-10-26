@@ -8388,7 +8388,7 @@ function socTodo(p, t, d, by) { const P = socPX(p); let x = socTodoOpen(P, t); i
 function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || ts.includes(P.ex[i].t)) return P.ex[i]; return null; }
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
 // 交往后世琳私下打字的样子：照他泡泡原文整理（泡泡里粉丝名会显示成「은설」，那些话本来就像在对她说）
-const SERIM_LOVE_TONE = '半语；一个意思一个气泡，常一口气连发 3~8 条，长短混着；常单独发一条「은설」/「은설아」叫她再接着说；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
+const SERIM_LOVE_TONE = '半语；说得起劲时一句话会按回车拆成好几个气泡连着发（这是打字节奏，不是一次多说几件事），平常也常常就一两个；有时先单独发一条「은설아」再说事；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
 function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
 function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
 function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；只有 CRAVITY 的队友知道。`; }
@@ -9714,12 +9714,12 @@ function srReachEval(at) {
   const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
   if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .25 + .08 * (dMeet - 3), `上次见面大概是 ${Math.round(dMeet)} 天前`);
   const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 9, `上次聊天是 ${Math.round(quiet)} 小时前`);
-  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.1 * ((u.tries || 0) >= 2 ? .5 : 1), `他知道、还没跟她提的事：${u.t}`, 'urge' + u.id);
+  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.25 * ((u.tries || 0) >= 2 ? .5 : 1), `他知道、还没跟她提的事：${u.t}`, 'urge' + u.id);
   if (!working && !st.semi && R.mood.en >= 35) add('idle', .3 + (R.mood.val > .5 ? .15 : 0), '他这会儿闲着，手机在手上');
   if (!Mo.length) return;
   Mo.sort((a, b) => b.v - a.v); if (pingWait) return; const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
   const today = R.reach.filter(x => dkey(x.at) === dk).length, init = (socCard(srP()) || {}).init || 1;
-  const need = 1 + .4 * today + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) + (working ? .2 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
+  const need = 1 + .4 * today + (R.mood.en < 30 ? .15 : 0) + (st.semi ? .3 : 0) + (working ? .2 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
   if (urge < need) return;
   srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 4).map(x => '- ' + x.d).join('\n'), ref: Mo[0].ref, refs: Mo.slice(0, 4).map(x => x.ref).filter(Boolean) } });
 }
@@ -9775,17 +9775,17 @@ ${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、�
 ${recent ? `【最近他对她的回应】（系统按聊天时间和他的安排算出来的事实）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；还没解决：${cv.open.join('；')}` : ''}\n` : ''}【KKT 聊天】
 ${chat || '（还没聊过）'}`;
 }
-const SR_RULES = `写法：
-- 写的是他本人在 KKT 上会发的消息：韩国二十多岁男生私下的口语，半语，一个意思一个气泡，可以只回一个词、一个反应，也可以连发几条。打字习惯按上面【他】里写的来。
-- 不要每条都关心、问问题、表达爱意或给情绪价值；不要总结关系、不要解释自己的情绪、不要复述已经说定的事。聊天可以没有目的。
-- 情绪不直接报出来：真人不会说「나 좀 삐짐」「질투나」「서운해」「기분 안 좋아」「나 화났어」这种给自己的情绪贴标签的话。吃醋、不爽、委屈是从说话方式里漏出来的：反问（민희 소카가 왜 내 주머니에서 나와?）、明知故问、阴阳怪气地夸（민희 잘생겼지~）、回得变短变冷（ㅇㅇ / 그래 / ㅡㅡ）、故意不接她的话、拿这件事开玩笑但有点酸。只有她追问「你是不是生气了」、或者事情真的严重到要摊开说时，才会说出口，而且也常常是嘴硬（아닌데? / 안 삐졌는데）。
-- 「慢慢说」「我在听」「写给我我都会看」「发生什么事了」「辛苦了」「我一直都在」这类把话推给对方的安慰，只有在情境真的需要、而且是他这个人会说的话时才用；她在生他的气、在等他表态时说这些，就是没听懂。
-- 他自己在上面说过的话（同一句道歉、同一个理由、同一句安抚）不要再说一遍。已经跟她交代过的近况（「我在练习」「在忙」「在路上」）也一样：她已经知道了，除非状态变了（练完了、换了地方、要去忙别的），不用再报一遍。
-- 他说的自己的事必须和【他今天】一致：在做什么、在哪、和谁。没写的具体经历不要编；不记得的事就是不记得。
-- 「还没发生」的计划不能说成已经做了；「猜测」不能当事实。她提到你不知道的过去，就照实反应，不要附和成真的。
-- 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
-- 他今天安排里还没开始的事只是安排，可能会变；他说自己的安排变了（取消、改时间、临时有事）要在 sched 里写出来。
-- ㅋㅋ ㅎㅎ 是真觉得好笑才用；最近几条用过了这次就别用。很甜的话（ㅅㄹㅎ、❤️连发）很少用。
+const SR_RULES = `他怎么说话：
+- 他是在跟女朋友随手聊天，不是在完成回复：注意力落在哪就说哪，别的可以不接。不需要每次都回应她的情绪、关心她、推进关系、交代自己在干嘛，也不用找话让聊天继续。
+- 她刚说过的事她自己知道，不用再向她确认一遍（她说「我偷偷收集了好多你的小卡」，他不会回「你偷偷收集了好多我的？」，而是直接对这件事有反应）；他自己说过的话、交代过的近况也不再说。
+- 情绪在语气和挑什么说里，不用说出来（不会说「나 삐짐」「서운해」「기분 안 좋아」这种）。真到要摊开说的时候，也常常是嘴硬。
+- 她在生他的气、或者在等他回答一件事的时候，他知道这事得接住，不会绕开，也不会把话推回给她（「你慢慢说我听着」这种）。
+- 韩语是二十多岁韩国男生私下发 KKT 的样子，半语，不是中文直译。ㅋㅋ、~、!!、?! 这些只在真有那个语气时出现，不是装饰；几个气泡连起来要像一个人一口气说的话。具体打字习惯参考【他】。
+事实不能乱：
+- 他说的自己的事必须和【他今天】一致（在做什么、在哪、和谁）；没写的具体经历不要编，不记得的就是不记得。
+- 「还没发生」的计划不能说成已经做了；「猜测」不能当事实。她提到他不知道的过去，就照实反应，不要附和成真的。
+- 记得的事只在正好聊到时自然地用，不为了表现记得而翻旧事。
+- 他今天还没开始的安排只是安排，可能会变；他说自己的安排变了（取消、改时间、临时有事）要在 sched 里写出来。
 ${KK_STK_HINT()}
 - 发照片：只能发【他手机里的照片】里有的，单独一条写「[사진:编号]」，想说明另发一条；没有合适的照片就不发照片，不要凭空写「[사진]」。
 - 她的本名은설中文是「恩雪」（은설아 → 恩雪啊），zh 里不要写成别的字，也不要换成 Cyan。`;
@@ -9795,22 +9795,23 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - upd：上面【记得的事】里某条（填它的编号）有了新情况，比如约定完成了（st=done）、取消了、她纠正了说法。
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
-const SR_READ_SCHEMA = { type: 'object', additionalProperties: false, required: ['means', 'feel', 'target', 'why', 'tone', 'his_part', 'wants', 'must_answer', 'said'], properties: { wants: { type: 'string' }, must_answer: { type: 'string' }, said: { type: 'string' }, means: { type: 'string' }, feel: { type: 'string' }, target: { type: 'string', enum: ['他本人', '他做了或没做的事', '你们之间的事', '别人或外面的事', '她自己', '没有明显情绪', '不确定'] }, why: { type: 'string' }, tone: { type: 'string', enum: ['认真', '开玩笑', '反话', '撒娇', '赌气', '吃醋', '试探', '普通'] }, his_part: { type: 'string' } } };
-const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv', 'aired', 'told', 'bits_add'], properties: {
+const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['inner', 'act', 'ko', 'zh', 'end', 'conv', 'mem', 'promise', 'plan', 'mood', 'sched', 'aired', 'told', 'bits_add'], properties: {
+  inner: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' },
   aired: { type: 'boolean' }, ...SR_BITS_SCHEMA,
-  read: SR_READ_SCHEMA,
   conv: { type: 'object', additionalProperties: false, required: ['t', 'open'], properties: { t: { type: 'string' }, open: { type: 'array', items: { type: 'string' } } } },
   sched: SR_SCHED_SCHEMA,
-  gist: { type: 'string' }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] },
-  msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } },
+  act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] },
   end: { type: 'boolean' }, mem: SR_MEM_SCHEMA,
   promise: { type: 'object', additionalProperties: false, required: ['t', 'cond', 'min', 'imp'], properties: { t: { type: 'string' }, cond: { type: 'string', enum: ['', 'segEnd', 'time'] }, min: { type: 'integer' }, imp: { type: 'integer' } } },
   plan: { type: 'object', additionalProperties: false, required: ['type', 'when', 'what', 'confirmed'], properties: { type: { type: 'string', enum: ['', 'meet', 'call'] }, when: { type: 'string' }, what: { type: 'string' }, confirmed: { type: 'boolean' } } },
   mood: { type: 'object', additionalProperties: false, required: ['val', 'to', 'why'], properties: { val: { type: 'number' }, to: { type: 'string' }, why: { type: 'string' } } } } };
+// 他打出来的一段话 → 气泡：一行一个（回车就是他按发送的地方）；中文按行对上
+function srBubbles(ko, zh) { const K = String(ko || '').split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 10), Z = String(zh || '').split(/\n+/).map(x => x.trim()).filter(Boolean);
+  return K.map((k, i) => ({ ko: k, zh: i === K.length - 1 && Z.length > K.length ? Z.slice(i).join(' ') : (Z[i] || '') })); }
 // 结果落地：记忆、承诺、约定、心情
 function srApply(j, when, T) {
   srMemOps(j.mem, when, 'him'); srSched(j.sched, when); srBitsApply(j, when);
-  if (j.conv && j.conv.t) SR().conv = { t: String(j.conv.t).slice(0, 120), open: (j.conv.open || []).slice(0, 4).map(x => String(x).slice(0, 60)), at: when, read: j.read || null };
+  if (j.conv && j.conv.t) SR().conv = { t: String(j.conv.t).slice(0, 120), open: (j.conv.open || []).slice(0, 4).map(x => String(x).slice(0, 60)), at: when, inner: String(j.inner || '').slice(0, 120) };
   if (j.promise && j.promise.t && j.promise.cond) srPromiseAdd(j.promise, when);
   if (j.mood) { const M = SR().mood; if (typeof j.mood.val === 'number') M.val = clamp(M.val * .4 + clamp(j.mood.val, -2, 2) * .6, -2, 2); M.to = String(j.mood.to || '').slice(0, 20); if (j.mood.why) M.why = String(j.mood.why).slice(0, 40); }
   const pl = j.plan; if (pl && pl.type === 'call' && pl.confirmed) { if (!T.call || T.call.done) dmCallSet(T, (pl.what || '').slice(0, 40)); }
@@ -9850,29 +9851,20 @@ async function srReply(job) {
   const due = srLive(when).filter(m => m.k === 'promise' && m.st === 'planned' && m.cond && when >= m.cond.at);
   // 隔了很久才回：她第一条消息到现在，他实际在做什么（只用时间线上的真实安排）
   const gapMin = Math.round((when - her[0].at) / 60e3), gapDk = dkey(her[0].at), gapSegs = gapMin >= 20 ? [...new Set([gapDk, dkey(when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > her[0].at && srTs(dk, g.s) < when).map(g => srSegZh(g, dk, when))) : [];
-  const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，一共 ${her.length} 条，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才回。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。\n像真人隔了一阵才回那样：通常会先简单交代一下刚才在干嘛（只能用上面这段真实的安排，不清楚就笼统说，不要编；之前已经跟她说过自己在忙什么、现在还是同一件事的话就不用再说），熟的人不用郑重道歉；然后接上她这几条里要紧的内容——她问的事、她的情绪（比如说心情不好、说想他）要回应，不能只回最后一条。` : '';
+  const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才看到。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。隔了一阵才回的话，真人常会顺口带一句刚才在干嘛（只能用这段真实的安排；之前已经跟她说过的就不用再说）；她这几条他是一起看的，最在意的那件会接上，不用逐条回。` : '';
   const ctx = srCtx(when, her.map(m => m.text + ' ' + (m.zh || '')).join(' ') + ' ' + (lastHim ? lastHim.text + ' ' + (lastHim.zh || '') : ''));
-  const j = await srAI(`你写的是 CRAVITY 世琳本人在 KKT 上回 Cyan 的消息。
+  const j = await srAI(`这是 CRAVITY 世琳和 Cyan（恩雪，他在秘密交往的女朋友）的 KKT。你要成为世琳：看到她刚发来的消息，打出他接下来真的会发的东西。
+下面是他脑子里的背景（他知道这些，但这些不是要说的内容）：
 ${ctx}
 
-现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（上面聊天里最后几条）：「${mine}」${gapTxt}
+现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（聊天里最后几条）：
+${mine}${gapTxt}
 
-先读懂她（写进 read，不会发出去）。把这几条放回整段对话和时间里看，不要只看最后一句的字面：
-- means：她这几条真正想说什么、想要他怎么样。
-- feel / target：她现在是什么情绪，冲着谁。恋人之间的不满很多时候就是冲着对方的：等了很久没回、说好的没做到、敷衍、被忽视。看【最近他对她的回应】和聊天里的时间。别一看到负面情绪就当成外面有人惹她。
-- why：这个情绪具体是从哪来的（指出前面哪件事、几点）。
-- tone：普通 / 认真 / 开玩笑 / 反话 / 撒娇 / 赌气 / 吃醋 / 试探。大多数日常聊天就是「普通」，不要把普通的话读出言外之意；但真是反话、赌气时要按真实意思理解（比如「你忙你的吧」可能是在生气）。
-- his_part：他自己在这件事里做了什么、他自己怎么看（觉得理亏 / 有理由 / 有点委屈 / 之前没意识到）。
-- wants：她现在想从他这里得到什么（日常里通常很简单：接着聊、一个回答、他的看法、一起吐槽、或者什么都不要只是分享；只有她明显不高兴时才会是要他解释、表态、被哄）。
-- must_answer：她直接问他、等他表态的问题（比如「你不爱我了吗」「为什么不回」），没有就空。这些要正面回答，不能绕开。
-- said：他在上面已经说过的道歉、解释、安抚（列出来）。这次不要原样再说一遍，要往前推进。
-gist：现在在聊什么、哪些已经说定。
-然后按他的性格和他此刻的状态决定怎么回：可以解释、道歉、着急、嘴硬一下、开玩笑缓和、承认之前没注意到，也可以有点不服气；态度让她感觉得到就行，大多不用明说自己是什么情绪——要和他的性格、和 his_part 一致。
-他有自己的事和心思：可以只接她话里的一部分、顺便说起自己的事、被手头的事分心、话题自己拐走；不需要每次都完整回应、也不需要推动什么。情绪是冲着他的时候，要接住这件事本身，不要去问「发生什么事了」。
-她已经把心里的不满说出来、在等他表态的时候，该他主动：正面回答她的问题，说清楚自己的事，给出具体的办法（比如做不到她要的，就换一个他能做到的）。不要把话推回给她（「你说吧我听着」「慢慢写给我，我都会看」「告诉我怎么了」），那是让她更被动。
-conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
-再决定 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙别的分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（msgs 留空）。
+inner：用他自己的口吻、第一人称写一两句：看到这几条时他脑子里先冒出来的是什么——哪句最戳到他、他此刻想说什么、心情怎么样。真人看消息时注意力只会落在一两个点上，其余的带过或不接；她要是在等他回答一件事、或者在生他的气，他心里清楚，会接住。（inner 不会发出去）
+act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。
+ko：他在输入框里打出来、发出去的东西，就是顺着 inner 那一个反应说出来的话。他打字时会按回车把话拆成几个气泡（一行一个），这只是打字节奏，不是把几件事各回一条；可以只有一个词，也可以是几句连着说的话。zh：对应的中文，行数和 ko 一样。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
+conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
 promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
 ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（合适的话这次顺便兑现，并在 mem 里把那条 upd 成 done）\n` : ''}sched：他在这次聊天里说到自己的安排有变（临时有事、改时间、取消、现在在做的事和上面不一样）才填，时间写 HH:MM、day 写 YYYY-MM-DD；没有就空数组。
 plan：两人在约见面（meet）或打电话（call）时填：when 写 YYYY-MM-DD HH:MM，confirmed 只有双方都明确说定了才 true；没约就 type 空。约之前要看他自己的安排和他知道的她的行程。
@@ -9880,12 +9872,11 @@ mood：这次聊完他整体的心情 val（-2 很差 ~ 2 很好，大多数普�
 ${SR_MEM_HINT}
 
 ${SR_RULES}
-aired：如果上面有【他心里还搁着的事】，而这次回复里他把它说出来了（或者她已经主动解释清楚了），true；否则 false。
-${SR_BITS_HINT}
-msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
+aired：如果上面有【他心里记着、还没跟她提的事】，而这次他说出来了（或者她已经主动解释清楚了），true；否则 false。
+${SR_BITS_HINT}`, 3000, SR_REPLY_SCHEMA);
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
-  let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
+  let act = j.act; const msgs = srBubbles(j.ko, j.zh);
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
@@ -9898,7 +9889,7 @@ msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
 /* ---------- 主动找她 ---------- */
 async function srReach(job) {
   const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, R = SR(), w = job.why || {};
-  if (srHer(T, when).filter(m => m.at > (R.chat.him || 0)).length && w.kind !== 'promise') return true; // 她先发了消息：交给回复
+  { const hr = srHer(T, when).filter(m => m.at > (R.chat.him || 0)), lh = hr[hr.length - 1]; if (lh && w.kind !== 'promise' && T.quiet !== lh.id && when - lh.at < 3 * 3600e3) return true; } // 她刚发了消息还在等他回：交给回复（对话已经自然结束、或者过了好几个小时的不算）
   const recent = R.reach.slice(-6).map(x => `${srClock(x.at)} ${x.topic || x.kind}`).join('；');
   const open = R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? R.conv.open.join('；') : '';
   const j = await srAI(`${srClock(when)}，CRAVITY 世琳拿起了手机。不是在回 Cyan 的消息。
@@ -9917,10 +9908,12 @@ topic：一句中文，记下这次说的是什么（内部记录）。
 ${SR_BITS_HINT}
 ${SR_MEM_HINT}
 ${SR_RULES}
-msgs：ko 原文，zh 中文意思。`, 3000,
-    { type: 'object', additionalProperties: false, required: ['send', 'msgs', 'topic', 'promise_done', 'mem', 'told', 'bits_add'], properties: { send: { type: 'boolean' }, msgs: SR_REPLY_SCHEMA.properties.msgs, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } });
+inner：他此刻拿着手机脑子里在想什么（他自己的口吻，一两句，不会发出去）。
+ko：要发的话，他在输入框里打的东西（回车拆成几个气泡只是打字节奏，一行一个），不发就空；zh：对应的中文，行数一样。`, 3000,
+    { type: 'object', additionalProperties: false, required: ['inner', 'send', 'ko', 'zh', 'topic', 'promise_done', 'mem', 'told', 'bits_add'], properties: { inner: { type: 'string' }, send: { type: 'boolean' }, ko: { type: 'string' }, zh: { type: 'string' }, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } });
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
+  j.msgs = srBubbles(j.ko, j.zh);
   srMemOps(j.mem, when, 'him'); if (j.send && (j.msgs || []).length) srBitsApply(j, when);
   if (w.kind === 'urge' && !j.send) { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; return true; } } // 憋着想说的事这次没发出去：过一阵还会再想起来（最多再想两次）
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^bit/.test(ref)) for (const d of Object.values(R.day)) for (const g2 of d.segs) for (const b of g2.bits || []) if ('bit' + b.id === ref) b.seen = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
