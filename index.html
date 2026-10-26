@@ -9446,11 +9446,14 @@ async function srReply(job) {
   if (!her.length) return true;
   const mine = her.map(m => m.text).join('\n'), C = SR().chat, lastHim = T.msgs.filter(m => !m.me && !m.sys && m.at <= when).pop();
   const due = srLive(when).filter(m => m.k === 'promise' && m.st === 'planned' && m.cond && when >= m.cond.at);
+  // 隔了很久才回：她第一条消息到现在，他实际在做什么（只用时间线上的真实安排）
+  const gapMin = Math.round((when - her[0].at) / 60e3), gapDk = dkey(her[0].at), gapSegs = gapMin >= 20 ? [...new Set([gapDk, dkey(when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > her[0].at && srTs(dk, g.s) < when).map(g => srSegZh(g, dk, when))) : [];
+  const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，一共 ${her.length} 条，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才回。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。\n像真人隔了一阵才回那样：通常会先简单交代一下刚才在干嘛（只能用上面这段真实的安排，不清楚就笼统说，不要编），熟的人不用郑重道歉；然后接上她这几条里要紧的内容——她问的事、她的情绪（比如说心情不好、说想他）要回应，不能只回最后一条。` : '';
   const ctx = srCtx(when, her.map(m => m.text + ' ' + (m.zh || '')).join(' ') + ' ' + (lastHim ? lastHim.text + ' ' + (lastHim.zh || '') : ''));
   const j = await srAI(`你写的是 CRAVITY 世琳本人在 KKT 上回 Cyan 的消息。
 ${ctx}
 
-现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（上面聊天里最后几条）：「${mine}」${job.tech ? '\n（因为系统原因这次回复晚了，不要编晚回的理由，也别假装刚看到。）' : ''}
+现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（上面聊天里最后几条）：「${mine}」${gapTxt}
 
 先想清楚（写进 gist）：现在在聊什么、哪些已经说定、她这几条是在问 / 分享 / 附和收尾，他此刻在做什么、心情怎样、想不想聊。
 再决定 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙别的分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（msgs 留空）。
