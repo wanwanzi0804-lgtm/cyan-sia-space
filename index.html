@@ -297,6 +297,8 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .qk-c.big b{font-size:14px;color:#fff}
 .qk-c.big .m-cv.ph span{display:none}
 .kk-b.att{background:none!important;padding:0;border-radius:0}
+.kk-stkimg{display:block;width:120px;height:120px;object-fit:contain}
+.kk-emo{border:0;background:none;font-size:22px;line-height:1;padding:6px 4px;color:var(--muted);flex:none}.kk-emo.on{color:var(--accent)}
 .kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
 .kk-ph.img{background:#000;overflow:hidden}.kk-ph.img img{width:100%;height:100%;object-fit:cover}
 .sr-ph{display:flex;gap:8px;align-items:center;margin-top:8px}.sr-ph img{width:54px;height:54px;object-fit:cover;border-radius:10px}
@@ -4380,6 +4382,7 @@ const kkTime = ts => { const d = new Date(ts), h = d.getHours(); return `${h < 1
 // KKT 附件：消息开头是 [文件] / [照片] / [视频] / [语音] 这种的，显示成 KKT 里的文件卡片 / 照片 / 视频 / 语音，不当成普通文字
 const KK_ATT = [[/^(음성 ?파일|파일|文件|语音文件|첨부)$/, 'file'], [/^(사진|照片|图片|이미지|사진 \d+장)$/, 'photo'], [/^(동영상|영상|视频)$/, 'video'], [/^(음성 ?메시지|음성|语音|语音消息)$/, 'voice']];
 function kkAttSplit(m) {
+  if (m.stk && STICKERS[m.stk]) return [{ ...m, att: { k: 'stk', name: '' } }];
   if (m.sys || m.call || m.card || typeof m.text !== 'string') return [m];
   const g = m.text.match(/^\[([^\]]{1,12})\]\s*([\s\S]*)$/); if (!g) return [m];
   const k = (KK_ATT.find(([re]) => re.test(g[1].trim())) || [])[1]; if (!k) return [m];
@@ -4447,6 +4450,7 @@ function demoOpen(name, seed, who) {
   setTimeout(() => demoRender(seed, n => { const b = $('#demo-box'); if (b) b.textContent = `불러오는 중… ${n}%`; }).then(url => { DEMO_URL[seed] = url; put(url); }).catch(() => { const b = $('#demo-box'); if (b) b.textContent = '这个文件打不开'; }), 50);
 }
 function kkAttHTML(m) {
+  if (m.att.k === 'stk') return `<img class="kk-stkimg" src="${STICKERS[m.stk].src}" alt="">`;
   const A = m.att, r = srng('att' + (A.name || '') + m.at);
   if (A.k === 'file') { const ext0 = (A.name.split('.').pop() || '').toLowerCase(), au = /m4a|mp3|wav|aac/.test(ext0), seed = A.name + '|' + m.at, ex = new Date(m.at + 30 * 86400e3), sz = au ? (demoPlan(seed).dur * 256 / 8 / 1024).toFixed(2) : (.4 + r() * 8.5).toFixed(2), ext = ext0, ic = /m4a|mp3|wav|aac/.test(ext) ? '🎵' : /mp4|mov/.test(ext) ? '🎬' : /jpe?g|png|heic/.test(ext) ? '🖼' : /pdf|docx?|hwp|txt/.test(ext) ? '📄' : '📁';
     return `<div class="kk-file"${au ? ` data-act="kkdemo" data-n="${esc(A.name)}" data-s="${esc(seed)}" style="cursor:pointer"` : ''}><div><b>${esc(A.name)}</b><span>유효기간: ~${ex.getFullYear()}. ${ex.getMonth() + 1}. ${ex.getDate()}.</span><span>용량: ${sz} MB</span></div><i>${ic}</i></div>`; }
@@ -5960,6 +5964,12 @@ const STICKER_SETS = [
   ] }
 ];
 const STICKERS = Object.fromEntries(STICKER_SETS.flatMap(s => s.items.map(x => [x.id, x])));
+// KKT 里的表情包：和 Bubble 同一套。对方发的话单独一条写 [이모티콘:编号]
+const KK_STK_LIST = () => STICKER_SETS.flatMap(s => s.items).map(x => `${x.id} ${x.n}（${x.d}）`).join('；');
+const KK_STK_HINT = () => `- 表情包：有 MEOWMAN 猫猫表情包可以用，想发就单独一条只写「[이모티콘:编号]」（编号：${KK_STK_LIST()}）。按他的习惯偶尔用，不是每次都发，选和此刻的语气对得上的那个。`;
+function kkStkHTML(key) { const set = STICKER_SETS.find(s => s.name === UI.bbStkSet) || STICKER_SETS[0];
+  return `<div class="bb-stkp"><div class="bb-stkt">${STICKER_SETS.map(s => `<button class="${s === set ? 'on' : ''}" data-act="kkstkset" data-k="${esc(key)}" data-s="${esc(s.name)}"><img src="${s.items[0].src}" alt="">${esc(s.name)}</button>`).join('')}</div>
+    <div class="bb-stkg">${set.items.map(x => `<button data-act="kkstkpick" data-k="${esc(key)}" data-id="${x.id}"><img src="${x.src}" alt="${esc(x.d)}"><span>${esc(x.n || '')}</span></button>`).join('')}</div></div>`; }
 const BB_LINES = {
   react: ['哈哈哈哈哈', '嗯嗯！', '好可爱', '爱你', '呜呜呜', '{n}！！', '啊啊啊啊', '好幸福', '今天也好喜欢你', '被可爱到了', '原来如此', '心动了', '知道啦～', '收到！', '笑死我了', '你怎么这么可爱', '听起来好开心', '这也太可爱了吧', '好想一起', '真好～', '好羡慕呀', '辛苦了！', '{n}说什么都可爱', '看到{n}的消息就开心', '好治愈', '嘿嘿嘿'],
   agree: ['我也是！', '对对对', '是吧是吧', '我懂！', '确实！', '同意', '我也这么觉得', '一样一样', '真的！', '好有道理', '哈哈哈我也会这样', '+1'],
@@ -8705,6 +8715,7 @@ ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消�
 - 她在认真回答你问过她、请她帮忙的事（比如你请她听 demo 提意见、问她的看法），要先针对她说的具体内容回应：哪几点你认同、哪点你有自己的想法或当时那样做的原因、打算怎么改或会不会参考。不能只评价她「说话直接 / 说得好」一句带过，也不能马上转去问别的。她说了好几点，至少接住其中两点。
 
 韩语：
+${KK_STK_HINT()}
 - 要发照片 / 视频 / 文件 / 语音时，单独一条，只写「[사진]」「[동영상]」「[파일] 文件名.扩展名」「[음성메시지]」，后面不要加描述（会显示成 KKT 里的附件）；想说明就另发一条文字。
 - 写韩国二十岁上下的人私下发 KKT 的样子，不是把中文意思翻成韩语。熟的朋友之间：主语、宾语常常省掉；一句话常拆成两三个短气泡；会用 ㅇㅇ ㅇㅋ 웅 ㄱㄱ ㄴㄴ ㄹㅇ 같은 缩略、没写完的半句、「~했어?」「~하자」「~임」「~ㄴ듯」这类口语结尾。不熟的就用敬语，但也是口语的敬语（「넵」「헐 진짜요?」「아 그래요?ㅎㅎ」），不是书面礼貌句。
 - 不要中文式表达：比如不说「언니 말 들을게」「시간 맞춰보자」这种直译腔，不写「~해줄게」式的完整解释句来交代安排。
@@ -9114,7 +9125,8 @@ function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g:
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
 async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', `${socName(p)}（${socBan(p) ? '很熟的朋友：必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语' : '还不太熟，用敬语'}）`); delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
-function dmPush(p, m) { const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
+function dmPush(p, m) { if (!m.me && !m.sys && typeof m.text === 'string') { const g = m.text.trim().match(/^\[(?:이모티콘|表情包|表情)\s*[:：]\s*(\w+)\]$/); if (g) { const x = STICKERS[g[1]]; if (!x) return; m = { ...m, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }; } } // 对方发的表情包；编号对不上的就不发
+  const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
   const rd = T.readTo || 0;
@@ -9129,7 +9141,8 @@ function dmHTML(key) {
     ${e ? `<div class="kk-opts">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
     ${key === SR_K ? srTechHTML() : ''}
     ${T.call && !T.call.done ? `<div class="kk-opts"><button class="hot-opt" data-act="dmcall" data-k="${esc(key)}">📞 보이스톡</button></div>` : ''}
-    <div class="kk-bar"><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
+    <div class="kk-bar"><button class="kk-emo${UI.kkStk ? ' on' : ''}" data-act="kkstk" data-k="${esc(key)}" title="이모티콘">☺︎</button><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
+    ${UI.kkStk ? kkStkHTML(key) : ''}
     <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div></aside></div>`;
 }
 // 📞 约好的电话：聊天里出现「보이스톡」，打过去后电话里说的事会记进你们的记忆，之后有后续
@@ -9222,7 +9235,7 @@ function dmListHTML(withMgr) {
   const rank = { best: 0, close: 1, friend: 2, acq: 3 }, has = new Set(D.map(T => T.p.key));
   const F = chal().friends.filter(f => f.g && !has.has(f.g + '|' + f.n)).sort((a, b) => (rank[a.lv] ?? 4) - (rank[b.lv] ?? 4)).map(friendP);
   let mDone = !withMgr; const mg = at => !mDone && mAt >= at ? (mDone = true, mgrCardHTML()) : '';
-  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return mg(m.at) + `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.text || ''))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('') + mg(-1)
+  return D.map(T => { const m = T.msgs[T.msgs.length - 1]; return mg(m.at) + `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b><div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.stk ? '이모티콘' : m.ph ? '사진' : (m.text || '')))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; }).join('') + mg(-1)
     + F.map(p => `<div class="card mgr-card" data-act="dmopen" data-k="${esc(p.key)}">${kAv(p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(p))}</b><div class="muted" style="font-size:13px">还没有聊天</div></div></div>`).join('');
 }
 // 💙 世琳：你自己写今天会发生什么，到了合适的时间弹出来
@@ -9631,6 +9644,7 @@ const SR_RULES = `写法：
 - 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
 - 他今天安排里还没开始的事只是安排，可能会变；他说自己的安排变了（取消、改时间、临时有事）要在 sched 里写出来。
 - ㅋㅋ ㅎㅎ 是真觉得好笑才用；最近几条用过了这次就别用。很甜的话（ㅅㄹㅎ、❤️连发）很少用。
+${KK_STK_HINT()}
 - 发照片：只能发【他手机里的照片】里有的，单独一条写「[사진:编号]」，想说明另发一条；没有合适的照片就不发照片，不要凭空写「[사진]」。
 - 她的本名은설中文是「恩雪」（은설아 → 恩雪啊），zh 里不要写成别的字，也不要换成 Cyan。`;
 const SR_MEM_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'id', 'k', 'who', 't', 'when', 'st', 'cf', 'imp'], properties: { op: { type: 'string', enum: ['add', 'upd', 'del'] }, id: { type: 'string' }, k: { type: 'string', enum: Object.keys(SR_KZ).filter(x => x !== 'sum') }, who: { type: 'string', enum: ['her', 'him', 'us'] }, t: { type: 'string' }, when: { type: 'string' }, st: { type: 'string', enum: ['ok', 'planned', 'done', 'cancel', 'missed'] }, cf: { type: 'string', enum: ['sure', 'likely', 'guess'] }, imp: { type: 'integer' } } } };
@@ -10642,6 +10656,10 @@ document.addEventListener('click', async e => {
       { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: '' };
         if (x && x.o && x.o.length) { const b = neg ? x.o[x.o.length - 1] : x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
         dmAnswer(k, v, o, false); } break; }
+    case 'kkstk': UI.kkStk = !UI.kkStk; openModal(dmHTML(t.dataset.k)); break;
+    case 'kkstkset': UI.bbStkSet = t.dataset.s; openModal(dmHTML(t.dataset.k)); break;
+    case 'kkstkpick': { const k = t.dataset.k, x = STICKERS[t.dataset.id]; if (!x) break; const T = dms()[k] || dmThread(chFind(...k.split('|')) || { g: k.split('|')[0], n: k.split('|')[1], key: k }); UI.kkStk = false;
+      dmPush(T.p, { me: true, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }); dmAnswer(k, `[表情包] ${x.d}`, { t: `发了一个表情包（${x.d}）`, fam: 0, amb: 0, tone: '0', risk: 0, reply: '' }, true); openModal(dmHTML(k)); break; }
     case 'dmcall': dmCallOut(t.dataset.k); break;
     case 'callok': if (UI.call && UI.call.mode === 'in') { UI.call.mode = 'on'; UI.call.t0 = Date.now(); callShow(); } break;
     case 'callno': if (UI.call && UI.call.mode === 'in') { const T = dms()[UI.call.key]; callRec(T, 'them', 'miss'); callRetry(T, ['바쁜가 보네ㅎㅎ 편할 때 전화줘', '在忙吧哈哈 方便的时候打给我']); callEnd(); } break;
