@@ -9576,6 +9576,20 @@ ${SR_MEM_HINT}`, 2400, { type: 'object', additionalProperties: false, required: 
   srMemOps((j.mem || []).slice(0, 40).map(o => ({ ...o, op: o.op === 'upd' || o.op === 'del' ? o.op : 'add' })), Date.now(), 'sys');
   R.dig = 1; return true;
 }
+// 一次性：10/26 凌晨你发「뭐해...?」之后的聊天（他的回复和你后来发的）全部删掉，让他按新的理解方式重新回；相关的记忆、对话状态、通知一起撤回
+function srRedo1026() {
+  const R = SR(); if (R.redo1026) return; const T = dmThread(srP()), L = T.msgs;
+  let i = -1; for (let k = L.length - 1; k >= 0; k--) if (L[k].me && dkey(L[k].at) === '2026-10-26' && /뭐해\s*\.{2,}\s*\?|在干嘛…|在干嘛\.\.\./.test((L[k].text || '') + (L[k].zh || ''))) { i = k; break; }
+  if (i < 0) return; R.redo1026 = 1; srBackup('redo1026');
+  const cut = L.findIndex((m, k) => k > i && !m.me && !m.sys); if (cut < 0) { save(); return; }
+  const cutAt = L[cut].at, gone = L.slice(cut), nm = socDisp(srP());
+  T.msgs = L.slice(0, cut); T.pend = []; T.quiet = null; T.unread = 0; T.readTo = L[i].at - 1; T.rd = null; T.due = null;
+  for (const m of R.mem) if (m.c >= cutAt && !m.rep && ['her', 'him'].includes(m.src)) { m.rep = 'x'; m.u = Date.now(); }
+  for (const m of R.mem) if (m.u >= cutAt && m.k === 'promise' && m.st === 'done' && !m.rep) m.st = 'planned';
+  R.conv = null; R.reach = R.reach.filter(x => x.at < cutAt); R.jobs = R.jobs.filter(j => !['reply', 'reach'].includes(j.type)); R.chat.sess = 0; R.chat.him = 0; R.chat.next = Date.now() + 20e3;
+  S.notifs = (S.notifs || []).filter(n => !(n.at >= cutAt && /^💬/.test(n.text || '') && (n.text || '').includes(nm)));
+  save(); if (typeof updBadges === 'function') updBadges(); console.log('srRedo1026 removed', gone.length);
+}
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
@@ -9599,7 +9613,7 @@ let srBusy = 0, srBusyAt = 0, srRunId = 0;
 function srTick() {
   if (srBusy && Date.now() - srBusyAt < 120e3) return; srBusy = 0; // 上一个任务卡住超过 2 分钟（比如手机切到后台、请求被挂起）：不再等它
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
