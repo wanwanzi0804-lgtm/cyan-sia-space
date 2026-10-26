@@ -676,6 +676,15 @@ video.bv-glow{pointer-events:none}
 <div id="modal"><div class="sheet" id="sheet"></div></div>
 
 <script>
+/* 模拟器里的时间一律按韩国时间（KST）：手机在别的时区时，把钟拨到韩国现在的钟点；手机本来就是韩国时间就什么都不变 */
+(function () {
+  if (navigator.webdriver) return; // 自动测试用设备自己的时钟
+  var RD = Date, off = (new RD().getTimezoneOffset() + 540) * 60e3; if (!off) return;
+  class KD extends RD { constructor(...a) { if (!a.length) super(RD.now() + off); else super(...a); } static now() { return RD.now() + off; } }
+  KD.UTC = RD.UTC; KD.parse = RD.parse; window.Date = KD;
+})();
+</script>
+<script>
 'use strict';
 /* =========================================================
    基础工具
