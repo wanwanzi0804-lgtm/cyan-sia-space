@@ -9352,14 +9352,15 @@ function srPromiseStep(at) {
 function srUrge(t, w, at, nid) { const R = SR(), L = R.urges || (R.urges = []); if (L.some(u => !u.used && srSim(u.t, t) >= .6)) return; L.push({ id: uid(), t: String(t).slice(0, 80), w: clamp(+w || .5, 0, 1), at, nid }); if (L.length > 20) L.splice(0, L.length - 20); }
 /* ---------- 主动联系：只在自然的时刻（一段安排刚结束、长时间空着）想一想；动机够强、离上次找她也够久，才交给 AI，AI 也可以不发 ---------- */
 function srReachEval(at) {
-  const R = SR(), T = dmThread(srP()), st = srNow(at) || socNow0(srP(), at); if (st.sleep || (st.kind ? st.kind === 'work' : st.busy)) return;
+  const R = SR(), T = dmThread(srP()), st = srNow(at) || socNow0(srP(), at), working = st.kind ? st.kind === 'work' : !!st.busy; if (st.sleep) return;
   const h = new Date(at).getHours(); if (h >= 3 && h < 8) return;
   if (R.jobs.some(j => j.type === 'reply' || j.type === 'reach')) return;
   const C = R.chat; if (C.sess && at < C.sess) return; // 正聊着
   const msgs = T.msgs.filter(m => !m.sys && m.at <= at), last = msgs[msgs.length - 1];
   if (last && last.me) return; // 她的消息他读了没回：不会转头去聊别的
-  let tail = 0; for (let i = msgs.length - 1; i >= 0 && !msgs[i].me; i--) tail++;
-  if (tail >= 2 || (tail === 1 && at - last.at < 4 * 3600e3)) return; // 他发的她还没回：不追着发
+  // 他主动找过她、她还没回：不追着发。（他回完她的话、对话自然结束，不算在这里）
+  const herI = msgs.map(m => !!m.me).lastIndexOf(true), pings = msgs.slice(herI + 1).filter(m => m.ping), lastPing = pings[pings.length - 1];
+  if (pings.length && (new Set(pings.map(m => Math.floor(m.at / 600e3))).size >= 2 || at - lastPing.at < 4 * 3600e3)) return;
   const segId = st.seg ? st.seg.id : '', moment = segId !== C.segSeen || at - (C.lastEval || 0) > 150 * 60e3;
   if (!moment) return; C.segSeen = segId; C.lastEval = at;
   const lastReach = (R.reach[R.reach.length - 1] || {}).at || 0; if (at - lastReach < 2 * 3600e3) return;
@@ -9377,7 +9378,7 @@ function srReachEval(at) {
   if (!Mo.length) return;
   Mo.sort((a, b) => b.v - a.v); const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
   const today = R.reach.filter(x => dkey(x.at) === dk).length, init = (socCard(srP()) || {}).init || 1;
-  const need = 1 + .45 * today + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起，都会让他少找
+  const need = 1 + .45 * today + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) + (working ? .35 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
   if (urge < need) return;
   srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 3).map(x => x.d).join('；'), ref: Mo[0].ref, refs: Mo.slice(0, 3).map(x => x.ref).filter(Boolean) } });
 }
