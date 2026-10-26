@@ -10020,6 +10020,15 @@ function srCardOpen2() { const R = SR(); if (R.cardOpen2) return; R.cardOpen2 = 
   for (const m of R.mem) if (/삐짐|민희 소카가 거기서/.test(m.t)) m.t = m.t.replace(/[^，。；]*(삐짐|민희 소카가 거기서 나와)[^，。；]*/g, '他说衣服口袋里翻出了小卡，拿来开玩笑');
   if (R.conv && /삐짐|거기서 나와|不高兴|吃醋/.test(R.conv.t || '')) R.conv.t = '他说衣服口袋里翻出了一张小卡，开玩笑问怎么会在他口袋里';
   srPhotoLink(); save(); }
+// 5:02 那几条（新的回复方式上线前生成的）：悄悄删掉，连同它带出来的约定 / 电话 / 对话状态，让他按新方式重新看、重新回
+function srRedo502() { const R = SR(); if (R.redo502) return; R.redo502 = 1; const T = dmThread(srP()), M = T.msgs;
+  const i = M.findIndex(m => !m.me && /연습 중이라 바로 전화는 못 받아/.test(m.text || '')); if (i < 0) { save(); return; }
+  const t0 = M[i].at; let j = i; while (j < M.length && !M[j].me) j++; M.splice(i, j - i);
+  R.mem = R.mem.filter(m => !(m.c >= t0 - 60e3 && m.c <= t0 + 10 * 60e3 && m.src !== 'note' && m.src !== 'sys'));
+  if (T.call && !T.call.done && T.call.at >= t0 - 60e3) { const P2 = socPX(T.p); P2.todo = (P2.todo || []).filter(x => x.id !== T.call.td); T.call = null; }
+  R.conv = null; R.jobs = R.jobs.filter(x => x.type !== 'reply'); T.pend = [];
+  const her = srHer(T, Date.now()); T.readTo = her.length ? her[0].at - 1 : T.readTo; T.quiet = null;
+  const prev = M.filter(m => !m.me && !m.sys && m.at < t0).pop(); R.chat.him = prev ? prev.at : 0; R.chat.sess = 0; R.chat.next = Date.now() + rand(1, 4) * 60e3; save(); }
 function srCardMsgFix1() { const R = SR(); if (R.cardMsg1) return; R.cardMsg1 = 1; const T = dmThread(srP());
   for (const m of T.msgs) if (!m.me && /나 좀 삐짐/.test(m.text || '')) { m.text = '그거 뭐야.. 왜 민희 소카가 거기서 나와'; m.zh = '那是什么…敏熙的小卡怎么会在那里'; }
   const fx = t => typeof t === 'string' ? t.replace(/나 좀 삐짐/g, '왜 민희 소카가 거기서 나와').replace(/我有点不高兴/g, '敏熙的小卡怎么会在那里') : t;
@@ -10053,7 +10062,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
