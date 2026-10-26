@@ -9160,7 +9160,7 @@ function srAIState() {
 }
 async function srAI(text, max, schema, bg) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
-  try { const j = await aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model); const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
+  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), 90e3))]); /* 手机切到后台时请求可能一直挂着：最多等 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
   catch (e) { if (!e.sr) { const A = SR().ai; A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
@@ -9253,8 +9253,8 @@ let srGenBusy = 0;
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (!D.gen) { D.segs.push(...srDayFb(dk)); D.gen = 'fb'; save(); }
-  if (D.gen !== 'fb' || srGenBusy || !srAIState().ok || (D.try && Date.now() - D.try < 20 * 60e3)) return;
-  srGenBusy = 1; D.try = Date.now();
+  if (D.gen !== 'fb' || (srGenBusy && Date.now() - srGenBusy < 120e3) || !srAIState().ok || (D.try && Date.now() - D.try < 20 * 60e3)) return;
+  srGenBusy = Date.now(); D.try = Date.now();
   try {
     const p = srP(), c = socCard(p) || {}, fixed = srSegs(dk).filter(g => g.src !== 'fb' && g.src !== 'gen'), prev = [addDays(dk, -2), addDays(dk, -1)].map(k => SR().day[k] ? `${srMD(k)}：` + srSegs(k).filter(g => g.kind !== 'sleep').map(g => g.what).join('、') : '').filter(Boolean).join('\n');
     const nowM = dk === dkey(Date.now()) ? srMin(Date.now()) : -1, done = nowM > 0 ? srSegs(dk).filter(g => g.e <= nowM && g.src !== 'fb') : [];
@@ -9551,24 +9551,25 @@ function srMigrate() {
   save();
 }
 /* ---------- 每次 tick：按时间顺序补算看手机（页面关着时错过的也按当时的时间算），一次只跑一个 AI 任务 ---------- */
-let srBusy = 0;
+let srBusy = 0, srBusyAt = 0, srRunId = 0;
 function srTick() {
-  if (srBusy) return; const R = SR(), now = Date.now(), td = dkey(now);
-  srMigrate(); srUpgrade(); srMoodTick(now);
-  srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1));
+  if (srBusy && Date.now() - srBusyAt < 120e3) return; srBusy = 0; // 上一个任务卡住超过 2 分钟（比如手机切到后台、请求被挂起）：不再等它
+  const R = SR(), now = Date.now(), td = dkey(now);
+  try { srMigrate(); srUpgrade(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
-  const C = R.chat; if (!C.next) C.next = now + 60e3;
+  const C = R.chat; if (!C.next || !isFinite(C.next)) C.next = now + 60e3;
   let guard = 0;
   const aiOk = srAIState().ok;
-  while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; srCheck(at); C.next = at + srCheckGap(at) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
+  while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   srNoteRetry();
   const job = R.jobs.find(j => j.at <= now && (!j.next || j.next <= now)); if (!job) return;
   const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
   if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
-  srBusy = 1;
+  srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId;
   run(job).then(() => { R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
-    .finally(() => { srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); });
+    .finally(() => { if (rid === srRunId) srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); });
 }
 // 技术状态：只在世琳的聊天里显示，和他「已读不回」是两回事
 function srTechHTML() {
