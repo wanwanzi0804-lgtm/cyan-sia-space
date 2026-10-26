@@ -9531,6 +9531,21 @@ function srDayFb(dk) {
 }
 function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off' + dk, s: Math.max(0, g[2] - 420), e: Math.min(1440, g[2] + 210), what: g[3], where: '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', share: .6, c: 0 }] : []; }
 let srGenBusy = 0, srBitBusy = 0;
+/* ---------- 同公司：CRAVITY 和 Cyan 都是 STARSHIP 的，练习、开会、录音都在同一栋楼。她在公司的时候他也在的话，可能会在走廊、练习室门口、休息室碰到 ---------- */
+const CO_WHERE = /公司|练习室|录音室|作业室|작업실|工作室|会议室|회사|연습실|녹음실|STARSHIP|스타쉽/i;
+const herCoRule = r => !PUB_CATS.includes(r.cat) && (['练习', '上课', '物料'].includes(r.cat) || CO_WHERE.test(`${r.title} ${r.loc || ''} ${r.note || ''}`) || /会议|회의|录音|녹음|企划/.test(r.title));
+function herCoTxt(dk) { return rulesFor(dk).filter(herCoRule).map(r => `${r.start}-${r.end} ${r.title}`).join('；'); }
+const hisAtCo = g => g && g.kind === 'work' && (CO_WHERE.test(`${g.what} ${g.where || ''}`) || /练习|录音|会议|合练/.test(g.what)) && !/打歌|拍摄|演出|彩排|签售|电台|综艺|活动期的行程/.test(g.what);
+function srCoTick(now) {
+  const R = SR(), dk = dkey(now), m = srMin(now), g = srSegAt(dk, m); if (!hisAtCo(g)) return;
+  const r = rulesFor(dk).filter(herCoRule).find(x => { const a = toMin(x.start), b = toMin(x.end) > a ? toMin(x.end) : 1440; return a <= m && b > m; }); if (!r) return;
+  const C = R.co || (R.co = {}), key = dk + '|' + r.id + '|' + g.id; if (C[key]) return; C[key] = Math.random() < .55 ? now : -1; for (const k of Object.keys(C)) if (k < addDays(dk, -7)) delete C[k];
+  if (C[key] < 0) { save(); return; } // 这次没碰上
+  const where = pick(['走廊', '练习室门口', '电梯里', '休息室', '楼下便利店']);
+  srMemAdd({ k: 'event', who: 'us', t: `在公司${where}碰到了恩雪（她来${r.title}），周围有同事，就像平常的前后辈一样打了个招呼`, src: 'sys', imp: 3, at: now }, now);
+  srUrge(`刚才在公司${where}碰到她了（她在${r.title}，周围有人，只打了个招呼）`, .45, now + rand(5, 30) * 60e3, 'co' + key);
+  pushNotif({ type: 'sched', text: `🏢 在公司${where}碰到了世琳`, sub: `你在${r.title}，他在${g.what}。周围有人，只打了个招呼` }, true); save();
+}
 /* ---------- 他手机里的照片：你在「世琳」记录里传的，带一句说明（照片里是什么、什么时候拍的），AI 只看说明决定什么时候发 ---------- */
 let SRPH = null;
 /* ---------- 你指定他发的消息：一行一条，写【图片】的那行发一张他手机里的照片；到时间（或他下次拿起手机）原样发出 ---------- */
@@ -9616,7 +9631,7 @@ async function srDayEnsure(dk) {
     const j = await srAI(`给 CRAVITY 世琳（朴世琳，1999 年生，男，偶像）安排 ${srMD(dk)} 周${WD[parseD(dk).getDay()]} 这一天的真实生活（模拟器里他的日常，之后的聊天、回复时间都按这个来）。
 他：${c.pers || ''}。喜欢：${c.like || ''}。补充：${c.extra || ''}
 现在是 10 月底，首尔已经转冷。${promo ? 'CRAVITY 这段时间在回归活动期：有打歌、拍摄、练习等行程，工作日会很满。' : 'CRAVITY 现在不在打歌期，日常是练习、录音、健身、私人时间，比活动期自由。'}${prep ? '演唱会（11/14、11/15 首尔，11/21 釜山）快到了，这阵子要合练。' : ''}
-他私下在和 Cyan（solo 女歌手）秘密交往，刚开始。这不会占据他整天的生活。
+他私下在和 Cyan（同公司 STARSHIP 的 solo 女歌手）秘密交往，刚开始。这不会占据他整天的生活。${herCoTxt(dk) ? `她这天在公司的安排：${herCoTxt(dk)}（同一栋楼，他如果也在公司可能会碰到；不用为了见她专门安排）。` : ''}
 他现在的状态：精力 ${Math.round(M.en)}/100${M.why ? `（起因是之前的事：${M.why}。这件事已经发生过了，不要把它再安排进这一天）` : ''}。
 只写这一天里新发生的普通事情；之前已经发生的事（包括上面提到的起因、前两天的经历）不要换个时间再写一遍。
 ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${done.length ? `这天已经过去的部分（照这个，不能改）：\n${done.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${prev ? `前两天他做了这些（别照抄，生活有变化也有重复）：\n${prev}\n` : ''}
@@ -9733,7 +9748,7 @@ function srReachEval(at) {
   const post = (S.posts || []).find(p => at - p.createdAt < 3 * 3600e3 && p.createdAt <= at && !R.seen['post' + p.id]); if (post) add('her', .6, `她 ${srClock(post.createdAt)} 在社区发了帖子：「${String(post.text || '').slice(0, 60)}」${post.media && post.media.length ? '（带照片 / 视频）' : ''}`, 'post' + post.id);
   if (dk === dkey(Date.now()) && socStageDone() && !R.seen['stage' + dk]) add('her', .45, '她今天有舞台 / 公开行程（他可能刷到了）', 'stage' + dk);
   const plan = srLive(at).find(m => m.k === 'plan' && m.st === 'planned' && !m.at && at - m.c < 5 * 864e5); if (plan) add('plan', .35, `之前说过、还没定下来的事：${plan.t}`, plan.id);
-  const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
+  const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄|碰到/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
   if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .25 + .08 * (dMeet - 3), `上次见面大概是 ${Math.round(dMeet)} 天前`);
   const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 9, `上次聊天是 ${Math.round(quiet)} 小时前`);
   for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.25 * ((u.tries || 0) >= 2 ? .5 : 1), `他知道、还没跟她提的事：${u.t}`, 'urge' + u.id);
@@ -9790,8 +9805,8 @@ function srCtx(when, q) {
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}${st && st.seg && T.msgs.some(x => !x.me && !x.sys && x.at <= when && x.at >= srTs(dk, st.seg.s)) ? '（这段时间里他已经跟她聊过，她知道他在做这个）' : ''}；${srMoodZh()}
-【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
-【她】他知道的她的公开行程：${herPub || '近期没有'}。${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
+【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
+【她】他知道的她的公开行程：${herPub || '近期没有'}。${herCoTxt(dk) ? `她今天在公司的安排：${herCoTxt(dk)}。` : ''}${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、还没跟她提的事】${urg}（只是事实。他在不在意、在意到什么程度、提不提、什么时候提、怎么提，看他的性格和当时的气氛；可以顺嘴带出来，也可以先不提）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
 ${recent ? `【最近他对她的回应】（系统按聊天时间和他的安排算出来的事实）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；还没解决：${cv.open.join('；')}` : ''}\n` : ''}【KKT 聊天】
@@ -10093,6 +10108,7 @@ function srTick() {
   const aiOk = srAIState().ok;
   while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   try { srScriptTick(now); } catch (e) { console.error('sr script', e); }
+  try { srCoTick(now); } catch (e) { console.error('sr co', e); }
   srNoteRetry();
   const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
   const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
