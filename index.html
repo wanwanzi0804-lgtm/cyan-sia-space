@@ -3856,7 +3856,7 @@ function ytCoAns(id, r, idea) {
 // 3 天没回：这次先不做
 function ytCoExpire() { const now = Date.now(); for (const p of yt().plans) if (p.by === 'co' && p.st === 'ask' && now - p.askAt > 3 * 86400e3) { p.st = 'cancel'; ytLog(p, '一直没回，这次先不做'); mgrResolve('ytco', p.id, '过期'); } }
 function ytTick() {
-  ytSlotMeFix(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); tplDel2(); univDel1(); todayRestDel1(); todayAllDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
+  ytSlotMeFix(); absUndo1(); mgrBalFix1(); ahRedoFb1(); ahRedoFb2(); mgrRedo2(); ahPhotoFix1(); dm1Fix1(); koFirstMig1(); dpMove1(); dpMove2(); serimHateFix1(); serimLove1(); tplDel1(); tplDel2(); univDel1(); todayRestDel1(); todayAllDel1(); clashMsgDel1(); offerFixTick(); schedClashTick();
   const Y = yt(), now = Date.now(), today = dkey(now), nm = new Date().getHours() * 60 + new Date().getMinutes();
   ytCoExpire(); ytCoTick();
   for (const p of Y.plans) {
@@ -4229,6 +4229,19 @@ function serimHateFix1() { const SO = social(); if (SO.serimHate1) return; SO.se
 function mgrBalFix1() { const M = mgrChat(); if (M.balFix1) return; M.balFix1 = 1; const C = M.chat || [], i = C.findIndex(m => !m.me && /지금 계좌에/.test(m.text || ''));
   if (i < 0) return; const m = C[i];
   C.splice(i, 1, { ...m, text: '아이고 Cyan아, 많이 불안했구나ㅠ 지금 당장 밥 굶을 일은 없어요.', zh: '哎呀Cyan，你是不是很不安啊ㅠ 现在不会没饭吃的。' }, { ...m, id: uid(), at: m.at + 1200, text: '혹시 당장 생활비가 빠듯하면 확정된 활동비를 미리 받는 것도 방법이니까, 말만 해줘요. 제가 회사랑 바로 얘기해볼게요.', zh: '如果眼下生活费紧，已经确认的活动款可以提前领，你跟我说一声，我马上跟公司谈。' }); }
+// 一次性：休息周里被判成旷工的行程撤回（粉丝、罚款、通知都退回）；官方 YouTube 拍摄按已经拍完算
+function absUndo1() {
+  if (S.schedule.absUndo1) return; S.schedule.absUndo1 = 1; const R = S.schedule.res || {}, F = fanState(), W = wallet();
+  for (const [key, x] of Object.entries(R)) {
+    if (!x || x.grade !== '旷') continue; const dk = key.slice(0, 10), rid = key.slice(11), r = S.schedule.rules.find(y => y.id === rid); if (!r || !isRestWeek(dk)) continue;
+    if (x.fans) { S.profile.followers -= x.fans; for (const d of Object.values(F.days || {})) { const src = '旷工：' + r.title; if (d.src && d.src[src]) { d.net -= d.src[src]; delete d.src[src]; } } }
+    W.recv = (W.recv || []).filter(y => !(y.src === '旷工罚款' && y.title === r.title && y.st !== 'done')); // 还没到月结：直接撤掉
+    S.notifs = (S.notifs || []).filter(n => !((n.text || '').includes('「' + r.title + '」旷工了')));
+    if (r.yt) { R[key] = { grade: 'A', note: '拍摄完成，等视频发布', at: Date.now() }; S.schedule.done[key] = 1; const c = tgState().cards[key]; if (c) { c.done = true; c.score = c.score || .6; } }
+    else R[key] = { grade: '休', note: '休息周，这个行程没去，不算旷工', at: Date.now() };
+  }
+  save(); if (typeof updBadges === 'function') updBadges();
+}
 function ytSlotMeFix() { const M = mgrChat(); if (M.slotMe1) return; M.slotMe1 = 1; const C = M.chat || []; for (let i = C.length - 1; i > 0; i--) { const m = C[i], g = !m.me && (m.text || '').match(/^네, (\d+)월 (\d+)일로 잡을게요$/); if (!g || C[i - 1].me) continue; C.splice(i, 0, { id: uid(), at: m.at - 1500, text: `${g[1]}월 ${g[2]}일 괜찮아요`, zh: `${g[1]}月${g[2]}日可以`, me: true }); } }
 function mgrMe(k) { const [ko, zh] = pick(ME_SAY[k]), M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, me: true }); M.readPlan = Date.now() + 700; mgrRefresh(); }
 function mgrReply(t, now) { for (const [i, m] of mgrSplit(t).entries()) { mgrQ = Math.max(Date.now(), mgrQ) + (i ? 900 + Math.random() * 2200 : now ? 200 : 1200 + Math.random() * 1500); setTimeout(() => { mgrSay(m, null, true); save(); }, mgrQ - Date.now()); } }
@@ -5688,6 +5701,7 @@ function tgSettle(k, r, key, today) {
   if (!c.done && k >= today) return 'wait';
   if (!c.done && c.redo) { c.done = true; c.score = .6; c.pickText = ''; } // 重抽的卡当天没来得及选：按普通表现算，不算旷工
   const f = S.profile.followers, R = S.schedule.res || (S.schedule.res = {});
+  if (!c.done && isRestWeek(k)) { R[key] = { grade: '休', note: '休息周，这个行程没去，不算旷工', at: Date.now() }; return 'done'; } // 休息周：没做的行程不罚
   if (!c.done) {
     if (TG_PEN_FREE.includes(r.cat)) { R[key] = { grade: '缺', note: r.cat === '上课' ? '这节课没去，能力没有提升' : '没去练习，能力没有提升', at: Date.now() }; return 'done'; }
     const e = schedEcon(r) || { cost: 0 }, { fine, fm } = tgFine(r), lose = Math.round(f * rand(.002, .004) * fm);
