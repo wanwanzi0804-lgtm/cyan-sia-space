@@ -8322,7 +8322,8 @@ const SOC_TH = {
         O('早点回去休息', '0', '他送你上了车', { fx: [{ done: td.id }, { ex: ['meet', `一起${wz}，没待太久`, ''] }] })] }; }
     const mood = { acq: '一开始还有点拘谨，聊着聊着才放松下来。', friend: '聊得很自然，时间过得很快。', close: '跟平时一样熟络，一直在笑。', amb: '店里很安静，偶尔会有一两秒谁都没说话。', new: '' }[c.st];
     const k = cafe ? 'coffee' : 'meal', base = { pk: pl[0], pz: pl[1] };
-    return { txt: `晚上和 ${c.w}${two ? '' : '还有几个朋友'}去了${pl[1]}${cafe ? '喝咖啡' : '吃饭'}。${mood}`, o: [
+    if (!two && srJoinOk(c.p)) c.x.sj = 1; // 几个 CRAVITY 成员一起吃：世琳正好有空就会一起来
+    return { txt: `晚上和 ${c.w}${two ? '' : '还有几个朋友'}去了${pl[1]}${cafe ? '喝咖啡' : '吃饭'}。${c.x.sj ? '世琳正好没事，也跟着来了；当着大家的面，你们俩表现得跟平时一样。' : ''}${mood}`, o: [
       O('聊工作和舞台', '+', c.g('他说了很多自己准备回归的事'), { fam: 1, fx: [{ done: td.id }, { ex: [k, `${two ? '两个人' : '几个人'}在${pl[1]}${cafe ? '喝了咖啡' : '吃了饭'}，聊了工作和舞台`, '', { ...base, tk: '무대', tz: '舞台的事' }] }] }),
       O(`聊到了${tp[1]}`, '+', c.g(tp[2] ? '他听得很认真，也说了一些自己的事' : '你们越聊越起劲'), { fam: 2, th: tp[2] ? .8 : .3, amb: c.st === 'amb' ? 1 : 0, risk: two && socAmbOk(c.p) ? .05 : 0, fx: [{ done: td.id }, { ex: [k, `${two ? '两个人' : '几个人'}在${pl[1]}${cafe ? '喝了咖啡' : '吃了饭'}，聊了${tp[1]}`, '', { ...base, tk: tp[0], tz: tp[1], priv: tp[2] }] }] }),
       O('安安静静吃完就回去', '0', '他送你到了路口', { fx: [{ done: td.id }, { ex: [k, `在${pl[1]}${cafe ? '喝了咖啡' : '吃了饭'}，没聊太多`, '', base] }] })] };
@@ -8382,8 +8383,9 @@ function socApplyTh(x, o, mine) {
     if (f.cool) P.cool = addDays(today, f.cool);
     if (f.plan) socPlanTonight(p, f.plan);
   }
+  for (const f of o.fx || []) if (f.done) { const t = P.todo.find(y => y.id === f.done); if (t && ['meal', 'coffee', 'go'].includes(t.t)) srHeard(x, p, t); }
   let rumor = false;
-  if (o.risk && Math.random() < o.risk) { rumor = true; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人拍到 ${S.profile.name} 和 ${socWho(p)} 晚上一起从${(socLast(P, ['meal', 'coffee']) || {}).pz || '一家店'}出来，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
+  if (o.risk && Math.random() < o.risk) { rumor = true; srRumorUrge(p); const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人拍到 ${S.profile.name} 和 ${socWho(p)} 晚上一起从${(socLast(P, ['meal', 'coffee']) || {}).pz || '一家店'}出来，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
   delete x.open; SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: x.txt || `${socName(p)}：${x.zh}`, mine, reply: o.reply ? (x.ko ? '' : o.reply) : '', up, rumor }); if (SO.hist.length > 120) SO.hist.splice(0, SO.hist.length - 120);
   save(); return { up, rumor };
 }
@@ -8957,7 +8959,7 @@ function socApply(x, o, mine) {
   if (o.amb) { P.amb = clamp(P.amb + o.amb, -10, 12); if (o.amb > 0) SO.log.push({ day: today, key: p.key, pts: o.amb * 2 }); if (o.tone === '-') P.cool = addDays(today, e.kind === 'confess' ? 60 : 7); }
   else if (!e.old && o.tone === '+' && socAmbOk(p) && P.spark >= .55 && ['invite', 'msg', 'care'].includes(e.kind)) { P.amb = Math.min(12, P.amb + .5); P.th = Math.min(12, P.th + .3 * P.spark); } // 普通交集里的好回应，有火花的人会慢慢靠近一点
   let rumor = false;
-  if (o.risk && Math.random() < o.risk) { rumor = true; const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人扒出 ${S.profile.name} 和 ${socWho(p)} 私下好像很熟，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
+  if (o.risk && Math.random() < o.risk) { rumor = true; srRumorUrge(p); const H = hotState(); if (!H.forced) H.forced = { id: 'rumor', e: `和${socName(p)}`, q: `有人扒出 ${S.profile.name} 和 ${socWho(p)} 私下好像很熟，评论区吵起来了`, at: Date.now() + rand(1, 5) * 3600e3 }; }
   delete x.open; SO.hist.push({ id: x.id, day: x.day, ev: e.id, who: socWho(p), text: socText(e, p), mine, reply: o.reply, up, rumor }); if (SO.hist.length > 120) SO.hist.splice(0, SO.hist.length - 120);
   if (o.act === 'chal' && chSongs(x.day).length && !chLimit(x.day)) setTimeout(() => { UI.socPop = null; closeModal(); UI.chPop = { k: x.day, where: '', step: 'song', p: chFind(p.g, p.n) || p, onAct: true, music: false }; openModal(chPopHTML()); }, 1400);
   save(); return { up, rumor };
@@ -9356,6 +9358,22 @@ function srPromiseStep(at) {
 }
 
 // 他心里想跟她说的事（你记下的跟她有关的、让他有情绪的事）
+/* ---------- 她和 CRAVITY 队友见面：几个人一起吃、他有空就会来；他不在场的话，队友回宿舍后顺口说出来（真见了面才会说）。别人的事只有上了新闻他才知道 ---------- */
+function srJoinOk(p) { if (!serimLove() || !p || p.g !== 'CRAVITY' || p.key === SR_K) return false; const st = srNow(Date.now()); return !!st && !st.sleep && !['work', 'sleep'].includes(st.kind) && Math.random() < .7; }
+function srHeard(x, p, td) {
+  if (!serimLove() || p.g !== 'CRAVITY' || p.key === SR_K) return;
+  const now = Date.now(), who = socName(p), two = !/几个人/.test(td.d), what = td.t === 'coffee' ? '喝咖啡' : td.t === 'go' ? ((td.what || [])[0] || '见了一面').replace(/^去/, '') : '吃饭';
+  if (x.sj) { const dk = dkey(now), m0 = srMin(now); srDay(dk).segs.push({ id: uid(), s: Math.max(0, m0 - 120), e: m0, what: `和${who}他们、恩雪一起${what}`, where: '', with: `${who}、恩雪`, kind: 'social', src: 'note', st: 'done', share: 0, c: now });
+    srMemAdd({ k: 'event', who: 'us', t: `和${who}他们、恩雪一起${what}，当着大家的面装得跟平时一样`, src: 'sys', imp: 3, at: now }, now); save(); return; }
+  let at = now + rand(60, 180) * 60e3; const h = new Date(at).getHours(); if (h >= 2 && h < 9) { const d = new Date(at); d.setHours(9, ri(30, 59), 0, 0); at = d.getTime(); } // 队友回宿舍 / 第二天早上碰面时说的
+  const T = dmThread(srP()), names = [p.n, p.z].filter(Boolean), told = T.msgs.some(m => m.me && now - m.at < 3 * 864e5 && names.some(n => String(m.text || '').includes(n) || String(m.zh || '').includes(n)));
+  const how = `${who}${two ? '跟她两个人单独' : '和她还有几个人一起'}去${what}了`;
+  srMemAdd({ k: 'event', who: 'her', t: `听${who}说，${how}${told ? '（她事先跟他提过）' : '（她没跟他提过，是从' + who + '那里听说的）'}`, src: 'sys', imp: 4, at: now }, at);
+  srMemAdd({ k: 'feel', who: 'him', t: told ? `知道她和${who}${what}，嘴上说没事，心里还是有点酸` : `从${who}嘴里听说她${two ? '单独' : ''}和${who}${what}、她自己一个字没提，明显吃醋了，想等她解释`, src: 'sys', imp: 4 }, at);
+  srUrge(told ? `听${who}说她今天真跟他去${what}了，有点酸，想酸她两句` : `听${who}说她${two ? '单独' : ''}跟他去${what}了，她都没跟自己说，吃醋了`, told ? .65 : two ? 1 : .85, at, 'heard' + td.id); save();
+}
+function srRumorUrge(p) { if (!serimLove() || p.key === SR_K) return; const at = Date.now() + rand(1, 5) * 3600e3, who = socName(p);
+  srMemAdd({ k: 'event', who: 'her', t: `网上传出她和${who}私下很熟的说法`, src: 'sys', imp: 4, at }, at); srUrge(`看到网上在传她和${who}的事，吃醋又有点担心`, .95, at, 'rumor' + p.key); save(); }
 function srUrge(t, w, at, nid) { const R = SR(), L = R.urges || (R.urges = []); if (L.some(u => !u.used && srSim(u.t, t) >= .6)) return; L.push({ id: uid(), t: String(t).slice(0, 80), w: clamp(+w || .5, 0, 1), at, nid }); if (L.length > 20) L.splice(0, L.length - 20); }
 /* ---------- 主动联系：只在自然的时刻（一段安排刚结束、长时间空着）想一想；动机够强、离上次找她也够久，才交给 AI，AI 也可以不发 ---------- */
 function srReachEval(at) {
@@ -9367,11 +9385,12 @@ function srReachEval(at) {
   if (last && last.me) return; // 她的消息他读了没回：不会转头去聊别的
   // 他主动找过她、她还没回：不追着发。（他回完她的话、对话自然结束，不算在这里）
   const herI = msgs.map(m => !!m.me).lastIndexOf(true), pings = msgs.slice(herI + 1).filter(m => m.ping), lastPing = pings[pings.length - 1];
-  if (pings.length && (new Set(pings.map(m => Math.floor(m.at / 600e3))).size >= 2 || at - lastPing.at < 4 * 3600e3)) return;
+  if (pings.length && new Set(pings.map(m => Math.floor(m.at / 600e3))).size >= 2) return;
+  const pingWait = pings.length && at - lastPing.at < 4 * 3600e3; // 刚找过她、她还没回：只有憋不住的事才会再发
   const segId = st.seg ? st.seg.id : '', moment = segId !== C.segSeen || at - (C.lastEval || 0) > 150 * 60e3;
   if (!moment) return; C.segSeen = segId; C.lastEval = at;
   const lastReach = (R.reach[R.reach.length - 1] || {}).at || 0; if (at - lastReach < 2 * 3600e3) return;
-  const dk = dkey(at), Mo = [], add = (kind, v, d, ref) => { if (v > 0) Mo.push({ kind, v: Math.min(1, v) * (R.reach.some(x => x.kind === kind && at - x.at < 864e5) ? .6 : 1), d, ref }); };
+  const dk = dkey(at), Mo = [], add = (kind, v, d, ref) => { if (v > 0) Mo.push({ kind, v: Math.min(kind === 'urge' ? 1.5 : 1, v) * (R.reach.some(x => x.kind === kind && at - x.at < 864e5) ? .6 : 1), d, ref }); };
   for (const g of srSegs(dk, at)) if (g.share >= .4 && !g.shared && srSegSt(g, dk, at) === 'done' && srTs(dk, g.e) > Math.max(lastReach, at - 5 * 3600e3)) add('share', g.share, `他今天的经历：${srSegZh(g, dk, at)}`, g.id);
   const post = (S.posts || []).find(p => at - p.createdAt < 3 * 3600e3 && p.createdAt <= at && !R.seen['post' + p.id]); if (post) add('her', .7, `她刚在社区发了帖子：「${String(post.text || '').slice(0, 60)}」${post.media && post.media.length ? '（带照片 / 视频）' : ''}`, 'post' + post.id);
   if (dk === dkey(Date.now()) && socStageDone() && !R.seen['stage' + dk]) add('her', .5, '她今天有舞台 / 公开行程，他可能看到了', 'stage' + dk);
@@ -9379,13 +9398,13 @@ function srReachEval(at) {
   const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
   if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .3 + .1 * (dMeet - 3), `有 ${Math.round(dMeet)} 天没见了（约的话要先看双方的安排）`);
   const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 8, `已经 ${Math.round(quiet)} 小时没聊了`);
-  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.1, `他心里一直想跟她说：${u.t}`, 'urge' + u.id);
+  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.4, `他心里一直想跟她说：${u.t}`, 'urge' + u.id);
   if (Math.abs(R.mood.val) >= 1.3) add('mood', .4, `他心情${R.mood.val > 0 ? '不错' : '不太好'}（${R.mood.why || '没说原因'}）`);
   if (/想/.test(R.mood.to || '')) add('mood', .3, `他有点${R.mood.to}`);
   if (!Mo.length) return;
-  Mo.sort((a, b) => b.v - a.v); const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
+  Mo.sort((a, b) => b.v - a.v); if (pingWait && !(Mo[0].kind === 'urge' && Mo[0].v >= 1.2)) return; const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
   const today = R.reach.filter(x => dkey(x.at) === dk).length, init = (socCard(srP()) || {}).init || 1;
-  const need = 1 + .45 * today + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) + (working ? .35 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
+  const need = 1 + .45 * (Mo[0].kind === 'urge' && Mo[0].v >= 1.2 ? 0 : today) + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) + (working ? .35 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
   if (urge < need) return;
   srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 3).map(x => x.d).join('；'), ref: Mo[0].ref, refs: Mo.slice(0, 3).map(x => x.ref).filter(Boolean) } });
 }
@@ -9429,6 +9448,7 @@ function srCtx(when, q) {
   const met = srLive(when).filter(x => x.k === 'plan' && x.who === 'us' && x.st === 'planned' && x.at).map(x => srClock(x.at) + ' ' + x.t).join('；');
   const chat = srChatLog(T, when), recent = srRecent(T, when), cv = R.conv && when - R.conv.at < 12 * 3600e3 && R.conv.at <= when ? R.conv : null;
   const habits = srLive(when).filter(x => x.k === 'habit').map(x => x.t).slice(-8).join('；');
+  const urg = (R.urges || []).filter(u => !u.used && u.at <= when && when - u.at < 36 * 3600e3).map(u => u.t).join('；');
   return `【他】${socCardTxt(p)}
 【你们的关系】${serimLoveTxt()}刚交往不久：本来就是最熟的朋友，在一起很自在，偶尔也会有一点「现在是恋人了」的不习惯；不需要刻意甜，他还是原来那个人，有自己的生活、朋友、判断和情绪，会开玩笑、吐槽、拒绝、不想聊。秘密恋爱：外面不能有亲密举动，约见面要选不容易被拍的地方。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排）
@@ -9436,7 +9456,7 @@ ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}；${srMoodZh()}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
-${mem || '（还没有）'}${sums ? `\n【最近几天】\n${sums}` : ''}
+${mem || '（还没有）'}${urg ? `\n【他心里还搁着的事】${urg}（还没跟她说；聊到相关的、或者情绪到了，会自己带出来；吃醋就按他的性格表现出来，不用憋着装大度）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
 ${recent ? `【最近他对她的回应】（系统按聊天时间和他的安排算出来的事实）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；还没解决：${cv.open.join('；')}` : ''}\n` : ''}【KKT 聊天】
 ${chat || '（还没聊过）'}`;
 }
@@ -9459,7 +9479,8 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
 const SR_READ_SCHEMA = { type: 'object', additionalProperties: false, required: ['means', 'feel', 'target', 'why', 'tone', 'his_part', 'wants', 'must_answer', 'said'], properties: { wants: { type: 'string' }, must_answer: { type: 'string' }, said: { type: 'string' }, means: { type: 'string' }, feel: { type: 'string' }, target: { type: 'string', enum: ['他本人', '他做了或没做的事', '你们之间的事', '别人或外面的事', '她自己', '没有明显情绪', '不确定'] }, why: { type: 'string' }, tone: { type: 'string', enum: ['认真', '开玩笑', '反话', '撒娇', '赌气', '吃醋', '试探', '普通'] }, his_part: { type: 'string' } } };
-const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv'], properties: {
+const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv', 'aired'], properties: {
+  aired: { type: 'boolean' },
   read: SR_READ_SCHEMA,
   conv: { type: 'object', additionalProperties: false, required: ['t', 'open'], properties: { t: { type: 'string' }, open: { type: 'array', items: { type: 'string' } } } },
   sched: SR_SCHED_SCHEMA,
@@ -9540,6 +9561,7 @@ mood：这次聊完他的心情 val（-2 很差 ~ 2 很好）、对她的态度 
 ${SR_MEM_HINT}
 
 ${SR_RULES}
+aired：如果上面有【他心里还搁着的事】，而这次回复里他把它说出来了（或者她已经主动解释清楚了），true；否则 false。
 msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
@@ -9549,6 +9571,7 @@ msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
   const fast = C.sess && when < C.sess, typ = (msgs[0].ko.length / 4.5) * 1e3; // 第一条的打字时间；后面几条由发送队列按打字速度接着发
   srSend(T, act === 'react' ? msgs.slice(0, 1) : msgs, when + Math.min(typ, fast ? 10e3 : 20e3));
+  if (j.aired) for (const u of SR().urges || []) if (!u.used && u.at <= when) u.used = 1; // 心里搁着的事这次说出来了：不会再当成找她的理由
   C.sess = j.end ? 0 : when + 15 * 60e3; C.him = when;
   return true;
 }
