@@ -9420,7 +9420,8 @@ const SR_RULES = `写法：
 - 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
 - 他今天安排里还没开始的事只是安排，可能会变；他说自己的安排变了（取消、改时间、临时有事）要在 sched 里写出来。
 - ㅋㅋ ㅎㅎ 是真觉得好笑才用；最近几条用过了这次就别用。很甜的话（ㅅㄹㅎ、❤️连发）很少用。
-- 要发照片 / 视频时单独一条只写「[사진]」或「[동영상]」，想说明另发一条。`;
+- 要发照片 / 视频时单独一条只写「[사진]」或「[동영상]」，想说明另发一条。
+- 她的本名은설中文是「恩雪」（은설아 → 恩雪啊），zh 里不要写成别的字，也不要换成 Cyan。`;
 const SR_MEM_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'id', 'k', 'who', 't', 'when', 'st', 'cf', 'imp'], properties: { op: { type: 'string', enum: ['add', 'upd', 'del'] }, id: { type: 'string' }, k: { type: 'string', enum: Object.keys(SR_KZ).filter(x => x !== 'sum') }, who: { type: 'string', enum: ['her', 'him', 'us'] }, t: { type: 'string' }, when: { type: 'string' }, st: { type: 'string', enum: ['ok', 'planned', 'done', 'cancel', 'missed'] }, cf: { type: 'string', enum: ['sure', 'likely', 'guess'] }, imp: { type: 'integer' } } } };
 const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空数组，别为了记而记）：
 - add 新增：她说的事实 / 喜好 / 重要的事（who=her）、他自己说的经历想法和安排（who=him）、两人说定的计划、一起经历的事、形成的默契或叫法（k=habit）、他对某件事的感受（k=feel）。t 一句中文；when 写发生或计划的时间（YYYY-MM-DD HH:MM，不知道就空）；还没发生的 st=planned；只是推测的 cf=guess。imp：1 闲聊细节 / 2 普通 / 3 值得记 / 4 重要 / 5 关系里的大事。
@@ -9506,6 +9507,8 @@ ${SR_MEM_HINT}
 
 ${SR_RULES}
 msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
+  if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
+  { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
   let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
@@ -9531,6 +9534,8 @@ ${SR_MEM_HINT}
 ${SR_RULES}
 msgs：ko 原文，zh 中文意思。`, 3000,
     { type: 'object', additionalProperties: false, required: ['send', 'msgs', 'topic', 'promise_done', 'mem'], properties: { send: { type: 'boolean' }, msgs: SR_REPLY_SCHEMA.properties.msgs, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA } });
+  if (job.rid !== srRunId) return 'stale';
+  if (T.pend && T.pend.length) return true;
   srMemOps(j.mem, when, 'him');
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; } // 想过了：这件事不会再反复成为找她的理由
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
@@ -9589,6 +9594,18 @@ function srRedo1026() {
   S.notifs = (S.notifs || []).filter(n => !(n.at >= cutAt && /^💬/.test(n.text || '') && (n.text || '').includes(nm)));
   save(); if (typeof updBadges === 'function') updBadges(); console.log('srRedo1026 removed', gone.length);
 }
+function srDupFix1026() {
+  const R = SR(); if (R.dup1026) return; const T = dmThread(srP()), L = T.msgs;
+  const i = L.findIndex(m => m.me && dkey(m.at) === '2026-10-26' && /讨厌你|싫어/.test((m.text || '') + (m.zh || ''))); if (i < 0) return; R.dup1026 = 1;
+  const gone = L.slice(i + 1).filter(m => !m.me && !m.sys); if (!gone.length || L.slice(i + 1).some(m => m.me)) { save(); return; } // 你之后又发过消息：不动
+  srBackup('dup1026'); const cutAt = gone[0].at, nm = socDisp(srP());
+  T.msgs = L.slice(0, i + 1); T.pend = []; T.readTo = L[i].at; T.unread = 0; T.quiet = null;
+  for (const m of R.mem) if (m.c >= cutAt && !m.rep && ['her', 'him'].includes(m.src)) { m.rep = 'x'; m.u = Date.now(); }
+  R.conv = null; R.reach = R.reach.filter(x => x.at < cutAt); R.jobs = R.jobs.filter(j => !['reply', 'reach'].includes(j.type)); R.chat.sess = 0; R.chat.him = 0;
+  srJob('reply', Date.now() + 15e3);
+  S.notifs = (S.notifs || []).filter(n => !(n.at >= cutAt && /^💬/.test(n.text || '') && (n.text || '').includes(nm)));
+  save(); if (typeof updBadges === 'function') updBadges();
+}
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
@@ -9613,7 +9630,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -9625,9 +9642,10 @@ function srTick() {
   const job = R.jobs.find(j => j.at <= now && (!j.next || j.next <= now)); if (!job) return;
   const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
   if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
-  srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId;
-  run(job).then(() => { R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
+  srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId; job.rid = rid;
+  run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
     .finally(() => { if (rid === srRunId) srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); });
+  // 注：卡住被放弃的旧请求晚回来时 rid 已经过期，它的结果直接丢掉（不会再发一遍）
 }
 // 技术状态：只在世琳的聊天里显示，和他「已读不回」是两回事
 function srTechHTML() {
