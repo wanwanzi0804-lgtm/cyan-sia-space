@@ -9160,7 +9160,7 @@ function srAIState() {
 }
 async function srAI(text, max, schema, bg, effort) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
-  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort, !bg), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
+  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
   catch (e) { if (!e.sr) { const A = SR().ai; A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
@@ -9506,7 +9506,7 @@ mood：这次聊完他的心情 val（-2 很差 ~ 2 很好）、对她的态度 
 ${SR_MEM_HINT}
 
 ${SR_RULES}
-msgs：ko 原文，zh 自然的中文意思。`, 8000, SR_REPLY_SCHEMA, false, 'medium'); /* 思考也算在长度里：给足空间，避免被截断 */
+msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
   let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
