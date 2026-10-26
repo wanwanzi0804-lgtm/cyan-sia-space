@@ -298,6 +298,8 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .qk-c.big .m-cv.ph span{display:none}
 .kk-b.att{background:none!important;padding:0;border-radius:0}
 .kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
+.kk-ph.img{background:#000;overflow:hidden}.kk-ph.img img{width:100%;height:100%;object-fit:cover}
+.sr-ph{display:flex;gap:8px;align-items:center;margin-top:8px}.sr-ph img{width:54px;height:54px;object-fit:cover;border-radius:10px}
 .kk-ph{width:160px;height:180px;max-width:52vw;border-radius:14px;background:linear-gradient(160deg,#d5dbe2,#aeb8c4);color:#fff;display:grid;place-items:center;position:relative}.kk-ph.v{background:linear-gradient(160deg,#5f6772,#2d323a)}.kk-ph em{position:absolute;right:9px;bottom:7px;font-style:normal;font-size:12px}
 .kk-play{width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.35);display:grid;place-items:center;color:#fff;font-size:15px;padding-left:3px}.kk-play.sm{width:30px;height:30px;font-size:11px;background:#191919}
 .kk-voice{display:flex;align-items:center;gap:10px;background:#fff;color:#191919;border-radius:14px;padding:9px 13px;width:180px}.kk-wave{flex:1;height:14px;background:repeating-linear-gradient(90deg,#bbb 0 2px,transparent 2px 5px);border-radius:2px}.kk-voice em{font-style:normal;font-size:12.5px}
@@ -4448,6 +4450,7 @@ function kkAttHTML(m) {
   const A = m.att, r = srng('att' + (A.name || '') + m.at);
   if (A.k === 'file') { const ext0 = (A.name.split('.').pop() || '').toLowerCase(), au = /m4a|mp3|wav|aac/.test(ext0), seed = A.name + '|' + m.at, ex = new Date(m.at + 30 * 86400e3), sz = au ? (demoPlan(seed).dur * 256 / 8 / 1024).toFixed(2) : (.4 + r() * 8.5).toFixed(2), ext = ext0, ic = /m4a|mp3|wav|aac/.test(ext) ? '🎵' : /mp4|mov/.test(ext) ? '🎬' : /jpe?g|png|heic/.test(ext) ? '🖼' : /pdf|docx?|hwp|txt/.test(ext) ? '📄' : '📁';
     return `<div class="kk-file"${au ? ` data-act="kkdemo" data-n="${esc(A.name)}" data-s="${esc(seed)}" style="cursor:pointer"` : ''}><div><b>${esc(A.name)}</b><span>유효기간: ~${ex.getFullYear()}. ${ex.getMonth() + 1}. ${ex.getDate()}.</span><span>용량: ${sz} MB</span></div><i>${ic}</i></div>`; }
+  if (A.k === 'photo' && m.ph) return `<div class="kk-ph img"><img data-mid="${esc(m.ph)}" alt=""></div>`;
   if (A.k === 'photo') return `<div class="kk-ph"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></div>`;
   if (A.k === 'video') return `<div class="kk-ph v"><span class="kk-play">▶</span><em>0:${String(8 + Math.floor(r() * 50)).padStart(2, '0')}</em></div>`;
   return `<div class="kk-voice"><span class="kk-play sm">▶</span><span class="kk-wave"></span><em>0:${String(3 + Math.floor(r() * 40)).padStart(2, '0')}</em></div>`;
@@ -8277,7 +8280,7 @@ function socTodo(p, t, d, by) { const P = socPX(p); let x = socTodoOpen(P, t); i
 function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || ts.includes(P.ex[i].t)) return P.ex[i]; return null; }
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
 // 交往后世琳私下打字的样子：照他泡泡原文整理（泡泡里粉丝名会显示成「은설」，那些话本来就像在对她说）
-const SERIM_LOVE_TONE = '半语；一个意思一个气泡，常一口气连发 3~8 条，长短混着；常单独发一条「은설」/「은설아」叫她再接着说；会主动报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，还会发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
+const SERIM_LOVE_TONE = '半语；一个意思一个气泡，常一口气连发 3~8 条，长短混着；常单独发一条「은설」/「은설아」叫她再接着说；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
 function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
 function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
 function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；只有 CRAVITY 的队友知道。`; }
@@ -9388,7 +9391,49 @@ function srDayFb(dk) {
   return segs;
 }
 function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off' + dk, s: Math.max(0, g[2] - 420), e: Math.min(1440, g[2] + 210), what: g[3], where: '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', share: .6, c: 0 }] : []; }
-let srGenBusy = 0;
+let srGenBusy = 0, srBitBusy = 0;
+/* ---------- 他手机里的照片：你在「世琳」记录里传的，带一句说明（照片里是什么、什么时候拍的），AI 只看说明决定什么时候发 ---------- */
+let SRPH = null;
+function srPhotosVis(when) { return (SR().photos || []).filter(p => p.at <= when && when - p.at < 4 * 864e5); }
+function srPhotoTxt(when) { const L = srPhotosVis(when); if (!L.length) return ''; return `\n【他手机里的照片】（想发的话单独一条写「[사진:编号]」，只能用这里的编号；照片内容以说明为准，只在聊到相关、或者他正好想分享这件事时发，发过的一般不再发）\n` + L.map(p => `[${p.id}] ${p.d}（${srClock(p.at)}${p.sent ? '，已经发给她过' : ''}）`).join('\n'); }
+async function srPhotoAdd(file, d, nid) { const mid = 'srp' + uid(); await idbPut(mid, file); const R = SR(); (R.photos || (R.photos = [])).push({ id: 'p' + uid().slice(-5), mid, d: String(d || '照片').slice(0, 80), at: Date.now(), nid }); if (R.photos.length > 30) R.photos.splice(0, R.photos.length - 30); srPhotoLink(); save(); }
+// 之前写好的「这里发一张照片」：等你传了对应的照片就接上
+function srPhotoLink() { const R = SR(), T = dmThread(srP()); for (const m of T.msgs) if (m.srPh && !m.ph) { const p = (R.photos || []).find(x => new RegExp(m.srPh).test(x.d)); if (p) { m.ph = p.mid; p.sent = p.sent || m.at; } } }
+/* ---------- 生活里的小事：挂在时间线的某一段里（几点、在干嘛的时候发生的）。普通琐事只在当天和前一天里看得到，说给她听了、或者重要的，才由聊天写进长期记忆 ---------- */
+const srBitsVis = (g, dk, when) => (g.bits || []).filter(b => srTs(dk, b.m) <= when);
+function srBitLine(b) { return `[${b.id}] ${hhmm(b.m)} ${b.t}${b.told ? '（跟她说过）' : ''}`; }
+async function srBitsEnsure(dk) {
+  const D = SR().day[dk]; if (!D || D.gen === 'fb' || srBitBusy && Date.now() - srBitBusy < 120e3 || !srAIState().ok || (D.bTry && Date.now() - D.bTry < 30 * 60e3)) return;
+  const todo = srSegs(dk).filter(g => !g.bitsDone && g.kind !== 'sleep' && g.st !== 'cancel' && g.e - g.s >= 40); if (!todo.length) return;
+  srBitBusy = Date.now(); D.bTry = Date.now();
+  try { const c = socCard(srP()) || {}, all = srSegs(dk).map(g => `- [${g.id}] ${srSegZh(g, dk)}`).join('\n'), said = srLive().filter(m => m.who === 'him' && ['event', 'fact'].includes(m.k)).slice(-8).map(m => '- ' + m.t).join('\n');
+    const j = await srAI(`CRAVITY 世琳 ${srMD(dk)} 这一天的时间线：
+${all}
+他：${c.pers || ''}。喜欢：${c.like || ''}。
+
+给下面这几段补上一天里自然会有的小事（真实生活的颗粒感，不是剧情）：
+${todo.map(g => `- [${g.id}] ${srSegZh(g, dk)}`).join('\n')}
+- 小事是那段时间里在那个地方、和那些人之间真的会发生的普通事：吃到的东西、成员说了句什么、练习里卡住的一个动作、路上看到的、累了、手机刷到的、突然想起的。要和那段在做的事、和谁、在哪完全对得上。
+- 很多段什么特别的都没发生：每段 0~2 件，整天加起来 2~6 件就够，不要每段都塞。
+- 不编特殊事件（受伤、生病、意外、绯闻、和女生有关的事、和 Cyan 有关的事都不要），不要为了以后有话题而编。
+- 他已经说过的自己的事（下面），不能和它们矛盾：
+${said || '（无）'}
+time 写 HH:MM（在那段时间之内）；t 一句中文，具体但平常；share：他会不会顺手跟女朋友说（0~1，多数 0~0.3，真好笑 / 好吃 / 累坏了 / 有点郁闷的才高）。`, 1500,
+      { type: 'object', additionalProperties: false, required: ['bits'], properties: { bits: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['seg', 'time', 't', 'share'], properties: { seg: { type: 'string' }, time: { type: 'string' }, t: { type: 'string' }, share: { type: 'number' } } } } } }, true);
+    const orig = id => D.segs.find(x => x.id === id); // srSegs 给的是裁剪后的副本：写回原来那段
+    for (const b of (j.bits || []).slice(0, 8)) { const g = todo.find(x => x.id === b.seg), m0 = toMin(b.time), o = g && orig(g.id); if (!o || !b.t || !(m0 >= g.s && m0 < g.e)) continue; (o.bits || (o.bits = [])).push({ id: uid().slice(-6), m: m0, t: String(b.t).slice(0, 60), sh: clamp(+b.share || 0, 0, 1) }); }
+    for (const g of todo) { const o = orig(g.id); if (o) o.bitsDone = 1; } save();
+  } catch (e) { console.warn('sr bits', e.message); } finally { srBitBusy = 0; }
+}
+// 聊天里他说到了自己的事：用过的小事标成「说过」；说了一件时间线里没有的小事，对得上那个时间在做的事才记下来（对不上就不记，不会改掉已经确定的安排）
+function srBitsApply(j, when) {
+  const dk = dkey(when), Ds = [dk, addDays(dk, -1)];
+  for (const id of j.told || []) for (const k of Ds) for (const g of srDay(k).segs) for (const b of g.bits || []) if (b.id === id) b.told = 1;
+  for (const x of (j.bits_add || []).slice(0, 3)) { const m0 = toMin(x.time); if (!x.t || !(m0 >= 0) || srTs(dk, m0) > when + 5 * 60e3) continue; const g0 = srSegAt(dk, m0), g = g0 && srDay(dk).segs.find(x => x.id === g0.id); if (!g || g.kind === 'sleep' || g.st === 'cancel') continue; (g.bits || (g.bits = [])).push({ id: uid().slice(-6), m: m0, t: String(x.t).slice(0, 60), sh: 0, told: 1 }); }
+}
+const SR_BITS_SCHEMA = { told: { type: 'array', items: { type: 'string' } }, bits_add: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['time', 't'], properties: { time: { type: 'string' }, t: { type: 'string' } } } } };
+const SR_BITS_HINT = `told：这次他提到了上面哪些小事（填方括号里的编号），没有就空。
+bits_add：他这次说到了自己今天的一件小事、而上面没有写的，写下来（time HH:MM、t 一句中文）；必须和那个时间他在做的事对得上，不能和时间线、和他说过的话矛盾。没有就空。`;
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (!D.gen) { D.segs.push(...srDayFb(dk)); D.gen = 'fb'; save(); }
@@ -9424,7 +9469,7 @@ function srMoodTick(now) {
   const st = srNow(now) || {}, rate = st.sleep ? 14 : st.kind === 'work' ? -7 : st.semi ? -3 : -1.5;
   M.en = clamp(M.en + rate * dt / 60, 5, 100); M.val = M.val * Math.pow(.5, dt / 360); if (Math.abs(M.val) < .2) { M.val = 0; if (M.to && dt) M.to = Math.random() < dt / 600 ? '' : M.to; }
 }
-const srMoodZh = () => { const M = SR().mood; return `精力 ${Math.round(M.en)}/100${M.en < 30 ? '（很累）' : ''}；心情${M.val >= 1 ? '不错' : M.val <= -1 ? '不太好' : '平常'}${M.to ? '；对她：' + M.to : ''}${M.why ? '（' + M.why + '）' : ''}`; };
+const srMoodZh = () => { const M = SR().mood; return `精力 ${Math.round(M.en)}/100${M.en < 30 ? '（很累）' : ''}；心情${M.val >= 1 ? '不错' : M.val <= -1 ? '不太好' : '平常'}${Math.abs(M.val) >= 1 && M.why ? '（起因：' + M.why + '）' : ''}`; }; // 心情只是内部状态：影响语气，不是要说出来的话
 
 /* ---------- 看手机的节奏：由他此刻在做什么决定；正聊着、又空着就回得很快 ---------- */
 function srCheckGap(at) {
@@ -9484,11 +9529,10 @@ function srHeard(x, p, td) {
   const T = dmThread(srP()), names = [p.n, p.z].filter(Boolean), told = T.msgs.some(m => m.me && now - m.at < 3 * 864e5 && names.some(n => String(m.text || '').includes(n) || String(m.zh || '').includes(n)));
   const how = `${who}${two ? '跟她两个人单独' : '和她还有几个人一起'}去${what}了`;
   srMemAdd({ k: 'event', who: 'her', t: `听${who}说，${how}${told ? '（她事先跟他提过）' : '（她没跟他提过，是从' + who + '那里听说的）'}`, src: 'sys', imp: 4, at: now }, at);
-  srMemAdd({ k: 'feel', who: 'him', t: told ? `知道她和${who}${what}，嘴上说没事，心里还是有点酸` : `从${who}嘴里听说她${two ? '单独' : ''}和${who}${what}、她自己一个字没提，明显吃醋了，想等她解释`, src: 'sys', imp: 4 }, at);
-  srUrge(told ? `听${who}说她今天真跟他去${what}了，有点酸，想酸她两句` : `听${who}说她${two ? '单独' : ''}跟他去${what}了，她都没跟自己说，吃醋了`, told ? .65 : two ? 1 : .85, at, 'heard' + td.id); save();
+  srUrge(`听${who}说恩雪今天${two ? '和他两个人单独' : '和他们几个'}去${what}了${told ? '（她之前提过）' : '（她之前没提过）'}`, told ? .45 : two ? .8 : .6, at, 'heard' + td.id); save(); // 只记他知道了什么、怎么知道的；在不在意、怎么反应当下由他自己决定
 }
 function srRumorUrge(p) { if (!serimLove() || p.key === SR_K) return; const at = Date.now() + rand(1, 5) * 3600e3, who = socName(p);
-  srMemAdd({ k: 'event', who: 'her', t: `网上传出她和${who}私下很熟的说法`, src: 'sys', imp: 4, at }, at); srUrge(`看到网上在传她和${who}的事，吃醋又有点担心`, .95, at, 'rumor' + p.key); save(); }
+  srMemAdd({ k: 'event', who: 'her', t: `网上传出她和${who}私下很熟的说法`, src: 'sys', imp: 4, at }, at); srUrge(`网上在传她和${who}私下很熟`, .8, at, 'rumor' + p.key); save(); }
 function srUrge(t, w, at, nid) { const R = SR(), L = R.urges || (R.urges = []); if (L.some(u => !u.used && srSim(u.t, t) >= .6)) return; L.push({ id: uid(), t: String(t).slice(0, 80), w: clamp(+w || .5, 0, 1), at, nid }); if (L.length > 20) L.splice(0, L.length - 20); }
 /* ---------- 主动联系：只在自然的时刻（一段安排刚结束、长时间空着）想一想；动机够强、离上次找她也够久，才交给 AI，AI 也可以不发 ---------- */
 function srReachEval(at) {
@@ -9506,22 +9550,23 @@ function srReachEval(at) {
   if (!moment) return; C.segSeen = segId; C.lastEval = at;
   const lastReach = (R.reach[R.reach.length - 1] || {}).at || 0; if (at - lastReach < 2 * 3600e3) return;
   const dk = dkey(at), Mo = [], add = (kind, v, d, ref) => { if (v > 0) Mo.push({ kind, v: Math.min(kind === 'urge' ? 1.5 : 1, v) * (R.reach.some(x => x.kind === kind && at - x.at < 864e5) ? .6 : 1), d, ref }); };
-  for (const g of srSegs(dk, at)) if (g.share >= .4 && !g.shared && srSegSt(g, dk, at) === 'done' && srTs(dk, g.e) > Math.max(lastReach, at - 5 * 3600e3)) add('share', g.share, `他今天的经历：${srSegZh(g, dk, at)}`, g.id);
-  const post = (S.posts || []).find(p => at - p.createdAt < 3 * 3600e3 && p.createdAt <= at && !R.seen['post' + p.id]); if (post) add('her', .7, `她刚在社区发了帖子：「${String(post.text || '').slice(0, 60)}」${post.media && post.media.length ? '（带照片 / 视频）' : ''}`, 'post' + post.id);
-  if (dk === dkey(Date.now()) && socStageDone() && !R.seen['stage' + dk]) add('her', .5, '她今天有舞台 / 公开行程，他可能看到了', 'stage' + dk);
-  const plan = srLive(at).find(m => m.k === 'plan' && m.st === 'planned' && !m.at && at - m.c < 5 * 864e5); if (plan) add('plan', .4, `你们说过但还没定时间的事：${plan.t}`, plan.id);
+  // 这里收集的只是「此刻他手边 / 脑子里有的东西」（事实），不是要去执行的理由；发不发、发什么交给他自己
+  for (const g of srSegs(dk, at)) if (g.share >= .4 && !g.shared && srSegSt(g, dk, at) === 'done' && srTs(dk, g.e) > Math.max(lastReach, at - 5 * 3600e3)) add('share', g.share, `刚才：${srSegZh(g, dk, at)}`, g.id);
+  for (const g of srSegs(dk, at)) for (const b of srBitsVis(g, dk, at)) if (!b.told && !b.seen && b.sh >= .3 && srTs(dk, b.m) > Math.max(lastReach, at - 4 * 3600e3)) add('share', b.sh * 1.1, `刚才的小事：${srBitLine(b)}`, 'bit' + b.id);
+  const post = (S.posts || []).find(p => at - p.createdAt < 3 * 3600e3 && p.createdAt <= at && !R.seen['post' + p.id]); if (post) add('her', .6, `她 ${srClock(post.createdAt)} 在社区发了帖子：「${String(post.text || '').slice(0, 60)}」${post.media && post.media.length ? '（带照片 / 视频）' : ''}`, 'post' + post.id);
+  if (dk === dkey(Date.now()) && socStageDone() && !R.seen['stage' + dk]) add('her', .45, '她今天有舞台 / 公开行程（他可能刷到了）', 'stage' + dk);
+  const plan = srLive(at).find(m => m.k === 'plan' && m.st === 'planned' && !m.at && at - m.c < 5 * 864e5); if (plan) add('plan', .35, `之前说过、还没定下来的事：${plan.t}`, plan.id);
   const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
-  if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .3 + .1 * (dMeet - 3), `有 ${Math.round(dMeet)} 天没见了（约的话要先看双方的安排）`);
-  const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 8, `已经 ${Math.round(quiet)} 小时没聊了`);
-  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.4 * ((u.tries || 0) >= 2 ? .5 : 1), `他心里一直想跟她说：${u.t}`, 'urge' + u.id);
-  if (Math.abs(R.mood.val) >= 1.3) add('mood', .4, `他心情${R.mood.val > 0 ? '不错' : '不太好'}（${R.mood.why || '没说原因'}）`);
-  if (/想/.test(R.mood.to || '')) add('mood', .3, `他有点${R.mood.to}`);
+  if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .25 + .08 * (dMeet - 3), `上次见面大概是 ${Math.round(dMeet)} 天前`);
+  const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 9, `上次聊天是 ${Math.round(quiet)} 小时前`);
+  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.1 * ((u.tries || 0) >= 2 ? .5 : 1), `他知道、还没跟她提的事：${u.t}`, 'urge' + u.id);
+  if (!working && !st.semi && R.mood.en >= 35) add('idle', .3 + (R.mood.val > .5 ? .15 : 0), '他这会儿闲着，手机在手上');
   if (!Mo.length) return;
-  Mo.sort((a, b) => b.v - a.v); if (pingWait && !(Mo[0].kind === 'urge' && Mo[0].v >= 1.2)) return; const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
+  Mo.sort((a, b) => b.v - a.v); if (pingWait) return; const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
   const today = R.reach.filter(x => dkey(x.at) === dk).length, init = (socCard(srP()) || {}).init || 1;
-  const need = 1 + .45 * (Mo[0].kind === 'urge' && Mo[0].v >= 1.2 ? 0 : today) + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) + (working ? .35 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
+  const need = 1 + .4 * today + (R.mood.en < 30 ? .3 : 0) + (st.semi ? .3 : 0) + (working ? .2 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
   if (urge < need) return;
-  srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 3).map(x => x.d).join('；'), ref: Mo[0].ref, refs: Mo.slice(0, 3).map(x => x.ref).filter(Boolean) } });
+  srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 4).map(x => '- ' + x.d).join('\n'), ref: Mo[0].ref, refs: Mo.slice(0, 4).map(x => x.ref).filter(Boolean) } });
 }
 
 /* ---------- 给 AI 的上下文：只用 when 之前的信息（补算时不会看到之后的事） ---------- */
@@ -9555,7 +9600,7 @@ function srRecent(T, when) {
 
 function srCtx(when, q) {
   const p = srP(), T = dmThread(p), dk = dkey(when), m = srMin(when), st = srNow(when), R = SR();
-  const today = srSegs(dk, when).map(g => (g.e <= m ? '✓ ' : g.s <= m ? '▶ 现在 ' : '· ') + srSegZh(g, dk, when)).join('\n') + srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del).map(g => '\n✕ ' + srSegZh(g, dk, when)).join('');
+  const today = srSegs(dk, when).map(g => (g.e <= m ? '✓ ' : g.s <= m ? '▶ 现在 ' : '· ') + srSegZh(g, dk, when) + (srBitsVis(g, dk, when).length ? '\n    小事：' + srBitsVis(g, dk, when).map(srBitLine).join('；') : '')).join('\n') + srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del).map(g => '\n✕ ' + srSegZh(g, dk, when)).join('');
   const tm = R.day[addDays(dk, 1)] ? srSegs(addDays(dk, 1), when).filter(g => g.src !== 'fb' && g.kind !== 'sleep').map(g => '· ' + srSegZh(g, addDays(dk, 1), when)).join('\n') : '';
   const sums = srLive(when).filter(x => x.k === 'sum').sort((a, b) => a.at - b.at).slice(-4).map(x => `- ${srMD(dkey(x.at))}：${x.t}`).join('\n');
   const mem = srRecall(q, when).map(srMemLine).join('\n');
@@ -9565,13 +9610,13 @@ function srCtx(when, q) {
   const habits = srLive(when).filter(x => x.k === 'habit').map(x => x.t).slice(-8).join('；');
   const urg = (R.urges || []).filter(u => !u.used && u.at <= when && when - u.at < 36 * 3600e3).map(u => u.t).join('；');
   return `【他】${socCardTxt(p)}
-【你们的关系】${serimLoveTxt()}刚交往不久：本来就是最熟的朋友，在一起很自在，偶尔也会有一点「现在是恋人了」的不习惯；不需要刻意甜，他还是原来那个人，有自己的生活、朋友、判断和情绪，会开玩笑、吐槽、拒绝、不想聊。秘密恋爱：外面不能有亲密举动，约见面要选不容易被拍的地方。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
-【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排）
+【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}；${srMoodZh()}
+【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
-${mem || '（还没有）'}${urg ? `\n【他心里还搁着的事】${urg}（还没跟她说；聊到相关的、或者情绪到了，会自己带出来；吃醋了不用憋着装大度，但要用他的说话方式漏出来，不是直接说「我吃醋了 / 我不高兴」）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
+${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、还没跟她提的事】${urg}（只是事实。他在不在意、在意到什么程度、提不提、什么时候提、怎么提，看他的性格和当时的气氛；可以顺嘴带出来，也可以先不提）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
 ${recent ? `【最近他对她的回应】（系统按聊天时间和他的安排算出来的事实）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；还没解决：${cv.open.join('；')}` : ''}\n` : ''}【KKT 聊天】
 ${chat || '（还没聊过）'}`;
 }
@@ -9586,7 +9631,7 @@ const SR_RULES = `写法：
 - 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
 - 他今天安排里还没开始的事只是安排，可能会变；他说自己的安排变了（取消、改时间、临时有事）要在 sched 里写出来。
 - ㅋㅋ ㅎㅎ 是真觉得好笑才用；最近几条用过了这次就别用。很甜的话（ㅅㄹㅎ、❤️连发）很少用。
-- 要发照片 / 视频时单独一条只写「[사진]」或「[동영상]」，想说明另发一条。
+- 发照片：只能发【他手机里的照片】里有的，单独一条写「[사진:编号]」，想说明另发一条；没有合适的照片就不发照片，不要凭空写「[사진]」。
 - 她的本名은설中文是「恩雪」（은설아 → 恩雪啊），zh 里不要写成别的字，也不要换成 Cyan。`;
 const SR_MEM_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'id', 'k', 'who', 't', 'when', 'st', 'cf', 'imp'], properties: { op: { type: 'string', enum: ['add', 'upd', 'del'] }, id: { type: 'string' }, k: { type: 'string', enum: Object.keys(SR_KZ).filter(x => x !== 'sum') }, who: { type: 'string', enum: ['her', 'him', 'us'] }, t: { type: 'string' }, when: { type: 'string' }, st: { type: 'string', enum: ['ok', 'planned', 'done', 'cancel', 'missed'] }, cf: { type: 'string', enum: ['sure', 'likely', 'guess'] }, imp: { type: 'integer' } } } };
 const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空数组，别为了记而记）：
@@ -9595,8 +9640,8 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
 const SR_READ_SCHEMA = { type: 'object', additionalProperties: false, required: ['means', 'feel', 'target', 'why', 'tone', 'his_part', 'wants', 'must_answer', 'said'], properties: { wants: { type: 'string' }, must_answer: { type: 'string' }, said: { type: 'string' }, means: { type: 'string' }, feel: { type: 'string' }, target: { type: 'string', enum: ['他本人', '他做了或没做的事', '你们之间的事', '别人或外面的事', '她自己', '没有明显情绪', '不确定'] }, why: { type: 'string' }, tone: { type: 'string', enum: ['认真', '开玩笑', '反话', '撒娇', '赌气', '吃醋', '试探', '普通'] }, his_part: { type: 'string' } } };
-const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv', 'aired'], properties: {
-  aired: { type: 'boolean' },
+const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv', 'aired', 'told', 'bits_add'], properties: {
+  aired: { type: 'boolean' }, ...SR_BITS_SCHEMA,
   read: SR_READ_SCHEMA,
   conv: { type: 'object', additionalProperties: false, required: ['t', 'open'], properties: { t: { type: 'string' }, open: { type: 'array', items: { type: 'string' } } } },
   sched: SR_SCHED_SCHEMA,
@@ -9608,7 +9653,7 @@ const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required:
   mood: { type: 'object', additionalProperties: false, required: ['val', 'to', 'why'], properties: { val: { type: 'number' }, to: { type: 'string' }, why: { type: 'string' } } } } };
 // 结果落地：记忆、承诺、约定、心情
 function srApply(j, when, T) {
-  srMemOps(j.mem, when, 'him'); srSched(j.sched, when);
+  srMemOps(j.mem, when, 'him'); srSched(j.sched, when); srBitsApply(j, when);
   if (j.conv && j.conv.t) SR().conv = { t: String(j.conv.t).slice(0, 120), open: (j.conv.open || []).slice(0, 4).map(x => String(x).slice(0, 60)), at: when, read: j.read || null };
   if (j.promise && j.promise.t && j.promise.cond) srPromiseAdd(j.promise, when);
   if (j.mood) { const M = SR().mood; if (typeof j.mood.val === 'number') M.val = clamp(M.val * .4 + clamp(j.mood.val, -2, 2) * .6, -2, 2); M.to = String(j.mood.to || '').slice(0, 20); if (j.mood.why) M.why = String(j.mood.why).slice(0, 40); }
@@ -9638,7 +9683,8 @@ function srMeet(pl, when) {
   srMemAdd({ k: 'plan', who: 'us', t: `约好 ${srClock(at)} ${what}`, at, src: 'sys', st: 'planned', imp: 4, ref: id }, when);
 }
 // 把几条消息排进发送队列（按打字速度一条条发）
-function srSend(T, list, at, extra) { const L = list.filter(m => m.ko && m.ko.trim()).slice(0, 8).map(m => ({ text: m.ko.trim(), zh: m.zh, ...(extra || {}) })); if (!L.length) return 0; (T.pend || (T.pend = [])).push({ at, list: L }); return 1; }
+function srSend(T, list, at, extra) { const L = list.filter(m => m.ko && m.ko.trim()).slice(0, 8).map(m => { const g = m.ko.trim().match(/^\[(?:사진|照片)\s*[:：]\s*(\w+)\]\s*([\s\S]*)$/); if (!g) return { text: m.ko.trim(), zh: m.zh, ...(extra || {}) };
+    const ph = (SR().photos || []).find(x => x.id === g[1]); if (!ph) return null; ph.sent = at; return { text: '[사진]' + (g[2] ? '\n' + g[2] : ''), zh: '[照片]', ph: ph.mid, ...(extra || {}) }; }).filter(Boolean); /* 发照片只能发他手机里真有的那几张（你在记录里传的），编号对不上的不发 */ if (!L.length) return 0; (T.pend || (T.pend = [])).push({ at, list: L }); return 1; }
 
 /* ---------- 回她的消息 ---------- */
 async function srReply(job) {
@@ -9659,25 +9705,27 @@ ${ctx}
 - means：她这几条真正想说什么、想要他怎么样。
 - feel / target：她现在是什么情绪，冲着谁。恋人之间的不满很多时候就是冲着对方的：等了很久没回、说好的没做到、敷衍、被忽视。看【最近他对她的回应】和聊天里的时间。别一看到负面情绪就当成外面有人惹她。
 - why：这个情绪具体是从哪来的（指出前面哪件事、几点）。
-- tone：认真 / 开玩笑 / 反话 / 撒娇 / 赌气 / 吃醋 / 试探 / 普通。反话、赌气的话按真实意思理解（比如「你忙你的吧」可能是在生气）。
+- tone：普通 / 认真 / 开玩笑 / 反话 / 撒娇 / 赌气 / 吃醋 / 试探。大多数日常聊天就是「普通」，不要把普通的话读出言外之意；但真是反话、赌气时要按真实意思理解（比如「你忙你的吧」可能是在生气）。
 - his_part：他自己在这件事里做了什么、他自己怎么看（觉得理亏 / 有理由 / 有点委屈 / 之前没意识到）。
-- wants：她现在想从他这里得到什么（比如：他正面回答、他主动解释清楚、被哄、确认他还在乎她、打电话 / 见面、或者只是想让他知道她不高兴）。
+- wants：她现在想从他这里得到什么（日常里通常很简单：接着聊、一个回答、他的看法、一起吐槽、或者什么都不要只是分享；只有她明显不高兴时才会是要他解释、表态、被哄）。
 - must_answer：她直接问他、等他表态的问题（比如「你不爱我了吗」「为什么不回」），没有就空。这些要正面回答，不能绕开。
 - said：他在上面已经说过的道歉、解释、安抚（列出来）。这次不要原样再说一遍，要往前推进。
 gist：现在在聊什么、哪些已经说定。
-然后按他的性格和你们刚交往的关系决定怎么回：可以解释、道歉、着急、嘴硬一下、开玩笑缓和、说出自己的感受、承认之前没注意到，也可以有点不服气——但要和他的性格、和 his_part 一致。情绪是冲着他的时候，要接住这件事本身，不要去问「发生什么事了」。
+然后按他的性格和他此刻的状态决定怎么回：可以解释、道歉、着急、嘴硬一下、开玩笑缓和、承认之前没注意到，也可以有点不服气；态度让她感觉得到就行，大多不用明说自己是什么情绪——要和他的性格、和 his_part 一致。
+他有自己的事和心思：可以只接她话里的一部分、顺便说起自己的事、被手头的事分心、话题自己拐走；不需要每次都完整回应、也不需要推动什么。情绪是冲着他的时候，要接住这件事本身，不要去问「发生什么事了」。
 她已经把心里的不满说出来、在等他表态的时候，该他主动：正面回答她的问题，说清楚自己的事，给出具体的办法（比如做不到她要的，就换一个他能做到的）。不要把话推回给她（「你说吧我听着」「慢慢写给我，我都会看」「告诉我怎么了」），那是让她更被动。
-conv：回完之后这段对话的状态（一句话：在聊什么、她现在什么情绪、他们之间有没有没解决的事），open 列出还没解决的事（比如「她因为他很晚才回在生气，还没哄好」），解决了就别列。
+conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
 再决定 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙别的分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（msgs 留空）。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
 promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
 ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（合适的话这次顺便兑现，并在 mem 里把那条 upd 成 done）\n` : ''}sched：他在这次聊天里说到自己的安排有变（临时有事、改时间、取消、现在在做的事和上面不一样）才填，时间写 HH:MM、day 写 YYYY-MM-DD；没有就空数组。
 plan：两人在约见面（meet）或打电话（call）时填：when 写 YYYY-MM-DD HH:MM，confirmed 只有双方都明确说定了才 true；没约就 type 空。约之前要看他自己的安排和他知道的她的行程。
-mood：这次聊完他的心情 val（-2 很差 ~ 2 很好）、对她的态度 to（比如 想她 / 有点委屈 / 普通，可以空）、why 一句原因。
+mood：这次聊完他整体的心情 val（-2 很差 ~ 2 很好，大多数普通聊天就是 0 左右）、to 填空字符串、why 一句起因（写发生了什么事，不写情绪名）。
 ${SR_MEM_HINT}
 
 ${SR_RULES}
 aired：如果上面有【他心里还搁着的事】，而这次回复里他把它说出来了（或者她已经主动解释清楚了），true；否则 false。
+${SR_BITS_HINT}
 msgs：ko 原文，zh 自然的中文意思。`, 3000, SR_REPLY_SCHEMA);
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
@@ -9696,23 +9744,30 @@ async function srReach(job) {
   const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, R = SR(), w = job.why || {};
   if (srHer(T, when).filter(m => m.at > (R.chat.him || 0)).length && w.kind !== 'promise') return true; // 她先发了消息：交给回复
   const recent = R.reach.slice(-6).map(x => `${srClock(x.at)} ${x.topic || x.kind}`).join('；');
-  const j = await srAI(`CRAVITY 世琳拿起手机，在想要不要给 Cyan 发 KKT。不是在回她，是他自己想找她。
+  const open = R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? R.conv.open.join('；') : '';
+  const j = await srAI(`${srClock(when)}，CRAVITY 世琳拿起了手机。不是在回 Cyan 的消息。
 ${srCtx(when, w.d || '')}
 
-他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${job.must ? '\n这次他拿起手机就是要找她：一定要发（send=true），内容按他的性格和心情来。' : ''}${w.kind === 'promise' ? '' : w.kind === 'urge' ? '\n第一条是他憋在心里、一直想跟她说的事：除非现在说真的不合适，否则会发（可以很随便、很短，按他的性格和情绪来）。' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}${R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? `\n注意：你们之间还有没解决的事（${R.conv.open.join('；')}），这时候若无其事地聊别的会很奇怪：要么先面对这件事，要么这次就不发。` : ''}
-${recent ? `最近几次他主动找她说的是：${recent}。这次别重复同样的话题和开头。` : ''}
-按真人来：理由不够、现在其实没什么想说的，就 send=false。发的话可以很随便，一两句、没头没尾都行；不要用「在干嘛」「想你」当固定开头，也不要默认说自己在工作 / 录音，除非他确实在做而且跟要说的事有关。
-topic：一句中文写这次说的是什么。promise_done：如果这次兑现了上面答应的事，true。
+【此刻他手边 / 脑子里有的】（只是事实，不是要完成的任务）
+${w.kind === 'promise' ? `- 他答应过她、现在可以做的事：${w.d}` : w.d || '- 没什么特别的'}${open ? `\n- 你们之间上次没说完的：${open}` : ''}
+${recent ? `最近几次他主动找她：${recent}。\n` : ''}
+人拿起手机，大多时候只是随便刷刷。他会不会给她发、发什么，按他这个人此刻真实的样子来：
+- 可能是顺手说一件刚才的小事、发张照片、突然想到的一句话、接着之前没聊完的、问她一句，也可能就是闲着想跟她说说话；也可能刷了两下就放下了（send=false）。
+- 这次只做一件事，像真人发出第一句时并不知道对方会怎么接：不要在一次里铺垫、抛出事件、再交代自己的感受，把整段剧情走完。后面怎么聊，看她怎么回。
+- 他的情绪不用说出来：带在挑什么说、怎么说、语气里就够了，也可以完全看不出来。
+- 他说到自己的事，只能是上面时间线、小事、记忆里有的；想说一件上面没有的小事，要和那个时间他在做的事对得上（写进 bits_add）。
+${w.kind === 'promise' ? 'promise_done：这次兑现了答应的事就 true。' : 'promise_done：false。'}
+topic：一句中文，记下这次说的是什么（内部记录）。
+${SR_BITS_HINT}
 ${SR_MEM_HINT}
 ${SR_RULES}
 msgs：ko 原文，zh 中文意思。`, 3000,
-    { type: 'object', additionalProperties: false, required: ['send', 'msgs', 'topic', 'promise_done', 'mem'], properties: { send: { type: 'boolean' }, msgs: SR_REPLY_SCHEMA.properties.msgs, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA } });
+    { type: 'object', additionalProperties: false, required: ['send', 'msgs', 'topic', 'promise_done', 'mem', 'told', 'bits_add'], properties: { send: { type: 'boolean' }, msgs: SR_REPLY_SCHEMA.properties.msgs, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } });
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
-  srMemOps(j.mem, when, 'him');
-  if (job.must && !(j.send && (j.msgs || []).length) && (job.mt || 0) < 3) { srJob('reach', Date.now() + 60e3, { must: 1, why: job.why, mt: (job.mt || 0) + 1 }); return true; }
+  srMemOps(j.mem, when, 'him'); if (j.send && (j.msgs || []).length) srBitsApply(j, when);
   if (w.kind === 'urge' && !j.send) { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; return true; } } // 憋着想说的事这次没发出去：过一阵还会再想起来（最多再想两次）
-  for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
+  for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^bit/.test(ref)) for (const d of Object.values(R.day)) for (const g2 of d.segs) for (const b of g2.bits || []) if ('bit' + b.id === ref) b.seen = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
   if (!j.send || !(j.msgs || []).length) { if (pm) pm.cond.at = when + 40 * 60e3; return true; } // 答应的事这次没说出口：过一会儿再想起来（窗口过了就算没做到）
   if (srHer(T, Date.now()).filter(m => m.at > when).length && !job.tech) return true; // 生成期间她发了消息
@@ -9807,13 +9862,21 @@ function srRegenTomorrow1() { const R = SR(); if (R.rgt1) return; R.rgt1 = 1; co
 function srNoteTiny1() { const R = SR(); if (R.tiny1) return; R.tiny1 = 1; const N = serimNotes();
   for (const D of Object.values(R.day)) D.segs = D.segs.filter(g => { if (g.src !== 'note' || !g.nid) return true; const n = N.find(x => x.id === g.nid); return !(n && g.e - g.s < 30 && Math.abs(g.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)); }); save(); }
 function srUrgeCard2() { const R = SR(); if (R.urgeCard2) return; R.urgeCard2 = 1; const u = (R.urges || []).find(x => /小卡/.test(x.t)); if (u && !R.reach.some(x => x.kind === 'urge' && x.at >= u.at)) { u.used = 0; u.tries = 0; u.at = Date.now(); R.chat.lastEval = 0; R.chat.segSeen = '-'; } save(); } // 小卡那件事他想过但没发出去：重新记着
+function srCardOpen2() { const R = SR(); if (R.cardOpen2) return; R.cardOpen2 = 1; const T = dmThread(srP()), M = T.msgs;
+  const i = M.findIndex(m => !m.me && /외투 주머니에서 민희 소카/.test(m.text || '')); if (i < 0) { save(); return; }
+  let a = i; if (a > 0 && !M[a - 1].me && /^은설아?$/.test((M[a - 1].text || '').trim())) a--; let b = i; while (b + 1 < M.length && !M[b + 1].me && /소카|삐짐|거기서 나와/.test(M[b + 1].text || '')) b++;
+  const t0 = M[a].at, base = { ...M[i] }; delete base.ph; delete base.srPh;
+  const L = [['오늘 너무 힘들다', '今天好累'], ['근데 옷 주머니에서 포카 나왔어', '不过衣服口袋里翻出了一张小卡'], ['[사진]', '[照片]', 1], ['이게 왜 여기에', '这个怎么会在这'], ['포카가 마음에 들었나...왜 내 주머니에 있지', '小卡是看上我了吗…怎么在我口袋里'], ['ㅋㅋㅋㅋㅋ', '哈哈哈哈哈']];
+  M.splice(a, b - a + 1, ...L.map(([text, zh, ph], k) => ({ ...base, id: uid(), at: t0 + k * 4e3, text, zh, ...(ph ? { srPh: '小卡|포카|포토카드' } : {}) })));
+  for (const m of R.mem) if (/삐짐|민희 소카가 거기서/.test(m.t)) m.t = m.t.replace(/[^，。；]*(삐짐|민희 소카가 거기서 나와)[^，。；]*/g, '他说衣服口袋里翻出了小卡，拿来开玩笑');
+  if (R.conv && /삐짐|거기서 나와|不高兴|吃醋/.test(R.conv.t || '')) R.conv.t = '他说衣服口袋里翻出了一张小卡，开玩笑问怎么会在他口袋里';
+  srPhotoLink(); save(); }
 function srCardMsgFix1() { const R = SR(); if (R.cardMsg1) return; R.cardMsg1 = 1; const T = dmThread(srP());
   for (const m of T.msgs) if (!m.me && /나 좀 삐짐/.test(m.text || '')) { m.text = '그거 뭐야.. 왜 민희 소카가 거기서 나와'; m.zh = '那是什么…敏熙的小卡怎么会在那里'; }
   const fx = t => typeof t === 'string' ? t.replace(/나 좀 삐짐/g, '왜 민희 소카가 거기서 나와').replace(/我有点不高兴/g, '敏熙的小卡怎么会在那里') : t;
   for (const x of R.mem) x.t = fx(x.t); if (R.conv) R.conv.t = fx(R.conv.t);
   for (const u of R.urges || []) if (/小卡/.test(u.t)) u.t = '外套口袋里翻出了敏熙的小卡（恩雪借他衣服穿时放的）'; save(); }
-function srNudge1() { const R = SR(); if (R.nudge1) return; R.nudge1 = 1; const now = Date.now(), u = (R.urges || []).find(x => !x.used && /小卡/.test(x.t)) || (R.urges || []).filter(x => !x.used).pop();
-  R.jobs = R.jobs.filter(j => j.type !== 'reach'); srJob('reach', now + rand(2, 8) * 60e3, { must: 1, why: u ? { kind: 'urge', d: `他心里一直想跟她说：${u.t}`, ref: 'urge' + u.id, refs: ['urge' + u.id] } : { kind: 'quiet', d: '有一阵没聊了，他想她了' } }); save(); } // 这一次：几分钟内一定主动发
+function srV3Backup() { const R = SR(); if (R.v3bak) return; srBackup('v3'); R.v3bak = 1; save(); }
 function srUrgeCard1() { const R = SR(); if (R.urgeCard1) return; R.urgeCard1 = 1; const n = serimNotes().find(x => /小卡/.test(x.text)); if (n) srUrge('他在外套口袋里发现了她留下的敏熙小卡，有点吃醋', .9, n.at, n.id); save(); }
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
@@ -9840,8 +9903,8 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srUrgeCard2(); srNudge1(); srCardMsgFix1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
-  try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
   const C = R.chat; if (!C.next || !isFinite(C.next)) C.next = now + 60e3;
@@ -10023,7 +10086,10 @@ function serimNoteTick() {
 function serimCardHTML() {
   const td = dkey(Date.now()), N = serimNotes().filter(n => n.day >= addDays(td, -1)).slice().reverse();
   return `<div class="row"><h3 style="flex:1">💙 世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
-    <div class="card"><textarea id="serim-in" style="min-height:64px" placeholder="比如：世琳今天下午去了咖啡馆，晚上准备和成员一起吃饭"></textarea><div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
+    <div class="card"><textarea id="serim-in" style="min-height:64px" placeholder="比如：世琳今天下午去了咖啡馆，晚上准备和成员一起吃饭"></textarea>
+      <div class="sr-ph">${SRPH ? `<img src="${SRPH.url}" alt=""><input id="serim-phd" placeholder="照片里是什么（比如：敏熙的小卡，放在宿舍桌上拍的）" style="flex:1"><button class="link" data-act="serimphx">去掉</button>` : '<label class="btn ghost sm ext-pick">📷 给他一张照片<input type="file" id="serim-ph" accept="image/*"></label><span class="muted" style="font-size:12px">他手机里会有这张照片，聊到相关的时候可能发给你</span>'}</div>
+      <div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
+    ${(SR().photos || []).length ? `<div class="muted" style="font-size:12.5px;margin:8px 4px 4px">他手机里的照片</div><div class="card" style="padding:4px 12px">${SR().photos.slice().reverse().slice(0, 6).map(p => `<div class="rule" style="align-items:center;gap:8px"><img data-mid="${p.mid}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px"><span style="flex:1;font-size:13px">${esc(p.d)}${p.sent ? '<span class="muted">（发过了）</span>' : ''}</span><button class="link" data-act="srphdel" data-id="${p.id}">删</button></div>`).join('')}</div>` : ''}
     ${N.length ? `<div class="sec-title" style="margin-top:10px">你记下的</div><div class="card" style="padding:4px 12px">${N.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === td ? '今天' : '昨天'} ${hhmm(srMin(n.at))}${n.parsed === 'fb' ? ' · 粗略记录（AI 恢复后会重新理解）' : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link" data-act="serimdel" data-id="${n.id}">删</button></div>`).join('')}</div>` : ''}
     ${SR().jobs.some(j => j.type === 'reparse') || serimNotes().some(n => n.day === td && !n.parsed) ? '<div class="muted" style="font-size:12.5px;margin:10px 4px 0">⏳ 正在根据你记的内容更新时间线…</div>' : ''}
     ${srTimelineHTML()}`;
@@ -10415,14 +10481,14 @@ function viewMe() {
 // 刷新弹窗时保留输入框里的字、键盘焦点和聊天记录的滚动位置（之前一发消息界面就跳回顶部）
 function openModal(html) {
   const sh = $('#sheet'), keep = {}, act = document.activeElement, wasOn = $('#modal').classList.contains('on');
-  if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
+  if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
     for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
     keep.sheet = sh.scrollTop; }
   const sig = () => { const h = sh.querySelector('h3,h2,b'); return (sh.firstElementChild?.className || '') + '|' + (h ? h.textContent.trim().slice(0, 30) : ''); }, oldSig = wasOn ? sig() : '';
   sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room,.kk-pf')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
   sh.scrollTop = keep.sheet != null && sig() === oldSig ? keep.sheet : 0; // 同一个弹窗刷新才保留位置，换成别的弹窗从顶上开始
-  for (const id of ['dm-in', 'mgr-in', 'soc-in']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
+  for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
 }
 function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; }
 $('#modal').addEventListener('click', e => { if (e.target.id !== 'modal') return; if (UI.socPop) { const b = document.querySelector('#sheet [data-act=socclose]'); if (b) { b.click(); return; } UI.socPop = null; } if (UI.chPop) UI.chPop = null; if (UI.meet) UI.meet = 0; closeModal(); }); // 点外面关掉：弹窗状态也要清掉，不然之后的事件会被卡住
@@ -10610,7 +10676,10 @@ document.addEventListener('click', async e => {
       socDone(Q, v, o); break; }
     case 'socclose': { const Q = UI.socPop; if (Q && Q.x) delete Q.x.open; if (Q && Q.serim && !social().serim?.done) social().serim.closed = 1; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimopen': openModal(serimCardHTML()); break;
-    case 'serimset': { const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v); toast('记下了'); openModal(serimCardHTML()); break; }
+    case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
+    case 'srphdel': { const R = SR(); R.photos = (R.photos || []).filter(p => p.id !== t.dataset.id); save(); openModal(serimCardHTML()); break; }
+    case 'serimset': { if (SRPH) { const d = ($('#serim-phd')?.value || '').trim(); if (!d) { toast('写一句照片里是什么', '他会按这个判断什么时候发'); break; } const f = SRPH.file; URL.revokeObjectURL(SRPH.url); SRPH = null; await srPhotoAdd(f, d); toast('照片存到他手机里了'); if (!($('#serim-in')?.value || '').trim()) { openModal(serimCardHTML()); break; } }
+      const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v); toast('记下了'); openModal(serimCardHTML()); break; }
     case 'serimdel': { const N = serimNotes(), i = N.findIndex(n => n.id === t.dataset.id); if (i >= 0) N.splice(i, 1); srNoteDrop(t.dataset.id); save(); openModal(serimCardHTML()); break; }
     case 'srsegdel': { const D = srDay(t.dataset.dk), g = D.segs.find(x => x.id === t.dataset.id); if (g) { if (['note', 'plan', 'him'].includes(g.src)) D.segs = D.segs.filter(x => x !== g); else g.del = 1; } save(); openModal(serimCardHTML()); break; }
     case 'srsegedit': openModal(srSegEditHTML(t.dataset.dk, t.dataset.id)); break;
@@ -10803,6 +10872,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', async e => {
   if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
+  if (e.target.id === 'serim-ph') { const f = e.target.files && e.target.files[0]; if (f) { SRPH = { file: f, url: URL.createObjectURL(f) }; openModal(serimCardHTML()); } return; }
   if (e.target.id === 'shfile-in') { const f = e.target.files && e.target.files[0]; if (f) { if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; } render(); return; }
   if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
