@@ -7865,7 +7865,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); crvFuFix1(); trExplainFix1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8835,6 +8835,9 @@ function crvFuFix1() { const SO = social(); if (SO.crvFu1) return; SO.crvFu1 = 1
 function trExplainFix1() { const SO = social(); if (SO.trFix1) return; SO.trFix1 = 1;
   for (const T of Object.values(dms())) for (const m of T.msgs) if (m.zh && /缩写|意思是/.test(m.zh)) { const q = m.zh.match(/意思是[「“"]([^」”"]+)[」”"]/); if (q) m.zh = q[1].replace(/^我爱你$/, '爱你') + ((String(m.text || '').match(/[~～!！?？]+$/) || [''])[0]); }
   save(); }
+function srRepeatDel1() { const SO = social(); if (SO.srRep1) return; SO.srRep1 = 1; const T = dms()[SR_K]; if (!T) return;
+  const i = T.msgs.findIndex((m, k) => !m.me && (m.text || '').trim() === '나 지금 연습 중이야' && T.msgs.slice(Math.max(0, k - 30), k).some(x => !x.me && /연습 중/.test(x.text || '') && dkey(x.at) === dkey(m.at)));
+  if (i >= 0) T.msgs.splice(i, 1); save(); }
 function inviteReplyFix1() { const SO = social(); if (SO.invFix1) return; SO.invFix1 = 1;
   for (const T of Object.values(dms())) { if (T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || !m.opt || T.due || (T.pend && T.pend.length) || !/시간 되면 갈게/.test(m.text || '')) continue;
     const ban = socBan(T.p); T.quiet = null; dmQueue(T.p, [ban ? { text: '오케이 시간 맞춰보자', zh: 'OK 对一下时间' } : { text: '좋아요! 시간 맞춰봐요', zh: '好！对一下时间' }], rand(1, 4) * 60e3); }
@@ -9682,7 +9685,7 @@ function srCtx(when, q) {
   return `【他】${socCardTxt(p)}
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
-此刻：${st ? st.zh : socNow0(p, when).zh}；${srMoodZh()}
+此刻：${st ? st.zh : socNow0(p, when).zh}${st && st.seg && T.msgs.some(x => !x.me && !x.sys && x.at <= when && x.at >= srTs(dk, st.seg.s)) ? '（这段时间里他已经跟她聊过，她知道他在做这个）' : ''}；${srMoodZh()}
 【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
@@ -9695,7 +9698,7 @@ const SR_RULES = `写法：
 - 不要每条都关心、问问题、表达爱意或给情绪价值；不要总结关系、不要解释自己的情绪、不要复述已经说定的事。聊天可以没有目的。
 - 情绪不直接报出来：真人不会说「나 좀 삐짐」「질투나」「서운해」「기분 안 좋아」「나 화났어」这种给自己的情绪贴标签的话。吃醋、不爽、委屈是从说话方式里漏出来的：反问（민희 소카가 왜 내 주머니에서 나와?）、明知故问、阴阳怪气地夸（민희 잘생겼지~）、回得变短变冷（ㅇㅇ / 그래 / ㅡㅡ）、故意不接她的话、拿这件事开玩笑但有点酸。只有她追问「你是不是生气了」、或者事情真的严重到要摊开说时，才会说出口，而且也常常是嘴硬（아닌데? / 안 삐졌는데）。
 - 「慢慢说」「我在听」「写给我我都会看」「发生什么事了」「辛苦了」「我一直都在」这类把话推给对方的安慰，只有在情境真的需要、而且是他这个人会说的话时才用；她在生他的气、在等他表态时说这些，就是没听懂。
-- 他自己在上面说过的话（同一句道歉、同一个理由、同一句安抚）不要再说一遍。
+- 他自己在上面说过的话（同一句道歉、同一个理由、同一句安抚）不要再说一遍。已经跟她交代过的近况（「我在练习」「在忙」「在路上」）也一样：她已经知道了，除非状态变了（练完了、换了地方、要去忙别的），不用再报一遍。
 - 他说的自己的事必须和【他今天】一致：在做什么、在哪、和谁。没写的具体经历不要编；不记得的事就是不记得。
 - 「还没发生」的计划不能说成已经做了；「猜测」不能当事实。她提到你不知道的过去，就照实反应，不要附和成真的。
 - 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
@@ -9765,7 +9768,7 @@ async function srReply(job) {
   const due = srLive(when).filter(m => m.k === 'promise' && m.st === 'planned' && m.cond && when >= m.cond.at);
   // 隔了很久才回：她第一条消息到现在，他实际在做什么（只用时间线上的真实安排）
   const gapMin = Math.round((when - her[0].at) / 60e3), gapDk = dkey(her[0].at), gapSegs = gapMin >= 20 ? [...new Set([gapDk, dkey(when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > her[0].at && srTs(dk, g.s) < when).map(g => srSegZh(g, dk, when))) : [];
-  const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，一共 ${her.length} 条，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才回。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。\n像真人隔了一阵才回那样：通常会先简单交代一下刚才在干嘛（只能用上面这段真实的安排，不清楚就笼统说，不要编），熟的人不用郑重道歉；然后接上她这几条里要紧的内容——她问的事、她的情绪（比如说心情不好、说想他）要回应，不能只回最后一条。` : '';
+  const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，一共 ${her.length} 条，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才回。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。\n像真人隔了一阵才回那样：通常会先简单交代一下刚才在干嘛（只能用上面这段真实的安排，不清楚就笼统说，不要编；之前已经跟她说过自己在忙什么、现在还是同一件事的话就不用再说），熟的人不用郑重道歉；然后接上她这几条里要紧的内容——她问的事、她的情绪（比如说心情不好、说想他）要回应，不能只回最后一条。` : '';
   const ctx = srCtx(when, her.map(m => m.text + ' ' + (m.zh || '')).join(' ') + ' ' + (lastHim ? lastHim.text + ' ' + (lastHim.zh || '') : ''));
   const j = await srAI(`你写的是 CRAVITY 世琳本人在 KKT 上回 Cyan 的消息。
 ${ctx}
