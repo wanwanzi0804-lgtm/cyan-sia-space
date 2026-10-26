@@ -686,7 +686,44 @@ video.bv-glow{pointer-events:none}
 <div id="modal"><div class="sheet" id="sheet"></div></div>
 
 <script>
+/* 手机直播共享电脑屏幕：电脑打开 ?pcshare=配对码 → 只显示一个共享页面，选好屏幕后把画面传给手机（WebRTC 点对点，不经过别的服务器存储） */
+window.loadPeer = function () {
+  if (window.Peer) return Promise.resolve();
+  const srcs = ['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js', 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];
+  return new Promise((ok, no) => { let i = 0; const t = () => { if (i >= srcs.length) return no(new Error('连接组件加载失败，检查一下网络')); const sc = document.createElement('script'); sc.src = srcs[i++]; sc.onload = () => window.Peer ? ok() : t(); sc.onerror = t; document.head.appendChild(sc); }; t(); });
+};
+(function () {
+  const code = (new URLSearchParams(location.search).get('pcshare') || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); if (!code) return;
+  window.PC_SENDER = code; window.addEventListener('error', e => { if (/PC_SENDER_MODE/.test(String(e.message))) e.preventDefault(); });
+  document.addEventListener('DOMContentLoaded', () => {
+    document.title = 'SIA SPACE · 共享电脑屏幕';
+    document.body.innerHTML = `<div style="max-width:520px;margin:8vh auto;padding:24px;font-family:-apple-system,system-ui,sans-serif;color:#1d1d2b">
+      <h2 style="margin:0 0 6px">🖥 共享电脑屏幕到手机直播</h2><p style="color:#777;margin:0 0 18px">配对码 <b style="font-size:20px;letter-spacing:2px;color:#1d1d2b">${code}</b>（要和手机直播页上显示的一样）</p>
+      <button id="pc-go" style="font-size:17px;padding:12px 22px;border:0;border-radius:12px;background:#ff2d55;color:#fff;font-weight:700;cursor:pointer">开始共享屏幕</button>
+      <button id="pc-stop" hidden style="font-size:15px;padding:10px 18px;margin-left:8px;border:0;border-radius:12px;background:#eee;cursor:pointer">停止</button>
+      <p id="pc-st" style="margin:16px 0;color:#555">先在手机上打开直播页，屏幕共享选「电脑屏幕」，再点上面的按钮。</p>
+      <video id="pc-pv" autoplay muted playsinline style="width:100%;border-radius:12px;background:#000;display:none"></video>
+      <p style="color:#999;font-size:13px">共享期间别关这个页面。画面是电脑直接传到手机的。</p></div>`;
+    document.body.style.background = '#f4f6fb';
+    const st = t => { document.getElementById('pc-st').textContent = t; }; let peer = null, stream = null;
+    const stop = msg => { try { peer && peer.destroy(); } catch (e) { } peer = null; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; document.getElementById('pc-pv').style.display = 'none'; document.getElementById('pc-stop').hidden = true; document.getElementById('pc-go').hidden = false; st(msg || '已停止共享'); };
+    document.getElementById('pc-stop').onclick = () => stop();
+    document.getElementById('pc-go').onclick = async () => {
+      try { if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return st('这个浏览器不支持共享屏幕，用电脑上的 Chrome / Edge / Safari 打开');
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: false });
+        const pv = document.getElementById('pc-pv'); pv.srcObject = stream; pv.style.display = 'block'; document.getElementById('pc-go').hidden = true; document.getElementById('pc-stop').hidden = false;
+        stream.getVideoTracks()[0].onended = () => stop();
+        st('正在连接手机…'); await window.loadPeer(); peer = new window.Peer();
+        peer.on('open', () => { const call = peer.call('cyansia-' + code, stream); if (!call) return st('连不上手机'); call.on('close', () => stop('手机那边断开了')); setTimeout(() => { if (peer) st('✅ 已连上手机：现在电脑屏幕会出现在直播里'); }, 1500); });
+        peer.on('error', e => { if (e.type === 'peer-unavailable') stop('手机那边还没准备好：在手机直播页把屏幕共享来源选成「电脑屏幕」，然后再点一次'); else stop('连接失败：' + (e.type || e.message)); });
+      } catch (e) { if (stream) stop(); st(e && e.name === 'NotAllowedError' ? '没有选要共享的屏幕' : '出错了：' + (e.message || e)); }
+    };
+  });
+})();
+</script>
+<script>
 'use strict';
+if (window.PC_SENDER) throw new Error('PC_SENDER_MODE');
 /* =========================================================
    基础工具
    ========================================================= */
@@ -6745,14 +6782,31 @@ let EXT = null;
 // 屏幕共享：这台设备的屏幕（电脑浏览器）/ 外接设备（采集卡、第二个摄像头）/ 一段录屏视频；和摄像头、外接画面可以同时开
 let SHFILE = null, SHDEVS = [];
 const canScreen = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+const shareKind = () => (S.prefs.shareSrc === 'screen' && !canScreen() ? '' : S.prefs.shareSrc) || (canScreen() ? 'screen' : 'pc');
+// 电脑屏幕：手机这边等电脑连过来（配对码固定，存在设置里）
+let PCPEER = null, PCSTREAM = null, PCSTAT = '';
+function pcCode() { if (!S.prefs.pcCode) { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; S.prefs.pcCode = Array.from({ length: 6 }, () => A[Math.floor(Math.random() * A.length)]).join(''); save(); } return S.prefs.pcCode; }
+function pcUrl() { return location.origin + location.pathname + '?pcshare=' + pcCode(); }
+function pcStat(t) { PCSTAT = t; const el = $('#pc-stat'); if (el) el.textContent = t; }
+async function pcListen() {
+  if (PCPEER && !PCPEER.destroyed) return; pcStat('准备中…');
+  try { await loadPeer(); } catch (e) { pcStat(e.message); return; }
+  const peer = PCPEER = new Peer('cyansia-' + pcCode());
+  peer.on('open', () => pcStat(PCSTREAM ? '✅ 电脑已连上' : '等电脑连过来…'));
+  peer.on('disconnected', () => { if (!peer.destroyed) try { peer.reconnect(); } catch (e) { } });
+  peer.on('error', e => { if (e.type === 'unavailable-id') { pcStat('这个配对码被占用了（可能在别的页面也开着），刷新一下试试'); } else if (e.type !== 'peer-unavailable') pcStat('连接出错：' + (e.type || e.message)); });
+  peer.on('call', call => { call.answer(); call.on('stream', st => { PCSTREAM = st; pcStat('✅ 电脑已连上'); if (LIVE && LIVE.mode === 'video' && (LIVE.share ? LIVE.share.k === 'pc' : S.prefs.liveShare && shareKind() === 'pc')) shareShow({ k: 'pc', stream: st }); });
+    call.on('close', () => { PCSTREAM = null; pcStat('电脑断开了'); if (LIVE && LIVE.share && LIVE.share.k === 'pc') { shareStop(); sysChat('🖥 电脑屏幕共享已断开'); } }); });
+}
 async function shareDevs(ask) {
   try { if (ask) { const t = await navigator.mediaDevices.getUserMedia({ video: true }); t.getTracks().forEach(x => x.stop()); } SHDEVS = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
     if (!SHDEVS.length) toast('没找到外接设备', '确认采集卡已经连好'); else if (!S.prefs.shareDev || !SHDEVS.some(d => d.deviceId === S.prefs.shareDev)) { S.prefs.shareDev = (SHDEVS.find(d => /capture|hdmi|usb|采集|cam link|elgato|uvc/i.test(d.label)) || SHDEVS[SHDEVS.length - 1]).deviceId; save(); }
   } catch (e) { toast('找不到设备', camErr(e)); }
 }
 async function shareOpen() {
-  const k = S.prefs.shareSrc || (canScreen() ? 'screen' : 'dev');
+  const k = shareKind();
   if (k === 'screen') { if (!canScreen()) throw new Error('这个浏览器不支持共享屏幕，换成「外接设备」或「录屏视频」'); return { k, stream: await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }) }; }
+  if (k === 'pc') { pcListen(); if (!PCSTREAM) throw new Error('电脑还没连上：在电脑浏览器打开直播页上显示的网址，点「开始共享屏幕」'); return { k, stream: PCSTREAM }; }
   if (k === 'dev') { const id = S.prefs.shareDev; return { k, stream: await navigator.mediaDevices.getUserMedia({ video: id ? { deviceId: { exact: id }, width: { ideal: 1920 }, height: { ideal: 1080 } } : true, audio: false }) }; }
   if (!SHFILE) throw new Error('先选一段录屏视频或截图'); return { k, file: SHFILE };
 }
@@ -6763,8 +6817,8 @@ function shareShow(sh) {
   if (sh.stream) sh.stream.getVideoTracks().forEach(t => t.onended = () => { if (LIVE === L && L.share === sh) { shareStop(); sysChat('🖥 屏幕共享已结束'); } });
   L.layer.classList.add('sharing'); $('#lv-scr')?.classList.add('on'); sysChat('🖥 开始共享屏幕'); L.topic = { cat: 'share', until: Date.now() + 30000 };
 }
-function shareStop(quiet) { const L = LIVE; if (!L || !L.share) return; if (L.share.stream) L.share.stream.getTracks().forEach(t => t.stop()); L.share = null; L.layer.classList.remove('sharing'); const box = L.layer.querySelector('.lv-scr'); if (box) box.innerHTML = ''; $('#lv-scr')?.classList.remove('on'); if (!quiet) save(); }
-async function shareToggle() { if (!LIVE) return; if (LIVE.share) { shareStop(); sysChat('🖥 屏幕共享已关闭'); return; } if ((S.prefs.shareSrc || (canScreen() ? 'screen' : 'dev')) === 'file' && !SHFILE) { $('#lv-scr-file')?.click(); return; } try { shareShow(await shareOpen()); } catch (e) { if (e && e.name !== 'NotAllowedError') toast('屏幕共享没打开', e.message || String(e)); } }
+function shareStop(quiet) { const L = LIVE; if (!L || !L.share) return; if (L.share.stream && L.share.k !== 'pc') L.share.stream.getTracks().forEach(t => t.stop()); L.share = null; L.layer.classList.remove('sharing'); const box = L.layer.querySelector('.lv-scr'); if (box) box.innerHTML = ''; $('#lv-scr')?.classList.remove('on'); if (!quiet) save(); }
+async function shareToggle() { if (!LIVE) return; if (LIVE.share) { shareStop(); sysChat('🖥 屏幕共享已关闭'); return; } if (shareKind() === 'file' && !SHFILE) { $('#lv-scr-file')?.click(); return; } try { shareShow(await shareOpen()); } catch (e) { if (e && e.name !== 'NotAllowedError') toast('屏幕共享没打开', e.message || String(e)); } }
 function extPair() { if (!EXT) return ''; return EXT.kind === 'video' ? `<video class="bv-main ext" src="${EXT.url}" autoplay loop muted playsinline></video><video class="bv-glow ext" src="${EXT.url}" autoplay loop muted playsinline></video>` : `<img class="bv-main ext" src="${EXT.url}" alt=""><img class="bv-glow ext" src="${EXT.url}" alt="">`; }
 function extPick(f) { if (!f) return; if (EXT) URL.revokeObjectURL(EXT.url); EXT = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; const box = $('#pv-box'); if (box) { box.innerHTML = extPair(); applyBeauty(box); $$('video', box).forEach(v => v.play && v.play().catch(() => { })); } }
 function videoPair(stream) { return `<video class="bv-main" autoplay playsinline muted></video><video class="bv-glow" autoplay playsinline muted></video>`; }
@@ -6772,7 +6826,8 @@ function attachPair(root, stream) { $$('video.bv-main, video.bv-glow', root).for
 
 function viewLive() {
   if (S.prefs.liveMode === 'ext') { S.prefs.liveMode = 'video'; S.prefs.liveSrc = 'ext'; }
-  const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video', src = S.prefs.liveSrc || 'cam', shs = S.prefs.shareSrc || (canScreen() ? 'screen' : 'dev');
+  const hist = S.lives.slice(0, 8); const mode = S.prefs.liveMode || 'video', src = S.prefs.liveSrc || 'cam', shs = shareKind();
+  if (mode === 'video' && S.prefs.liveShare && shs === 'pc') setTimeout(pcListen, 0);
   return `${feedNav('live')}<div class="card">
     <h3 style="margin:2px 0 10px">开始直播</h3>
     <div class="seg"><button class="${mode === 'video' ? 'on' : ''}" data-act="lmode" data-m="video">📹 视频直播</button><button class="${mode === 'voice' ? 'on' : ''}" data-act="lmode" data-m="voice">🎙 语音直播</button></div>
@@ -6780,8 +6835,9 @@ function viewLive() {
     ${src === 'ext' ? `<div class="preview" id="pv-box">${EXT ? extPair() : '<span>选一段视频或一张照片当直播画面</span>'}</div>` : src === 'cam' ? `<div class="preview" id="pv-box"><span>📷 点「预览摄像头」看看美颜效果</span></div>` : `<div class="preview voice-pv">${bigAvatar(90)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">不开摄像头：没共享屏幕时粉丝看到的是头像</span></div>`}
     ${src !== 'none' ? `<div class="field"><label>✨ 美颜</label>${beautyPanelHTML()}</div>` : ''}
     <div class="field"><div class="rest-tg" style="margin:0;padding:0"><span>🖥 屏幕共享<span class="muted" style="font-size:12px">（像游戏直播：屏幕铺满，${src === 'none' ? '' : '你的画面变成角落小窗，'}直播中也能随时开关）</span></span><label class="sw"><input type="checkbox" data-act="lshare" ${S.prefs.liveShare ? 'checked' : ''}><i></i></label></div>
-    ${S.prefs.liveShare ? `<div class="seg" style="margin:8px 0 0">${[['screen', '💻 这台设备的屏幕'], ['dev', '🔌 外接设备'], ['file', '🎞 录屏视频']].map(([k, t]) => `<button class="${shs === k ? 'on' : ''}" data-act="shsrc" data-k="${k}">${t}</button>`).join('')}</div>
-    ${shs === 'screen' ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${canScreen() ? '开播时浏览器会让你选共享整个屏幕、某个窗口或标签页。想共享电脑屏幕：在电脑浏览器上打开这个页面开播就行。' : '⚠️ 手机浏览器不支持共享自己的屏幕。要共享电脑 / 游戏机的画面，用采集卡连到手机或平板后选「外接设备」，或者选一段「录屏视频」。'}</p>`
+    ${S.prefs.liveShare ? `<div class="seg" style="margin:8px 0 0">${(canScreen() ? [['screen', '💻 这台设备'], ['pc', '🖥 另一台电脑'], ['dev', '🔌 采集卡'], ['file', '🎞 录屏']] : [['pc', '🖥 电脑屏幕'], ['dev', '🔌 采集卡'], ['file', '🎞 录屏视频']]).map(([k, t]) => `<button class="${shs === k ? 'on' : ''}" data-act="shsrc" data-k="${k}">${t}</button>`).join('')}</div>
+    ${shs === 'pc' ? `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:13px;line-height:1.6">在<b>电脑</b>浏览器（Chrome / Edge / Safari）打开：<div style="word-break:break-all;font-weight:700;margin:4px 0">${esc(pcUrl())}</div><button class="link" data-act="pccopy">复制网址</button> · 配对码 <b style="letter-spacing:1px">${pcCode()}</b><br>在电脑上点「开始共享屏幕」，选要共享的屏幕或窗口。连上以后这里会显示 ✅，开播或者直播中点 🖥 就能用。<div id="pc-stat" style="margin-top:4px;font-weight:600">${esc(PCSTAT || '')}</div></div>`
+      : shs === 'screen' ? `<p class="muted" style="margin:6px 0 0;font-size:12.5px">${canScreen() ? '开播时浏览器会让你选共享整个屏幕、某个窗口或标签页。想共享电脑屏幕：在电脑浏览器上打开这个页面开播就行。' : '⚠️ 手机浏览器不支持共享自己的屏幕。要共享电脑 / 游戏机的画面，用采集卡连到手机或平板后选「外接设备」，或者选一段「录屏视频」。'}</p>`
       : shs === 'dev' ? `<div class="row" style="margin-top:8px;gap:8px"><select id="sh-dev" style="flex:1">${SHDEVS.length ? SHDEVS.map((d, i) => `<option value="${esc(d.deviceId)}" ${S.prefs.shareDev === d.deviceId ? 'selected' : ''}>${esc(d.label || '视频设备 ' + (i + 1))}</option>`).join('') : '<option value="">（还没找设备）</option>'}</select><button class="btn ghost" data-act="shdevs">找设备</button></div><p class="muted" style="margin:6px 0 0;font-size:12.5px">采集卡、HDMI 转接器、第二个摄像头都会出现在这里（电脑屏幕 / Switch / PS 接采集卡就能当屏幕共享）。</p>`
       : `<div class="row" style="margin-top:8px"><label class="btn ghost ext-pick">${SHFILE ? '换一个（' + esc(SHFILE.name.slice(0, 16)) + '）' : '选录屏视频 / 截图'}<input type="file" id="shfile-in" accept="video/*,image/*"></label></div>`}` : ''}</div>`
     : `<div class="preview voice-pv">${bigAvatar(110)}<span style="position:absolute;bottom:14px;color:#fff;font-size:13px;opacity:.85">语音直播不开摄像头，粉丝只听得到你的声音</span></div>`}
@@ -6820,7 +6876,7 @@ async function startLive() {
   if (src === 'ext' && !EXT) { toast('先选一段视频或一张照片'); return; }
   S.prefs.lastLiveTitle = title;
   stopPreview();
-  let sh0 = null; if (wantShare) try { sh0 = await shareOpen(); } catch (e) { if (src === 'none') { toast('屏幕共享没打开', (e && e.message) || ''); return; } toast('屏幕共享没打开，先只开' + (src === 'ext' ? '外接画面' : '摄像头'), (e && e.message) || ''); } // 共享屏幕要先问（浏览器要求在点按钮的那一下发起）
+  let sh0 = null; if (wantShare) try { sh0 = await shareOpen(); } catch (e) { if (src === 'none') { toast('屏幕共享没打开', (e && e.message) || ''); return; } if (shareKind() === 'pc') toast('电脑还没连上，先只开' + (src === 'ext' ? '外接画面' : '摄像头'), '电脑那边点了「开始共享屏幕」后会自动切过去'); else toast('屏幕共享没打开，先只开' + (src === 'ext' ? '外接画面' : '摄像头'), (e && e.message) || ''); } // 共享屏幕要先问（浏览器要求在点按钮的那一下发起）
   let stream = null, mode = want, ext = false;
   if (src === 'ext' || src === 'none') { ext = src === 'ext'; mode = 'video'; try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) { toast('没有拿到麦克风，只能打字互动'); } }
   else try {
@@ -9641,7 +9697,7 @@ async function srReach(job) {
   const j = await srAI(`CRAVITY 世琳拿起手机，在想要不要给 Cyan 发 KKT。不是在回她，是他自己想找她。
 ${srCtx(when, w.d || '')}
 
-他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${w.kind === 'promise' ? '' : w.kind === 'urge' ? '\n第一条是他憋在心里、一直想跟她说的事：除非现在说真的不合适，否则会发（可以很随便、很短，按他的性格和情绪来）。' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}${R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? `\n注意：你们之间还有没解决的事（${R.conv.open.join('；')}），这时候若无其事地聊别的会很奇怪：要么先面对这件事，要么这次就不发。` : ''}
+他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${job.must ? '\n这次他拿起手机就是要找她：一定要发（send=true），内容按他的性格和心情来。' : ''}${w.kind === 'promise' ? '' : w.kind === 'urge' ? '\n第一条是他憋在心里、一直想跟她说的事：除非现在说真的不合适，否则会发（可以很随便、很短，按他的性格和情绪来）。' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}${R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? `\n注意：你们之间还有没解决的事（${R.conv.open.join('；')}），这时候若无其事地聊别的会很奇怪：要么先面对这件事，要么这次就不发。` : ''}
 ${recent ? `最近几次他主动找她说的是：${recent}。这次别重复同样的话题和开头。` : ''}
 按真人来：理由不够、现在其实没什么想说的，就 send=false。发的话可以很随便，一两句、没头没尾都行；不要用「在干嘛」「想你」当固定开头，也不要默认说自己在工作 / 录音，除非他确实在做而且跟要说的事有关。
 topic：一句中文写这次说的是什么。promise_done：如果这次兑现了上面答应的事，true。
@@ -9652,6 +9708,7 @@ msgs：ko 原文，zh 中文意思。`, 3000,
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
   srMemOps(j.mem, when, 'him');
+  if (job.must && !(j.send && (j.msgs || []).length) && (job.mt || 0) < 3) { srJob('reach', Date.now() + 60e3, { must: 1, why: job.why, mt: (job.mt || 0) + 1 }); return true; }
   if (w.kind === 'urge' && !j.send) { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; return true; } } // 憋着想说的事这次没发出去：过一阵还会再想起来（最多再想两次）
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
@@ -9748,6 +9805,8 @@ function srRegenTomorrow1() { const R = SR(); if (R.rgt1) return; R.rgt1 = 1; co
 function srNoteTiny1() { const R = SR(); if (R.tiny1) return; R.tiny1 = 1; const N = serimNotes();
   for (const D of Object.values(R.day)) D.segs = D.segs.filter(g => { if (g.src !== 'note' || !g.nid) return true; const n = N.find(x => x.id === g.nid); return !(n && g.e - g.s < 30 && Math.abs(g.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)); }); save(); }
 function srUrgeCard2() { const R = SR(); if (R.urgeCard2) return; R.urgeCard2 = 1; const u = (R.urges || []).find(x => /小卡/.test(x.t)); if (u && !R.reach.some(x => x.kind === 'urge' && x.at >= u.at)) { u.used = 0; u.tries = 0; u.at = Date.now(); R.chat.lastEval = 0; R.chat.segSeen = '-'; } save(); } // 小卡那件事他想过但没发出去：重新记着
+function srNudge1() { const R = SR(); if (R.nudge1) return; R.nudge1 = 1; const now = Date.now(), u = (R.urges || []).find(x => !x.used && /小卡/.test(x.t)) || (R.urges || []).filter(x => !x.used).pop();
+  R.jobs = R.jobs.filter(j => j.type !== 'reach'); srJob('reach', now + rand(2, 8) * 60e3, { must: 1, why: u ? { kind: 'urge', d: `他心里一直想跟她说：${u.t}`, ref: 'urge' + u.id, refs: ['urge' + u.id] } : { kind: 'quiet', d: '有一阵没聊了，他想她了' } }); save(); } // 这一次：几分钟内一定主动发
 function srUrgeCard1() { const R = SR(); if (R.urgeCard1) return; R.urgeCard1 = 1; const n = serimNotes().find(x => /小卡/.test(x.text)); if (n) srUrge('他在外套口袋里发现了她留下的敏熙小卡，有点吃醋', .9, n.at, n.id); save(); }
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
@@ -9774,7 +9833,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srUrgeCard2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srUrgeCard2(); srNudge1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -10403,6 +10462,7 @@ document.addEventListener('click', async e => {
     case 'lsrc': stopPreview(); S.prefs.liveSrc = t.dataset.k; save(); render(); break;
     case 'shsrc': S.prefs.shareSrc = t.dataset.k; save(); if (t.dataset.k === 'dev' && !SHDEVS.length) await shareDevs(); render(); break;
     case 'shdevs': await shareDevs(true); render(); break;
+    case 'pccopy': try { await navigator.clipboard.writeText(pcUrl()); toast('已复制，发到电脑上打开'); } catch (e) { prompt('复制这个网址到电脑上打开', pcUrl()); } break;
     case 'bbmenu': bbSideOpen(); break;
     case 'bbtickopen': { const g = [...S.bubble.groups].reverse().find(x => x.fans.length); if (g) bbListOpen(g); break; }
     case 'bbrlclose': $('#bb-rl')?.remove(); break;
