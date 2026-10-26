@@ -7727,7 +7727,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8677,6 +8677,11 @@ function serimClearMig() {
   for (const [k, Q] of Object.entries(SO.ppl || {})) if (k !== 'CRAVITY|세림' && Q.ex) { const mv = Q.ex.filter(e => e.t === 'chat' && e.ai); if (mv.length) { Q.cm = (Q.cm || []).concat(mv.map(e => ({ day: e.day, d: e.d.slice(0, 80) }))).slice(-12); Q.ex = Q.ex.filter(e => !(e.t === 'chat' && e.ai)); } }
   save();
 }
+// 之前答应了约饭他却已读不回的：补上他的回复
+function inviteReplyFix1() { const SO = social(); if (SO.invFix1) return; SO.invFix1 = 1;
+  for (const T of Object.values(dms())) { if (T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || !m.opt || T.due || (T.pend && T.pend.length) || !/시간 되면 갈게/.test(m.text || '')) continue;
+    const ban = socBan(T.p); T.quiet = null; dmQueue(T.p, [ban ? { text: '오케이 시간 맞춰보자', zh: 'OK 对一下时间' } : { text: '좋아요! 시간 맞춰봐요', zh: '好！对一下时间' }], rand(1, 4) * 60e3); }
+  save(); }
 function ahMsgFix() { const SO = social(); if (SO.ahFix) return; SO.ahFix = 1; const T = dms()['BABYMONSTER|아현']; if (!T) return; for (const m of T.msgs) if (!m.me && /잘 시간도 없어/.test(m.text || '')) { m.text = '이번 주 언제 비어? 밥 먹자'; m.zh = '这周哪天有空？一起吃饭吧'; } save(); }
 function nameMig() { const SO = social(); if (!SO.nameV2) { SO.nameV2 = 1; for (const f of chal().friends) if (f.z === '易汉') f.z = '李涵'; for (const T of Object.values(dms())) if (T.p.z === '易汉') T.p.z = '李涵'; save(); } if (SO.nameV) return; SO.nameV = 1; for (const f of chal().friends) if (f.z === '成珉') f.z = '成民'; for (const T of Object.values(dms())) if (T.p.z === '成珉') T.p.z = '成民'; save(); }
 function soloMig() {
@@ -9084,6 +9089,8 @@ async function dmAnswer(key, mine, o, silent) {
   const dmL = !socEv(x.ev)?.th && SOC_DM[x.ev] && SOC_DM[x.ev][0] ? SOC_DM[x.ev] : null;
   const what = dmL ? `${socWho(x.p)}在 KKT 上发来：「${dmL[0]}」（${socG(dmL[1], x.p)}）` : socText(socEv(x.ev), x.p, x), r = await dmChatAi(T, mine, Date.now(), false, { what, opt: o.t, gist: o.reply || '', tone: o.tone }).catch(() => null);
   if (r && r.later) { const d = dmDelay(T.p) + rand(30, 90) * 60e3; T.due = { at: Date.now() + d, later: 1 }; save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
+  const ask = o.tone === '+' && (o.fx || []).some(f => f.todo); // 答应了他的邀约：他一定会接一句（不会当成附和已读不回）
+  if ((!r || !r.list || !r.list.length) && ask && /[가-힣]/.test(o.reply || '')) { const [ko, zh] = o.reply.replace(/^「|」$/g, '').split('｜'); T.quiet = null; r = { list: [{ text: ko, zh: zh || '' }] }; }
   if (!r || !r.list) { dmWillRead(T, Date.now() + Math.min(dmDelay(T.p), rand(1, 20) * 60e3)); save(); if (lvNote.length) dmPush(T.p, lvNote[0]); return; }
   dmQueue(T.p, [...r.list, ...lvNote]);
 }
