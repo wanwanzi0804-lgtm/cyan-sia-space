@@ -9835,8 +9835,8 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - upd：上面【记得的事】里某条（填它的编号）有了新情况，比如约定完成了（st=done）、取消了、她纠正了说法。
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
-const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['inner', 'act', 'ko', 'zh', 'end', 'conv', 'mem', 'promise', 'plan', 'mood', 'sched', 'aired', 'told', 'bits_add'], properties: {
-  inner: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' },
+const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['asks', 'inner', 'act', 'ko', 'zh', 'end', 'conv', 'mem', 'promise', 'plan', 'mood', 'sched', 'aired', 'told', 'bits_add'], properties: {
+  asks: { type: 'string' }, inner: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' },
   aired: { type: 'boolean' }, ...SR_BITS_SCHEMA,
   conv: { type: 'object', additionalProperties: false, required: ['t', 'open'], properties: { t: { type: 'string' }, open: { type: 'array', items: { type: 'string' } } } },
   sched: SR_SCHED_SCHEMA,
@@ -9893,14 +9893,15 @@ async function srReply(job) {
   const gapMin = Math.round((when - her[0].at) / 60e3), gapDk = dkey(her[0].at), gapSegs = gapMin >= 20 ? [...new Set([gapDk, dkey(when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > her[0].at && srTs(dk, g.s) < when).map(g => srSegZh(g, dk, when))) : [];
   const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才看到。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。隔了一阵才回的话，真人常会顺口带一句刚才在干嘛（只能用这段真实的安排；之前已经跟她说过的就不用再说）；她这几条他是一起看的，最在意的那件会接上，不用逐条回。` : '';
   const ctx = srCtx(when, her.map(m => m.text + ' ' + (m.zh || '')).join(' ') + ' ' + (lastHim ? lastHim.text + ' ' + (lastHim.zh || '') : ''));
-  const j = await srAI(`这是 CRAVITY 世琳和 Cyan（恩雪，他在秘密交往的女朋友）的 KKT。你要成为世琳：看到她刚发来的消息，打出他接下来真的会发的东西。
+  const prompt = `这是 CRAVITY 世琳和 Cyan（恩雪，他在秘密交往的女朋友）的 KKT。你要成为世琳：看到她刚发来的消息，打出他接下来真的会发的东西。
 下面是他脑子里的背景（他知道这些，但这些不是要说的内容）：
 ${ctx}
 
 现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（聊天里最后几条）：
 ${mine}${gapTxt}
 
-inner：用他自己的口吻、第一人称写一两句：看到这几条时他脑子里先冒出来的是什么——哪句最戳到他、他此刻想说什么、心情怎么样。真人看消息时注意力只会落在一两个点上，其余的带过或不接；她要是在等他回答一件事、或者在生他的气，他心里清楚，会接住。（inner 不会发出去）
+asks：她这几条里在问他、等他回答或决定的事，照她的意思写一句（没有就空）。她是打中文再翻成韩语发的，可能有错字或翻得不准：按前后文理解她真正的意思（比如前后都在说练习，「联系结束」多半是「练习结束」）。
+inner：用他自己的口吻、第一人称写一两句：看到这几条时他脑子里先冒出来的是什么——哪句最戳到他、他此刻想说什么、心情怎么样。真人看消息时注意力只会落在一两个点上，其余的带过或不接；但 asks 里那件事他会回答（答应、拒绝、商量都行），她要是在生他的气他也会接住。（inner 不会发出去）
 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。
 ko：他在输入框里打出来、发出去的东西，就是顺着 inner 那一个反应说出来的话。他打字时会按回车把话拆成几个气泡（一行一个），这只是打字节奏，不是把几件事各回一条；可以只有一个词，也可以是几句连着说的话。zh：对应的中文，行数和 ko 一样。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
@@ -9913,10 +9914,16 @@ ${SR_MEM_HINT}
 
 ${SR_RULES}
 aired：如果上面有【他心里记着、还没跟她提的事】，而这次他说出来了（或者她已经主动解释清楚了），true；否则 false。
-${SR_BITS_HINT}`, 3000, SR_REPLY_SCHEMA);
+${SR_BITS_HINT}`;
+  // 回复要先想清楚（看懂她在问什么、前后文），所以用 medium；思考也算在 max_tokens 里，给足
+  let j = await srAI(prompt, 12000, SR_REPLY_SCHEMA, false, 'medium');
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
+  // 他这几个小时里自己说过的话：写出来的又是同一句（比如又说一遍「结束了就打给你」），说明没在接她这次的话，重写一次
+  const hisSaid = T.msgs.filter(m => !m.me && !m.sys && m.at > when - 6 * 3600e3 && m.at <= when).map(m => m.text || ''), srNorm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, '');
+  const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
+  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_REPLY_SCHEMA, false, 'medium'); if (job.rid !== srRunId) return 'stale'; } }
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
-  let act = j.act; const msgs = srBubbles(j.ko, j.zh);
+  let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = msgs.filter(b => !srDup(b.ko)); if (keep.length) msgs = keep; }
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
@@ -10061,8 +10068,11 @@ function srCardOpen2() { const R = SR(); if (R.cardOpen2) return; R.cardOpen2 = 
   if (R.conv && /삐짐|거기서 나와|不高兴|吃醋/.test(R.conv.t || '')) R.conv.t = '他说衣服口袋里翻出了一张小卡，开玩笑问怎么会在他口袋里';
   srPhotoLink(); save(); }
 // 5:02 那几条（新的回复方式上线前生成的）：悄悄删掉，连同它带出来的约定 / 电话 / 对话状态，让他按新方式重新看、重新回
-function srRedo502() { const R = SR(); if (R.redo502) return; R.redo502 = 1; const T = dmThread(srP()), M = T.msgs;
-  const i = M.findIndex(m => !m.me && /연습 중이라 바로 전화는 못 받아/.test(m.text || '')); if (i < 0) { save(); return; }
+function srRedo502() { const R = SR(); if (R.redo502) return; R.redo502 = 1; srRedoFrom(/연습 중이라 바로 전화는 못 받아/); }
+function srRedo630() { const R = SR(); if (R.redo630) return; R.redo630 = 1; srRedoFrom(/^아직 연습 좀 남았어/); }
+// 悄悄删掉他从某条开始的那次回复（连同它带出来的约定 / 电话 / 对话状态），让他重新看、重新回
+function srRedoFrom(re) { const R = SR(), T = dmThread(srP()), M = T.msgs;
+  let i = -1; for (let k = M.length - 1; k >= 0; k--) if (!M[k].me && re.test(M[k].text || '')) { i = k; break; } if (i < 0) { save(); return; }
   const t0 = M[i].at; let j = i; while (j < M.length && !M[j].me) j++; M.splice(i, j - i);
   R.mem = R.mem.filter(m => !(m.c >= t0 - 60e3 && m.c <= t0 + 10 * 60e3 && m.src !== 'note' && m.src !== 'sys'));
   if (T.call && !T.call.done && T.call.at >= t0 - 60e3) { const P2 = socPX(T.p); P2.todo = (P2.todo || []).filter(x => x.id !== T.call.td); T.call = null; }
@@ -10102,7 +10112,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
