@@ -4629,7 +4629,8 @@ function mgrContext() {
 ${c && a && !c.over ? `回归：《${a.name}》${c.date}，现在${{ plan: '还在准备期', tease: '在预热期（还没发行）', promo: `在主打打歌期（第 ${Math.floor(-cbDay() / 7) + 1} / ${c.weeks} 周，打到 ${addDays(c.date, 7 * c.weeks - 1)}）`, rest: '在休息周', follow: `在后续打歌期（打到 ${addDays(c.date, cbPlan().followEnd - 1)}）`, end: '活动快结束了' }[cbPhase()] || ''}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
 ${relContext()}
 艺人的朋友：${chal().friends.map(f => `${f.g} ${f.z || f.n}（${FR_LV[f.lv || 'friend']}）`).join('、')}。合作规则：challenge 有活动的日子就能约，关系越好越容易答应，不认识的艺人要看咖位差，对方本人答应后还要看对方公司和档期，私人关系不能保证落实；音源合作要走公司企划、要几个月；综艺是节目组邀请，只能去争取；画报广告由品牌决定，自制内容可以请嘉宾。
-艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。`;
+艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。
+${(() => { const L = yt().plans.filter(p => !['pub', 'cancel'].includes(p.st)); if (!L.length) return ''; return '官方 YouTube 企划（你在跟进的）：' + L.map(p => { const r = p.rule && S.schedule.rules.find(x => x.id === p.rule), f = ytFmt(p), hrs = f[3] >= 15e5 ? 6 : 3; return `《${p.title}》${YT_CAT[p.cat][0]}·${f[1]}，${YT_ST[p.st] || p.st}${r ? `（拍摄定在 ${r.date.slice(5)} ${r.start}-${r.end}）` : p.st === 'sched' ? '（你给了几个日期让她选，她还没选）' : ''}，拍摄一般要 ${hrs} 小时左右，${f[4] ? '公司出预算有团队拍' : '基本自己拍'}`; }).join('；') + '。她问到这些时按这里回答，问拍多久就说拍摄大概几个小时。'; })()}`;
 }
 async function mgrAi(text) {
   const client = await aiClient(), M = mgrChat();
@@ -10772,8 +10773,10 @@ function kstRevert1() {
 }
 // 官方 YouTube：时间记录在「未来」的进度（比如提前「成片出来了」）退回去，状态回到之前那一步
 function ytFutureFix() { const now = Date.now(); for (const p of (S.yt && S.yt.plans) || []) { let ch = 0; while (p.log && p.log.length && p.log[p.log.length - 1].at > now + 60e3) { p.log.pop(); ch = 1; } if (ch && p.log && p.log.length) p.st = p.log[p.log.length - 1].st || p.st; } }
+// 一次性：经纪人那句答非所问的「지금 한창 활동 중이잖아요ㅎㅎ」删掉，让他按 YouTube 企划的资料重新回
+function mgrVlogFix1() { const M = S.mgr; if (!M || M.vlogFix1 || !M.chat) return; M.vlogFix1 = 1; const i = M.chat.findIndex(m => !m.me && /한창 활동 중이잖아요/.test(m.text || '')); if (i < 0 || M.chat.slice(i + 1).some(m => m.me)) return; M.chat.splice(i, 1); M.replyAt = Date.now() + 8000; }
 migrate();
-kstRevert1(); ytFutureFix();
+kstRevert1(); ytFutureFix(); mgrVlogFix1();
 seedPosts();
 catchUp();
 S.sim.lastTick = Date.now();
