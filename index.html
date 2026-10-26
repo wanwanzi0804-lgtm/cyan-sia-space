@@ -7773,7 +7773,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); crvFuFix1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8264,6 +8264,12 @@ function socCardTxt(p) {
 ${!priv && tone ? `- 公开场合（对粉丝的泡泡 / 直播 / 综艺）的说话方式：${tone}。对粉丝时的营业成分（刻意卖萌、爱心、「想你们」这类）不会带到朋友私聊里；但打字本身的习惯（长短、连发、语气词、幽默方式）基本是一样的。\n` : ''}${c.like ? `- 喜欢的东西（只是背景，聊到相关的才会自然提，不要硬塞）：${c.like}\n` : ''}${c.lang ? `- 会的外语：${c.lang}\n` : ''}${c.extra ? `- 补充：${c.extra}\n` : ''}档案里没写的不要自己发挥。性格只决定他怎么说话，不决定你们有多熟。`;
 }
 const socClock = ts => { const d = ts ? new Date(ts) : new Date(); return `${d.getMonth() + 1}月${d.getDate()}日 周${WD[d.getDay()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+// CRAVITY 的团体安排（练习、团体行程）跟世琳的时间线走：队友什么时候在练习、什么时候结束，和世琳一致
+const CRV_GRP = /练习|练舞|合练|舞蹈|编舞|彩排|团体|打歌|录制|拍摄|行程|舞台|签售|dance|practice/i, CRV_SOLO = /写歌|作曲|作词|个人|一个人|健身|跑步|工作室|studio/i;
+function crvGroupSegs(dk, when) { try { return srSegs(dk, when).filter(g => g.kind === 'work' && g.st !== 'cancel' && CRV_GRP.test(g.what || '') && !CRV_SOLO.test(g.what || '')); } catch (e) { return []; } }
+function crvGroupNow(at) { const dk = dkey(at), m = srMin(at); return crvGroupSegs(dk, at).find(g => g.s <= m && g.e > m) || null; }
+function crvGroupTxt(p, when) { if (p.g !== 'CRAVITY' || p.key === SR_K) return ''; const t = when || Date.now(), dk = dkey(t), m = srMin(t), L = crvGroupSegs(dk, t); if (!L.length) return '';
+  return `今天 CRAVITY 的团体安排（他也在）：${L.map(g => `${hhmm(g.s)}-${hhmm(g.e)} ${g.what}${g.e <= m ? '（已结束）' : g.s <= m ? '（正在进行）' : ''}`).join('；')}。他说自己在干嘛、什么时候结束，要和这个对得上。\n`; }
 function socCtx(p, when) {
   const P = socPX(p), st = socStage(p), pers = socPers(p), T = dms()[p.key], same = CH_SAME.some(x => x[0] === p.g);
   const ex = P.ex.filter(e => !(e.t === 'chat' && e.ai)).slice(-10).map(e => `- ${e.day.slice(5)} ${e.d}`).join('\n') || '（这里没有记录，不要编造任何过去的见面或聊天）';
@@ -8276,7 +8282,7 @@ function socCtx(p, when) {
   const myL = !socAmbOk(p) ? '' : P.amb >= 6 ? '她这边也有好感' : P.amb >= 3 ? '她对对方有一点在意' : '她对对方没有特别的想法';
   return `对方：${p.g} ${socName(p)}（${p.f ? '女' : '男'}，${same ? '和她同公司' : '别家公司'}）。${socCardTxt(p)}
 关系阶段：${p.key === 'CRAVITY|세림' && serimLove() ? '秘密交往中的恋人' : STAGE_ZH[st]}。称呼她：${socBan(p) ? `${p.key === 'CRAVITY|세림' && serimLove() ? '你们在交往，' : '你们是好朋友了，'}有时叫艺名「${S.profile.name}」，有时叫本名「은설」（은설아 / 은설이，中文写恩雪），随口来，不用每句都叫` : `叫她艺名「${S.profile.name}」（不熟时可以加 씨），不要叫本名`}。语气：${socBan(p) ? (p.key === 'CRAVITY|세림' && serimLove() ? '用半语（반말）' : '你们已经是很熟的朋友，用半语（반말）') : '还不算很熟，用敬语（존댓말），不管谁年纪大'}。${thL && !(p.key === 'CRAVITY|세림' && serimLove()) ? `双方态度分开看：${thL}；${myL}。（不能说出来，也不能因为一次礼貌回复就变暧昧）` : ''}
-${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? `他知道她和世琳在秘密交往（只有 CRAVITY 队友知道，公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的样子：有点黏人，会主动报备日常、发自拍、关心她吃饭睡觉，打字习惯按上面写的来；不是每句都腻歪。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
+${crvGroupTxt(p, when)}${p.g === 'CRAVITY' && p.key !== 'CRAVITY|세림' && serimLove() ? `他知道她和世琳在秘密交往（只有 CRAVITY 队友知道，公司和外面都不知道，他会帮着保密）。偶尔可以拿这个调侃一句（比如提一下世琳、开个小玩笑），但大多数时候正常聊天，不要每次都提。\n` : ''}${p.key === 'CRAVITY|세림' ? `${serimLove() ? serimLoveTxt() + '在 KKT 里是恋人的样子：有点黏人，会主动报备日常、发自拍、关心她吃饭睡觉，打字习惯按上面写的来；不是每句都腻歪。两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，不要编造具体的事件。' : '世琳是她最要好的朋友，两人在这个 KKT 之外还有别的聊天软件，很多日常不在这里，表现得很熟络就好，但不要编造具体的事件。'}\n${(() => { const td = dkey(Date.now()), L = serimNotes().filter(n => n.day >= addDays(td, -6)); return L.length ? `她记下的世琳的真实情况（他这几天在做什么、你们之间发生过的事；这些是事实，他的状态和说的话要和这些一致，这之外的具体事件不要编）：\n${L.map(n => `- ${+n.day.slice(5, 7)}/${+n.day.slice(8)}${n.day === td ? '（今天）' : ''} ${n.text}`).join('\n')}\n` : ''; })()}` : ''}确认发生过的共同经历（只有这些能当作回忆提起）：
 ${ex}
 ${never ? `没发生过的：${never}。不能说「上次一起…」这种。\n` : ''}说好了但还没落实的约定：
 ${todo}
@@ -8657,9 +8663,10 @@ todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
 unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 900,
       { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'mem', 'unsure', 'fu', 'fuMin'], properties: { gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal', 'call'] }, fu: { type: 'string' }, fuMin: { type: 'integer' }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
-    if (j.fu && j.fu.trim() && !T.fu) { let at = Date.now() + clamp(j.fuMin || 60, 20, 600) * 60e3; const h = new Date(at).getHours(); if (h >= 1 && h < 9) { const d = new Date(at); d.setHours(9, ri(0, 50), 0, 0); at = d.getTime(); } T.fu = { at, task: j.fu.trim().slice(0, 120) }; } // 答应了晚点去做的事：到时候真的做完再来说
+    if (j.fu && j.fu.trim() && !T.fu) { let at = Date.now() + clamp(j.fuMin || 60, 20, 600) * 60e3; { const g = p.g === 'CRAVITY' && p.key !== SR_K && crvGroupNow(Date.now()); if (g && /结束|完|끝나|끝내|마치/.test(j.fu + ' ' + (j.msgs || []).map(m => m.ko + m.zh).join(' '))) at = srTs(dkey(Date.now()), g.e) + rand(5, 25) * 60e3; } /* 说「练完 / 结束了就…」：按团体安排真正结束的时间 */ const h = new Date(at).getHours(); if (h >= 1 && h < 9) { const d = new Date(at); d.setHours(9, ri(0, 50), 0, 0); at = d.getTime(); } T.fu = { at, task: j.fu.trim().slice(0, 120) }; } // 答应了晚点去做的事：到时候真的做完再来说
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
-    if (j.todo === 'call') { const T2 = dmThread(p); if (!T2.call || T2.call.done) { dmCallSet(T2, (j.gist || '').slice(0, 40)); save(); } } else if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
+    if (j.todo === 'call') { const T2 = dmThread(p); if (!T2.call || T2.call.done) { dmCallSet(T2, (j.gist || '').slice(0, 40)); save(); } } else if (j.todo && socTodoOpen(P, j.todo)) { const td = socTodoOpen(P, j.todo); if (j.today && j.todo !== 'chal' && !social().q.some(y => y.ev === 'th_planDo' && y.todo === td.id && y.day === dkey(Date.now()))) socPlanTonight(p, td.id); } // 之前就说好了，这次定成今晚
+    else if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
     let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim()), done = j.need === 'none' && !dmAsk(mine);
     { // ㅋㅋ / ㅎㅎ 不能句句都带：最近已经带了好几次，这次开头结尾的笑都去掉；一次回复里最多一条带笑
       const kk = /[ㅋㅎ]{2,}/, recent = T.msgs.filter(m => !m.me && !m.sys && !m.call).slice(-4).filter(m => kk.test(m.text || '')).length; let used = 0;
@@ -8726,6 +8733,11 @@ function serimClearMig() {
   save();
 }
 // 之前答应了约饭他却已读不回的：补上他的回复
+function crvFuFix1() { const SO = social(); if (SO.crvFu1) return; SO.crvFu1 = 1; const now = Date.now();
+  for (const T of Object.values(dms())) { if (T.p.g !== 'CRAVITY' || T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || m.me || now - m.at > 6 * 3600e3 || !/끝나면|끝나고|끝내고/.test(T.msgs.slice(-3).map(x => x.text || '').join(' '))) continue;
+    const g = crvGroupNow(now) || crvGroupNow(m.at); const end = g ? srTs(dkey(now), g.e) + rand(5, 25) * 60e3 : (T.fu ? T.fu.at : now + 90 * 60e3);
+    T.fu = { at: Math.max(end, now + 5 * 60e3), task: (T.fu && T.fu.task) || '练习结束了，按说好的跟她把今晚一起吃饭的时间和地点定下来' }; }
+  save(); }
 function inviteReplyFix1() { const SO = social(); if (SO.invFix1) return; SO.invFix1 = 1;
   for (const T of Object.values(dms())) { if (T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || !m.opt || T.due || (T.pend && T.pend.length) || !/시간 되면 갈게/.test(m.text || '')) continue;
     const ban = socBan(T.p); T.quiet = null; dmQueue(T.p, [ban ? { text: '오케이 시간 맞춰보자', zh: 'OK 对一下时间' } : { text: '좋아요! 시간 맞춰봐요', zh: '好！对一下时间' }], rand(1, 4) * 60e3); }
