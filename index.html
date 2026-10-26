@@ -297,6 +297,15 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .qk-c.big b{font-size:14px;color:#fff}
 .qk-c.big .m-cv.ph span{display:none}
 .kk-b.att{background:none!important;padding:0;border-radius:0}
+.kk-ph[data-act]{cursor:pointer}
+#kk-view{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff}
+#kk-view .kv-x{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:14px;border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:999px;width:38px;height:38px;font-size:20px}
+#kk-view .kv-sv{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 18px);border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:999px;padding:9px 18px;font-weight:700}
+#kk-view .kv-wrap{width:100%;height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;touch-action:pinch-zoom pan-x pan-y}
+#kk-view .kv-wrap img{max-width:100%;max-height:100%;object-fit:contain}
+#kk-view .kv-ph{width:min(86vw,420px);aspect-ratio:3/4;border-radius:14px;background:linear-gradient(160deg,#5b6675,#2d333c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font-size:15px;line-height:1.6;position:relative}
+#kk-view .kv-ph.v{aspect-ratio:9/16;width:min(70vw,360px)}
+#kk-view .kv-ph .kv-bar{position:absolute;left:14px;right:14px;bottom:14px;display:flex;align-items:center;gap:8px;font-size:12px;opacity:.85}#kk-view .kv-ph .kv-bar i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.3);overflow:hidden}#kk-view .kv-ph .kv-bar i b{display:block;height:100%;width:0;background:#fff;transition:width linear}
 .kk-stkimg{display:block;width:120px;height:120px;object-fit:contain}
 .kk-emo{border:0;background:none;font-size:22px;line-height:1;padding:6px 4px;color:var(--muted);flex:none}.kk-emo.on{color:var(--accent)}
 .kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
@@ -4384,12 +4393,13 @@ const KK_ATT = [[/^(음성 ?파일|파일|文件|语音文件|첨부)$/, 'file']
 function kkAttSplit(m) {
   if (m.stk && STICKERS[m.stk]) return [{ ...m, att: { k: 'stk', name: '' } }];
   if (m.sys || m.call || m.card || typeof m.text !== 'string') return [m];
-  const g = m.text.match(/^\[([^\]]{1,12})\]\s*([\s\S]*)$/); if (!g) return [m];
-  const k = (KK_ATT.find(([re]) => re.test(g[1].trim())) || [])[1]; if (!k) return [m];
+  const g = m.text.match(/^\[([^\]]{1,80})\]\s*([\s\S]*)$/); if (!g) return [m];
+  const [h0, ...dd] = g[1].split(/[:：|]/), desc = dd.join('：').trim(); // [사진: 照片里是什么]：冒号后面是点开时看到的内容
+  const k = (KK_ATT.find(([re]) => re.test(h0.trim())) || [])[1]; if (!k || (desc && !['photo', 'video'].includes(k))) return [m];
   let rest = g[2].trim(), name = '';
   if (k === 'file') { const f = rest.match(/^(\S+\.[A-Za-z0-9]{2,4})\s*([\s\S]*)$/) || rest.match(/^(.+?\.[A-Za-z0-9]{2,4})\s*$/); if (f) { name = f[1]; rest = (f[2] || '').trim(); } else { name = rest || '파일'; rest = ''; } }
   const zr = (m.zh || '').replace(/^\[[^\]]{1,12}\]\s*/, '').replace(k === 'file' && name ? new RegExp('^\\S*\\.[A-Za-z0-9]{2,4}\\s*') : /^$/, '').trim();
-  const a = { ...m, att: { k, name }, text: '', zh: '' };
+  const a = { ...m, att: { k, name, desc }, text: '', zh: '' };
   return rest ? [a, { ...m, id: m.id + '_c', text: rest, zh: zr }] : [a];
 }
 // 🎵 能听的 demo：按种子现场合成一首完整结构的伴奏（前奏 / 主歌 / Pre / 副歌 / 舞蹈 break / Bridge / 尾奏，3 分多钟），同一个文件每次听都一样
@@ -4449,14 +4459,22 @@ function demoOpen(name, seed, who) {
   if (DEMO_URL[seed]) return put(DEMO_URL[seed]);
   setTimeout(() => demoRender(seed, n => { const b = $('#demo-box'); if (b) b.textContent = `불러오는 중… ${n}%`; }).then(url => { DEMO_URL[seed] = url; put(url); }).catch(() => { const b = $('#demo-box'); if (b) b.textContent = '这个文件打不开'; }), 50);
 }
+function kkView(el) {
+  const k = el.dataset.k, mid = el.dataset.mid, d = el.dataset.d || '', v = document.createElement('div'); v.id = 'kk-view';
+  v.innerHTML = `<button class="kv-x" data-act="kkvclose">✕</button>${mid ? `<div class="kv-wrap"><img data-mid="${esc(mid)}" alt=""></div><button class="kv-sv" data-act="kkvsave" data-mid="${esc(mid)}">저장</button>`
+    : `<div class="kv-ph${k === 'video' ? ' v' : ''}"><span style="font-size:40px;opacity:.8">${k === 'video' ? '▶' : '🖼'}</span><div>${esc(d || (k === 'video' ? '一段视频' : '一张照片'))}</div>${k === 'video' ? `<div class="kv-bar"><span>0:00</span><i><b></b></i><span>${esc(el.dataset.t || '0:15')}</span></div>` : ''}</div>`}`;
+  v.addEventListener('click', e => { if (e.target === v || e.target.classList.contains('kv-wrap')) v.remove(); });
+  $('#kk-view')?.remove(); document.body.appendChild(v); hydrate(v);
+  if (k === 'video' && !mid) { const b = v.querySelector('.kv-bar b'), sec = (+(el.dataset.t || '0:15').split(':')[1] || 15); requestAnimationFrame(() => { b.style.transitionDuration = sec + 's'; b.style.width = '100%'; }); }
+}
 function kkAttHTML(m) {
   if (m.att.k === 'stk') return `<img class="kk-stkimg" src="${STICKERS[m.stk].src}" alt="">`;
   const A = m.att, r = srng('att' + (A.name || '') + m.at);
   if (A.k === 'file') { const ext0 = (A.name.split('.').pop() || '').toLowerCase(), au = /m4a|mp3|wav|aac/.test(ext0), seed = A.name + '|' + m.at, ex = new Date(m.at + 30 * 86400e3), sz = au ? (demoPlan(seed).dur * 256 / 8 / 1024).toFixed(2) : (.4 + r() * 8.5).toFixed(2), ext = ext0, ic = /m4a|mp3|wav|aac/.test(ext) ? '🎵' : /mp4|mov/.test(ext) ? '🎬' : /jpe?g|png|heic/.test(ext) ? '🖼' : /pdf|docx?|hwp|txt/.test(ext) ? '📄' : '📁';
     return `<div class="kk-file"${au ? ` data-act="kkdemo" data-n="${esc(A.name)}" data-s="${esc(seed)}" style="cursor:pointer"` : ''}><div><b>${esc(A.name)}</b><span>유효기간: ~${ex.getFullYear()}. ${ex.getMonth() + 1}. ${ex.getDate()}.</span><span>용량: ${sz} MB</span></div><i>${ic}</i></div>`; }
-  if (A.k === 'photo' && m.ph) return `<div class="kk-ph img"><img data-mid="${esc(m.ph)}" alt=""></div>`;
-  if (A.k === 'photo') return `<div class="kk-ph"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></div>`;
-  if (A.k === 'video') return `<div class="kk-ph v"><span class="kk-play">▶</span><em>0:${String(8 + Math.floor(r() * 50)).padStart(2, '0')}</em></div>`;
+  if (A.k === 'photo' && m.ph) return `<div class="kk-ph img" data-act="kkview" data-mid="${esc(m.ph)}" data-k="photo"><img data-mid="${esc(m.ph)}" alt=""></div>`;
+  if (A.k === 'photo') return `<div class="kk-ph" data-act="kkview" data-k="photo" data-d="${esc(A.desc || '')}"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></div>`;
+  if (A.k === 'video') { const dur = '0:' + String(8 + Math.floor(r() * 50)).padStart(2, '0'); return `<div class="kk-ph v" data-act="kkview" data-k="video" data-t="${dur}" data-d="${esc(A.desc || '')}"><span class="kk-play">▶</span><em>${dur}</em></div>`; }
   return `<div class="kk-voice"><span class="kk-play sm">▶</span><span class="kk-wave"></span><em>0:${String(3 + Math.floor(r() * 40)).padStart(2, '0')}</em></div>`;
 }
 function kkLogHTML(msgs, o) {
@@ -8716,7 +8734,7 @@ ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消�
 
 韩语：
 ${KK_STK_HINT()}
-- 要发照片 / 视频 / 文件 / 语音时，单独一条，只写「[사진]」「[동영상]」「[파일] 文件名.扩展名」「[음성메시지]」，后面不要加描述（会显示成 KKT 里的附件）；想说明就另发一条文字。
+- 要发照片 / 视频 / 文件 / 语音时，单独一条：照片写「[사진: 照片里是什么]」、视频写「[동영상: 视频里是什么]」（冒号后用一句中文写清楚画面内容，她点开时看到的就是这个，不会显示在聊天里），文件写「[파일] 文件名.扩展名」，语音写「[음성메시지]」；想说话就另发一条文字。照片视频的内容要和他此刻在做的事对得上。
 - 写韩国二十岁上下的人私下发 KKT 的样子，不是把中文意思翻成韩语。熟的朋友之间：主语、宾语常常省掉；一句话常拆成两三个短气泡；会用 ㅇㅇ ㅇㅋ 웅 ㄱㄱ ㄴㄴ ㄹㅇ 같은 缩略、没写完的半句、「~했어?」「~하자」「~임」「~ㄴ듯」这类口语结尾。不熟的就用敬语，但也是口语的敬语（「넵」「헐 진짜요?」「아 그래요?ㅎㅎ」），不是书面礼貌句。
 - 不要中文式表达：比如不说「언니 말 들을게」「시간 맞춰보자」这种直译腔，不写「~해줄게」式的完整解释句来交代安排。
 - 她有时用中文发消息，他照常按他的语言习惯回（档案里写了会说中文的人，按档案的程度用中文）。
@@ -10656,6 +10674,9 @@ document.addEventListener('click', async e => {
       { const o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e && e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: 0, reply: '' };
         if (x && x.o && x.o.length) { const b = neg ? x.o[x.o.length - 1] : x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
         dmAnswer(k, v, o, false); } break; }
+    case 'kkview': kkView(t); break;
+    case 'kkvclose': $('#kk-view')?.remove(); break;
+    case 'kkvsave': { const b = await idbGet(t.dataset.mid).catch(() => null); if (!b) break; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'kakaotalk_' + Date.now() + '.' + ((b.type || '').split('/')[1] || 'jpg'); a.click(); break; }
     case 'kkstk': UI.kkStk = !UI.kkStk; openModal(dmHTML(t.dataset.k)); break;
     case 'kkstkset': UI.bbStkSet = t.dataset.s; openModal(dmHTML(t.dataset.k)); break;
     case 'kkstkpick': { const k = t.dataset.k, x = STICKERS[t.dataset.id]; if (!x) break; const T = dms()[k] || dmThread(chFind(...k.split('|')) || { g: k.split('|')[0], n: k.split('|')[1], key: k }); UI.kkStk = false;
