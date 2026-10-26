@@ -10770,8 +10770,10 @@ function kstRevert1() {
   const R2 = SO.sr; if (R2) { R2.mem = R2.mem.filter(m => !fut(m.c)); R2.reach = (R2.reach || []).filter(x => !fut(x.at)); for (const d of Object.keys(R2.day || {})) if (futD(d)) delete R2.day[d]; if (R2.conv && fut(R2.conv.at)) R2.conv = null; for (const j of R2.jobs || []) if (fut(j.at)) j.at = now; const C = R2.chat || {}; for (const k of ['next', 'last', 'lastEval', 'sess', 'him']) if (fut(C[k])) C[k] = k === 'next' ? now + 60e3 : 0; if (R2.mood && fut(R2.mood.at)) R2.mood.at = now; if (futD(R2.sumDay)) R2.sumDay = TD; }
   S.sim.lastTick = now;
 }
+// 官方 YouTube：时间记录在「未来」的进度（比如提前「成片出来了」）退回去，状态回到之前那一步
+function ytFutureFix() { const now = Date.now(); for (const p of (S.yt && S.yt.plans) || []) { let ch = 0; while (p.log && p.log.length && p.log[p.log.length - 1].at > now + 60e3) { p.log.pop(); ch = 1; } if (ch && p.log && p.log.length) p.st = p.log[p.log.length - 1].st || p.st; } }
 migrate();
-kstRevert1();
+kstRevert1(); ytFutureFix();
 seedPosts();
 catchUp();
 S.sim.lastTick = Date.now();
