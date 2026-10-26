@@ -1130,8 +1130,7 @@ function aiFail(e) {
   const msg = (e && (e.message || e.toString())) || '未知错误';
   S.ai.lastError = msg.slice(0, 200);
   S.ai._backoff = Date.now() + 120000;
-  toast('⚠️ AI 评论失败，暂时改用模板评论', msg.slice(0, 80));
-  save();
+  S.ai.lastAt = Date.now(); save(); // 不弹窗打断：悄悄改用模板，原因记在「我的 → AI 设置」里
 }
 function once(el, ev, ms = 6000) { return new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('timeout')), ms); el.addEventListener(ev, () => { clearTimeout(t); res(); }, { once: true }); }); }
 function drawB64(src, w, h, max, filter) {
@@ -10133,7 +10132,7 @@ function viewMe() {
     <details class="me-more" style="margin:0 0 8px"><summary>大概要花多少钱？</summary><p class="muted" style="margin:6px 0 0">省钱模式：每条帖子只请一次 AI（约 15 条评论，和免费评论混着出现）；直播在你说话后请 AI（最多 30 秒一次），不说话时每 3 分钟少量请一次。<br>大概费用（Haiku 5.5）：每条帖子约 ¥0.01，直播每小时约 ¥0.1～0.5。Sonnet 约贵 20 倍，Opus 约贵 40 倍。</p></details>
     <div class="row" style="margin-bottom:8px"><span style="font-size:14px;flex:1">本月 AI 花费（估算）：<b>¥${(aiUsage().usd * USD_CNY).toFixed(2)}</b> · ${aiUsage().calls} 次${aiOverCap() ? ' · <b style="color:var(--danger)">已到上限，已暂停</b>' : ''}</span></div>
     <div class="field"><label>每月上限（人民币，到了自动暂停 AI；0 = 不限制）</label><input type="number" id="ai-cap" min="0" step="1" value="${S.ai.capCny ?? 10}"></div>
-    ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误：${esc(S.ai.lastError)}</p>` : ''}
+    ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误${S.ai.lastAt ? '（' + new Date(S.ai.lastAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '）' : ''}：${esc(S.ai.lastError)}</p>` : ''}
     <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
   </div>
   <div class="sec-title">⚙ 其他设置</div>
