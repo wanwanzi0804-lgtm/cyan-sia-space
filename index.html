@@ -9285,7 +9285,8 @@ async function srDayEnsure(dk) {
 他：${c.pers || ''}。喜欢：${c.like || ''}。补充：${c.extra || ''}
 现在是 10 月底，首尔已经转冷。${promo ? 'CRAVITY 这段时间在回归活动期：有打歌、拍摄、练习等行程，工作日会很满。' : 'CRAVITY 现在不在打歌期，日常是练习、录音、健身、私人时间，比活动期自由。'}${prep ? '演唱会（11/14、11/15 首尔，11/21 釜山）快到了，这阵子要合练。' : ''}
 他私下在和 Cyan（solo 女歌手）秘密交往，刚开始。这不会占据他整天的生活。
-他的状态：精力 ${Math.round(M.en)}/100${M.why ? '，' + M.why : ''}。
+他现在的状态：精力 ${Math.round(M.en)}/100${M.why ? `（起因是之前的事：${M.why}。这件事已经发生过了，不要把它再安排进这一天）` : ''}。
+只写这一天里新发生的普通事情；之前已经发生的事（包括上面提到的起因、前两天的经历）不要换个时间再写一遍。
 ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${done.length ? `这天已经过去的部分（照这个，不能改）：\n${done.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${prev ? `前两天他做了这些（别照抄，生活有变化也有重复）：\n${prev}\n` : ''}
 要求：
 - 从 00:00 到 24:00 排满这一天（含睡觉；偶像作息偏晚，凌晨 2~4 点睡很常见），6~10 段，每段写具体但普通的事：和谁、在哪、干嘛。
@@ -9296,7 +9297,7 @@ ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(
 - kind：sleep 睡觉 / work 工作 / social 和别人一起玩或吃饭 / out 自己外出 / free 在宿舍等空闲 / move 路上。`, 3000,
       { type: 'object', additionalProperties: false, required: ['segs'], properties: { segs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['s', 'e', 'what', 'where', 'with', 'kind', 'share'], properties: { s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] }, share: { type: 'number' } } } } } }, true);
     const segs = (j.segs || []).map(x => ({ id: uid(), s: toMin(x.s), e: x.e === '24:00' || toMin(x.e) <= toMin(x.s) ? 1440 : toMin(x.e), what: String(x.what || '').slice(0, 40), where: String(x.where || '').slice(0, 20), with: String(x.with || '').slice(0, 20), kind: x.kind, src: 'gen', st: '', share: clamp(+x.share || 0, 0, 1), c: 0 })).filter(g => g.what && g.e > g.s);
-    if (segs.length >= 3) { const keep = nowM > 0 ? D.segs.filter(g => g.src === 'fb' && g.s < nowM).map(g => ({ ...g, e: Math.min(g.e, nowM) })) : []; D.segs = D.segs.filter(g => g.src !== 'fb' && g.src !== 'gen').concat(keep, nowM > 0 ? segs.filter(g => g.e > nowM).map(g => ({ ...g, s: Math.max(g.s, nowM) })) : segs); D.gen = Date.now(); save(); }
+    if (segs.length >= 3) { const keep = nowM > 0 ? D.segs.filter(g => (g.src === 'fb' || g.src === 'gen') && g.s < nowM).map(g => ({ ...g, e: Math.min(g.e, nowM) })) : []; D.segs = D.segs.filter(g => g.src !== 'fb' && g.src !== 'gen').concat(keep, nowM > 0 ? segs.filter(g => g.e > nowM).map(g => ({ ...g, s: Math.max(g.s, nowM) })) : segs); D.gen = Date.now(); save(); }
   } catch (e) { console.warn('srDay', e.message); } finally { srGenBusy = 0; }
 }
 
@@ -9660,6 +9661,7 @@ function srRegenTomorrow1() { const R = SR(); if (R.rgt1) return; R.rgt1 = 1; co
 // 一次性：之前被套在「记下的那一刻」的几分钟时间段删掉
 function srNoteTiny1() { const R = SR(); if (R.tiny1) return; R.tiny1 = 1; const N = serimNotes();
   for (const D of Object.values(R.day)) D.segs = D.segs.filter(g => { if (g.src !== 'note' || !g.nid) return true; const n = N.find(x => x.id === g.nid); return !(n && g.e - g.s < 30 && Math.abs(g.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)); }); save(); }
+function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
@@ -9684,7 +9686,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -9777,9 +9779,10 @@ let srNoteBusy = 0;
 function srNoteRetry() { if (srNoteBusy || !srAIState().ok) return; const td = dkey(Date.now()), n = serimNotes().find(x => x.parsed === 'fb' && x.day === td && !x.re); if (!n) return; n.re = 1; srNoteBusy = 1; srNoteDrop(n.id); srNoteParse(n).finally(() => { srNoteBusy = 0; }); }
 // 窗口里看到的时间线
 function srTimelineHTML() {
-  const td = dkey(Date.now()), m = srMin(Date.now()), days = [td, addDays(td, 1)].filter(k => SR().day[k]);
+  const td = dkey(Date.now()), m = srMin(Date.now()), yd = addDays(td, -1), days = [td, addDays(td, 1)].filter(k => SR().day[k]);
   const row = (dk, g) => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${hhmm(g.s)}-${hhmm(g.e)} · ${SR_SRC[g.src] || ''} · ${{ planned: '计划', now: '进行中', done: '完成', likely: '按计划应该在做', unknown: '没确认', cancel: '取消' }[srSegSt(g, dk)]}${dk === td && m >= g.s && m < g.e ? ' · <b style="color:var(--accent)">现在</b>' : ''}</span><div style="font-size:13.5px">${esc(g.what)}${g.where ? ` · ${esc(g.where)}` : ''}${g.with ? ` · 和${esc(g.with)}` : ''}</div></span><button class="link" data-act="srsegedit" data-dk="${dk}" data-id="${g.id}">改</button><button class="link" data-act="srsegdel" data-dk="${dk}" data-id="${g.id}">删</button></div>`;
-  return days.map(dk => `<div class="sec-title" style="margin-top:10px">${dk === td ? '今天' : '明天'}的时间线</div><div class="card" style="padding:4px 12px">${srSegs(dk).concat(srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del)).map(g => row(dk, g)).join('') || '<div class="muted">还没有</div>'}</div>`).join('');
+  const list = dk => srSegs(dk).concat(srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del)).map(g => row(dk, g)).join('') || '<div class="muted">还没有</div>';
+  return days.map(dk => `<div class="sec-title" style="margin-top:10px">${dk === td ? '今天' : '明天'}（${srMD(dk)}）的时间线</div><div class="card" style="padding:4px 12px">${list(dk)}</div>`).join('') + (SR().day[yd] ? `<details class="me-more card" style="margin-top:10px"><summary>昨天（${srMD(yd)}）的时间线</summary><div style="padding:0 2px">${list(yd)}</div></details>` : '');
 }
 function srSegEditHTML(dk, id) {
   const g = srDay(dk).segs.find(x => x.id === id) || srSegs(dk).find(x => x.id === id); if (!g) return serimCardHTML();
