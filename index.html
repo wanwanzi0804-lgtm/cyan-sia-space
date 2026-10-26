@@ -10782,8 +10782,18 @@ function kstRevert1() {
 function ytFutureFix() { const now = Date.now(); for (const p of (S.yt && S.yt.plans) || []) { let ch = 0; while (p.log && p.log.length && p.log[p.log.length - 1].at > now + 60e3) { p.log.pop(); ch = 1; } if (ch && p.log && p.log.length) p.st = p.log[p.log.length - 1].st || p.st; } }
 // 一次性：经纪人那句答非所问的「지금 한창 활동 중이잖아요ㅎㅎ」删掉，让他按 YouTube 企划的资料重新回
 function mgrVlogFix1() { const M = S.mgr; if (!M || M.vlogFix1 || !M.chat) return; M.vlogFix1 = 1; const i = M.chat.findIndex(m => !m.me && /한창 활동 중이잖아요/.test(m.text || '')); if (i < 0 || M.chat.slice(i + 1).some(m => m.me)) return; M.chat.splice(i, 1); M.replyAt = Date.now() + 8000; }
+// 一次性：10/26 的 Dance Practice 拍摄悄悄改到 13:00-16:00（行程、经纪人聊天里提到的时间、YouTube 记录、通知一起改，不留痕迹）
+function dpMove3() {
+  if (S.schedule.dpMove3) return; const dk = '2026-10-26', r = S.schedule.rules.find(x => x.date === dk && /Dance Practice/.test(x.title || '')); if (!r) return; S.schedule.dpMove3 = 1;
+  const os = r.start; r.start = '13:00'; r.end = '16:00'; const oh = +os.slice(0, 2);
+  const fix = t => typeof t !== 'string' ? t : t.replace(new RegExp(`(10월 ?26일[^\\n]{0,12}?)${oh}시`, 'g'), '$113시').replace(new RegExp(`(10月26日[^\\n]{0,12}?)${oh}点`, 'g'), '$113点').replace(new RegExp(`(10/26[^\\n]{0,12}?)${os}`, 'g'), '$113:00').replace(new RegExp(`${os}~\\d\\d:\\d\\d( (공식 YouTube 촬영|官方 YouTube 拍摄)[^\\n]*Dance Practice)`, 'g'), '13:00~16:00$1').replace(new RegExp(`${os}-\\d\\d:\\d\\d( (公式|官方)?[^\\n]*Dance Practice)`, 'g'), '13:00-16:00$1');
+  const M = S.mgr; if (M && M.chat) for (const m of M.chat) { m.text = fix(m.text); if (m.zh) m.zh = fix(m.zh); if (m.res) m.res = fix(m.res); }
+  for (const p of (S.yt && S.yt.plans) || []) if (p.rule === r.id) for (const l of p.log || []) l.msg = fix(l.msg);
+  for (const n of S.notifs || []) { n.text = fix(n.text); n.sub = fix(n.sub); }
+  const key = dk + '|' + r.id; delete (S.schedule.reminded || {})[key]; const c = (S.tg && S.tg.cards || {})[key]; if (c) c._start = '13:00';
+}
 migrate();
-kstRevert1(); ytFutureFix(); mgrVlogFix1();
+kstRevert1(); ytFutureFix(); mgrVlogFix1(); dpMove3();
 seedPosts();
 catchUp();
 S.sim.lastTick = Date.now();
