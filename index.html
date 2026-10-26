@@ -4632,9 +4632,9 @@ ${relContext()}
 艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。
 ${(() => { const L = yt().plans.filter(p => !['pub', 'cancel'].includes(p.st)); if (!L.length) return ''; return '官方 YouTube 企划（你在跟进的）：' + L.map(p => { const r = p.rule && S.schedule.rules.find(x => x.id === p.rule), f = ytFmt(p), hrs = f[3] >= 15e5 ? 6 : 3; return `《${p.title}》${YT_CAT[p.cat][0]}·${f[1]}，${YT_ST[p.st] || p.st}${r ? `（拍摄定在 ${r.date.slice(5)} ${r.start}-${r.end}）` : p.st === 'sched' ? '（你给了几个日期让她选，她还没选）' : ''}，拍摄一般要 ${hrs} 小时左右，${f[4] ? '公司出预算有团队拍' : '基本自己拍'}`; }).join('；') + '。她问到这些时按这里回答，问拍多久就说拍摄大概几个小时。'; })()}`;
 }
-async function mgrAi(text) {
+async function mgrAi(text, hint) {
   const client = await aiClient(), M = mgrChat();
-  const hist = M.chat.slice(-14).filter(m => m.text).map(m => ({ role: m.me ? 'user' : 'assistant', content: m.text }));
+  const hist = M.chat.slice(-14).filter(m => m.text).map(m => ({ role: m.me ? 'user' : 'assistant', content: m.me && m.zh && m.zh !== m.text ? `${m.text}（她打的原话：${m.zh}）` : m.text }));
   while (hist.length && hist[0].role !== 'user') hist.shift();
   const msgs = []; for (const m of hist) { if (msgs.length && msgs[msgs.length - 1].role === m.role) msgs[msgs.length - 1].content += '\n' + m.content; else msgs.push({ ...m }); }
   if (!msgs.length || msgs[msgs.length - 1].role !== 'user') msgs.push({ role: 'user', content: text });
@@ -4656,7 +4656,8 @@ async function mgrAi(text) {
 她：「谢谢！」→「넵~」
 
 一个意思一个气泡（ko 韩语，zh 中文翻译）。
-${mgrContext()}`, messages: msgs, output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['msgs'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } } } } } } });
+${mgrContext()}${hint ? `\n按关键词查到的可能相关的数据（不一定是她在问的，先看懂她的问题再决定用不用）：${hint}` : ''}
+她要你记住 / 转达的事，用一句短话答应就行。`, messages: msgs, output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['msgs'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } } } } } } });
   const [pi, po] = AI_PRICE[S.ai.model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(); u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
   const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let msgs2 = [];
   try { msgs2 = (JSON.parse(out).msgs || []).filter(m => m.ko).map(m => [m.ko.trim(), (m.zh || '').trim()]); } catch (e) { for (const m of out.matchAll(/KO:\s*([^\n]+)(?:\n\s*ZH:\s*([^\n]*))?/g)) msgs2.push([m[1].trim(), (m[2] || '').trim()]); }
@@ -4704,8 +4705,8 @@ async function mgrRespond(text) {
   const emo = /불안|힘들|지쳐|지치|우울|무서|걱정|모르겠|고민|자신이? ?없|잠도|눈물|울고|焦虑|难过|累|怕|担心|不知道|迷茫|失眠|想哭|压力/.test(text), open = emo || (aiOn() && text.replace(/\s/g, '').length > 25);
   if (emo && !aiOn()) { mgrReply(mgrAnswer(text), true); return; } // 在说心事：不要拿粉丝数之类的数据去回
   const fact = req || open ? null : (mgrTopic(text) || mgrFacts(text));
-  if (!fact) { const memo = mgrMemo(text); if (memo && !open) { mgrReply(memo, true); return; } }
-  if (!fact && aiOn()) { for (let k = 0; k < 2; k++) { try { const r = await mgrAi(text); if (r) { mgrReply(r, true); return; } } catch (e) { console.error('mgrAi', e); } } }
+  if (!fact) { const memo = mgrMemo(text); if (memo && !open && !aiOn()) { mgrReply(memo, true); return; } } // 交代的事照样记下；开着 AI 时由 AI 回
+  if (aiOn()) { const hint = fact ? (Array.isArray(fact[0]) ? fact.map(x => x[1] || x[0]).join(' ') : fact[1] || fact[0]) : ''; for (let k = 0; k < 2; k++) { try { const r = await mgrAi(text, hint); if (r) { mgrReply(r, true); return; } } catch (e) { console.error('mgrAi', e); } } } // 开着 AI：关键词查到的数据只当参考，由 AI 看懂她到底问什么再回
   mgrReply(fact || mgrAnswer(text), true);
 }
 // 不秒回：等你发完（最后一条后至少 5 秒），再按经纪人当时忙不忙随机等一会儿；你连发几条，他会一起看完再回
@@ -10781,7 +10782,7 @@ function kstRevert1() {
 // 官方 YouTube：时间记录在「未来」的进度（比如提前「成片出来了」）退回去，状态回到之前那一步
 function ytFutureFix() { const now = Date.now(); for (const p of (S.yt && S.yt.plans) || []) { let ch = 0; while (p.log && p.log.length && p.log[p.log.length - 1].at > now + 60e3) { p.log.pop(); ch = 1; } if (ch && p.log && p.log.length) p.st = p.log[p.log.length - 1].st || p.st; } }
 // 一次性：经纪人那句答非所问的「지금 한창 활동 중이잖아요ㅎㅎ」删掉，让他按 YouTube 企划的资料重新回
-function mgrVlogFix1() { const M = S.mgr; if (!M || M.vlogFix1 || !M.chat) return; M.vlogFix1 = 1; const i = M.chat.findIndex(m => !m.me && /한창 활동 중이잖아요/.test(m.text || '')); if (i < 0 || M.chat.slice(i + 1).some(m => m.me)) return; M.chat.splice(i, 1); M.replyAt = Date.now() + 8000; }
+function mgrVlogFix1() { const M = S.mgr; if (!M || M.vlogFix2 || !M.chat) return; M.vlogFix2 = 1; const i = M.chat.findIndex(m => !m.me && /한창 활동 중이잖아요/.test(m.text || '')); if (i < 0 || M.chat.slice(i + 1).some(m => m.me)) return; M.chat.splice(i, 1); M.replyAt = Date.now() + 8000; }
 // 一次性：10/26 的 Dance Practice 拍摄悄悄改到 13:00-16:00（行程、经纪人聊天里提到的时间、YouTube 记录、通知一起改，不留痕迹）
 function dpMove3() {
   if (S.schedule.dpMove3) return; const dk = '2026-10-26', r = S.schedule.rules.find(x => x.date === dk && /Dance Practice/.test(x.title || '')); if (!r) return; S.schedule.dpMove3 = 1;
