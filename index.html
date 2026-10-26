@@ -1090,12 +1090,12 @@ async function aiCompact(content, maxTokens) {
   const k = (j.k || []).map(x => String(x || '').trim()).filter(x => x.length >= 1 && x.length <= 8).slice(0, 6);
   return { r, k };
 }
-async function aiRaw(content, maxTokens, schema, sys, model) {
+async function aiRaw(content, maxTokens, schema, sys, model, effort) {
   const client = await aiClient(); model = model || S.ai.model;
   const req = {
     model, max_tokens: maxTokens, system: sys || aiSystem(),
     messages: [{ role: 'user', content }],
-    output_config: { effort: 'low', format: { type: 'json_schema', schema } }
+    output_config: { effort: effort || 'low', format: { type: 'json_schema', schema } }
   };
   if (FALLBACK_MODELS.includes(model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
   const r = await client.beta.messages.create(req);
@@ -9158,9 +9158,9 @@ function srAIState() {
   const A = SR().ai; if (Date.now() < (A.next || 0)) return { ok: false, kind: 'net', zh: `AI 连接失败（${A.err || '网络问题'}），${Math.max(1, Math.ceil((A.next - Date.now()) / 60e3))} 分钟后重试` };
   return { ok: true };
 }
-async function srAI(text, max, schema, bg) {
+async function srAI(text, max, schema, bg, effort) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
-  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), 90e3))]); /* 手机切到后台时请求可能一直挂着：最多等 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
+  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), 90e3))]); /* 手机切到后台时请求可能一直挂着：最多等 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
   catch (e) { if (!e.sr) { const A = SR().ai; A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
@@ -9363,6 +9363,34 @@ function srReachEval(at) {
 }
 
 /* ---------- 给 AI 的上下文：只用 when 之前的信息（补算时不会看到之后的事） ---------- */
+const srGap = ms => { const m = Math.round(ms / 60e3); return m >= 90 ? `${Math.floor(m / 60)} 小时${m % 60 >= 10 ? ' ' + (m % 60) + ' 分' : ''}` : `${m} 分钟`; };
+// 聊天记录：带时间、她打的原话（她的消息会被翻成韩语发出去，原话才是她真正的语气）、中间隔了多久
+function srChatLog(T, when, n = 40) {
+  const L = T.msgs.filter(x => x.at <= when).slice(-n), out = []; let lastD = '', prev = null;
+  for (const x of L) {
+    const d = dkey(x.at); if (d !== lastD) { out.push(`〔${srMD(d)} 周${WD[new Date(x.at).getDay()]}〕`); lastD = d; }
+    if (prev && x.at - prev.at >= 30 * 60e3) out.push(`  ……（隔了 ${srGap(x.at - prev.at)}）`);
+    out.push(x.sys ? `[${x.sys}]` : x.call ? `[语音通话 ${x.call.dur || ''}]` : `${hhmm(srMin(x.at))} ${x.me ? 'Cyan' : '世琳'}：${x.text}${x.me && x.zh && x.zh !== x.text ? `（她打的原话：${x.zh}）` : ''}`); prev = x;
+  }
+  return out.join('\n');
+}
+// 最近一天半里他对她的回应：她发了消息他隔很久才回 / 一直没回的地方，那段时间他实际在做什么；没做到的约定
+function srRecent(T, when) {
+  const L = T.msgs.filter(x => !x.sys && x.at <= when && when - x.at < 36 * 3600e3), out = [];
+  for (let i = 0; i < L.length; i++) {
+    if (!L[i].me || (i && L[i - 1].me && L[i].at - L[i - 1].at < 3 * 3600e3)) continue; const plain = x => { const t = x.zh || x.text; return dmAgree(t) || dmAck(t) || dmBye(t); };
+    while (i < L.length && L[i].me && plain(L[i]) && !(L[i + 1] && L[i + 1].me && L[i + 1].at - L[i].at < 3 * 3600e3 && !plain(L[i + 1])) ) i++; // 「好的」「晚安」这种收尾的话不算在等他回
+    if (i >= L.length || !L[i].me) continue; while (i + 1 < L.length && L[i].me && plain(L[i]) && L[i + 1].me) i++;
+    let j = i; while (j + 1 < L.length && L[j + 1].me && L[j + 1].at - L[j].at < 3 * 3600e3) j++;
+    const a = L[i].at, rep = L[j + 1], wait = (rep ? rep.at : when) - a; if (wait < 30 * 60e3) { i = j; continue; }
+    const segs = [...new Set([dkey(a), dkey(rep ? rep.at : when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > a && srTs(dk, g.s) < (rep ? rep.at : when)).map(g => `${g.what}${g.kind === 'work' ? '（工作）' : g.kind === 'sleep' ? '（睡觉）' : ''}`));
+    out.push(`- ${srClock(a)} 起她发了 ${j - i + 1} 条（${L.slice(i, j + 1).map(x => x.zh || x.text).join(' / ').slice(0, 80)}），${rep ? `他 ${hhmm(srMin(rep.at))} 才回，隔了 ${srGap(wait)}` : `到现在 ${srGap(wait)} 他还没回`}；那段时间他在：${[...new Set(segs)].join('、') || '不清楚'}`);
+    i = j;
+  }
+  for (const m of srLive(when).filter(m => m.k === 'promise' && m.st === 'missed' && when - m.u < 2 * 864e5)) out.push(`- 他答应过「${m.t}」，没做到（${m.why || '没顾上'}）`);
+  return out.join('\n');
+}
+
 function srCtx(when, q) {
   const p = srP(), T = dmThread(p), dk = dkey(when), m = srMin(when), st = srNow(when), R = SR();
   const today = srSegs(dk, when).map(g => (g.e <= m ? '✓ ' : g.s <= m ? '▶ 现在 ' : '· ') + srSegZh(g, dk, when)).join('\n') + srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del).map(g => '\n✕ ' + srSegZh(g, dk, when)).join('');
@@ -9371,7 +9399,7 @@ function srCtx(when, q) {
   const mem = srRecall(q, when).map(srMemLine).join('\n');
   const herPub = [dk, addDays(dk, 1), addDays(dk, 2)].flatMap(k => rulesFor(k).filter(r => PUB_CATS.includes(r.cat)).map(r => `${srMD(k)} ${r.start} ${r.title}`)).join('；');
   const met = srLive(when).filter(x => x.k === 'plan' && x.who === 'us' && x.st === 'planned' && x.at).map(x => srClock(x.at) + ' ' + x.t).join('；');
-  let lastD = ''; const chat = T.msgs.filter(x => x.at <= when).slice(-40).map(x => { const d = dkey(x.at), hd = d !== lastD ? `〔${srMD(d)}〕\n` : ''; lastD = d; return hd + (x.sys ? `[${x.sys}]` : x.call ? `[语音通话 ${x.call.dur || ''}]` : `${hhmm(srMin(x.at))} ${x.me ? 'Cyan' : '世琳'}：${x.text}`); }).join('\n');
+  const chat = srChatLog(T, when), recent = srRecent(T, when), cv = R.conv && when - R.conv.at < 12 * 3600e3 && R.conv.at <= when ? R.conv : null;
   const habits = srLive(when).filter(x => x.k === 'habit').map(x => x.t).slice(-8).join('；');
   return `【他】${socCardTxt(p)}
 【你们的关系】${serimLoveTxt()}刚交往不久：本来就是最熟的朋友，在一起很自在，偶尔也会有一点「现在是恋人了」的不习惯；不需要刻意甜，他还是原来那个人，有自己的生活、朋友、判断和情绪，会开玩笑、吐槽、拒绝、不想聊。秘密恋爱：外面不能有亲密举动，约见面要选不容易被拍的地方。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
@@ -9381,12 +9409,13 @@ ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${sums ? `\n【最近几天】\n${sums}` : ''}
-【KKT 聊天】
+${recent ? `【最近他对她的回应】（系统按聊天时间和他的安排算出来的事实）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；还没解决：${cv.open.join('；')}` : ''}\n` : ''}【KKT 聊天】
 ${chat || '（还没聊过）'}`;
 }
 const SR_RULES = `写法：
 - 写的是他本人在 KKT 上会发的消息：韩国二十多岁男生私下的口语，半语，一个意思一个气泡，可以只回一个词、一个反应，也可以连发几条。打字习惯按上面【他】里写的来。
 - 不要每条都关心、问问题、表达爱意或给情绪价值；不要总结关系、不要解释自己的情绪、不要复述已经说定的事。聊天可以没有目的。
+- 「慢慢说」「我在听」「发生什么事了」「辛苦了」「我一直都在」这类通用安慰，只有在情境真的需要、而且是他这个人会说的话时才用；她在生他的气时说这些，就是没听懂。
 - 他说的自己的事必须和【他今天】一致：在做什么、在哪、和谁。没写的具体经历不要编；不记得的事就是不记得。
 - 「还没发生」的计划不能说成已经做了；「猜测」不能当事实。她提到你不知道的过去，就照实反应，不要附和成真的。
 - 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
@@ -9399,7 +9428,10 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - upd：上面【记得的事】里某条（填它的编号）有了新情况，比如约定完成了（st=done）、取消了、她纠正了说法。
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
-const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched'], properties: {
+const SR_READ_SCHEMA = { type: 'object', additionalProperties: false, required: ['means', 'feel', 'target', 'why', 'tone', 'his_part'], properties: { means: { type: 'string' }, feel: { type: 'string' }, target: { type: 'string', enum: ['他本人', '他做了或没做的事', '你们之间的事', '别人或外面的事', '她自己', '没有明显情绪', '不确定'] }, why: { type: 'string' }, tone: { type: 'string', enum: ['认真', '开玩笑', '反话', '撒娇', '赌气', '吃醋', '试探', '普通'] }, his_part: { type: 'string' } } };
+const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv'], properties: {
+  read: SR_READ_SCHEMA,
+  conv: { type: 'object', additionalProperties: false, required: ['t', 'open'], properties: { t: { type: 'string' }, open: { type: 'array', items: { type: 'string' } } } },
   sched: SR_SCHED_SCHEMA,
   gist: { type: 'string' }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] },
   msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } },
@@ -9410,6 +9442,7 @@ const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required:
 // 结果落地：记忆、承诺、约定、心情
 function srApply(j, when, T) {
   srMemOps(j.mem, when, 'him'); srSched(j.sched, when);
+  if (j.conv && j.conv.t) SR().conv = { t: String(j.conv.t).slice(0, 120), open: (j.conv.open || []).slice(0, 4).map(x => String(x).slice(0, 60)), at: when, read: j.read || null };
   if (j.promise && j.promise.t && j.promise.cond) srPromiseAdd(j.promise, when);
   if (j.mood) { const M = SR().mood; if (typeof j.mood.val === 'number') M.val = clamp(M.val * .4 + clamp(j.mood.val, -2, 2) * .6, -2, 2); M.to = String(j.mood.to || '').slice(0, 20); if (j.mood.why) M.why = String(j.mood.why).slice(0, 40); }
   const pl = j.plan; if (pl && pl.type === 'call' && pl.confirmed) { if (!T.call || T.call.done) dmCallSet(T, (pl.what || '').slice(0, 40)); }
@@ -9444,7 +9477,7 @@ function srSend(T, list, at, extra) { const L = list.filter(m => m.ko && m.ko.tr
 async function srReply(job) {
   const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, her = srHer(T, when);
   if (!her.length) return true;
-  const mine = her.map(m => m.text).join('\n'), C = SR().chat, lastHim = T.msgs.filter(m => !m.me && !m.sys && m.at <= when).pop();
+  const mine = her.map(m => m.text + (m.zh && m.zh !== m.text ? `（她打的原话：${m.zh}）` : '')).join('\n'), C = SR().chat, lastHim = T.msgs.filter(m => !m.me && !m.sys && m.at <= when).pop();
   const due = srLive(when).filter(m => m.k === 'promise' && m.st === 'planned' && m.cond && when >= m.cond.at);
   // 隔了很久才回：她第一条消息到现在，他实际在做什么（只用时间线上的真实安排）
   const gapMin = Math.round((when - her[0].at) / 60e3), gapDk = dkey(her[0].at), gapSegs = gapMin >= 20 ? [...new Set([gapDk, dkey(when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > her[0].at && srTs(dk, g.s) < when).map(g => srSegZh(g, dk, when))) : [];
@@ -9455,7 +9488,15 @@ ${ctx}
 
 现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（上面聊天里最后几条）：「${mine}」${gapTxt}
 
-先想清楚（写进 gist）：现在在聊什么、哪些已经说定、她这几条是在问 / 分享 / 附和收尾，他此刻在做什么、心情怎样、想不想聊。
+先读懂她（写进 read，不会发出去）。把这几条放回整段对话和时间里看，不要只看最后一句的字面：
+- means：她这几条真正想说什么、想要他怎么样。
+- feel / target：她现在是什么情绪，冲着谁。恋人之间的不满很多时候就是冲着对方的：等了很久没回、说好的没做到、敷衍、被忽视。看【最近他对她的回应】和聊天里的时间。别一看到负面情绪就当成外面有人惹她。
+- why：这个情绪具体是从哪来的（指出前面哪件事、几点）。
+- tone：认真 / 开玩笑 / 反话 / 撒娇 / 赌气 / 吃醋 / 试探 / 普通。反话、赌气的话按真实意思理解（比如「你忙你的吧」可能是在生气）。
+- his_part：他自己在这件事里做了什么、他自己怎么看（觉得理亏 / 有理由 / 有点委屈 / 之前没意识到）。
+gist：现在在聊什么、哪些已经说定。
+然后按他的性格和你们刚交往的关系决定怎么回：可以解释、道歉、着急、嘴硬一下、开玩笑缓和、说出自己的感受、承认之前没注意到，也可以有点不服气——但要和他的性格、和 his_part 一致。情绪是冲着他的时候，要接住这件事本身，不要去问「发生什么事了」。
+conv：回完之后这段对话的状态（一句话：在聊什么、她现在什么情绪、他们之间有没有没解决的事），open 列出还没解决的事（比如「她因为他很晚才回在生气，还没哄好」），解决了就别列。
 再决定 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙别的分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（msgs 留空）。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
 promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
@@ -9465,7 +9506,7 @@ mood：这次聊完他的心情 val（-2 很差 ~ 2 很好）、对她的态度 
 ${SR_MEM_HINT}
 
 ${SR_RULES}
-msgs：ko 原文，zh 自然的中文意思。`, 1400, SR_REPLY_SCHEMA);
+msgs：ko 原文，zh 自然的中文意思。`, 1800, SR_REPLY_SCHEMA, false, 'medium');
   let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
@@ -9483,7 +9524,7 @@ async function srReach(job) {
   const j = await srAI(`CRAVITY 世琳拿起手机，在想要不要给 Cyan 发 KKT。不是在回她，是他自己想找她。
 ${srCtx(when, w.d || '')}
 
-他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${w.kind === 'promise' ? '' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}
+他现在可能想找她的原因：${w.d || '没什么特别的事，就是这会儿有空'}${w.kind === 'promise' ? '' : '\n这些只是他心里可能在想的事。有值得说的不代表一定要发；他也有自己的事在忙、在玩。'}${R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? `\n注意：你们之间还有没解决的事（${R.conv.open.join('；')}），这时候若无其事地聊别的会很奇怪：要么先面对这件事，要么这次就不发。` : ''}
 ${recent ? `最近几次他主动找她说的是：${recent}。这次别重复同样的话题和开头。` : ''}
 按真人来：理由不够、现在其实没什么想说的，就 send=false。发的话可以很随便，一两句、没头没尾都行；不要用「在干嘛」「想你」当固定开头，也不要默认说自己在工作 / 录音，除非他确实在做而且跟要说的事有关。
 topic：一句中文写这次说的是什么。promise_done：如果这次兑现了上面答应的事，true。
