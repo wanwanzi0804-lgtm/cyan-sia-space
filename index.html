@@ -9160,7 +9160,7 @@ function srAIState() {
 }
 async function srAI(text, max, schema, bg, effort) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
-  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), 90e3))]); /* 手机切到后台时请求可能一直挂着：最多等 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
+  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
   catch (e) { if (!e.sr) { const A = SR().ai; A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
@@ -9609,9 +9609,10 @@ function srMigrate() {
   save();
 }
 /* ---------- 每次 tick：按时间顺序补算看手机（页面关着时错过的也按当时的时间算），一次只跑一个 AI 任务 ---------- */
-let srBusy = 0, srBusyAt = 0, srRunId = 0;
+let srBusy = 0, srBusyAt = 0, srRunId = 0, srBooted = 0;
 function srTick() {
-  if (srBusy && Date.now() - srBusyAt < 120e3) return; srBusy = 0; // 上一个任务卡住超过 2 分钟（比如手机切到后台、请求被挂起）：不再等它
+  if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
+  if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
   try { srMigrate(); srUpgrade(); srRedo1026(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
@@ -9633,7 +9634,8 @@ function srTick() {
 function srTechHTML() {
   const R = SR(), j = R.jobs.find(x => ['reply', 'reach'].includes(x.type) && x.at <= Date.now()); if (!j) return '';
   const st = srAIState(); if (st.ok && !j.tech) return '';
-  return `<div class="kk-tech">⚙ ${esc(st.ok ? '正在重新生成世琳的回复…' : st.zh)}${st.kind === 'net' ? '' : '，恢复后世琳会接着回'}${st.ok ? '' : ` <button class="link" data-act="srretry">现在重试</button>`}</div>`;
+  const wait = j.next && j.next > Date.now() ? Math.ceil((j.next - Date.now()) / 60e3) : 0, gen = st.ok && !wait && srBusy;
+  return `<div class="kk-tech">⚙ ${esc(!st.ok ? st.zh : gen ? '正在生成世琳的回复（要先想一想，可能需要一分钟左右）…' : wait ? `上次生成失败，${wait} 分钟后重试` : '准备重新生成世琳的回复…')}${!st.ok && st.kind !== 'net' ? '，恢复后世琳会接着回' : ''}${!st.ok || wait ? ` <button class="link" data-act="srretry">现在重试</button>` : ''}</div>`;
 }
 
 /* ---------- 你记下的世琳日常：拆成时间段（已发生 / 正在 / 计划），覆盖系统生成的日常 ---------- */
