@@ -9270,7 +9270,7 @@ ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(
 - 不要只有工作和录音：吃饭、健身、跑步、看足球、和成员闹、打游戏、洗澡躺着刷手机、去常去的店、开车兜风、和 99line 朋友约饭、打电话给家里……按他的性格和这天的情况挑，不要每天一样。
 - 不编大事（受伤、生病、出事、绯闻、新工作合同这类都不要）；人物只用成员、他的朋友、经纪人、家人、工作人员。
 - share：这段经历他会不会想跟女朋友说（0~1，大多数是 0~0.3，真的好笑 / 好吃 / 有意思 / 累坏了的才高）。
-- kind：sleep 睡觉 / work 工作 / social 和别人一起玩或吃饭 / out 自己外出 / free 在宿舍等空闲 / move 路上。`, 1500,
+- kind：sleep 睡觉 / work 工作 / social 和别人一起玩或吃饭 / out 自己外出 / free 在宿舍等空闲 / move 路上。`, 3000,
       { type: 'object', additionalProperties: false, required: ['segs'], properties: { segs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['s', 'e', 'what', 'where', 'with', 'kind', 'share'], properties: { s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] }, share: { type: 'number' } } } } } }, true);
     const segs = (j.segs || []).map(x => ({ id: uid(), s: toMin(x.s), e: x.e === '24:00' || toMin(x.e) <= toMin(x.s) ? 1440 : toMin(x.e), what: String(x.what || '').slice(0, 40), where: String(x.where || '').slice(0, 20), with: String(x.with || '').slice(0, 20), kind: x.kind, src: 'gen', st: '', share: clamp(+x.share || 0, 0, 1), c: 0 })).filter(g => g.what && g.e > g.s);
     if (segs.length >= 3) { const keep = nowM > 0 ? D.segs.filter(g => g.src === 'fb' && g.s < nowM).map(g => ({ ...g, e: Math.min(g.e, nowM) })) : []; D.segs = D.segs.filter(g => g.src !== 'fb' && g.src !== 'gen').concat(keep, nowM > 0 ? segs.filter(g => g.e > nowM).map(g => ({ ...g, s: Math.max(g.s, nowM) })) : segs); D.gen = Date.now(); save(); }
@@ -9506,7 +9506,7 @@ mood：这次聊完他的心情 val（-2 很差 ~ 2 很好）、对她的态度 
 ${SR_MEM_HINT}
 
 ${SR_RULES}
-msgs：ko 原文，zh 自然的中文意思。`, 1800, SR_REPLY_SCHEMA, false, 'medium');
+msgs：ko 原文，zh 自然的中文意思。`, 8000, SR_REPLY_SCHEMA, false, 'medium'); /* 思考也算在长度里：给足空间，避免被截断 */
   let act = j.act; const msgs = (j.msgs || []).filter(m => m.ko && m.ko.trim());
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
@@ -9530,7 +9530,7 @@ ${recent ? `最近几次他主动找她说的是：${recent}。这次别重复�
 topic：一句中文写这次说的是什么。promise_done：如果这次兑现了上面答应的事，true。
 ${SR_MEM_HINT}
 ${SR_RULES}
-msgs：ko 原文，zh 中文意思。`, 1100,
+msgs：ko 原文，zh 中文意思。`, 3000,
     { type: 'object', additionalProperties: false, required: ['send', 'msgs', 'topic', 'promise_done', 'mem'], properties: { send: { type: 'boolean' }, msgs: SR_REPLY_SCHEMA.properties.msgs, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA } });
   srMemOps(j.mem, when, 'him');
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; } // 想过了：这件事不会再反复成为找她的理由
@@ -9556,7 +9556,7 @@ ${day.map(m => `${hhmm(srMin(m.at))} ${m.me ? 'Cyan' : '世琳'}：${m.text}${m.
 
 sum：2~3 句中文，像他自己回想那天：聊了什么、说定了什么、有什么情绪（只写聊天里真的有的）。
 mem：上面「已经记下的」里没有、但值得长期记住的（她说的事实喜好、约定、你们的叫法和默契、他的感受），已有的不要重复；有条目状态变了用 upd。
-${SR_MEM_HINT}`, 1200, { type: 'object', additionalProperties: false, required: ['sum', 'mem'], properties: { sum: { type: 'string' }, mem: SR_MEM_SCHEMA } });
+${SR_MEM_HINT}`, 3000, { type: 'object', additionalProperties: false, required: ['sum', 'mem'], properties: { sum: { type: 'string' }, mem: SR_MEM_SCHEMA } });
   if (j.sum) srMemAdd({ k: 'sum', who: 'us', t: String(j.sum).slice(0, 220), at: a + 12 * 3600e3, src: 'sys', imp: 2 }, b - 1);
   srMemOps(j.mem, b - 1, 'sys'); return true;
 }
@@ -9572,7 +9572,7 @@ ${serimNotes().slice(-40).map(n => `- ${n.day} ${n.text}`).join('\n') || '（无
 ${T.msgs.filter(m => !m.sys).slice(-120).map(m => `${dkey(m.at).slice(5)} ${hhmm(srMin(m.at))} ${m.me ? 'Cyan' : '世琳'}：${m.text}`).join('\n')}
 
 只记聊天和记录里真的有的；已有记录里有的别重复（状态变了用 upd）。他说过但没做的承诺记成 promise（做了就 done，明显没兑现就 missed）。
-${SR_MEM_HINT}`, 2400, { type: 'object', additionalProperties: false, required: ['mem'], properties: { mem: { type: 'array', items: SR_MEM_SCHEMA.items } } });
+${SR_MEM_HINT}`, 6000, { type: 'object', additionalProperties: false, required: ['mem'], properties: { mem: { type: 'array', items: SR_MEM_SCHEMA.items } } });
   srMemOps((j.mem || []).slice(0, 40).map(o => ({ ...o, op: o.op === 'upd' || o.op === 'del' ? o.op : 'add' })), Date.now(), 'sys');
   R.dig = 1; return true;
 }
@@ -9647,7 +9647,7 @@ ${srSegs(td).map(g => '- ' + srSegZh(g, td, now)).join('\n') || '（无）'}
 segs：把这条里提到的他的具体活动拆成时间段。day 写 YYYY-MM-DD（今天 ${td}，明天 ${addDays(td, 1)}）；s / e 写 HH:MM（只说了「下午」「晚上」这种就按常理给一个合理的范围；说「现在在」就从现在前后算）；st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。没有具体活动就空数组。
 mem：这条里其他值得长期记住的（他的近况、喜好、和谁有关的事），k / who / t / imp，when 可空。
 kkt：只有这条里明确写了「世琳会在 KKT 上给她发消息」时 send=true：time 按写的时间（HH:MM），ko 他会真的发出来的那条（半语、口语、短），zh 中文；否则 send=false 其他留空。
-sum：12 个字以内的笼统概括。`, 1000, { type: 'object', additionalProperties: false, required: ['segs', 'mem', 'kkt', 'sum'], properties: {
+sum：12 个字以内的笼统概括。`, 2500, { type: 'object', additionalProperties: false, required: ['segs', 'mem', 'kkt', 'sum'], properties: {
       segs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['day', 's', 'e', 'what', 'where', 'with', 'kind', 'st'], properties: { day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] }, st: { type: 'string', enum: ['done', 'now', 'planned'] } } } },
       mem: SR_MEM_SCHEMA, kkt: { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' } } }, sum: { type: 'string' } } });
     srNoteSegs(n, (j.segs || []).map(x => ({ ...x, s: toMin(x.s), e: x.e === '24:00' ? 1440 : toMin(x.e) })));
