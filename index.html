@@ -9428,6 +9428,32 @@ function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off
 let srGenBusy = 0, srBitBusy = 0;
 /* ---------- 他手机里的照片：你在「世琳」记录里传的，带一句说明（照片里是什么、什么时候拍的），AI 只看说明决定什么时候发 ---------- */
 let SRPH = null;
+/* ---------- 你指定他发的消息：一行一条，写【图片】的那行发一张他手机里的照片；到时间（或他下次拿起手机）原样发出 ---------- */
+const SR_PH_LINE = /^[【\[](图片|照片|사진)[】\]]$/;
+async function srScriptAdd(raw, phId, mode, hm) {
+  const R = SR(), lines = raw.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12); if (!lines.length) return false;
+  const ph = (R.photos || []).find(p => p.id === phId), out = [];
+  for (const l of lines) {
+    if (SR_PH_LINE.test(l)) { if (ph) out.push({ ko: '[사진]', zh: '[照片]', ph: ph.mid, pid: ph.id }); continue; }
+    if (hasHan(l)) { const ko = await trText(l, 'ko', '女朋友 Cyan（最亲的人：必须用半语（반말），句尾不要带 -요；像二十多岁男生发 KKT 的口语）'); out.push({ ko: ko || l, zh: l }); }
+    else { const zh = /^[ㅋㅎㅠㅜ~!?.\s]+$/.test(l) ? (/ㅋ|ㅎ/.test(l) ? '哈哈哈哈' : l) : await trText(l, 'zh'); out.push({ ko: l, zh: zh || '' }); }
+  }
+  if (!out.length) return false;
+  let at = Math.max(Date.now() + 60e3, Math.min(R.chat.next || 0, Date.now() + 40 * 60e3)); if (mode === 'time' && /^\d\d:\d\d$/.test(hm || '')) { at = srTs(dkey(Date.now()), toMin(hm)); if (at < Date.now() - 60e3) at += 864e5; }
+  (R.script || (R.script = [])).push({ id: uid(), at, mode, list: out, st: 'wait' }); save(); return true;
+}
+function srScriptTick(now) {
+  const R = SR(), T = dmThread(srP()); for (const x of R.script || []) {
+    if (x.st !== 'wait' || now < x.at) continue; const st = srNow(now) || {};
+    if (x.mode !== 'time' && st.sleep) continue; // 「他下次拿起手机时」：睡着就等醒了
+    x.st = 'sent'; x.sentAt = now; let t = now;
+    (T.pend || (T.pend = [])).push({ at: now, list: x.list.map(m => ({ text: m.ko, zh: m.zh, ping: 1, ...(m.ph ? { ph: m.ph } : {}) })) });
+    for (const m of x.list) if (m.pid) { const p = (R.photos || []).find(y => y.id === m.pid); if (p) p.sent = now; }
+    R.reach.push({ at: now, kind: 'script', topic: x.list.filter(m => !m.ph).map(m => m.zh || m.ko).join(' / ').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
+    R.chat.him = now; R.chat.sess = now + 15 * 60e3; save();
+  }
+  if (R.script && R.script.length > 20) R.script = R.script.slice(-20);
+}
 function srPhotosVis(when) { return (SR().photos || []).filter(p => p.at <= when && when - p.at < 4 * 864e5); }
 function srPhotoTxt(when) { const L = srPhotosVis(when); if (!L.length) return ''; return `\n【他手机里的照片】（想发的话单独一条写「[사진:编号]」，只能用这里的编号；照片内容以说明为准，只在聊到相关、或者他正好想分享这件事时发，发过的一般不再发）\n` + L.map(p => `[${p.id}] ${p.d}（${srClock(p.at)}${p.sent ? '，已经发给她过' : ''}）`).join('\n'); }
 async function srPhotoAdd(file, d, nid) { const mid = 'srp' + uid(); await idbPut(mid, file); const R = SR(); (R.photos || (R.photos = [])).push({ id: 'p' + uid().slice(-5), mid, d: String(d || '照片').slice(0, 80), at: Date.now(), nid }); if (R.photos.length > 30) R.photos.splice(0, R.photos.length - 30); srPhotoLink(); save(); }
@@ -9946,6 +9972,7 @@ function srTick() {
   let guard = 0;
   const aiOk = srAIState().ok;
   while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
+  try { srScriptTick(now); } catch (e) { console.error('sr script', e); }
   srNoteRetry();
   const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
   const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
@@ -10127,6 +10154,15 @@ function serimCardHTML() {
     ${(SR().photos || []).length ? `<div class="muted" style="font-size:12.5px;margin:8px 4px 4px">他手机里的照片</div><div class="card" style="padding:4px 12px">${SR().photos.slice().reverse().slice(0, 6).map(p => `<div class="rule" style="align-items:center;gap:8px"><img data-mid="${p.mid}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px"><span style="flex:1;font-size:13px">${esc(p.d)}${p.sent ? '<span class="muted">（发过了）</span>' : ''}</span><button class="link" data-act="srphdel" data-id="${p.id}">删</button></div>`).join('')}</div>` : ''}
     ${N.length ? `<div class="sec-title" style="margin-top:10px">你记下的</div><div class="card" style="padding:4px 12px">${N.map(n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === td ? '今天' : '昨天'} ${hhmm(srMin(n.at))}${n.parsed === 'fb' ? ' · 粗略记录（AI 恢复后会重新理解）' : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link" data-act="serimdel" data-id="${n.id}">删</button></div>`).join('')}</div>` : ''}
     ${SR().jobs.some(j => j.type === 'reparse') || serimNotes().some(n => n.day === td && !n.parsed) ? '<div class="muted" style="font-size:12.5px;margin:10px 4px 0">⏳ 正在根据你记的内容更新时间线…</div>' : ''}
+    <details class="card" style="margin-top:10px" ${UI.srSayOpen ? 'open' : ''}><summary style="font-weight:700" data-act="srsaytg">✉️ 让他发一段消息</summary>
+      <textarea id="sr-say" style="min-height:110px;margin-top:8px" placeholder="一行一条，写【图片】的那行发一张照片：&#10;오늘 너무 힘들다&#10;근데 옷 주머니에서 포카 나왔어&#10;【图片】&#10;이게 왜 여기에"></textarea>
+      <div class="muted" style="font-size:12px;margin:4px 2px">韩语照原样发；写中文的那行会翻成他的口吻（半语）。</div>
+      ${(SR().photos || []).length ? `<div class="row" style="gap:8px;margin-top:6px"><span style="font-size:13px;white-space:nowrap">【图片】用</span><select id="sr-say-ph" style="flex:1">${SR().photos.slice().reverse().map(p => `<option value="${p.id}">${esc(p.d.slice(0, 24))}${p.sent ? '（发过）' : ''}</option>`).join('')}</select></div>` : '<div class="muted" style="font-size:12px;margin:4px 2px">要发照片的话，先在上面「给他一张照片」。</div>'}
+      <div class="seg" style="margin:8px 0 0">${[['next', '他下次拿起手机时'], ['time', '指定时间']].map(([k, t]) => `<button class="${(UI.srSayMode || 'next') === k ? 'on' : ''}" data-act="srsaymode" data-m="${k}">${t}</button>`).join('')}</div>
+      ${(UI.srSayMode || 'next') === 'time' ? `<input id="sr-say-t" type="time" value="${hhmm(Math.min(1439, srMin(Date.now()) + 10))}" style="margin-top:8px">` : ''}
+      <div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary sm" data-act="srsay">安排</button></div>
+      ${(SR().script || []).filter(x => x.st === 'wait').map(x => `<div class="rule" style="align-items:flex-start"><span style="flex:1;font-size:13px">${x.mode === 'time' ? hhmm(srMin(x.at)) + ' 发' : '下次拿起手机时发'}：${esc(x.list.map(m => m.ph ? '【图片】' : m.ko).join(' / ').slice(0, 60))}</span><button class="link" data-act="srsaydel" data-id="${x.id}">取消</button></div>`).join('')}
+    </details>
     ${srTimelineHTML()}`;
 }
 function socHistHTML() {
@@ -10516,14 +10552,14 @@ function viewMe() {
 // 刷新弹窗时保留输入框里的字、键盘焦点和聊天记录的滚动位置（之前一发消息界面就跳回顶部）
 function openModal(html) {
   const sh = $('#sheet'), keep = {}, act = document.activeElement, wasOn = $('#modal').classList.contains('on');
-  if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
+  if (wasOn) { for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd', 'sr-say']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { v: el.value, f: act === el, s: el.selectionStart }; }
     for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
     keep.sheet = sh.scrollTop; }
   const sig = () => { const h = sh.querySelector('h3,h2,b'); return (sh.firstElementChild?.className || '') + '|' + (h ? h.textContent.trim().slice(0, 30) : ''); }, oldSig = wasOn ? sig() : '';
   sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room,.kk-pf')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
   sh.scrollTop = keep.sheet != null && sig() === oldSig ? keep.sheet : 0; // 同一个弹窗刷新才保留位置，换成别的弹窗从顶上开始
-  for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
+  for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd', 'sr-say']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
 }
 function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; }
 $('#modal').addEventListener('click', e => { if (e.target.id !== 'modal') return; if (UI.socPop) { const b = document.querySelector('#sheet [data-act=socclose]'); if (b) { b.click(); return; } UI.socPop = null; } if (UI.chPop) UI.chPop = null; if (UI.meet) UI.meet = 0; closeModal(); }); // 点外面关掉：弹窗状态也要清掉，不然之后的事件会被卡住
@@ -10719,6 +10755,11 @@ document.addEventListener('click', async e => {
     case 'socclose': { const Q = UI.socPop; if (Q && Q.x) delete Q.x.open; if (Q && Q.serim && !social().serim?.done) social().serim.closed = 1; if (Q && !Q.res && !Q.serim) { social().hist.push({ id: Q.x.id, day: Q.x.day, ev: Q.x.ev, who: socWho(Q.x.p), text: socText(socEv(Q.x.ev), Q.x.p, Q.x), mine: '（没理会）', reply: '没有后续' }); } UI.socPop = null; closeModal(); save(); render(); break; }
     case 'serimopen': openModal(serimCardHTML()); break;
     case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
+    case 'srsaytg': UI.srSayOpen = !t.parentElement.open; break;
+    case 'srsaymode': { const v = $('#sr-say')?.value || ''; UI.srSayOpen = 1; UI.srSayMode = t.dataset.m; openModal(serimCardHTML()); const el = $('#sr-say'); if (el) el.value = v; break; }
+    case 'srsaydel': { const R = SR(); R.script = (R.script || []).filter(x => x.id !== t.dataset.id); save(); UI.srSayOpen = 1; openModal(serimCardHTML()); break; }
+    case 'srsay': { const v = ($('#sr-say')?.value || '').trim(); if (!v) break; if (v.split('\n').some(l => SR_PH_LINE.test(l.trim())) && !$('#sr-say-ph')) { toast('还没有照片', '先在上面给他一张照片'); break; } t.disabled = true; t.textContent = '翻译中…';
+      const ok = await srScriptAdd(v, $('#sr-say-ph')?.value, UI.srSayMode || 'next', $('#sr-say-t')?.value); UI.srSayOpen = 1; if (ok) toast('安排好了'); openModal(serimCardHTML()); break; }
     case 'srphdel': { const R = SR(); R.photos = (R.photos || []).filter(p => p.id !== t.dataset.id); save(); openModal(serimCardHTML()); break; }
     case 'serimset': { if (SRPH) { const d = ($('#serim-phd')?.value || '').trim(); if (!d) { toast('写一句照片里是什么', '他会按这个判断什么时候发'); break; } const f = SRPH.file; URL.revokeObjectURL(SRPH.url); SRPH = null; await srPhotoAdd(f, d); toast('照片存到他手机里了'); if (!($('#serim-in')?.value || '').trim()) { openModal(serimCardHTML()); break; } }
       const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v); toast('记下了'); openModal(serimCardHTML()); break; }
