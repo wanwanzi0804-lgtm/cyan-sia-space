@@ -1090,7 +1090,7 @@ async function aiCompact(content, maxTokens) {
   const k = (j.k || []).map(x => String(x || '').trim()).filter(x => x.length >= 1 && x.length <= 8).slice(0, 6);
   return { r, k };
 }
-async function aiRaw(content, maxTokens, schema, sys, model, effort) {
+async function aiRaw(content, maxTokens, schema, sys, model, effort, stream) {
   const client = await aiClient(); model = model || S.ai.model;
   const req = {
     model, max_tokens: maxTokens, system: sys || aiSystem(),
@@ -1098,7 +1098,7 @@ async function aiRaw(content, maxTokens, schema, sys, model, effort) {
     output_config: { effort: effort || 'low', format: { type: 'json_schema', schema } }
   };
   if (FALLBACK_MODELS.includes(model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
-  const r = await client.beta.messages.create(req);
+  const r = stream ? await client.beta.messages.stream(req).finalMessage() : await client.beta.messages.create(req); // 要想比较久的请求用流式：一直有数据回来，手机网络不会中途断开
   const [pi, po] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'], u = aiUsage();
   u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
   if (aiOverCap()) pushNotif({ type: 'system', text: '本月 AI 花费已到你设的上限，AI 粉丝已自动暂停', sub: '下个月会自动恢复，也可以在「我的 → AI 粉丝」里调高上限' }, true);
@@ -9160,7 +9160,7 @@ function srAIState() {
 }
 async function srAI(text, max, schema, bg, effort) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
-  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
+  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : S.ai.model, effort, !bg), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
   catch (e) { if (!e.sr) { const A = SR().ai; A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
