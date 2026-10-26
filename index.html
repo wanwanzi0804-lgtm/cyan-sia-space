@@ -2669,7 +2669,7 @@ const OFF_CM = {
   out: [['sia_0829', '컴백 축하해!!! 스밍 달린다'], ['雪落的时候', '打榜打榜！'], ['cyan_daily', '타이틀 미쳤어요 진짜'], ['blue_sia', 'MV is a masterpiece'], ['今天也想你', '整张专辑都好好听']]
 };
 function offTick(o) {
-  const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM (KST)`;
+  const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM`;
   const tags = `#${S.profile.name} #시안 #${a.name.replace(/\s+/g, '')}`;
   for (const [d, k, title] of OFF_PLAN) {
     const at = rel + d * 86400e3 + (k === 'out' ? 18 * 3600e3 : 0); if (now < at || now > at + 6 * 86400e3) continue;
@@ -2679,7 +2679,7 @@ function offTick(o) {
     if ((k === 'cp1' || k === 'cp2') && !media.length) poster = 'logo'; else if (['soon', 'sched', 'trk', 'hl', 'mvt', 'out'].includes(k)) poster = k;
     if (k === 'trk' && !o.t.final.done) continue; // 曲目还没定：先不发曲目表
     const ttl = k === 'mvt' ? `'${albTitle(a)}' M/V TEASER` : k === 'out' ? `'${albTitle(a)}' M/V OUT NOW` : title;
-    const txt = `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM (KST) 발매' : when}\n\n${tags}`;
+    const txt = `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM 발매' : when}\n\n${tags}`;
     const f = S.profile.followers, base = Math.round(f * rand(.5, .9) * (k === 'out' ? 1.6 : k.startsWith('cp') || k === 'mvt' ? 1.2 : 1));
     const pool = OFF_CM[k.startsWith('cp') ? 'cp' : k] || OFF_CM.soon;
     O.posts.push({ id, alb: a.id, k, at, txt, media, poster, base, cc: Math.round(base * rand(.04, .08)), cm: pickN(pool, Math.min(3, pool.length)).map(([u, x]) => [u, x.replace('{n}', a.tracks.length)]) });
