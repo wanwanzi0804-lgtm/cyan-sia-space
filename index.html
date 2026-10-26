@@ -9611,6 +9611,19 @@ function srDupFix1026() {
   S.notifs = (S.notifs || []).filter(n => !(n.at >= cutAt && /^💬/.test(n.text || '') && (n.text || '').includes(nm)));
   save(); if (typeof updBadges === 'function') updBadges();
 }
+// 一次性：你说「讨厌你」之后他回的那几条（把话推回给你、重复道歉、突兀的称呼）删掉，你的消息都留着，让他一次性重新回
+function srFix1026b() {
+  const R = SR(); if (R.fix1026b) return; const T = dmThread(srP()), L = T.msgs;
+  const i = L.findIndex(m => m.me && dkey(m.at) === '2026-10-26' && /讨厌你|싫어/.test((m.text || '') + (m.zh || ''))); if (i < 0) return; R.fix1026b = 1;
+  const gone = L.slice(i + 1).filter(m => !m.me && !m.sys); if (!gone.length) { save(); return; }
+  srBackup('fix1026b'); const cutAt = gone[0].at, nm = socDisp(srP());
+  T.msgs = L.filter((m, k) => k <= i || m.me || m.sys); T.pend = []; T.readTo = T.msgs[T.msgs.length - 1].at; T.unread = 0; T.quiet = null;
+  for (const m of R.mem) if (m.c >= cutAt && !m.rep && ['her', 'him'].includes(m.src)) { m.rep = 'x'; m.u = Date.now(); }
+  R.conv = null; R.reach = R.reach.filter(x => x.at < cutAt); R.jobs = R.jobs.filter(j => !['reply', 'reach'].includes(j.type)); R.chat.sess = 0; R.chat.him = 0;
+  srJob('reply', Date.now() + 15e3);
+  S.notifs = (S.notifs || []).filter(n => !(n.at >= cutAt && /^💬/.test(n.text || '') && (n.text || '').includes(nm)));
+  save(); if (typeof updBadges === 'function') updBadges();
+}
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
@@ -9635,7 +9648,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
