@@ -4701,7 +4701,7 @@ function mgrContext() {
 ${c && a && !c.over ? `回归：《${a.name}》${c.date}，现在${{ plan: '还在准备期', tease: '在预热期（还没发行）', promo: `在主打打歌期（第 ${Math.floor(-cbDay() / 7) + 1} / ${c.weeks} 周，打到 ${addDays(c.date, 7 * c.weeks - 1)}）`, rest: '在休息周', follow: `在后续打歌期（打到 ${addDays(c.date, cbPlan().followEnd - 1)}）`, end: '活动快结束了' }[cbPhase()] || ''}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
 ${relContext()}
 艺人的朋友：${chal().friends.map(f => `${f.g} ${f.z || f.n}（${FR_LV[f.lv || 'friend']}）`).join('、')}。合作规则：challenge 有活动的日子就能约，关系越好越容易答应，不认识的艺人要看咖位差，对方本人答应后还要看对方公司和档期，私人关系不能保证落实；音源合作要走公司企划、要几个月；综艺是节目组邀请，只能去争取；画报广告由品牌决定，自制内容可以请嘉宾。
-艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。
+艺人最近交代过的事：${(mgrChat().memos || []).slice(-6).map(m => m.dk.slice(5) + ' ' + m.text).join('；') || '无'}。${propCtx()}
 ${(() => { const L = yt().plans.filter(p => !['pub', 'cancel'].includes(p.st)); if (!L.length) return ''; return '官方 YouTube 企划（你在跟进的）：' + L.map(p => { const r = p.rule && S.schedule.rules.find(x => x.id === p.rule), f = ytFmt(p), hrs = f[3] >= 15e5 ? 6 : 3; return `《${p.title}》${YT_CAT[p.cat][0]}·${f[1]}，${YT_ST[p.st] || p.st}${r ? `（拍摄定在 ${r.date.slice(5)} ${r.start}-${r.end}）` : p.st === 'sched' ? '（你给了几个日期让她选，她还没选）' : ''}，拍摄一般要 ${hrs} 小时左右，${f[4] ? '公司出预算有团队拍' : '基本自己拍'}`; }).join('；') + '。她问到这些时按这里回答，问拍多久就说拍摄大概几个小时。'; })()}`;
 }
 async function mgrAi(text, hint) {
@@ -4766,9 +4766,83 @@ function mgrAdvanceTick() {
   mgrReply([['회사에서 OK 났어요!', '公司同意了！'], [`${krw(net)} 오늘 들어갈 거예요`, `今天会打给你 ${krw(net)}`], [`${SETTLE_DAY}일 정산 때 이만큼 빼고 나와요`, `${SETTLE_DAY} 号结算的时候会把这笔扣掉`]]);
   pushNotif({ type: 'system', text: `💸 ${label}已到账`, sub: `实际入账 ${won(net)}` }, true);
 }
+/* ---------- 重大提案：她提出要公司拍板的事（小分队、换风格、自作曲当主打、开演唱会、休息一阵…）
+   经纪人先给自己的看法、拿去公司开会 → 公司会问相关的人（比如对方艺人和那边的经纪人）→ 几天后按现实情况给结论 → 批了就变成真的企划，按阶段进行程表 ---------- */
+const PROP_PRE = /小分队|유닛|\bunit\b|企划|기획|提案|제안|演唱会|콘서트|팬미팅|见面会|换风格|换概念|컨셉|自作曲|자작곡|정규|正规|专辑|앨범|休息一阵|活动中断|활동 ?중단|休假|휴가|(公司|회사).{0,12}(能不能|可不可以|同意|允许|答应|될까|되나|가능|허락|괜찮)|(能不能|可不可以|可以不可以|想)让我|(想|要).{0,6}(出|做|开|办|换|发)/;
+function props() { const M = mgrChat(); return M.props || (M.props = []); }
+function propOpen() { return props().filter(p => ['review', 'run'].includes(p.st)); }
+function propCtx() { const L = props().slice(-6); if (!L.length) return ''; return '\n她提过的重大提案（你在跟进的）：' + L.map(p => `「${p.title}」${p.st === 'review' ? `公司还在讨论（预计 ${p.decideAt ? new Date(p.decideAt).getMonth() + 1 + '/' + new Date(p.decideAt).getDate() : '这几天'} 出结果）` : p.st === 'run' ? `已批准，企划《${p.pj?.name || ''}》进行中：${(p.pj?.stages || []).map(x => `${x.date.slice(5)} ${x.what}${x.date < dkey(Date.now()) ? '✓' : ''}`).join('、')}${p.pj?.rel ? `；${p.pj.rel.date} 发行《${p.pj.rel.name}》` : ''}` : p.st === 'done' ? `企划《${p.pj?.name || ''}》已完成` : `没通过（${p.res?.reason || ''}）`}`).join('；') + '。'; }
+async function propDetect(text) {
+  if (!aiOn() || !PROP_PRE.test(text) || propOpen().length >= 3) return null;
+  const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（STARSHIP solo 女歌手）对她的经纪人说：「${text}」
+判断：这是不是在提出一件要公司开会拍板的重大提议（比如和某个艺人出小分队 / 合作单曲、开演唱会或见面会、换音乐风格、拿自作曲当主打、发正规专辑、暂停活动休息一阵…）？只是闲聊、问问题、日常的小请求（加个练习、改个时间、约个 challenge）都不算。
+是的话：title 用一句中文概括她提的事；kind：unit（和别人组小分队 / 合作发歌）/ show（演唱会、见面会这类大型活动）/ music（风格、自作曲、专辑方向）/ rest（休息、暂停活动）/ other；partner 写涉及的另一位艺人（团名 + 名字，没有就空）；detail 补充她提到的细节。` }], 400,
+    { type: 'object', additionalProperties: false, required: ['is', 'title', 'kind', 'partner', 'detail'], properties: { is: { type: 'boolean' }, title: { type: 'string' }, kind: { type: 'string', enum: ['unit', 'show', 'music', 'rest', 'other'] }, partner: { type: 'string' }, detail: { type: 'string' } } }, null, S.ai.bgModel || undefined).catch(() => null);
+  if (!j || !j.is || !j.title) return null;
+  const now = Date.now(), days = ri(2, 4), decideAt = parseD(addDays(dkey(now), days)).getTime() + ri(14 * 60, 18 * 60) * 60e3;
+  const sr = /세림|世琳|serim/i.test(j.partner + j.title + text);
+  const p = { id: uid(), at: now, text: text.slice(0, 200), title: j.title.slice(0, 60), kind: j.kind, partner: sr ? 'CRAVITY 세림' : j.partner.slice(0, 30), sr, detail: j.detail.slice(0, 120), st: 'review', askAt: now + rand(.3, .55) * (decideAt - now), decideAt };
+  props().push(p); save(); return p;
+}
+function propTick() {
+  const now = Date.now();
+  for (const p of props()) {
+    if (p.st !== 'review') continue;
+    if (p.sr && !p.asked && now >= p.askAt) { p.asked = 1; // 公司开会前，CRAVITY 那边的经纪人问了世琳的意见
+      srMemAdd({ k: 'event', who: 'him', t: `CRAVITY 经纪人找他，说恩雪向公司提了「${p.title}」，公司想先听听他的意见`, src: 'sys', imp: 4, at: p.askAt }, p.askAt);
+      srUrge(`经纪人问过他对恩雪提的「${p.title}」的意见（公司还在讨论）`, .7, p.askAt, 'prop' + p.id); save(); }
+    if (now >= p.decideAt && !p.busy && (!p.retry || now >= p.retry)) propDecide(p);
+  }
+  for (const p of props()) if (p.st === 'run' && p.pj && p.pj.end && dkey(now) > p.pj.end) { p.st = 'done'; save(); }
+}
+async function propDecide(p) {
+  if (!aiOn()) { p.retry = Date.now() + 30 * 60e3; return; } p.busy = 1;
+  try {
+    const td = dkey(Date.now()), up = Array.from({ length: 60 }, (_, i) => addDays(td, i)), crv = up.filter(d => socPromo('CRAVITY', d)), gigs = up.map(d => gigOn('CRAVITY', d)).filter(Boolean).map(g => `${g[1]} ${g[3]}`);
+    const j = await aiRaw([{ type: 'text', text: `你是 STARSHIP 的企划会议。旗下 solo 女歌手 ${S.profile.name} 通过经纪人提了一个提议，开会讨论后要给出公司的决定。
+提议：「${p.title}」${p.detail ? `（${p.detail}）` : ''}；她的原话：「${p.text}」${p.partner ? `\n涉及的艺人：${p.partner}` : ''}
+${mgrContext()}
+她的咖位：粉丝 ${S.profile.followers}，热度${heatLabel()}。${p.sr ? `\nCRAVITY（同公司男团）接下来 60 天：${crv.length ? `有 ${crv.length} 天在活动期（${crv[0]} ~ ${crv[crv.length - 1]}）` : '不在活动期'}；${gigs.length ? '演出：' + gigs.join('；') : '没有大型演出'}。` : ''}
+${p.sr ? '公司开会前问过 CRAVITY 那边和世琳本人的意见。公司不知道他们私下在交往。' : ''}
+按真实娱乐公司的考量决定：商业价值和话题性、两边粉丝的反应和风险、档期（她自己的回归和行程、对方团的活动期）、成本、她现在的阶段。可以批准、有条件批准、暂缓（时机不对，以后再说）或者拒绝，理由要具体、和上面的情况对得上，不要都批也不要都拒。
+result：approve / conditional / postpone / reject。reason：一句中文写公司的理由。conditions：有条件的话写条件，没有就空。
+msgs：经纪人在 KKT 上告诉她结果（熟人之间的 -요 体口语，2~4 个短气泡，先说结论再说理由；ko 韩语，zh 中文）。
+${p.sr ? 'serim_view：世琳被问意见时对公司说了什么（一句中文，符合他的性格；他们在秘密交往，他在公司面前会注意分寸）。' : 'serim_view：空。'}
+project：只有 approve / conditional 时填（否则 name 空、stages 空、release 的 type 填 none）。name：企划名（小分队就写小分队名）；stages：接下来要做的事按顺序 3~8 个（企划会议、选曲、录音、编舞练习、拍 MV / 概念照、彩排、正式演出等，按这件事本身该有的流程），每个写 what（日程标题，中文，短）、cat（日程类别）、days（从今天起第几天，2~90，按真实制作周期安排）、hours（1~8）、partner（这一项对方艺人要不要一起，true/false）；release：要发歌就写 type（single / mini）、name（歌名或专辑名）、days（第几天发行），不发就 type=none。` }], 1800,
+      { type: 'object', additionalProperties: false, required: ['result', 'reason', 'conditions', 'msgs', 'serim_view', 'project'], properties: { result: { type: 'string', enum: ['approve', 'conditional', 'postpone', 'reject'] }, reason: { type: 'string' }, conditions: { type: 'string' }, serim_view: { type: 'string' },
+        msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } },
+        project: { type: 'object', additionalProperties: false, required: ['name', 'stages', 'release'], properties: { name: { type: 'string' }, stages: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['what', 'cat', 'days', 'hours', 'partner'], properties: { what: { type: 'string' }, cat: { type: 'string', enum: Object.keys(CATS) }, days: { type: 'integer' }, hours: { type: 'integer' }, partner: { type: 'boolean' } } } },
+          release: { type: 'object', additionalProperties: false, required: ['type', 'name', 'days'], properties: { type: { type: 'string', enum: ['none', 'single', 'mini'] }, name: { type: 'string' }, days: { type: 'integer' } } } } } } });
+    p.res = { result: j.result, reason: String(j.reason || '').slice(0, 120), conditions: String(j.conditions || '').slice(0, 120), at: Date.now() };
+    const ok = j.result === 'approve' || j.result === 'conditional';
+    if (ok) propProject(p, j.project || {}); else p.st = j.result === 'postpone' ? 'postponed' : 'rejected';
+    const L = (j.msgs || []).filter(m => m.ko).map(m => [m.ko.trim(), (m.zh || '').trim()]); mgrReply(L.length ? L : [[ok ? '회사에서 OK 났어요!' : '이번엔 어렵대요ㅠ', ok ? '公司同意了！' : '这次公司说不行ㅠ']], true);
+    pushNotif({ type: 'system', text: `📋 公司对「${p.title}」的决定：${{ approve: '批准', conditional: '有条件批准', postpone: '暂缓', reject: '不通过' }[j.result]}`, sub: p.res.reason }, true);
+    if (p.sr) { const now = Date.now(); if (j.serim_view) srMemAdd({ k: 'event', who: 'him', t: `公司问他对「${p.title}」的意见时，他说：${String(j.serim_view).replace(/^他(说|表示)[:：，,]?/, '').slice(0, 80)}`, src: 'sys', imp: 3, at: p.askAt }, p.askAt);
+      const res = `公司对「${p.title}」的决定出来了：${{ approve: '批准了', conditional: '有条件批准（' + p.res.conditions + '）', postpone: '暂缓，以后再说', reject: '没通过' }[j.result]}（${p.res.reason}）`;
+      const hearAt = now + rand(10, 90) * 60e3; srMemAdd({ k: 'event', who: 'us', t: res, src: 'sys', imp: 5, at: hearAt }, hearAt); srUrge(res, .75, hearAt, 'propres' + p.id); }
+  } catch (e) { console.warn('prop', e.message); p.retry = Date.now() + 20 * 60e3; } finally { p.busy = 0; save(); }
+}
+// 批下来的企划：每一项找她空着的时间排进行程；对方是世琳的话，他那天的时间线上也有这一项；要发歌就进作品
+function propProject(p, pj) {
+  const td = dkey(Date.now()), out = { name: String(pj.name || p.title).slice(0, 30), stages: [] };
+  for (const x of (pj.stages || []).slice(0, 8)) {
+    const h = clamp(+x.hours || 2, 1, 8), d0 = clamp(+x.days || 3, 2, 90); let sl = null, dk = '';
+    for (let k = 0; k < 5 && !sl; k++) { dk = addDays(td, d0 + k); sl = prepSlot(dk, h); }
+    if (!sl) continue; const hh = v => String(v).padStart(2, '0') + ':00', cat = CATS[x.cat] ? x.cat : '其他', title = `${String(x.what || '').slice(0, 24)}${p.partner && x.partner ? `（和${p.sr ? '世琳' : p.partner.split(' ').pop()}）` : ''}`;
+    S.schedule.rules.push({ id: uid(), title, cat, start: hh(sl[0]), end: hh(sl[1]), loc: '', repeat: 'once', days: [], date: dk, note: `企划《${out.name}》`, mgr: 1, prop: p.id, createdAt: Date.now() });
+    if (p.sr && x.partner) srDay(dk).segs.push({ id: 'pj' + uid().slice(-6), s: sl[0] * 60, e: sl[1] * 60, what: `${String(x.what || '').slice(0, 24)}（和恩雪，企划《${out.name}》）`, where: '公司', with: '恩雪', kind: 'work', src: 'official', st: '', share: .4, c: 0 });
+    out.stages.push({ what: title, date: dk });
+  }
+  const r = pj.release || {}; if (r.type && r.type !== 'none' && r.name) { const date = addDays(td, clamp(+r.days || 45, 14, 120)), nm = String(r.name).replace(/[《》]/g, '').slice(0, 30);
+    disco().push({ id: uid(), name: nm, type: r.type, date, intro: `${out.name}${p.partner ? ` · ${S.profile.name} × ${p.sr ? 'CRAVITY 세림' : p.partner}` : ''}`, mood: 'dance', promo: false, tracks: [{ name: nm, title: true }], prop: p.id, ...(p.partner ? { feat: p.partner } : {}) }); out.rel = { name: nm, date }; }
+  out.end = [...out.stages.map(x => x.date), out.rel ? out.rel.date : ''].sort().pop() || td;
+  p.pj = out; p.st = 'run'; save();
+}
 async function mgrRespond(text) {
   const cancel = mgrCancel(text); if (cancel) { mgrReply(cancel, true); return; }
   const adv = mgrAdvance(text); if (adv) { mgrReply(adv, true); return; }
+  { const pr = await propDetect(text).catch(() => null); if (pr) { const r = await mgrAi(text, `她刚提出了一件要公司拍板的事：「${pr.title}」。作为经纪人给出你自己的第一反应（可以觉得好、也可以直说顾虑），告诉她你会拿到公司企划会议上去提${pr.partner ? `，也会问问${pr.sr ? 'CRAVITY 那边和世琳' : pr.partner + '那边'}的意见` : ''}，大概 ${new Date(pr.decideAt).getMonth() + 1}/${new Date(pr.decideAt).getDate()} 前后有结果。不要现在就替公司答应或拒绝。`).catch(() => null); mgrReply(r || [['오 그거 회사에 한번 올려볼게요', '哦，这个我拿到公司去提一下'], ['며칠 걸릴 거예요', '要等几天']], true); return; } }
   const col = mgrCollab(text); if (col) { mgrReply(col, true); return; }
   if (!aiOn() && /恋爱|谈恋爱|男朋友|交往|연애|남친|남자친구|사귀|열애/.test(text)) { const t = mgrType(); mgrReply(t === 'adult' ? [['회사는 연애 막지 않아요', '公司不拦着恋爱'], ['일에 지장 없고, 기사 날 것 같으면 미리 말만 해줘요', '只要不影响工作，可能被报道的话提前跟我说一声就行']] : t === 'care' ? [['연애하는 건 괜찮아요. 근데 상처받을 일 있으면 꼭 말해줘요', '恋爱没关系。但要是有什么受伤的事一定要跟我说'], ['밖에서는 조금만 조심하고요', '在外面稍微注意点']] : [['ㅎㅎ 저는 아무것도 몰라요', '哈哈我什么都不知道'], ['필요하면 그때 말해요', '需要的时候再跟我说']], true); return; }
   const small = aiOn() && text.replace(/\s/g, '').length > 12 ? null : mgrSmall(text); if (small === 'NONE') return; if (small) { mgrReply(small, true); return; } // 开着 AI 时，长一点的话（哪怕带「미안」）交给 AI 接着聊
@@ -4788,6 +4862,7 @@ function mgrReplyTick() {
   const M = mgrChat();
   if (!M.vagueFix) { M.vagueFix = 1; const L = M.chat[M.chat.length - 1]; if (L && !L.me && /^확인해볼게요\.?$/.test(L.text) && M.chat.length > 1 && M.chat[M.chat.length - 2].me) { M.chat.pop(); M.replyAt = Date.now() + 5000; save(); mgrRefresh(); } } // 一次性：那句答非所问的「확인해볼게요」删掉重新回
   try { mgrAdvanceTick(); } catch (e) { console.error('adv', e); }
+  try { propTick(); } catch (e) { console.error('prop', e); }
   const pendText = () => { let j = M.chat.length - 1; while (j >= 0 && M.chat[j].me) j--; return M.chat.slice(j + 1).filter(m => m.me).map(m => m.text).join('\n'); };
   if (!M.replyAt && !mgrBusy && M.chat.length && M.chat[M.chat.length - 1].me && Date.now() - M.chat[M.chat.length - 1].at > 20e3 && mgrSmall(pendText()) !== 'NONE') M.replyAt = Date.now() + rand(3, 20) * 1000; // 之前没回的补回
   if (M.readPlan && Date.now() >= M.readPlan) { M.readPlan = 0; if (mgrSmall(pendText()) !== 'NONE') { M.readAt = Date.now(); mgrRefresh(); } } // 不打算回的就不点开（不已读）
