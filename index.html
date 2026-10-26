@@ -9867,6 +9867,7 @@ function srRumorUrge(p) { if (!serimLove() || p.key === SR_K) return; const at =
 function srUrge(t, w, at, nid) { const R = SR(), L = R.urges || (R.urges = []); if (L.some(u => !u.used && srSim(u.t, t) >= .6)) return; L.push({ id: uid(), t: String(t).slice(0, 80), w: clamp(+w || .5, 0, 1), at, nid }); if (L.length > 20) L.splice(0, L.length - 20); }
 /* ---------- 主动联系：只在自然的时刻（一段安排刚结束、长时间空着）想一想；动机够强、离上次找她也够久，才交给 AI，AI 也可以不发 ---------- */
 function srReachEval(at) {
+  if (srWithHer(at)) return; // 正和她在一起：不用发 KKT
   const R = SR(), T = dmThread(srP()), st = srNow(at) || socNow0(srP(), at), working = st.kind ? st.kind === 'work' : !!st.busy; if (st.sleep) return;
   const h = new Date(at).getHours(); if (h >= 3 && h < 8) return;
   if (R.jobs.some(j => j.type === 'reply' || j.type === 'reach')) return;
@@ -10020,9 +10021,14 @@ function srSend(T, list, at, extra) { const L = list.filter(m => m.ko && m.ko.tr
     const ph = (SR().photos || []).find(x => x.id === g[1]); if (!ph) return null; ph.sent = at; return { text: '[사진]' + (g[2] ? '\n' + g[2] : ''), zh: '[照片]', ph: ph.mid, ...(extra || {}) }; }).filter(Boolean); /* 发照片只能发他手机里真有的那几张（你在记录里传的），编号对不上的不发 */ if (!L.length) return 0; (T.pend || (T.pend = [])).push({ at, list: L }); return 1; }
 
 /* ---------- 回她的消息 ---------- */
+// 他这会儿正和她在一起（或者马上就要见到）：时间线上和她见面的那一段
+const SR_HER_RE = /Cyan|恩雪|은설|씨안|女朋友|여자친구/;
+function srWithHer(at, ahead = 0) { const dk = dkey(at), m = srMin(at); return srSegs(dk, at).find(g => g.st !== 'cancel' && (SR_HER_RE.test(`${g.with || ''} ${g.what || ''}`) || (g.src === 'plan' && g.rule)) && g.s <= m + ahead && g.e > m) || null; }
 async function srReply(job) {
   const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, her = srHer(T, when);
   if (!her.length) return true;
+  // 正在见面 / 几分钟后就见到了：KKT 看了就不用回了（人都在眼前）
+  if (srWithHer(when, 15)) { T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; SR().chat.sess = 0; save(); return true; }
   const mine = her.map(m => m.rc ? kkAI(m) : m.text + (m.zh && m.zh !== m.text ? `（她打的原话：${m.zh}）` : '')).join('\n'), C = SR().chat, lastHim = T.msgs.filter(m => !m.me && !m.sys && m.at <= when).pop();
   const due = srLive(when).filter(m => m.k === 'promise' && m.st === 'planned' && m.cond && when >= m.cond.at);
   // 隔了很久才回：她第一条消息到现在，他实际在做什么（只用时间线上的真实安排）
