@@ -676,15 +676,6 @@ video.bv-glow{pointer-events:none}
 <div id="modal"><div class="sheet" id="sheet"></div></div>
 
 <script>
-/* 模拟器里的时间一律按韩国时间（KST）：手机在别的时区时，把钟拨到韩国现在的钟点；手机本来就是韩国时间就什么都不变 */
-(function () {
-  if (navigator.webdriver) return; // 自动测试用设备自己的时钟
-  var RD = Date, off = (new RD().getTimezoneOffset() + 540) * 60e3; if (!off) return;
-  class KD extends RD { constructor(...a) { if (!a.length) super(RD.now() + off); else super(...a); } static now() { return RD.now() + off; } }
-  KD.UTC = RD.UTC; KD.parse = RD.parse; window.Date = KD;
-})();
-</script>
-<script>
 'use strict';
 /* =========================================================
    基础工具
@@ -10750,7 +10741,37 @@ function migrate() {
   delete S.schedule.flex;
   S.v = 3;
 }
+// 一次性：之前按韩国时间把钟往前拨过十几个小时，现在改回手机时间：那段「未来」里算出来的东西全部撤回
+function kstRevert1() {
+  if (S.kstRev1) return; const now = Date.now(); S.kstRev1 = 1;
+  if (!(S.sim && S.sim.lastTick > now + 30 * 60e3)) return; // 没跳过时间：什么都不用做
+  const TD = dkey(now), fut = t => typeof t === 'number' && t > now + 60e3, futD = d => typeof d === 'string' && d.slice(0, 10) > TD;
+  // 粉丝：未来那天的变化扣回去
+  const F = S.fan || {}; for (const [d, x] of Object.entries(F.days || {})) if (futD(d)) { S.profile.followers -= (x && x.net) || 0; delete F.days[d]; }
+  if (futD(F.lastDaily)) F.lastDaily = TD;
+  // 行程：这段时间里结算出来的结果撤回（掉 / 涨的粉也退回），让行程回到还没做的状态
+  const R = S.schedule.res || {}, T0 = tgState();
+  for (const [k, x] of Object.entries(R)) if (x && fut(x.at)) { if (x.fans && dkey(x.at) <= TD) S.profile.followers -= x.fans; /* 记在未来那天的已经随上面一起扣回了 */ delete R[k]; delete (S.schedule.done || {})[k]; const c = T0.cards[k]; if (c && c.done) { c.done = false; delete c.score; } }
+  // 官方 YouTube：被提前当成「拍完了」的拍摄改回已约好
+  for (const p of (S.yt && S.yt.plans) || []) if (p.st === 'post') { const r = S.schedule.rules.find(x => x.id === p.rule); if (r && r.date >= TD) { p.st = 'booked'; delete p.postUntil; if (p.log && p.log.length && /拍完了/.test(p.log[p.log.length - 1].msg || '')) p.log.pop(); } }
+  // 钱：未来日期的待结算、销量
+  const W = S.wallet || {}; W.recv = (W.recv || []).filter(x => !(futD(x.date) && x.st !== 'done')); for (const d of Object.keys(W.pend || {})) if (futD(d)) delete W.pend[d];
+  for (const m of Object.values((S.sales && S.sales.mer) || {})) for (const d of Object.keys((m && m.days) || {})) if (futD(d)) delete m.days[d];
+  // 各种「今天处理过了」的标记退回今天
+  for (const o of [S.sales && S.sales.bz, S.chal && S.chal.pop, S.chal && S.chal.visit, S.skills]) if (o && futD(o.day)) o.day = TD;
+  const SO = S.social || {}; if (futD(SO.exDay)) SO.exDay = TD;
+  // 定时的「下一次」：拉回到现在
+  for (const [o, k] of [[S.hot, 'next'], [S.sales, 'last'], [S.yt, 'coNext'], [W, 'nextOffer'], [W, 'luxS'], [W, 'luxB'], [S.mgr, 'next']]) if (o && fut(o[k])) o[k] = now;
+  // 通知、聊天里「未来」的消息
+  S.notifs = (S.notifs || []).filter(n => !fut(n.at));
+  for (const T of Object.values(SO.dms || {})) { T.msgs = (T.msgs || []).filter(m => !fut(m.at)); if (fut(T.readTo)) T.readTo = now; T.pend = (T.pend || []).filter(x => !(x.at > now + 6 * 3600e3)); if (fut(T.lastOut)) T.lastOut = now; }
+  const MG = S.mgr || {}; if (MG.chat) MG.chat = MG.chat.filter(m => !fut(m.at)); if (fut(MG.readAt)) MG.readAt = now;
+  // 世琳：那段时间里他的看手机、记忆、主动联系、那天的日常
+  const R2 = SO.sr; if (R2) { R2.mem = R2.mem.filter(m => !fut(m.c)); R2.reach = (R2.reach || []).filter(x => !fut(x.at)); for (const d of Object.keys(R2.day || {})) if (futD(d)) delete R2.day[d]; if (R2.conv && fut(R2.conv.at)) R2.conv = null; for (const j of R2.jobs || []) if (fut(j.at)) j.at = now; const C = R2.chat || {}; for (const k of ['next', 'last', 'lastEval', 'sess', 'him']) if (fut(C[k])) C[k] = k === 'next' ? now + 60e3 : 0; if (R2.mood && fut(R2.mood.at)) R2.mood.at = now; if (futD(R2.sumDay)) R2.sumDay = TD; }
+  S.sim.lastTick = now;
+}
 migrate();
+kstRevert1();
 seedPosts();
 catchUp();
 S.sim.lastTick = Date.now();
