@@ -785,7 +785,7 @@ function seedSchedule() { return { rules: [], done: {}, reminded: {} }; }
 function defaultState() {
   return {
     v: 3,
-    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, folBase: 15320, songs: [], bio: '', fanRules: '在这个世界里，粉丝普遍接受偶像谈恋爱，大多数人会真心祝福、甚至起哄嗑糖；只有少数粉丝接受不了，会表达难过、失落或需要时间消化，但不会恶意攻击。', avatar: null },
+    profile: { name: 'Cyan', nicks: ['安安', '小安', 'cc', '宝宝', '老婆', '老公'], fandom: 'sia', animal: '猫', debut: '2025-09-01', followers: 15320, activeMin: 1000, activeMax: 3000, folBase: 15320, songs: [], bio: '', fanRules: '在这个世界里，粉丝对偶像谈恋爱的态度一半一半：一半人能接受，会真心祝福、甚至起哄嗑糖；另一半接受不了，会失落、难过、觉得被辜负，有人会说要冷静一阵、取关或脱粉，评论区会吵起来。大部分不满是失落和抱怨，少数人说话会比较难听，但不会人身攻击。', avatar: null },
     ai: { enabled: false, key: '', model: 'claude-opus-5-5', lastError: '', capCny: 10 },
     prefs: { autoTr: false, speed: 1, sysNotif: false, liveMode: 'video', beauty: { preset: 'natural', level: 60 } },
     sim: { lastTick: Date.now() },
@@ -944,7 +944,9 @@ const TPL = {
     ja: [['おめでとう！幸せになってね💙', '恭喜！要幸福哦💙']],
     en: [['congrats!! you deserve all the love 💙', '恭喜！！你值得所有的爱 💙'], ['as long as you are happy 🥹', '只要你开心就好 🥹']]
   },
-  romanceSad: { zh: ['说实话有点难过…但还是会支持的', '需要一点时间消化一下', '我可能要冷静几天', '心情有点复杂', '呜呜呜我的心碎了一点点', '虽然难过但还是祝福吧'] },
+  romanceSad: { zh: ['说实话有点难过…但还是会支持的', '需要一点时间消化一下', '我可能要冷静几天', '心情有点复杂', '呜呜呜我的心碎了一点点', '虽然难过但还是祝福吧', '刚出道没多久就恋爱真的好吗…', '有点接受不了', '说好的事业期呢', '对不起我先取关冷静一下', '原来一直是我想多了', '我可能要脱粉了，祝好吧', '不想看到这种消息'],
+    ko: [['솔직히 좀 서운해요…', '说实话有点难过…'], ['마음의 준비가 안 됐어요', '还没做好心理准备'], ['데뷔한 지 얼마 안 됐는데…', '才出道没多久…'], ['잠깐 쉬었다 올게요', '我先缓一阵']],
+    en: [['not gonna lie this hurts a bit', '说实话有点难受'], ['i need some time to process this', '我需要点时间消化'], ['kinda disappointed tbh', '老实说有点失望']] },
   ask: { zh: ['今天的TMI是什么呀？', '最近在听什么歌？', '{n}今天吃了什么呀？', '下次直播什么时候呀？', '可以多发点自拍吗🥺', '最近有什么开心的事吗？', '可以分享一下今天的OOTD吗！', '最近在看什么剧呀？', '{n}最喜欢自己哪首歌？', '最近睡得好吗？', '想去哪里旅行呀？', 'MBTI 是什么呀？', '猫派还是狗派？', '最近的小确幸是什么？'],
     ko: [['오늘 TMI 뭐예요?', '今天的TMI是什么？'], ['요즘 무슨 노래 들어요?', '最近在听什么歌？']], en: [["what's your TMI today?", '今天的TMI是什么？'], ['can you share your ootd? 🥺', '可以分享OOTD吗？🥺']], ja: [['最近ハマってることある？', '最近有沉迷什么吗？']] },
   neg: { zh: ['怎么了…是不是心情不好', '抱抱，不开心可以说出来', '这样说有点伤心…', '是不是被什么事气到了', '先冷静一下吧', '有点失望…', '希望只是一时的情绪', '不管怎样都会在的，但还是有点难过'] },
@@ -1066,7 +1068,7 @@ function tplComment(ctx) {
   if (ctx.hasImg) pool.push('photo', 'photo', (ctx.tags || []).length ? 'generic' : 'photo');
   if (ctx.hasVid) pool.push('video', 'video', 'video');
   let cat = pick(pool);
-  if (cat === 'romance' && lang === 'zh' && Math.random() < .15) cat = 'romanceSad';
+  if (cat === 'romance' && Math.random() < .5) cat = 'romanceSad'; // 接受偶像恋爱的人一半一半
   let arr = TPL[cat][lang];
   if (!arr || !arr.length) arr = lang === 'zh' ? TPL.generic.zh : TPL.generic[lang];
   const it = pick(arr);
@@ -4826,7 +4828,7 @@ async function propDecide(p) {
 ${mgrContext()}
 她的咖位：粉丝 ${S.profile.followers}，热度${heatLabel()}。${p.sr ? `\nCRAVITY（同公司男团）接下来 60 天：${crv.length ? `有 ${crv.length} 天在活动期（${crv[0]} ~ ${crv[crv.length - 1]}）` : '不在活动期'}；${gigs.length ? '演出：' + gigs.join('；') : '没有大型演出'}。` : ''}
 ${p.sr ? '公司开会前问过 CRAVITY 那边和世琳本人的意见。公司不知道他们私下在交往。' : ''}
-按真实娱乐公司的考量决定：商业价值和话题性、两边粉丝的反应和风险、档期（她自己的回归和行程、对方团的活动期）、成本、她现在的阶段。可以批准、有条件批准、暂缓（时机不对，以后再说）或者拒绝，理由要具体、和上面的情况对得上，不要都批也不要都拒。
+按真实娱乐公司的考量决定：商业价值和话题性、两边粉丝的反应和风险（这个世界里粉丝对偶像恋爱的态度一半一半，男女组合容易被往恋爱上联想）、档期（她自己的回归和行程、对方团的活动期）、成本、她现在的阶段。可以批准、有条件批准、暂缓（时机不对，以后再说）或者拒绝，理由要具体、和上面的情况对得上，不要都批也不要都拒。
 result：approve / conditional / postpone / reject。reason：一句中文写公司的理由。conditions：有条件的话写条件，没有就空。
 msgs：经纪人在 KKT 上告诉她结果（熟人之间的 -요 体口语，2~4 个短气泡，先说结论再说理由；ko 韩语，zh 中文）。
 ${p.sr ? 'serim_view：世琳被问意见时对公司说了什么（一句中文，符合他的性格；他们在秘密交往，他在公司面前会注意分寸）。' : 'serim_view：空。'}
@@ -6669,7 +6671,7 @@ async function publish() {
   const L = Math.round(rand(p.activeMin, p.activeMax) * rand(1.1, 1.8) * boost * h * folRatio() * (tn === 'neg' ? .75 : tn === 'romance' ? 1.3 : tn === 'pos' ? 1.05 : 1));
   let folD = L * .012 * h, folR = '帖子互动';
   if (tn === 'neg') { folD = -p.followers * rand(.006, .015); folR = '负面言论'; }
-  if (tn === 'romance') { folD = folD * 1.2 - p.followers * rand(.004, .012); folR = '恋爱话题'; }
+  if (tn === 'romance') { folD = folD * 1.2 - p.followers * rand(.01, .025); folR = '恋爱话题'; }
   const tags = media.length ? [...draftTags] : [], desc = media.length ? ($('#cmp-desc')?.value || draftDesc).trim() : '';
   const post = { id: uid(), text, media, tags, desc, tone: tn, folD, folR, createdAt: Date.now(), simAge: 0, L, C: Math.round(L * rand(.15, .24) * (tn === 'neg' || tn === 'romance' ? 1.3 : 1)), likes: 0, commentCount: 0, comments: [], aiPool: [], lastAi: 0, aiBatches: 0 };
   logAct('post');
@@ -6860,7 +6862,7 @@ const LIVE_TPL = {
   comeback: ['啊啊啊剧透！', '期待！！', '可以再多说一点吗', '冲冲冲', '已经准备好打榜了', '是新歌吗！'],
   fandom: ['在！', '{f}在这里！', '到！', '叫我了叫我了', '我在我在'],
   love: ['我也爱你！！', '啊啊啊啊啊', '我也爱你老婆', '原地去世', '心动了'],
-  romance: ['什么什么！！', '祝福！！', '嗑到了', '是谁是谁', '要幸福呀', '只要你开心就好', '对方好幸福', '有点小难过但祝福', '展开说说！！'],
+  romance: ['什么什么！！', '祝福！！', '嗑到了', '是谁是谁', '要幸福呀', '只要你开心就好', '有点小难过但祝福', '展开说说！！', '啊？？', '我不想听这个', '心情好复杂', '先退了', '能不能别说这个', '说好的事业期呢'],
   generic: ['哈哈哈哈', '嗯嗯！', '是的是的', '好可爱', '懂了', '确实', '哈哈哈太好笑了', '真的吗', '然后呢然后呢', '展开说说', '原来如此', '哈哈哈好真实', '我也是！', '好有道理', '笑出声了', '认真听讲中', '点头点头', '好的老师（不是）'],
   ask: ['今天的TMI是什么呀？', '可以看看今天的OOTD吗！', '今天几点起床的呀？', '最近在听什么歌？', '晚饭吃了什么？', '可以唱一小段吗🥺', '下一次回归是什么时候呀？', '最近有在追什么剧吗？', '今天化的什么妆呀，好好看', '用的什么香水呀？', '最喜欢的季节是什么？', '猫派还是狗派？', 'MBTI 是什么呀？', '最近有什么烦恼吗？', '练习累不累呀？', '可以比个心吗', '推荐一首歌吧！', '今天开心吗？', '最近最喜欢的食物是什么？', '有没有想去的地方？', '在宿舍会做什么呀？', '最近的口头禅是什么哈哈'],
   askF: { ko: [['오늘 TMI 뭐예요?', '今天的TMI是什么？'], ['오늘 OOTD 보여줄 수 있어요?', '可以看看今天的OOTD吗？']], en: [["what's your TMI today??", '今天的TMI是什么？？'], ['can we see your ootd?', '可以看看你的OOTD吗？']], ja: [['今日のTMIは何？', '今天的TMI是什么？']] },
@@ -7210,7 +7212,7 @@ function liveReact(text) {
   // 言行：负面 / 恋爱话题会影响人气
   const tn = tone(text);
   if (tn === 'neg') { fresh(LIVE_TPL.neg, ri(2, 3)).forEach(push); L.target *= .9; L.fanD -= S.profile.followers * .003; hit = true; }
-  if (tn === 'romance' && !L.toneHit.romance) { L.toneHit.romance = 1; L.fanD -= S.profile.followers * rand(.002, .006); }
+  if (tn === 'romance' && !L.toneHit.romance) { L.toneHit.romance = 1; L.fanD -= S.profile.followers * rand(.005, .012); }
   for (const [cat, re] of LIVE_KW) {
     if (!re.test(text) || (cat === 'q' && (ch || yn || ans))) continue; hit = true;
     fresh(LIVE_TPL[cat], ri(1, 3)).forEach(push);
@@ -7868,7 +7870,7 @@ function relTick() {
     }
     // 被拍到：疑似暧昧阶段、私下见面多的时候偶尔会被拍（深夜 / 宿舍更容易）
     if (st.lv === 2 && !st.exposed && outings && Math.random() < Math.min(.12, .015 * outings + .03 * late)) {
-      st.lv = 3; st.exposed = today; const f = S.profile.followers, loss = Math.round(f * rand(.003, .01)), gain = Math.round(f * rand(.002, .006));
+      st.lv = 3; st.exposed = today; const f = S.profile.followers, loss = Math.round(f * rand(.008, .02)), gain = Math.round(f * rand(.002, .006));
       addFans(gain - loss, '和' + whoZ + '被拍到');
       pushNotif({ type: 'system', text: `📸 你和${whoZ}私下见面被拍到了`, sub: '有人嗑、有人猜、也有人吃醋 · 公司在联系你' }, true);
       mgrReply([['기사 하나 올라왔어요. 놀라지 말고요', '有一篇报道出来了，别慌'], ['회사는 연애 자체를 문제 삼진 않아요. 인정할지, 친구라고 할지는 두 사람 생각이 제일 중요해요', '公司不会因为恋爱本身追究。承认还是说是朋友，最重要的是你们俩的想法'], [`${who} 회사랑도 얘기해야 하니까 편할 때 같이 정리해요`, `也要和${whoZ}那边公司沟通，你方便的时候一起商量一下`]], true);
@@ -7962,7 +7964,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8935,6 +8937,7 @@ function trExplainFix1() { const SO = social(); if (SO.trFix1) return; SO.trFix1
 function srRepeatDel1() { const SO = social(); if (SO.srRep1) return; SO.srRep1 = 1; const T = dms()[SR_K]; if (!T) return;
   const i = T.msgs.findIndex((m, k) => !m.me && (m.text || '').trim() === '나 지금 연습 중이야' && T.msgs.slice(Math.max(0, k - 30), k).some(x => !x.me && /연습 중/.test(x.text || '') && dkey(x.at) === dkey(m.at)));
   if (i >= 0) T.msgs.splice(i, 1); save(); }
+function fanRuleHalf1() { const p = S.profile; if (p.fanRuleV2) return; p.fanRuleV2 = 1; if (!p.fanRules || /普遍接受偶像谈恋爱/.test(p.fanRules)) p.fanRules = '在这个世界里，粉丝对偶像谈恋爱的态度一半一半：一半人能接受，会真心祝福、甚至起哄嗑糖；另一半接受不了，会失落、难过、觉得被辜负，有人会说要冷静一阵、取关或脱粉，评论区会吵起来。大部分不满是失落和抱怨，少数人说话会比较难听，但不会人身攻击。'; save(); } // 世界设定改成：接受偶像恋爱的人一半一半
 function inviteReplyFix1() { const SO = social(); if (SO.invFix1) return; SO.invFix1 = 1;
   for (const T of Object.values(dms())) { if (T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || !m.opt || T.due || (T.pend && T.pend.length) || !/시간 되면 갈게/.test(m.text || '')) continue;
     const ban = socBan(T.p); T.quiet = null; dmQueue(T.p, [ban ? { text: '오케이 시간 맞춰보자', zh: 'OK 对一下时间' } : { text: '좋아요! 시간 맞춰봐요', zh: '好！对一下时间' }], rand(1, 4) * 60e3); }
@@ -9805,7 +9808,7 @@ function srCtx(when, q) {
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}${st && st.seg && T.msgs.some(x => !x.me && !x.sys && x.at <= when && x.at >= srTs(dk, st.seg.s)) ? '（这段时间里他已经跟她聊过，她知道他在做这个）' : ''}；${srMoodZh()}
-【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
+【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往，只有队友知道（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。外面对偶像谈恋爱是一半人能接受、一半人接受不了，所以他们要保密。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${herCoTxt(dk) ? `她今天在公司的安排：${herCoTxt(dk)}。` : ''}${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、还没跟她提的事】${urg}（只是事实。他在不在意、在意到什么程度、提不提、什么时候提、怎么提，看他的性格和当时的气氛；可以顺嘴带出来，也可以先不提）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
