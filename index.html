@@ -9775,6 +9775,7 @@ async function srDayEnsure(dk) {
 ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${done.length ? `这天已经过去的部分（照这个，不能改）：\n${done.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${prev ? `前两天他做了这些（别照抄，生活有变化也有重复）：\n${prev}\n` : ''}
 要求：
 - 从 00:00 到 24:00 排满这一天（含睡觉；偶像作息偏晚，凌晨 2~4 点睡很常见），6~10 段，每段写具体但普通的事：和谁、在哪、干嘛。
+- 收工时间看这天忙不忙：练习、录音、活动期、准备演唱会的日子，常常练到很晚，十一点、十二点才回到宿舍（中间在公司吃个外卖或简单吃点）；不忙的日子才早点回去。不要每天都很早收工。
 - 时间像真实生活一样不规整：起床、出门、到达、结束都不会刚好卡在整点或半点（比如 10:40 起、13:05 到公司、18:50 练完），只有公司排的正式行程才是整点。
 - 路上的时间要合理：宿舍到公司 / 练习室 15~30 分钟，市区里去吃饭、见朋友一般 20~40 分钟；短的路程不用单独写成一段，并进前后的安排里就行。
 - 怎么去：日常练习、去公司、私人安排都是自己去——走路、打车、坐地铁（戴帽子口罩）、或者自己开车，不是经纪人接送；只有打歌、拍摄、活动这类正式行程才是经纪人开车。写 move 段时在 what 里写清楚怎么去（比如「坐地铁去公司」「打车去汉南洞」）。
@@ -10222,6 +10223,10 @@ function srCardMsgFix1() { const R = SR(); if (R.cardMsg1) return; R.cardMsg1 = 
   for (const u of R.urges || []) if (/小卡/.test(u.t)) u.t = '外套口袋里翻出了敏熙的小卡（恩雪借他衣服穿时放的）'; save(); }
 function srV3Backup() { const R = SR(); if (R.v3bak) return; srBackup('v3'); R.v3bak = 1; save(); }
 function srUrgeCard1() { const R = SR(); if (R.urgeCard1) return; R.urgeCard1 = 1; const n = serimNotes().find(x => /小卡/.test(x.text)); if (n) srUrge('他在外套口袋里发现了她留下的敏熙小卡，有点吃醋', .9, n.at, n.id); save(); }
+function srRegenToday3() { const R = SR(); if (R.rgd3) return; R.rgd3 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); } // 忙的日子会很晚才回宿舍：今天还没到的部分和明天按新规则重排
+// 悄悄删掉她发的那条「等你联系结束可以见面吗」
+function herMsgDel1() { const R = SR(); if (R.hmDel1) return; R.hmDel1 = 1; const T = dmThread(srP()), i = T.msgs.findIndex(m => m.me && (/등?연락 끝나고 만날 수 있어/.test(m.text || '') || /等你联系结束可以见面/.test(m.zh || ''))); if (i < 0) { save(); return; }
+  T.msgs.splice(i, 1); if (!srHer(T, Date.now()).length) R.jobs = R.jobs.filter(j => j.type !== 'reply'); save(); }
 function srRegenToday2() { const R = SR(); if (R.rgd2) return; R.rgd2 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); } // 新的作息规则（不卡整点、通勤合理、日常自己去）：今天还没到的部分和明天重新排
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
@@ -10248,7 +10253,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
