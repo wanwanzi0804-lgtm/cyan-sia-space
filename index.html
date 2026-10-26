@@ -4155,7 +4155,7 @@ function mgrSplit(t) {
 }
 // 你发的消息也配翻译：写韩语配中文，写中文配韩语。开了 AI 用 AI，没开就用在线翻译
 async function trText(text, to, who) {
-  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。韩语缩写、初声（ㅅㄹㅎ、ㄱㅅ、ㅇㅋ、ㅈㅅ 这类）直接译成对应的口语（爱你、谢谢、OK、对不起），保留后面的 ~ ! 等符号；输出只有译文本身，绝不写「是…的缩写」「意思是…」。`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (/缩写|意思是|的意思|翻译为|译为/.test(out)) { const q = out.match(/意思是[「“"]([^」”"]+)[」”"]/) || out.match(/[「“"]([^」”"]+)[」”"][^「“"]*$/); out = q ? q[1] + ((text.match(/[~～!！?？]+$/) || [''])[0]) : ''; } /* 译成了一段解释：只留真正的意思 */ if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
   try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
@@ -7860,7 +7860,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); crvFuFix1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); crvFuFix1(); trExplainFix1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8826,6 +8826,9 @@ function crvFuFix1() { const SO = social(); if (SO.crvFu1) return; SO.crvFu1 = 1
   for (const T of Object.values(dms())) { if (T.p.g !== 'CRAVITY' || T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || m.me || now - m.at > 6 * 3600e3 || !/끝나면|끝나고|끝내고/.test(T.msgs.slice(-3).map(x => x.text || '').join(' '))) continue;
     const g = crvGroupNow(now) || crvGroupNow(m.at); const end = g ? srTs(dkey(now), g.e) + rand(5, 25) * 60e3 : (T.fu ? T.fu.at : now + 90 * 60e3);
     T.fu = { at: Math.max(end, now + 5 * 60e3), task: (T.fu && T.fu.task) || '练习结束了，按说好的跟她把今晚一起吃饭的时间和地点定下来' }; }
+  save(); }
+function trExplainFix1() { const SO = social(); if (SO.trFix1) return; SO.trFix1 = 1;
+  for (const T of Object.values(dms())) for (const m of T.msgs) if (m.zh && /缩写|意思是/.test(m.zh)) { const q = m.zh.match(/意思是[「“"]([^」”"]+)[」”"]/); if (q) m.zh = q[1].replace(/^我爱你$/, '爱你') + ((String(m.text || '').match(/[~～!！?？]+$/) || [''])[0]); }
   save(); }
 function inviteReplyFix1() { const SO = social(); if (SO.invFix1) return; SO.invFix1 = 1;
   for (const T of Object.values(dms())) { if (T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || !m.opt || T.due || (T.pend && T.pend.length) || !/시간 되면 갈게/.test(m.text || '')) continue;
