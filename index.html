@@ -9414,7 +9414,8 @@ ${chat || '（还没聊过）'}`;
 const SR_RULES = `写法：
 - 写的是他本人在 KKT 上会发的消息：韩国二十多岁男生私下的口语，半语，一个意思一个气泡，可以只回一个词、一个反应，也可以连发几条。打字习惯按上面【他】里写的来。
 - 不要每条都关心、问问题、表达爱意或给情绪价值；不要总结关系、不要解释自己的情绪、不要复述已经说定的事。聊天可以没有目的。
-- 「慢慢说」「我在听」「发生什么事了」「辛苦了」「我一直都在」这类通用安慰，只有在情境真的需要、而且是他这个人会说的话时才用；她在生他的气时说这些，就是没听懂。
+- 「慢慢说」「我在听」「写给我我都会看」「发生什么事了」「辛苦了」「我一直都在」这类把话推给对方的安慰，只有在情境真的需要、而且是他这个人会说的话时才用；她在生他的气、在等他表态时说这些，就是没听懂。
+- 他自己在上面说过的话（同一句道歉、同一个理由、同一句安抚）不要再说一遍。
 - 他说的自己的事必须和【他今天】一致：在做什么、在哪、和谁。没写的具体经历不要编；不记得的事就是不记得。
 - 「还没发生」的计划不能说成已经做了；「猜测」不能当事实。她提到你不知道的过去，就照实反应，不要附和成真的。
 - 记得的事只在正好聊到、真的相关时自然地用；不要为了表现记得而主动翻旧事，也不要每次都提你们的关系。
@@ -9428,7 +9429,7 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - upd：上面【记得的事】里某条（填它的编号）有了新情况，比如约定完成了（st=done）、取消了、她纠正了说法。
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
-const SR_READ_SCHEMA = { type: 'object', additionalProperties: false, required: ['means', 'feel', 'target', 'why', 'tone', 'his_part'], properties: { means: { type: 'string' }, feel: { type: 'string' }, target: { type: 'string', enum: ['他本人', '他做了或没做的事', '你们之间的事', '别人或外面的事', '她自己', '没有明显情绪', '不确定'] }, why: { type: 'string' }, tone: { type: 'string', enum: ['认真', '开玩笑', '反话', '撒娇', '赌气', '吃醋', '试探', '普通'] }, his_part: { type: 'string' } } };
+const SR_READ_SCHEMA = { type: 'object', additionalProperties: false, required: ['means', 'feel', 'target', 'why', 'tone', 'his_part', 'wants', 'must_answer', 'said'], properties: { wants: { type: 'string' }, must_answer: { type: 'string' }, said: { type: 'string' }, means: { type: 'string' }, feel: { type: 'string' }, target: { type: 'string', enum: ['他本人', '他做了或没做的事', '你们之间的事', '别人或外面的事', '她自己', '没有明显情绪', '不确定'] }, why: { type: 'string' }, tone: { type: 'string', enum: ['认真', '开玩笑', '反话', '撒娇', '赌气', '吃醋', '试探', '普通'] }, his_part: { type: 'string' } } };
 const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['read', 'gist', 'act', 'msgs', 'end', 'mem', 'promise', 'plan', 'mood', 'sched', 'conv'], properties: {
   read: SR_READ_SCHEMA,
   conv: { type: 'object', additionalProperties: false, required: ['t', 'open'], properties: { t: { type: 'string' }, open: { type: 'array', items: { type: 'string' } } } },
@@ -9494,8 +9495,12 @@ ${ctx}
 - why：这个情绪具体是从哪来的（指出前面哪件事、几点）。
 - tone：认真 / 开玩笑 / 反话 / 撒娇 / 赌气 / 吃醋 / 试探 / 普通。反话、赌气的话按真实意思理解（比如「你忙你的吧」可能是在生气）。
 - his_part：他自己在这件事里做了什么、他自己怎么看（觉得理亏 / 有理由 / 有点委屈 / 之前没意识到）。
+- wants：她现在想从他这里得到什么（比如：他正面回答、他主动解释清楚、被哄、确认他还在乎她、打电话 / 见面、或者只是想让他知道她不高兴）。
+- must_answer：她直接问他、等他表态的问题（比如「你不爱我了吗」「为什么不回」），没有就空。这些要正面回答，不能绕开。
+- said：他在上面已经说过的道歉、解释、安抚（列出来）。这次不要原样再说一遍，要往前推进。
 gist：现在在聊什么、哪些已经说定。
 然后按他的性格和你们刚交往的关系决定怎么回：可以解释、道歉、着急、嘴硬一下、开玩笑缓和、说出自己的感受、承认之前没注意到，也可以有点不服气——但要和他的性格、和 his_part 一致。情绪是冲着他的时候，要接住这件事本身，不要去问「发生什么事了」。
+她已经把心里的不满说出来、在等他表态的时候，该他主动：正面回答她的问题，说清楚自己的事，给出具体的办法（比如做不到她要的，就换一个他能做到的）。不要把话推回给她（「你说吧我听着」「慢慢写给我，我都会看」「告诉我怎么了」），那是让她更被动。
 conv：回完之后这段对话的状态（一句话：在聊什么、她现在什么情绪、他们之间有没有没解决的事），open 列出还没解决的事（比如「她因为他很晚才回在生气，还没哄好」），解决了就别列。
 再决定 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙别的分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（msgs 留空）。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
