@@ -9347,6 +9347,8 @@ function srPromiseStep(at) {
   return false;
 }
 
+// 他心里想跟她说的事（你记下的跟她有关的、让他有情绪的事）
+function srUrge(t, w, at, nid) { const R = SR(), L = R.urges || (R.urges = []); if (L.some(u => !u.used && srSim(u.t, t) >= .6)) return; L.push({ id: uid(), t: String(t).slice(0, 80), w: clamp(+w || .5, 0, 1), at, nid }); if (L.length > 20) L.splice(0, L.length - 20); }
 /* ---------- 主动联系：只在自然的时刻（一段安排刚结束、长时间空着）想一想；动机够强、离上次找她也够久，才交给 AI，AI 也可以不发 ---------- */
 function srReachEval(at) {
   const R = SR(), T = dmThread(srP()), st = srNow(at) || socNow0(srP(), at); if (st.sleep || (st.kind ? st.kind === 'work' : st.busy)) return;
@@ -9365,9 +9367,10 @@ function srReachEval(at) {
   const post = (S.posts || []).find(p => at - p.createdAt < 3 * 3600e3 && p.createdAt <= at && !R.seen['post' + p.id]); if (post) add('her', .7, `她刚在社区发了帖子：「${String(post.text || '').slice(0, 60)}」${post.media && post.media.length ? '（带照片 / 视频）' : ''}`, 'post' + post.id);
   if (dk === dkey(Date.now()) && socStageDone() && !R.seen['stage' + dk]) add('her', .5, '她今天有舞台 / 公开行程，他可能看到了', 'stage' + dk);
   const plan = srLive(at).find(m => m.k === 'plan' && m.st === 'planned' && !m.at && at - m.c < 5 * 864e5); if (plan) add('plan', .4, `你们说过但还没定时间的事：${plan.t}`, plan.id);
-  const met = srLive(at).filter(m => m.who === 'us' && m.k === 'event' && /见面|吃饭|约会|见了|一起/.test(m.t)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
+  const met = srLive(at).filter(m => m.k === 'event' && (m.who === 'us' || /恩雪|은설|Cyan/.test(m.t)) && /见|吃饭|约会|一起|哄/.test(m.t)).sort((a, b) => (a.at || a.c) - (b.at || b.c)).pop(), dMeet = met ? (at - (met.at || met.c)) / 864e5 : 7;
   if (dMeet > 3 && h >= 11 && h < 20 && !srLive(at).some(m => m.k === 'plan' && m.st === 'planned')) add('meet', .3 + .1 * (dMeet - 3), `有 ${Math.round(dMeet)} 天没见了（约的话要先看双方的安排）`);
   const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 8, `已经 ${Math.round(quiet)} 小时没聊了`);
+  for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.1, `他心里一直想跟她说：${u.t}`, 'urge' + u.id);
   if (Math.abs(R.mood.val) >= 1.3) add('mood', .4, `他心情${R.mood.val > 0 ? '不错' : '不太好'}（${R.mood.why || '没说原因'}）`);
   if (/想/.test(R.mood.to || '')) add('mood', .3, `他有点${R.mood.to}`);
   if (!Mo.length) return;
@@ -9559,7 +9562,7 @@ msgs：ko 原文，zh 中文意思。`, 3000,
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
   srMemOps(j.mem, when, 'him');
-  for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; } // 想过了：这件事不会再反复成为找她的理由
+  for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
   if (!j.send || !(j.msgs || []).length) { if (pm) pm.cond.at = when + 40 * 60e3; return true; } // 答应的事这次没说出口：过一会儿再想起来（窗口过了就算没做到）
   if (srHer(T, Date.now()).filter(m => m.at > when).length && !job.tech) return true; // 生成期间她发了消息
@@ -9653,6 +9656,7 @@ function srRegenTomorrow1() { const R = SR(); if (R.rgt1) return; R.rgt1 = 1; co
 // 一次性：之前被套在「记下的那一刻」的几分钟时间段删掉
 function srNoteTiny1() { const R = SR(); if (R.tiny1) return; R.tiny1 = 1; const N = serimNotes();
   for (const D of Object.values(R.day)) D.segs = D.segs.filter(g => { if (g.src !== 'note' || !g.nid) return true; const n = N.find(x => x.id === g.nid); return !(n && g.e - g.s < 30 && Math.abs(g.s - srMin(n.at)) <= 10 && !/现在|正在|刚刚|刚才|这会儿/.test(n.text)); }); save(); }
+function srUrgeCard1() { const R = SR(); if (R.urgeCard1) return; R.urgeCard1 = 1; const n = serimNotes().find(x => /小卡/.test(x.text)); if (n) srUrge('他在外套口袋里发现了她留下的敏熙小卡，有点吃醋', .9, n.at, n.id); save(); }
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
 function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
@@ -9678,7 +9682,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srUrgeCard1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
@@ -9723,7 +9727,9 @@ drop：上面已有时间段里，和这条记录矛盾、应该删掉的编号�
 mem：这条里其他值得长期记住的（他的近况、喜好、和谁有关的事；他的感受用 k=feel，比如吃醋），k / who / t / imp，when 可空。
 state：这条对他现在状态的影响。energy：他现在的精力 0~100（说很累就低，没提到填 -1）；mood_val：心情 -2~2（没提到填 0）；mood_to：他现在对 Cyan 的情绪（比如 有点吃醋 / 想她，没有就空）；why：一句原因。
 kkt：只有这条里明确写了「世琳会在 KKT 上给她发消息」时 send=true：time 按写的时间（HH:MM），ko 他会真的发出来的那条（半语、口语、短），zh 中文；否则 send=false 其他留空。
-sum：12 个字以内的笼统概括。`, 3000, { type: 'object', additionalProperties: false, required: ['segs', 'drop', 'mem', 'state', 'kkt', 'sum'], properties: {
+tell：这件事他会不会想主动跟 Cyan 提起（比如跟她有关、让他有情绪的事、很好笑想分享的事），want 0~1（无所谓的日常是 0），what 一句他想跟她说的是什么事。
+sum：12 个字以内的笼统概括。`, 3000, { type: 'object', additionalProperties: false, required: ['segs', 'drop', 'mem', 'state', 'tell', 'kkt', 'sum'], properties: {
+      tell: { type: 'object', additionalProperties: false, required: ['want', 'what'], properties: { want: { type: 'number' }, what: { type: 'string' } } },
       segs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['day', 's', 'e', 'what', 'where', 'with', 'kind', 'st'], properties: { day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] }, st: { type: 'string', enum: ['done', 'now', 'planned'] } } } },
       drop: { type: 'array', items: { type: 'string' } },
       mem: SR_MEM_SCHEMA, state: { type: 'object', additionalProperties: false, required: ['energy', 'mood_val', 'mood_to', 'why'], properties: { energy: { type: 'number' }, mood_val: { type: 'number' }, mood_to: { type: 'string' }, why: { type: 'string' } } },
@@ -9732,6 +9738,7 @@ sum：12 个字以内的笼统概括。`, 3000, { type: 'object', additionalProp
     srMemOps(j.mem, now, 'note'); if (j.sum) n.sum = String(j.sum).slice(0, 20);
     const st = j.state || {}, M = SR().mood; // 你记的「很累」「吃醋」真的会改到他现在的状态
     if (st.energy >= 0) M.en = clamp(+st.energy, 5, 100); if (st.mood_val) M.val = clamp(+st.mood_val, -2, 2); if (st.mood_to) M.to = String(st.mood_to).slice(0, 20); if (st.why && (st.energy >= 0 || st.mood_val || st.mood_to)) M.why = String(st.why).slice(0, 40); M.at = Date.now();
+    if (j.tell && j.tell.want >= .4 && j.tell.what) srUrge(j.tell.what, j.tell.want, now, n.id); // 他心里想跟她提的事：之后有空时会成为找她的理由
     if (j.kkt && j.kkt.send && j.kkt.ko) { let at = /^\d{1,2}:\d\d$/.test(j.kkt.time || '') ? toMin(j.kkt.time) : m + ri(5, 30); if (at < m) at = m + ri(2, 8); n.kkt = { at, ko: j.kkt.ko.trim(), zh: (j.kkt.zh || '').trim() }; }
     n.parsed = 1; save(); return true;
   } catch (e) { srNoteFb(n); return false; }
