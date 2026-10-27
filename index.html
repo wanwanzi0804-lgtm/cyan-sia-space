@@ -4719,7 +4719,7 @@ function mgrContext() {
   const W = wallet(), today = dkey(Date.now()), p = S.profile, c = S.cb, a = cbAlbum(), R = W.recv || [];
   const sch = d => rulesFor(d).map(r => `${hm(r)} ${r.title}（${r.cat}）`).join('；') || '无';
   const D = dayState(), now = new Date();
-  return `现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
+  return `（她住公司给 solo 艺人安排的单人宿舍。）现在是 ${today} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}（今天的日程${{ none: '没有', before: '还没开始', during: '正在进行', done: '已经全部结束' }[D.st]}）。艺人：${p.name}，${p.company || 'STARSHIP'} solo 女歌手，${ageOf()} 岁，粉丝 ${p.followers}，热度${heatLabel()}。
 今天日程：${sch(today)}。明天日程：${sch(addDays(today, 1))}。
 结算：每月 ${SETTLE_DAY} 日结算上月已到账收入，按收入类型分成（网综电台采访、品牌代言、签售见面会 艺人40%；大学庆典商演 50%；音源专辑 30%；打歌不单独算），只扣合同允许的直接成本；艺人可以申请预支已确认的活动款或提前发当月结算款，需要公司同意；待付款 ${R.filter(x => x.st === 'pend' && x.gross > 0).length} 笔，已到账待结算 ${R.filter(x => x.st === 'paid').length} 笔。未回收的公司前期投入 ${won(W.debt)}。（你不知道艺人私人账户里有多少钱，也不要猜。）
 ${c && a && !c.over ? `回归：《${a.name}》${c.date}，现在${{ plan: '还在准备期', tease: '在预热期（还没发行）', promo: `在主打打歌期（第 ${Math.floor(-cbDay() / 7) + 1} / ${c.weeks} 周，打到 ${addDays(c.date, 7 * c.weeks - 1)}）`, rest: '在休息周', follow: `在后续打歌期（打到 ${addDays(c.date, cbPlan().followEnd - 1)}）`, end: '活动快结束了' }[cbPhase()] || ''}。` : '近期没有回归计划。'}作品：${relList().map(x => `《${x.name}》${x.date}`).join('、') || '无'}。
@@ -8765,7 +8765,7 @@ function dmPendTick() { const now = Date.now(); for (const T of Object.values(dm
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
 // 这阵子聊天的意愿（临时状态，不是数值）：有时想聊、有时懒得打字、有时很累
 // 艺人 KKT 私聊用自己的设定（不用粉丝评论那套写作要求）
-const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁）在 KakaoTalk 上私聊。你写的是这个人自己会发出的消息：每个人说话方式都不一样，不要写成同一种「AI 聊天」的语气。只按要求输出 JSON。`;
+const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁，住公司给的单人宿舍）在 KakaoTalk 上私聊。你写的是这个人自己会发出的消息：每个人说话方式都不一样，不要写成同一种「AI 聊天」的语气。只按要求输出 JSON。`;
 const VIBE_ZH = { chatty: '这会儿心情不错，有点想聊，有话会多说几句', normal: '状态普通，看内容回', brief: '手上有事 / 懒得打字，倾向简短回一下', tired: '很累，只想简单回或者干脆先不回，除非是重要的事' };
 function socVibe(p, when) {
   const SO = social(), V = SO.vibe || (SO.vibe = {}), now = when || Date.now(), cur = V[p.key];
@@ -9965,7 +9965,7 @@ function srCtx(when, q) {
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}${st && st.seg && T.msgs.some(x => !x.me && !x.sys && x.at <= when && x.at >= srTs(dk, st.seg.s)) ? '（这段时间里他已经跟她聊过，她知道他在做这个）' : ''}；${srMoodZh()}
-【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。外面对偶像谈恋爱是一半人能接受、一半人接受不了，所以他们要保密。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
+【背景】${serimLoveTxt()}他们本来就是最熟的朋友，刚开始交往（外面不能有亲密举动，见面要选不容易被拍的地方）。他们都是 STARSHIP 的艺人，练习、开会、录音都在同一栋楼：她在公司的时候碰面很自然（走廊、练习室、休息室、楼下便利店），约在公司见一面也比在外面安全，只是当着同事的面要像平常的前后辈。外面对偶像谈恋爱是一半人能接受、一半人接受不了，所以他们要保密。住处：他住 CRAVITY 的宿舍（和成员们一起），她住公司给 solo 艺人安排的单人宿舍（一个人住）；两人不住在一起，收工后各回各的宿舍，去对方宿舍不是随便能去的，要见面得另外约地方。这是他生活的一部分，不是全部：他有自己的工作、朋友、心事和兴致，聊天不需要总是围绕这段关系，也不需要刻意甜或刻意制造情绪。${habits ? `\n你们之间慢慢形成的习惯：${habits}` : ''}
 【她】他知道的她的公开行程：${herPub || '近期没有'}。${herCoTxt(dk) ? `她今天在公司的安排：${herCoTxt(dk)}。` : ''}${aiNews().replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、还没跟她提的事】${urg}（只是事实。他在不在意、在意到什么程度、提不提、什么时候提、怎么提，看他的性格和当时的气氛；可以顺嘴带出来，也可以先不提）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
@@ -10236,6 +10236,7 @@ function srCardOpen2() { const R = SR(); if (R.cardOpen2) return; R.cardOpen2 = 
   srPhotoLink(); save(); }
 // 5:02 那几条（新的回复方式上线前生成的）：悄悄删掉，连同它带出来的约定 / 电话 / 对话状态，让他按新方式重新看、重新回
 function srRedo502() { const R = SR(); if (R.redo502) return; R.redo502 = 1; srRedoFrom(/연습 중이라 바로 전화는 못 받아/); }
+function srRedoDorm1() { const R = SR(); if (R.redoDorm1) return; R.redoDorm1 = 1; const M = dmThread(srP()).msgs, k = M.map(m => !m.me && /숙소에서 기다리고 있을게/.test(m.text || '')).lastIndexOf(true); if (k < 0) { save(); return; } let a = k; while (a > 0 && !M[a - 1].me && !M[a - 1].sys) a--; const t = (M[a].text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); srRedoFrom(new RegExp('^' + t + '$')); }
 function srRedo630() { const R = SR(); if (R.redo630) return; R.redo630 = 1; srRedoFrom(/^아직 연습 좀 남았어/); }
 // 悄悄删掉他从某条开始的那次回复（连同它带出来的约定 / 电话 / 对话状态），让他重新看、重新回
 function srRedoFrom(re) { const R = SR(), T = dmThread(srP()), M = T.msgs;
@@ -10284,7 +10285,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
