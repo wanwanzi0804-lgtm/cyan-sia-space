@@ -7979,7 +7979,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8475,6 +8475,13 @@ const socClock = ts => { const d = ts ? new Date(ts) : new Date(); return `${d.g
 const CRV_GRP = /练习|练舞|合练|舞蹈|编舞|彩排|团体|打歌|录制|拍摄|行程|舞台|签售|dance|practice/i, CRV_SOLO = /写歌|作曲|作词|个人|一个人|健身|跑步|工作室|studio/i;
 function crvGroupSegs(dk, when) { try { return srSegs(dk, when).filter(g => g.kind === 'work' && g.st !== 'cancel' && CRV_GRP.test(g.what || '') && !CRV_SOLO.test(g.what || '')); } catch (e) { return []; } }
 function crvGroupNow(at) { const dk = dkey(at), m = srMin(at); return crvGroupSegs(dk, at).find(g => g.s <= m && g.e > m) || null; }
+/* 世琳的时间线里加了团体行程（签售、打歌…），撞上了某个成员和她约好的饭 / 咖啡：约会往后挪到行程结束后，那个成员自己来跟她说一声 */
+function crvMeetClashTick() { const now = Date.now(), dk = dkey(now), L = crvGroupSegs(dk, now); if (!L.length) return;
+  for (const T of Object.values(dms())) { const p = T.p; if (!p || p.g !== 'CRAVITY' || p.key === SR_K) continue; const P = socPX(p), td = socTodoOpen(P, 'meal') || socTodoOpen(P, 'coffee'); if (!td || !td.when || dkey(td.when) !== dk || td.when < now - 30 * 60e3) continue;
+    const m = srMin(td.when), g = L.find(x => x.s < m + 90 && x.e > m); if (!g) continue; const key = g.id + '|' + g.s + '|' + g.e; if (td.clash === key) continue;
+    const nm = Math.ceil((g.e + 30) / 10) * 10; if (nm >= 1410) continue; td.clash = key; const old = hhmm(m), nt = hhmm(nm); socMeetAt(p, `${dk} ${nt}`, td.t); td.clash = key;
+    if (!T.gen) { T.due = { at: now + rand(2, 8) * 60e3, later: 1, n: 2, task: `今天 ${hhmm(g.s)}-${hhmm(g.e)} CRAVITY 临时加了「${g.what}」，和你们约好的 ${old} ${td.t === 'coffee' ? '喝咖啡' : '吃饭'}撞了。主动跟她说一声：今晚有${g.what}，饭改到结束以后 ${nt} 左右（meet_at 填今天 ${nt}）。像平时那样随口说，不用道歉道个没完。` }; T.rd = null; }
+    save(); } }
 function crvGroupTxt(p, when) { if (p.g !== 'CRAVITY' || p.key === SR_K) return ''; const t = when || Date.now(), dk = dkey(t), m = srMin(t), L = crvGroupSegs(dk, t); if (!L.length) return '';
   return `今天 CRAVITY 的团体安排（他也在）：${L.map(g => `${hhmm(g.s)}-${hhmm(g.e)} ${g.what}${g.e <= m ? '（已结束）' : g.s <= m ? '（正在进行）' : ''}`).join('；')}。他说自己在干嘛、什么时候结束，要和这个对得上。\n`; }
 function socCtx(p, when) {
@@ -8986,6 +8993,7 @@ function jmStallFix3() { const SO = social(); if (SO.jmStall3) return; SO.jmStal
 function jmNightFix1() { const SO = social(); if (SO.jmNight1) return; SO.jmNight1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const i = T.msgs.findIndex(m => m.me && /돈까스 먹고 싶은/.test(m.text || '')); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) { save(); return; } const mine = T.msgs[i]; T.msgs = T.msgs.slice(0, i + 1); delete T.fu; T.pend = []; T.rd = null; T.quiet = null; T.readTo = mine.at - 1; T.due = { at: mine.at + rand(4, 12) * 60e3 }; save(); } /* 凌晨刚聊完还没睡：那时就该回 */
 function jmNightFix2() { const SO = social(); if (SO.jmNight2) return; SO.jmNight2 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const d0 = new Date('2026-10-27T00:00:00').getTime(), d1 = d0 + 3 * 3600e3; let i = -1; T.msgs.forEach((m, k) => { if (m.me && m.at >= d0 && m.at < d1) i = k; }); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) { save(); return; } const mine = T.msgs[i]; T.msgs = T.msgs.slice(0, i + 1); delete T.fu; T.pend = []; T.rd = null; T.quiet = null; T.gen = 0; T.readTo = mine.at - 1; T.due = { at: mine.at + rand(4, 12) * 60e3 }; save(); }
 function srLoveRedo1() { const R = SR(); if (R.loveRedo1) return; R.loveRedo1 = 1; srRedoFrom(/^ㅋㅋ 나도 사랑해/); }
+function jmMeal7pm1() { const SO = social(); if (SO.jmMeal7) return; SO.jmMeal7 = 1; if (dkey(Date.now()) !== '2026-10-27') { save(); return; } const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const td = socTodoOpen(socPX(T.p), 'meal'); if (!td || !td.when) socMeetAt(T.p, '2026-10-27 19:00', 'meal'); save(); } /* 昨晚说好今天 7 点吃돈까스：补记上 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
