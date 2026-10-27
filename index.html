@@ -3965,6 +3965,8 @@ async function ytThumbSet(id, blob) { const Y = yt(), mid = 'yth' + uid(); await
 /* 一次性：《404》MV 换成她指定的封面（图跟着网页一起发布在 img/ 下面） */
 let mv404Busy = 0;
 async function mv404Thumb1() { const Y = yt(); if (Y.mv404t1 || mv404Busy) return; mv404Busy = 1; setTimeout(() => mv404Busy = 0, 60e3); const a = released().find(x => /^404$/.test((x.name || '').trim()) || albTitle(x) === '404'); if (!a) return; try { const r = await fetch('img/404-mv.jpg'); if (!r.ok) return; await ytThumbSet('mv:' + a.id, await r.blob()); Y.mv404t1 = 1; save(); render(); } catch (e) { } }
+let mvbBusy = 0;
+async function mvBehindThumb1() { const Y = yt(); if (Y.mvbT1 || mvbBusy) return; const v = Y.vids.find(x => /M\/V Behind|MV 幕后|뮤비 비하인드/i.test(x.title + ' ' + ((Y.plans.find(p => p.id === x.plan) || {}).title || ''))); if (!v) return; mvbBusy = 1; setTimeout(() => mvbBusy = 0, 60e3); try { const r = await fetch('img/mv-behind.jpg'); if (!r.ok) return; await ytThumbSet(v.id, await r.blob()); Y.mvbT1 = 1; save(); render(); } catch (e) { } }
 function ytAll() {
   const SS = salesState(), out = [];
   for (const a of released()) { const mv = SS.mv && SS.mv[a.id]; if (mv && mv.total >= 1) out.push({ id: 'mv:' + a.id, title: `${S.profile.name} - ${albTitle(a)} MV`, kind: '正式 MV', short: false, at: parseD(a.date).getTime(), views: Math.round(mv.total), likes: Math.round(mv.total * (.03 + .02 * srng('mv' + a.id)())), cmts: Math.round(mv.total * .002), alb: a }); }
@@ -7976,7 +7978,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); mv404Thumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
