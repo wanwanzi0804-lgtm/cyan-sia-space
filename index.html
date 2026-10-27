@@ -553,6 +553,9 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 @keyframes tin{from{opacity:0;transform:translateY(-14px)}}
 #modal{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
 #modal.on{display:flex}
+/* 弹层打开时：后面的页面不跟着滑（iOS 上滑到顶 / 底会带着后面一起动） */
+body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
+#modal,#modal .sheet,.kk-log,#call-ly,.call-talk,#kk-view .kv-wrap,.bb-stkg{overscroll-behavior:contain}
 #modal .sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
 @media (min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
 #modal.full{background:none;align-items:stretch}#modal.full .sheet{height:100vh;height:100dvh;max-height:none;border-radius:0;padding:0;overflow:hidden;background:#bacee0}#modal.full .sheet.slide{animation:kkIn .22s ease-out}@keyframes kkIn{from{transform:translateX(100%)}to{transform:none}}
@@ -4491,7 +4494,7 @@ function kkView(el) {
   v.innerHTML = `<button class="kv-x" data-act="kkvclose">✕</button>${mid ? `<div class="kv-wrap"><img data-mid="${esc(mid)}" alt=""></div><button class="kv-sv" data-act="kkvsave" data-mid="${esc(mid)}">저장</button>`
     : `<div class="kv-ph${k === 'video' ? ' v' : ''}"><span style="font-size:40px;opacity:.8">${k === 'video' ? '▶' : '🖼'}</span><div>${esc(d || (k === 'video' ? '一段视频' : '一张照片'))}</div>${k === 'video' ? `<div class="kv-bar"><span>0:00</span><i><b></b></i><span>${esc(el.dataset.t || '0:15')}</span></div>` : ''}</div>`}`;
   v.addEventListener('click', e => { if (e.target === v || e.target.classList.contains('kv-wrap')) v.remove(); });
-  $('#kk-view')?.remove(); document.body.appendChild(v); hydrate(v);
+  $('#kk-view')?.remove(); document.body.appendChild(v); hydrate(v); bodyLock(true); const rm = v.remove.bind(v); v.remove = () => { rm(); bodyLockSync(); };
   if (k === 'video' && !mid) { const b = v.querySelector('.kv-bar b'), sec = (+(el.dataset.t || '0:15').split(':')[1] || 15); requestAnimationFrame(() => { b.style.transitionDuration = sec + 's'; b.style.width = '100%'; }); }
 }
 function kkAttHTML(m) {
@@ -9325,7 +9328,7 @@ function callHTML() {
   return `${kAv(C.key, 'call-av')}<div class="call-nm">${esc(socDisp(p))}</div><div class="call-st">${st}</div><div class="call-mid">${mid}</div><div class="call-btns">${bot}</div>`;
 }
 function callShow() {
-  let L = $('#call-ly'); if (!UI.call) { if (L) L.remove(); clearInterval(UI.callIv); return; }
+  let L = $('#call-ly'); if (!UI.call) { if (L) L.remove(); clearInterval(UI.callIv); bodyLockSync(); return; } bodyLock(true);
   if (!L) { L = document.createElement('div'); L.id = 'call-ly'; document.body.appendChild(L); } const keepV = $('#call-in') ? $('#call-in').value : '', keepF = document.activeElement && document.activeElement.id === 'call-in'; L.innerHTML = callHTML(); { const el = $('#call-in'); if (el && keepV) el.value = keepV; if (el && keepF) el.focus({ preventScroll: true }); }
   { const v = $('#call-talk'); if (v) v.scrollTop = v.scrollHeight; const inp = $('#call-in'); if (inp) inp.onkeydown = e => { if (e.key === 'Enter') callSay(); }; }
   if (UI.call.mode === 'on' && aiOn() && !UI.call.talk) { UI.call.talk = []; callLine(null); } // 接通了：对方先开口
@@ -10972,12 +10975,15 @@ function openModal(html) {
     for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (el) keep[id] = { bottom: el.scrollHeight - el.scrollTop - el.clientHeight < 80, top: el.scrollTop }; }
     keep.sheet = sh.scrollTop; }
   const sig = () => { const h = sh.querySelector('h3,h2,b'); return (sh.firstElementChild?.className || '') + '|' + (h ? h.textContent.trim().slice(0, 30) : ''); }, oldSig = wasOn ? sig() : '';
-  sh.innerHTML = html; $('#modal').classList.add('on'); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room,.kk-pf')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
+  sh.innerHTML = html; $('#modal').classList.add('on'); bodyLock(true); $('#modal').classList.toggle('full', !!sh.querySelector('.kk-room,.kk-pf')); if (!wasOn && sh.querySelector('.kk-room')) { sh.classList.remove('slide'); void sh.offsetWidth; sh.classList.add('slide'); } hydrate(sh);
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
   sh.scrollTop = keep.sheet != null && sig() === oldSig ? keep.sheet : 0; // 同一个弹窗刷新才保留位置，换成别的弹窗从顶上开始
   for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd', 'sr-say']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
 }
-function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; }
+let BODY_Y = 0;
+function bodyLock(on) { const b = document.body; if (on) { if (b.classList.contains('locked')) return; BODY_Y = window.scrollY || 0; b.style.top = -BODY_Y + 'px'; b.classList.add('locked'); } else { if (!b.classList.contains('locked')) return; b.classList.remove('locked'); b.style.top = ''; window.scrollTo(0, BODY_Y); } }
+const bodyLockSync = () => bodyLock(!!($('#modal') && $('#modal').classList.contains('on')) || !!$('#call-ly') || !!$('#kk-view'));
+function closeModal() { UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; bodyLockSync(); }
 $('#modal').addEventListener('click', e => { if (e.target.id !== 'modal') return; if (UI.socPop) { const b = document.querySelector('#sheet [data-act=socclose]'); if (b) { b.click(); return; } UI.socPop = null; } if (UI.chPop) UI.chPop = null; if (UI.meet) UI.meet = 0; closeModal(); }); // 点外面关掉：弹窗状态也要清掉，不然之后的事件会被卡住
 
 /* =========================================================
