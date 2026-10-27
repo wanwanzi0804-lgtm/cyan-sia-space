@@ -7964,8 +7964,8 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
-  if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); }
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
     SO.boostAt = Date.now(); const n0 = SO.q.length; socSchedule(today, nm, 1); const x = SO.q[n0]; if (x && x.at > nm + 15) x.at = nm + ri(3, 15); save(); }
@@ -8664,6 +8664,19 @@ function socPromo(g, dk = dkey(Date.now())) {
   return day - cyc * 120 >= off && day - cyc * 120 < off + 28;
 }
 // 每个人每天的作息都不一样：几点睡、几点起、今天忙不忙、多久看一次手机（按人+日期固定，同一天不会变来变去）
+// 他自己知道的这两天的安排（约时间时直接按这个答复）
+function artDaysTxt(p, when) { const t = when || Date.now(), td = dkey(t), out = [];
+  for (const [k, lbl] of [[td, '今天'], [addDays(td, 1), '明天'], [addDays(td, 2), '后天']]) {
+    if (p.g === 'CRAVITY' && p.key !== SR_K && SR().day[k]) { const L = crvGroupSegs(k, t); out.push(`${lbl}（${srMD(k)}）${L.length ? L.map(g => `${hhmm(g.s)}-${hhmm(g.e)} ${g.what}`).join('、') + `，${hhmm(Math.max(...L.map(g => g.e)))} 以后没有团体安排` : '没有团体安排'}`); continue; }
+    const D = socDay(p, k), e = Math.min(D.busyE, 1439); out.push(`${lbl}（${srMD(k)}）${D.gig ? D.gig[3] + '（演出）' : D.promo ? '活动期行程' : '练习 / 公司的事'}大概 ${hhmm(Math.round(Math.max(D.busyS, 0)) % 1440)}-${hhmm(Math.round(e))}，之后有空`); }
+  return `他自己知道的安排：${out.join('；')}。\n`; }
+// 说定了哪天几点一起吃饭 / 喝咖啡：记到约定上，进她的行程表；到那天那个时间真的去
+function socMeetAt(p, s0, kind) { const at = srWhen(s0); if (!at || at < Date.now() - 30 * 60e3 || at > Date.now() + 14 * 864e5) return; const P = socPX(p), td = socTodoOpen(P, 'meal') || socTodoOpen(P, 'coffee') || (kind && ['meal', 'coffee'].includes(kind) ? socTodo(p, kind, kind === 'coffee' ? '在 KKT 上说好一起喝咖啡' : '在 KKT 上说好一起吃饭', 'both') : null); if (!td || td.when === at) return;
+  td.when = at; const dk = dkey(at), m = srMin(at), SO = social();
+  S.schedule.rules = S.schedule.rules.filter(r => r.todo !== td.id); S.schedule.rules.push({ id: uid(), title: `和${p.g === 'CRAVITY' && CRV_KZ[p.n] ? CRV_KZ[p.n] : socName(p)}${td.t === 'coffee' ? '喝咖啡' : '吃饭'}`, cat: '其他', start: hhmm(m), end: hhmm(Math.min(1439, m + 120)), loc: '', repeat: 'once', days: [], date: dk, note: '私人', todo: td.id, createdAt: Date.now() });
+  SO.q = SO.q.filter(y => !(y.ev === 'th_planDo' && y.todo === td.id)); if (dk === dkey(Date.now())) SO.q.push({ id: uid(), day: dk, ev: 'th_planDo', at: m, until: m + 120, p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, todo: td.id }); save(); }
+// 新的一天：说好今天几点见的，排上
+function socTodoDue(today) { const SO = social(); for (const [k, P] of Object.entries(SO.ppl || {})) for (const td of P.todo || []) if (td.st === 'open' && td.when && dkey(td.when) === today && !SO.q.some(y => y.todo === td.id)) { const T = dms()[k], p = T ? T.p : null; if (!p) continue; const m = srMin(td.when); SO.q.push({ id: uid(), day: today, ev: 'th_planDo', at: m, until: m + 120, p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, todo: td.id }); } }
 function socDay(p, dk = dkey(Date.now())) {
   const r = srng('day' + p.key + dk), promo = socPromo(p.g, dk), x = r(), owl = srng('owl' + p.key)() * 90; // owl：这个人天生晚睡多少
   let sleepS = x < .1 ? r() * 60 : x < .18 ? 420 + r() * 60 : 120 + owl + r() * 180; // 一般 2~6 点睡；偶尔 0 点早睡；偶尔通宵到 7 点
@@ -8853,11 +8866,14 @@ ${SOC_RULES}
 act：reply（正常回）/ react（只回一个很短的反应或表情，msgs 里 1 条）/ read（已读不回：need 是 none 时最常见；她问了问题或者说了需要回应的事时不能用）/ later（现在不方便或不想打字：先不点开，过一阵再看再回；msgs 留空）。${close ? '你们很要好：need 不是 none 的话不会已读不回，没空就 later。' : ''}${later ? '他已经拖了一阵了，这次除非 need 是 none，否则要回（reply 或 react）。' : ''}
 msgs：ko 写他实际发出的原文，zh 写准确自然的中文意思（不加原文没有的情绪）。
 fu：如果他这次的回复里答应了「等一下 / 晚点 / 回去再」自己去做某件事（比如「이따 들어볼게」「이따 얘기하자」「확인해보고 말해줄게」），用一句中文写下他之后要做什么、做完要告诉她什么（例：听完 Key 和太妍的《Hate that》，告诉她自己音域合不合适、想怎么一起翻唱）；fuMin 写大概多少分钟后（20~600）。没有答应这种事就 fu 留空、fuMin 填 0。
+${artDaysTxt(p, when)}约时间：他自己的安排他是知道的（就是上面这些）。她问哪天几点有没有空，就直接按安排答复——可以、不行、或者换个时间；不要说「我确认一下再告诉你」，除非真有他自己也不知道的事（比如公司还没出通告）。上面聊天里他已经说过「确认一下 / 晚点告诉你」的，这次一定要给明确的答复。
 todo：只有双方在这段对话里明确说好要一起做某件事（吃饭 / 喝咖啡 / 拍 challenge / 待会儿或改天打电话 call）时才填，而且之前没记过；today 表示说好就是今晚。
+meet_at：这次两个人说定了具体哪天几点见面（吃饭 / 喝咖啡），写 YYYY-MM-DD HH:MM；没说定就空。
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
 unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。` }], 900,
-      { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'mem', 'unsure', 'fu', 'fuMin'], properties: { gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal', 'call'] }, fu: { type: 'string' }, fuMin: { type: 'integer' }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
+      { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'meet_at', 'mem', 'unsure', 'fu', 'fuMin'], properties: { meet_at: { type: 'string' }, gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal', 'call'] }, fu: { type: 'string' }, fuMin: { type: 'integer' }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } }, KKT_SYS());
     if (j.fu && j.fu.trim() && !T.fu) { let at = Date.now() + clamp(j.fuMin || 60, 20, 600) * 60e3; { const g = p.g === 'CRAVITY' && p.key !== SR_K && crvGroupNow(Date.now()); if (g && /结束|完|끝나|끝내|마치/.test(j.fu + ' ' + (j.msgs || []).map(m => m.ko + m.zh).join(' '))) at = srTs(dkey(Date.now()), g.e) + rand(5, 25) * 60e3; } /* 说「练完 / 结束了就…」：按团体安排真正结束的时间 */ const h = new Date(at).getHours(); if (h >= 1 && h < 9) { const d = new Date(at); d.setHours(9, ri(0, 50), 0, 0); at = d.getTime(); } T.fu = { at, task: j.fu.trim().slice(0, 120) }; } // 答应了晚点去做的事：到时候真的做完再来说
+    if (j.meet_at) socMeetAt(p, j.meet_at, j.todo);
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
     if (j.todo === 'call') { const T2 = dmThread(p); if (!T2.call || T2.call.done) { dmCallSet(T2, (j.gist || '').slice(0, 40)); save(); } } else if (j.todo && socTodoOpen(P, j.todo)) { const td = socTodoOpen(P, j.todo); if (j.today && j.todo !== 'chal' && !social().q.some(y => y.ev === 'th_planDo' && y.todo === td.id && y.day === dkey(Date.now()))) socPlanTonight(p, td.id); } // 之前就说好了，这次定成今晚
     else if (j.todo && !socTodoOpen(P, j.todo)) { const td = socTodo(p, j.todo, { meal: '在 KKT 上说好一起吃饭', coffee: '在 KKT 上说好一起喝咖啡', chal: '在 KKT 上说好一起拍 challenge' }[j.todo], 'both'); if (j.today && j.todo !== 'chal') socPlanTonight(p, td.id); }
@@ -8939,6 +8955,9 @@ function srRepeatDel1() { const SO = social(); if (SO.srRep1) return; SO.srRep1 
   const i = T.msgs.findIndex((m, k) => !m.me && (m.text || '').trim() === '나 지금 연습 중이야' && T.msgs.slice(Math.max(0, k - 30), k).some(x => !x.me && /연습 중/.test(x.text || '') && dkey(x.at) === dkey(m.at)));
   if (i >= 0) T.msgs.splice(i, 1); save(); }
 function fanRuleHalf1() { const p = S.profile; if (p.fanRuleV2) return; p.fanRuleV2 = 1; if (!p.fanRules || /普遍接受偶像谈恋爱/.test(p.fanRules)) p.fanRules = '在这个世界里，粉丝对偶像谈恋爱的态度一半一半：一半人能接受，会真心祝福、甚至起哄嗑糖；另一半接受不了，会失落、难过、觉得被辜负，有人会说要冷静一阵、取关或脱粉，评论区会吵起来。大部分不满是失落和抱怨，少数人说话会比较难听，但不会人身攻击。'; save(); } // 世界设定改成：接受偶像恋爱的人一半一半
+function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
+  if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
+  save(); }
 function inviteReplyFix1() { const SO = social(); if (SO.invFix1) return; SO.invFix1 = 1;
   for (const T of Object.values(dms())) { if (T.p.key === SR_K) continue; const m = T.msgs[T.msgs.length - 1]; if (!m || !m.me || !m.opt || T.due || (T.pend && T.pend.length) || !/시간 되면 갈게/.test(m.text || '')) continue;
     const ban = socBan(T.p); T.quiet = null; dmQueue(T.p, [ban ? { text: '오케이 시간 맞춰보자', zh: 'OK 对一下时间' } : { text: '좋아요! 시간 맞춰봐요', zh: '好！对一下时间' }], rand(1, 4) * 60e3); }
