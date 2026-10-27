@@ -7987,7 +7987,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9007,6 +9007,7 @@ function srScriptFix1() { const R = SR(); if (R.scrFix1) return; R.scrFix1 = 1; 
 function srScriptFix2() { const R = SR(); if (R.scrFix2) return; const T = dmThread(srP()), i = T.msgs.findIndex(m => !m.me && m.srPh === '对镜|镜子|镜'), P = (R.photos || []).slice().reverse(), ph = P.find(x => (x.d || '').trim() === '对镜拍') || P.find(x => /对镜/.test(x.d || '')); if (i < 0 || !ph) { if (i < 0) R.scrFix2 = 1; save(); return; } R.scrFix2 = 1; const m = T.msgs[i]; m.ph = ph.mid; m.srPh = '^对镜拍$'; ph.sent = ph.sent || m.at; save(); } /* 上一步配错了照片（配成了小卡那张）：换成「对镜拍」 */
 function srJmDinnerRedo1() { const R = SR(); if (R.jmDin1) return; R.jmDin1 = 1; srRedoFrom(/^아 팬싸 중이라 늦게 봤어/); }
 function srJmDinnerRedo2() { const R = SR(); if (R.jmDin2) return; R.jmDin2 = 1; const T = dmThread(srP()); if (T.msgs.some(m => !m.me && /치킨덮밥|鸡肉盖饭/.test((m.text || '') + (m.zh || '')) && Date.now() - m.at < 12 * 3600e3)) { const M = T.msgs; let k = M.length - 1; while (k >= 0 && !M[k].me) k--; const f = M[k + 1]; if (f && !f.me) srRedoFrom(new RegExp('^' + String(f.text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))); } } /* 重回之后还是拿「我要吃鸡肉盖饭」当理由：再重来 */
+function srJmDinnerRedo3() { const R = SR(); if (R.jmDin3) return; R.jmDin3 = 1; srRedoFrom(/^아 팬싸 중이라 늦게 봤어/); }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -9925,7 +9926,7 @@ const srMoodZh = () => { const M = SR().mood; return `精力 ${Math.round(M.en)}
 /* ---------- 看手机的节奏：由他此刻在做什么决定；正聊着、又空着就回得很快 ---------- */
 /* 签售、舞台、演出、直播、录节目这种：全程不能碰手机，结束了才看 */
 const SR_NOPHONE = /签售|팬싸|팬사인|舞台|打歌|演出|演唱会|公演|콘서트|直播|录制|录节目|彩排|리허설|음방|fansign|stage|concert/i;
-const srNoPhone = st => !!(st && st.seg && st.kind === 'work' && SR_NOPHONE.test(st.seg.what || ''));
+const srNoPhone = st => !!(st && st.seg && !st.sleep && SR_NOPHONE.test((st.seg.what || '') + ' ' + (st.seg.where || '')));
 function srCheckGap(at) {
   const st = srNow(at) || socNow0(srP(), at), C = SR().chat, M = SR().mood, sess = C.sess && at < C.sess;
   if (srNoPhone(st)) return Math.max(1, st.seg.e - srMin(at)) + lognorm(6, .6); // 结束后过几分钟才拿起手机
@@ -10086,6 +10087,8 @@ const SR_RULES = `他怎么说话：
 - 她在生他的气、或者在等他回答一件事的时候，他知道这事得接住，不会绕开，也不会把话推回给她（「你慢慢说我听着」这种）。
 - 韩语是二十多岁韩国男生私下发 KKT 的样子，半语，不是中文直译。语气词要用得像韩国人：ㅋ ㅋㅋㅋ ㅎㅎ ㅎ ㅠㅠ ㅜㅜ ㅠ ~ !! ?! .. 是韩国人打字的日常，大部分消息里都会有点这种东西，干巴巴一个都不带反而像机器人——但每个都要对上他此刻的情绪：ㅠㅠ / ㅜㅜ 是累、委屈、撒娇、心疼、可惜（「아 진짜 피곤해ㅠㅠ」「보고 싶다ㅜ」「헐 아깝다ㅠ」），ㅎㅎ / ㅎ 是温和地笑、有点害羞、心情好（「응 맛있게 먹어ㅎㅎ」），ㅋ / ㅋㅋㅋ 是觉得好笑，~ 是软一点、撒娇或拖长尾音（他常用），.. 是无语或拖长，(?) 是他自夸、开玩笑或装傻时的小习惯（偶尔）。同一个就不要每条都用，换着来，跟着情绪走；他真笑的时候是打一长串 ㅋㅋㅋㅋㅋ（常常单独一个气泡或者放在句首），逗她、拿她开玩笑时句尾带一串也很自然（比如「아 우리 은설이 질투하는 거야?ㅋㅋㅋㅋ」），但不会在普通的话后面顺手挂两个 ㅋㅋ（撒娇、认真说甜话、肯定她的时候句尾用 ~ 或什么都不加，不用 ㅋㅋ，不然像在开玩笑、不当真）；几个气泡连起来要像一个人一口气说的话。具体打字习惯参考【他】。
 - 一段对话里先接住对他来说最要紧的那件事。她说她约了别的男生——尤其是成员——单独吃饭、见面，还问他要不要一起：这才是重点，他自己晚饭吃什么根本不重要。他心里会有点在意（吃醋、不放心），然后二选一：要么跟着去（嘴上随便找个理由，其实是不放心她们俩单独待着），要么不去（理由像「你们俩吃吧，我不打扰你们了」，但语气里带点小别扭、小酸）。不会装没事地说一句不相干的安排。【他今天】里他自己吃什么、几点回宿舍这类小安排是随时能改的，不是安排，更不能拿来当拒绝她的理由（不会说「我要吃鸡肉盖饭所以不去了」）；真不去，理由是关于她和那个人的（不想打扰你们、你们俩好好吃），或者干脆嘴硬。
+- 她说的「정모」就是 CRAVITY 的成员정모（廷谟），不是「정기모임」（定期聚会）。她说跟정모约了饭，就是跟这个成员吃饭，不用问「谁去」「有聚会吗」。
+- 拒绝她的邀请时，「我要吃饭 / 我得赶紧吃饭 / 签售完要去吃东西」都不算理由——她本来就是叫他一起吃饭。
 - 他自己刚提过的事（比如叫她晚上来见面），她回了别的安排，他是记得的：会失落、会酸一下，或者顺势改成「那吃完来找我」，不会自顾自说一个跟自己刚才的邀约对不上的计划。
 - 看她是怎么打字的，情绪跟她对上：她发「ㅠㅠㅠㅠ사랑해오빠」是感动到要哭，他会软下来（「나도 사랑해ㅠㅠ」「울지 마ㅜ」「우리 은설이~」），不会在甜话前面笑「ㅋㅋ 나도 사랑해」——那像在笑她。韩国人真笑是 ㅋㅋㅋ 起步的一串，规规矩矩的「ㅋㅋ + 一句话」是最假的打法。
 - 「은설이」「우리 은설이」说的是她（叫她是「은설아」）。说自己就用「나」或者省掉主语，不会写成「은설이 지금 지하철이라」这种让人以为是在说她的话。
@@ -10451,6 +10454,7 @@ function srTick() {
   const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
   const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
   const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest, reparse: async jb => { for (const id of jb.ids) { const n = serimNotes().find(x => x.id === id); if (n && !n.parsed) await srNoteParse(n); } return true; } }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
+  if (['reply', 'reach'].includes(job.type)) { const st0 = srNow(now); if (srNoPhone(st0)) { job.next = srTs(dkey(now), st0.seg.e) + rand(3, 10) * 60e3; return; } } // 签售 / 上台中：结束了再回
   if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
   srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId; job.rid = rid;
   run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
