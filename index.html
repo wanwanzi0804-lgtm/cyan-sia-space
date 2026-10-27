@@ -10922,7 +10922,7 @@ function fanPanelHTML() {
   const G = Object.entries(groups).map(([tp, L]) => [tp, L.sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])), L.reduce((a, x) => a + x[1], 0)]).sort((a, b) => Math.abs(b[2]) - Math.abs(a[2]));
   const sgn = n => `<b class="${n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'}">${n > 0 ? '+' : ''}${fmtNum(n)}</b>`, i = days.indexOf(sel);
   return `<div class="card pop">
-      <div class="pop-main"><div class="pop-heat"><span class="pop-ic">${hIc}</span><div><b>${hTx}</b><span>人气${trend ? ` · <em class="tr-${trend[0]}">${trend[0] === 'up' ? '↑' : trend[0] === 'down' ? '↓' : '→'} ${trend[1]}</em>` : ''}</span></div></div></div>
+      <div class="pop-main"><div class="pop-heat"><span class="pop-ic">${hIc}</span><div><b>${hTx}</b><span>人气</span></div></div></div>
       <div class="pop-nums"><div>${sgn(net(today))}<span>今日</span></div><div>${sgn(week)}<span>近 7 天</span></div></div>
       <div class="pop-sub">上次营业 · ${idle ? idle + ' 天前' : '今天'}</div>
     </div>
