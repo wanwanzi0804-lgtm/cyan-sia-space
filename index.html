@@ -10004,6 +10004,9 @@ const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required:
   mood: { type: 'object', additionalProperties: false, required: ['val', 'to', 'why'], properties: { val: { type: 'number' }, to: { type: 'string' }, why: { type: 'string' } } } } };
 // 发出去之前：开头单独喊一声「은설아」偶尔才有（最近已经这样开过头就去掉）；和他这几个小时自己说过的话重复的气泡去掉
 const SR_NAME_ONLY = /^(은설|은설아|은설이|恩雪|恩雪啊|恩雪呀)[\s!~.ㅎㅋ…]*$/;
+// 问句、催一句、关心的话后面硬加 ㅋㅋ（又没有在笑什么）：去掉。他心里真觉得好笑（inner 里有）才留着
+function srLaughTrim(msgs, inner) { if (/好笑|笑死|搞笑|逗|哈哈|웃기|웃겨|ㅋㅋ/.test(inner || '')) return msgs;
+  return msgs.map(b => { if (!/[?？]\s*[ㅋㅎ]{2,}\s*$/.test(b.ko) && !/^[^ㅋㅎ]{2,12}\s*[ㅋㅎ]{2,}\s*$/.test(b.ko)) return b; const ko = b.ko.replace(/\s*[ㅋㅎ]{2,}\s*$/, '').trim(); return ko ? { ko, zh: (b.zh || '').replace(/[，,\s]*(哈|呵|嘿){2,}[！!。]*\s*$/, '').trim() } : b; }); }
 function srTidy(msgs, T, when) { const his = T.msgs.filter(m => !m.me && !m.sys && m.at <= when && m.at > when - 6 * 3600e3).map(m => m.text || ''), nameUsed = T.msgs.some(m => !m.me && !m.sys && m.at <= when && m.at > when - 12 * 3600e3 && SR_NAME_ONLY.test((m.text || '').trim()));
   const norm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, ''), dup = k => norm(k).length >= 3 && his.some(h => norm(h) === norm(k) || srSim(h, k) >= .6);
   let L = msgs.filter(b => !dup(b.ko)); if (L.length > 1 && SR_NAME_ONLY.test(L[0].ko.trim()) && nameUsed) L = L.slice(1); return L; }
@@ -10090,7 +10093,7 @@ ${SR_BITS_HINT}`;
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
   { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_REPLY_SCHEMA, false, 'medium'); if (job.rid !== srRunId) return 'stale'; } }
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
-  let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; }
+  let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
@@ -10127,7 +10130,7 @@ ko：要发的话，他在输入框里打的东西（回车拆成几个气泡只
     { type: 'object', additionalProperties: false, required: ['inner', 'send', 'ko', 'zh', 'topic', 'promise_done', 'mem', 'told', 'bits_add'], properties: { inner: { type: 'string' }, send: { type: 'boolean' }, ko: { type: 'string' }, zh: { type: 'string' }, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } });
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
-  j.msgs = srTidy(srBubbles(j.ko, j.zh), T, when); if (!j.msgs.length) j.send = false; // 想说的都是刚才说过的：这次就不发了
+  j.msgs = srLaughTrim(srTidy(srBubbles(j.ko, j.zh), T, when), j.inner); if (!j.msgs.length) j.send = false; // 想说的都是刚才说过的：这次就不发了
   srMemOps(j.mem, when, 'him'); if (j.send && (j.msgs || []).length) srBitsApply(j, when);
   if (w.kind === 'urge' && !j.send) { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; return true; } } // 憋着想说的事这次没发出去：过一阵还会再想起来（最多再想两次）
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^bit/.test(ref)) for (const d of Object.values(R.day)) for (const g2 of d.segs) for (const b of g2.bits || []) if ('bit' + b.id === ref) b.seen = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
@@ -10246,6 +10249,7 @@ function srPingDedup1() { const R = SR(); if (R.pingDd1) return; R.pingDd1 = 1; 
   // 只剩一句「은설아」的那一轮也去掉
   T.msgs = M.filter(m => !drop.has(m.id)); const L = T.msgs; for (let i = 0; i < L.length; i++) { const m = L[i]; if (m.me || m.sys || m.at < t0 || m.at > t1 || !SR_NAME_ONLY.test((m.text || '').trim())) continue; const nx = L[i + 1]; if (!nx || nx.me || nx.at - m.at > 3 * 60e3) drop.add(m.id); }
   T.msgs = T.msgs.filter(m => !drop.has(m.id)); save(); }
+function srKkFix1() { const R = SR(); if (R.kkFix1) return; R.kkFix1 = 1; for (const m of dmThread(srP()).msgs) if (!m.me && /^전화 아직 안 해\?\s*ㅋㅋ/.test(m.text || '')) { m.text = '전화 아직 안 해?'; m.zh = '还没打电话吗？'; } save(); }
 function srRedo630() { const R = SR(); if (R.redo630) return; R.redo630 = 1; srRedoFrom(/^아직 연습 좀 남았어/); }
 // 悄悄删掉他从某条开始的那次回复（连同它带出来的约定 / 电话 / 对话状态），让他重新看、重新回
 function srRedoFrom(re) { const R = SR(), T = dmThread(srP()), M = T.msgs;
@@ -10294,7 +10298,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srKkFix1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
