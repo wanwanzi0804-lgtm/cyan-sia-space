@@ -8413,7 +8413,7 @@ function socTodo(p, t, d, by) { const P = socPX(p); let x = socTodoOpen(P, t); i
 function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || ts.includes(P.ex[i].t)) return P.ex[i]; return null; }
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
 // 交往后世琳私下打字的样子：照他泡泡原文整理（泡泡里粉丝名会显示成「은설」，那些话本来就像在对她说）
-const SERIM_LOVE_TONE = '半语；说得起劲时一句话会按回车拆成好几个气泡连着发（这是打字节奏，不是一次多说几件事），平常也常常就一两个；有时先单独发一条「은설아」再说事；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
+const SERIM_LOVE_TONE = '半语；说得起劲时一句话会按回车拆成好几个气泡连着发（这是打字节奏，不是一次多说几件事），平常也常常就一两个；偶尔（不是每次）先单独发一条「은설아」再说事，大多数时候直接说；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」——这种很甜的一天最多一两次，一般在道别或睡前，不要每次都用';
 function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? (crvKnows(p.n) ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和他的队友世琳秘密交往，他不知道') : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
 function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
 function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；${crvKnowTxt()}`; }
@@ -9862,6 +9862,7 @@ function srPromiseStep(at) {
     if (m.imp <= 2 && M.en < 15 && (h >= 1 && h < 7)) { m.st = 'missed'; m.why = '太累，先睡了'; m.u = at; continue; } // 小事、又累又晚：先睡了，之后可能会提
     if (st.semi && m.imp <= 2 && st.seg && srTs(dkey(at), st.seg.e) < m.cond.win) continue; // 小事：等手上这段结束再说
     if (srHer(dmThread(srP()), at).filter(x => x.at > (R.chat.him || 0)).length) return false; // 她有新消息：在回复里一起说
+    { const L = dmThread(srP()).msgs.filter(x => !x.sys && x.at <= at), lst = L[L.length - 1]; if (lst && !lst.me && lst.ping && lst.at >= (m.c || 0)) { m.st = 'done'; m.u = at; m.why = '已经主动找过她了，她还没回'; continue; } } // 他已经找过她了、她还没回：不再追着发
     srJob('reach', at + rand(10, 40) * 1e3, { why: { kind: 'promise', d: `他之前答应过：${m.t}（现在有空了，兑现它，要和现在的情况对得上）`, ref: m.id } }); return true;
   }
   return false;
@@ -10001,6 +10002,11 @@ const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required:
   promise: { type: 'object', additionalProperties: false, required: ['t', 'cond', 'min', 'imp'], properties: { t: { type: 'string' }, cond: { type: 'string', enum: ['', 'segEnd', 'time'] }, min: { type: 'integer' }, imp: { type: 'integer' } } },
   plan: { type: 'object', additionalProperties: false, required: ['type', 'when', 'what', 'confirmed'], properties: { type: { type: 'string', enum: ['', 'meet', 'call'] }, when: { type: 'string' }, what: { type: 'string' }, confirmed: { type: 'boolean' } } },
   mood: { type: 'object', additionalProperties: false, required: ['val', 'to', 'why'], properties: { val: { type: 'number' }, to: { type: 'string' }, why: { type: 'string' } } } } };
+// 发出去之前：开头单独喊一声「은설아」偶尔才有（最近已经这样开过头就去掉）；和他这几个小时自己说过的话重复的气泡去掉
+const SR_NAME_ONLY = /^(은설|은설아|은설이|恩雪|恩雪啊|恩雪呀)[\s!~.ㅎㅋ…]*$/;
+function srTidy(msgs, T, when) { const his = T.msgs.filter(m => !m.me && !m.sys && m.at <= when && m.at > when - 6 * 3600e3).map(m => m.text || ''), nameUsed = T.msgs.some(m => !m.me && !m.sys && m.at <= when && m.at > when - 12 * 3600e3 && SR_NAME_ONLY.test((m.text || '').trim()));
+  const norm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, ''), dup = k => norm(k).length >= 3 && his.some(h => norm(h) === norm(k) || srSim(h, k) >= .6);
+  let L = msgs.filter(b => !dup(b.ko)); if (L.length > 1 && SR_NAME_ONLY.test(L[0].ko.trim()) && nameUsed) L = L.slice(1); return L; }
 // 他打出来的一段话 → 气泡：一行一个（回车就是他按发送的地方）；中文按行对上
 function srBubbles(ko, zh) { const K = String(ko || '').split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 10), Z = String(zh || '').split(/\n+/).map(x => x.trim()).filter(Boolean);
   return K.map((k, i) => ({ ko: k, zh: i === K.length - 1 && Z.length > K.length ? Z.slice(i).join(' ') : (Z[i] || '') })); }
@@ -10084,7 +10090,7 @@ ${SR_BITS_HINT}`;
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
   { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_REPLY_SCHEMA, false, 'medium'); if (job.rid !== srRunId) return 'stale'; } }
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
-  let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = msgs.filter(b => !srDup(b.ko)); if (keep.length) msgs = keep; }
+  let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; }
   srApply(j, when, T);
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
@@ -10121,14 +10127,14 @@ ko：要发的话，他在输入框里打的东西（回车拆成几个气泡只
     { type: 'object', additionalProperties: false, required: ['inner', 'send', 'ko', 'zh', 'topic', 'promise_done', 'mem', 'told', 'bits_add'], properties: { inner: { type: 'string' }, send: { type: 'boolean' }, ko: { type: 'string' }, zh: { type: 'string' }, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } });
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
-  j.msgs = srBubbles(j.ko, j.zh);
+  j.msgs = srTidy(srBubbles(j.ko, j.zh), T, when); if (!j.msgs.length) j.send = false; // 想说的都是刚才说过的：这次就不发了
   srMemOps(j.mem, when, 'him'); if (j.send && (j.msgs || []).length) srBitsApply(j, when);
   if (w.kind === 'urge' && !j.send) { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; return true; } } // 憋着想说的事这次没发出去：过一阵还会再想起来（最多再想两次）
   for (const ref of w.refs || (w.ref ? [w.ref] : [])) { const g = Object.values(R.day).flatMap(d => d.segs).find(g => g.id === ref); if (g) g.shared = 1; if (/^(post|stage)/.test(ref)) R.seen[ref] = 1; if (/^bit/.test(ref)) for (const d of Object.values(R.day)) for (const g2 of d.segs) for (const b of g2.bits || []) if ('bit' + b.id === ref) b.seen = 1; if (/^urge/.test(ref)) { const u = (R.urges || []).find(x => 'urge' + x.id === ref); if (u) u.used = 1; } } // 想过了：这件事不会再反复成为找她的理由
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
-  if (!j.send || !(j.msgs || []).length) { if (pm) pm.cond.at = when + 40 * 60e3; return true; } // 答应的事这次没说出口：过一会儿再想起来（窗口过了就算没做到）
+  if (!j.send || !(j.msgs || []).length) { if (pm) { if (T.msgs.some(x => !x.me && x.ping && x.at > when - 3 * 3600e3 && x.at >= (pm.c || 0))) { pm.st = 'done'; pm.u = when; } else pm.cond.at = when + 40 * 60e3; } return true; } // 答应的事这次没说出口：过一会儿再想起来（窗口过了就算没做到）
   if (srHer(T, Date.now()).filter(m => m.at > when).length && !job.tech) return true; // 生成期间她发了消息
-  srSend(T, j.msgs, when + Math.min((j.msgs[0].ko.length / 4.5) * 1e3, 15e3), { ping: 1 }); if (pm) { pm.st = 'done'; pm.u = when; }
+  srSend(T, j.msgs, when + Math.min((j.msgs[0].ko.length / 4.5) * 1e3, 15e3), { ping: 1 }); if (pm) { pm.st = 'done'; pm.u = when; const call = /电话|打给|打电话|통화|전화/.test(pm.t); for (const o of R.mem) if (o !== pm && o.k === 'promise' && o.st === 'planned' && (srSim(o.t, pm.t) >= .35 || (call && /电话|打给|打电话|통화|전화/.test(o.t)))) { o.st = 'done'; o.u = when; } } // 同一件事答应了好几次：兑现一次就都算了
   R.reach.push({ at: when, kind: w.kind || 'quiet', topic: String(j.topic || '').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
   R.chat.him = when; R.chat.sess = when + 15 * 60e3; return true;
 }
