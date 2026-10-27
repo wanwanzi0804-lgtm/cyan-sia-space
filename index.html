@@ -1154,8 +1154,8 @@ async function aiComments(content, maxTokens = 6000) {
 }
 // 省字版：AI 只写回复内容（中文直接写；外语写成「ko|原文|中文」），名字由程序生成；顺便给几个话题关键词
 const AI_COMPACT = { type: 'object', additionalProperties: false, required: ['r', 'k'], properties: { r: { type: 'array', items: { type: 'string' } }, k: { type: 'array', items: { type: 'string' } } } };
-async function aiCompact(content, maxTokens) {
-  const j = await aiRaw(content, maxTokens, AI_COMPACT);
+async function aiCompact(content, maxTokens, model) {
+  const j = await aiRaw(content, maxTokens, AI_COMPACT, undefined, model);
   const r = (j.r || []).map(x => String(x || '').trim()).filter(Boolean).map(x => {
     const m = x.match(/^(ko|ja|en)\|([^|]+)\|(.+)$/);
     const lang = m ? m[1] : 'zh';
@@ -6294,11 +6294,11 @@ function bbRelease(n) {
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
   const want = ri(4, 8);
-  const stale = !B.aiPoolAt || Date.now() - B.aiPoolAt > 20 * 60e3, windowOpen = (stale || Date.now() - (B._lastAi || 0) >= BB_AI_WINDOW) && !B._aiBusy;
-  if (windowOpen && (bbAiWorth(m) || B._aiScheduled || stale)) {
-    // 新的 2 分钟：等 1.5 秒（连发的消息一起看），再请一次 AI
-    B._owed = (B._owed || 0) + want; B._aiScheduled = true;
-    clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 900); return;
+  const stale = !B.aiPoolAt || Date.now() - B.aiPoolAt > 20 * 60e3;
+  if (bbAiWorth(m) || stale) { // 她每说一句新的，都马上让粉丝针对这一句回（不再沿用上一句的那批，回复不会慢半拍、对不上）
+    B._owed = (B._owed || 0) + want; B.aiPool = [];
+    if (B._aiBusy) { B._again = true; return; }
+    B._aiScheduled = true; clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 700); return; // 等一下下，连发的几条一起看
   }
   if (B._aiBusy) { B._owed = (B._owed || 0) + want; return; }
   bbRelease(want); // 这 2 分钟里的那批还有剩就放出来；用完了就全是免费回复
@@ -6320,14 +6320,15 @@ ${lines}
 格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
 回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。`;
     // 先要一小批（快），马上放出来；剩下的再在后台补一批，不让粉丝慢半拍
-    const res = await aiCompact([...content, { type: 'text', text: prompt(10) }], 1500);
-    B.aiPool = res.r; B.aiPoolAt = Date.now();
+    const res = await aiCompact([...content, { type: 'text', text: prompt(8) }], 900, 'claude-haiku-5-5'); // 第一批用快的模型，几秒内就有粉丝回
+    if (B._again) { B.aiPool = []; } else { B.aiPool = res.r; B.aiPoolAt = Date.now(); }
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
-    bbRelease(B._owed || 0); B._owed = 0; B._aiBusy = false;
-    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) B.aiPool = (B.aiPool || []).concat(r2.r); save(); }).catch(() => { });
+    if (!B._again) { bbRelease(B._owed || 0); B._owed = 0; }
+    const gen = B._gen = (B._gen || 0) + 1;
+    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (gen === B._gen && B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) B.aiPool = (B.aiPool || []).concat(r2.r); save(); }).catch(() => { });
   } catch (e) { aiFail(e); }
-  finally { B._owed = 0; B._aiBusy = false; }
+  finally { B._aiBusy = false; if (B._again) { B._again = false; B._aiScheduled = true; clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 300); } else B._owed = 0; }
 }
 
 /* ---------- Bubble 界面 ---------- */
