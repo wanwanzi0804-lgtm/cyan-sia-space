@@ -10237,6 +10237,15 @@ function srCardOpen2() { const R = SR(); if (R.cardOpen2) return; R.cardOpen2 = 
 // 5:02 那几条（新的回复方式上线前生成的）：悄悄删掉，连同它带出来的约定 / 电话 / 对话状态，让他按新方式重新看、重新回
 function srRedo502() { const R = SR(); if (R.redo502) return; R.redo502 = 1; srRedoFrom(/연습 중이라 바로 전화는 못 받아/); }
 function srRedoDorm1() { const R = SR(); if (R.redoDorm1) return; R.redoDorm1 = 1; const M = dmThread(srP()).msgs, k = M.map(m => !m.me && /숙소에서 기다리고 있을게/.test(m.text || '')).lastIndexOf(true); if (k < 0) { save(); return; } let a = k; while (a > 0 && !M[a - 1].me && !M[a - 1].sys) a--; const t = (M[a].text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); srRedoFrom(new RegExp('^' + t + '$')); }
+// 10 点那几轮重复的主动消息：悄悄去掉重复的问题和多余的「은설아」
+function srPingDedup1() { const R = SR(); if (R.pingDd1) return; R.pingDd1 = 1; const T = dmThread(srP()), M = T.msgs, k = M.map(m => !m.me && /숙소 도착했어/.test(m.text || '')).lastIndexOf(true); if (k < 0) { save(); return; }
+  const t0 = M[k].at - 30 * 60e3, t1 = M[k].at + 30 * 60e3, norm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, ''), kept = []; let named = false; const drop = new Set();
+  for (const m of M) { if (m.me || m.sys || m.at < t0 || m.at > t1) continue; const t = (m.text || '').trim();
+    if (SR_NAME_ONLY.test(t)) { if (named) drop.add(m.id); named = true; continue; }
+    if (kept.some(h => norm(h) === norm(t) || srSim(h, t) >= .5 || (/전화해도 돼/.test(h) && /전화해도 돼/.test(t)) || (/작업실 나왔어/.test(h) && /작업실 나왔어/.test(t)))) drop.add(m.id); else kept.push(t); }
+  // 只剩一句「은설아」的那一轮也去掉
+  T.msgs = M.filter(m => !drop.has(m.id)); const L = T.msgs; for (let i = 0; i < L.length; i++) { const m = L[i]; if (m.me || m.sys || m.at < t0 || m.at > t1 || !SR_NAME_ONLY.test((m.text || '').trim())) continue; const nx = L[i + 1]; if (!nx || nx.me || nx.at - m.at > 3 * 60e3) drop.add(m.id); }
+  T.msgs = T.msgs.filter(m => !drop.has(m.id)); save(); }
 function srRedo630() { const R = SR(); if (R.redo630) return; R.redo630 = 1; srRedoFrom(/^아직 연습 좀 남았어/); }
 // 悄悄删掉他从某条开始的那次回复（连同它带出来的约定 / 电话 / 对话状态），让他重新看、重新回
 function srRedoFrom(re) { const R = SR(), T = dmThread(srP()), M = T.msgs;
@@ -10285,7 +10294,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
