@@ -10448,7 +10448,9 @@ function srTechHTML() {
 }
 
 /* ---------- 你记下的世琳日常：拆成时间段（已发生 / 正在 / 计划），覆盖系统生成的日常 ---------- */
-async function srNoteParse(n) {
+const srNoteLive = new Set(); /* 这次打开页面后正在理解的那几条 */
+async function srNoteParse(n) { srNoteLive.add(n.id); try { return await srNoteParse0(n); } finally { srNoteLive.delete(n.id); } }
+async function srNoteParse0(n) {
   const now = n.at, td = dkey(now), yd = addDays(td, -1), m = srMin(now);
   const tl = dk => srSegs(dk, now).map(g => `- [${g.id}] ${srSegZh(g, dk, now)}`).join('\n') || '（无）';
   try {
@@ -10514,7 +10516,7 @@ function srNoteFb(n) {
 function srNoteDrop(id) { for (const D of Object.values(SR().day)) D.segs = D.segs.filter(g => g.nid !== id); for (const m of SR().mem) if (m.nid === id && !m.rep) { m.rep = 'x'; m.u = Date.now(); } }
 // AI 当时不可用、只粗略记下的：恢复后重新理解一遍
 let srNoteBusy = 0;
-function srNoteRetry() { if (srNoteBusy || !srAIState().ok) return; const td = dkey(Date.now()), n = serimNotes().find(x => x.parsed === 'fb' && x.day === td && !x.re); if (!n) return; n.re = 1; srNoteBusy = 1; srNoteDrop(n.id); srNoteParse(n).finally(() => { srNoteBusy = 0; }); }
+function srNoteRetry() { if (srNoteBusy || !srAIState().ok) return; const td = dkey(Date.now()), n = serimNotes().find(x => x.day === td && (x.parsed === 'fb' && !x.re || !x.parsed && !srNoteLive.has(x.id) && Date.now() - x.at > 60e3 && !SR().jobs.some(j => j.type === 'reparse'))); if (!n) return; /* 理解到一半页面被关掉了的那条也接着理解，不会一直挂着「正在更新」 */ n.re = 1; srNoteBusy = 1; srNoteDrop(n.id); srNoteParse(n).finally(() => { srNoteBusy = 0; }); }
 // 窗口里看到的时间线
 function srTimelineHTML() {
   const td = dkey(Date.now()), m = srMin(Date.now()), yd = addDays(td, -1), days = [td, addDays(td, 1)].filter(k => SR().day[k]);
