@@ -3936,7 +3936,7 @@ function ytTick() {
     else if (p.st === 'booked') { const r = S.schedule.rules.find(x => x.id === p.rule); if (!r) { p.st = 'sched'; p.slots = ytSlots(p); ytLog(p, '拍摄行程被删掉了，重新排'); if (p.slots.length) mgrSay([`${p.title} 촬영 일정이 빠져서 다시 잡아야 해요.`, `${p.title}的拍摄行程没了，要重新排。`], { type: 'ytshoot', id: p.id }); continue; } if (r.date < today || (r.date === today && nm >= toMin(r.end))) { p.st = 'post'; p.postUntil = now + rand(2, ytFmt(p)[3] >= 15e5 ? 9 : 5) * 86400e3; ytLog(p, '拍完了，进入后期'); } }
     else if (p.st === 'post' && now >= p.postUntil) { p.st = 'ready'; ytLog(p, '成片出来了'); mgrSay([`${p.title} 편집본 나왔어요. 올릴 때 말해줘요`, `${p.title}的成片出来了，要发的时候跟我说`]); }
   }
-  for (const v of Y.vids) ytGrow(v);
+  ytFanSync1(); for (const v of Y.vids) ytGrow(v);
 }
 // 播放量：发布时按粉丝 / 类型 / 质量 / 合作人气 / 热度定一个「最终规模」，之后按时间慢慢长到那里；爆不爆在发布时就定好
 function ytBase(p) {
@@ -3951,14 +3951,21 @@ function ytPublish(p) {
   const Y = yt(); if (p.vid || p.st !== 'ready') return; const b = ytBase(p), id = 'v' + uid();
   const v = { id, plan: p.id, title: p.vtitle || p.title, cat: p.cat, fmt: p.fmt, short: ytShort(p), parts: [S.profile.name].concat(p.collab ? [socName(p.collab)] : []), song: p.title, orig: p.orig || '', pubAt: Date.now(), cost: p.cost || 0, ...b, views: 0, likes: 0, cmts: 0, fanDone: 0, cm: pickN(YT_CMT.pos, 3).concat(pickN(YT_CMT.mid, 1), Math.random() < .5 ? pickN(YT_CMT.neg, 1) : []) };
   Y.vids.unshift(v); p.vid = id; p.st = 'pub'; ytLog(p, '已发布'); if (p.thumb) { (Y.thumbs || (Y.thumbs = {}))[id] = p.thumb; delete p.thumb; }
-  const n = Math.round(b.base * rand(.003, .008)); if (n) addFans(n, 'YouTube：' + v.title); v.fanDone = 1; // 发布带来的涨粉只算这一次
+  v.fanTot = Math.round(b.base * rand(.003, .008)); v.fanGot = 0; v.fanDone = 1; // 这条视频带来的涨粉：跟着播放量一点点涨，不是一发布就全到
   if (p.collab) ytMem(p.collab.key, `和 Cyan 一起拍的${YT_CAT[p.cat][0]}《${p.title}》已经发布了`);
   ytGrow(v); save();
 }
+/* 一次性：之前发布时涨粉一次性全给了（播放才几百、涨粉已经上千）：还没被播放量「赶上」的那部分先收回，之后跟着播放量涨回来 */
+function ytFanSync1() { const Y = yt(); if (Y.fanSync1) return; Y.fanSync1 = 1; const F = fanState();
+  for (const v of Y.vids) { if (v.fanTot != null || !v.fanDone) continue; const key = 'YouTube：' + v.title; let N = 0; for (const d of Object.values(F.days)) N += d.src[key] || 0; if (N <= 0) continue;
+    v.fanTot = N; const want = Math.min(N, Math.round(N * v.views / v.base)); let back = N - want; v.fanGot = want; if (back <= 0) continue; S.profile.followers = Math.max(0, S.profile.followers - back);
+    for (const k of Object.keys(F.days).sort().reverse()) { const d = F.days[k], c = d.src[key] || 0; if (!c || !back) continue; const t = Math.min(c, back); d.src[key] = c - t; if (!d.src[key]) delete d.src[key]; d.net -= t; back -= t; } }
+  save(); }
 function ytGrow(v) {
   const age = (Date.now() - v.pubAt) / 86400e3, base = v.base * (age >= v.viralAt && v.viral > 1 ? v.viral : 1);
   const tgt = Math.round(base * (1 - Math.exp(-age / (v.short ? 1.5 : 3.5)))); if (tgt <= v.views) return;
   v.views = tgt; v.likes = Math.round(tgt * (v.short ? .07 : .045)); v.cmts = Math.round(tgt * (v.short ? .002 : .005));
+  if (v.fanTot) { const want = Math.min(v.fanTot, Math.round(v.fanTot * tgt / v.base)), d = want - (v.fanGot || 0); if (d > 0) { v.fanGot = want; addFans(d, 'YouTube：' + v.title); } }
   if (v.viral > 1 && age >= v.viralAt && !v.viralDone) { v.viralDone = 1; const n = Math.round(v.base * v.viral * rand(.002, .005)); if (n) addFans(n, 'YouTube：' + v.title + ' 爆了'); pushNotif({ type: 'cb', text: `📈 「${v.title}」在 YouTube 突然火了`, sub: `播放一路往上涨 · 涨粉 +${fmtNum(n)}` }, true); }
 }
 // 频道里显示的所有内容（MV、Challenge 只读原来的数据，不复制）
