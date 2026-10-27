@@ -324,6 +324,9 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .call-nm{font-size:24px;font-weight:700;margin-top:18px}.call-st{opacity:.7;margin-top:6px;font-size:14.5px;font-variant-numeric:tabular-nums}
 .call-mid{flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:18px 0;overflow:auto}
 .call-cap{background:rgba(255,255,255,.1);border-radius:14px;padding:12px 14px;font-size:14.5px;line-height:1.5;margin-bottom:4px}
+.call-talk{display:flex;flex-direction:column;gap:8px;overflow:auto;max-height:46vh;padding:4px 2px}
+.call-ln{max-width:86%;padding:9px 12px;border-radius:14px;font-size:14.5px;line-height:1.5;background:rgba(255,255,255,.12)}.call-ln.me{align-self:flex-end;background:rgba(255,229,0,.22)}.call-ln small{display:block;opacity:.7;font-size:12.5px;margin-top:2px}
+.call-in{display:flex;gap:6px;margin-top:8px}.call-in input{flex:1;min-width:0;background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:999px;padding:10px 14px}.call-in input::placeholder{color:rgba(255,255,255,.6)}.call-in button{border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;padding:0 14px;font-weight:700}.call-in button.on{background:#ff2d55}
 .call-opt{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:14px;padding:12px 14px;text-align:left;font-size:14.5px}
 .call-btns{display:flex;justify-content:space-around;width:100%}.call-b{width:66px;height:66px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff}.call-b.no{background:#ff3b30}.call-b.ok{background:#34c759}.call-bl{font-size:12.5px;opacity:.75;text-align:center;margin-top:7px}
 .kk-t{font-size:10px;color:var(--kk-tm);flex:none;text-align:right;white-space:nowrap}
@@ -9313,14 +9316,57 @@ function callHTML() {
   const C = UI.call, T = dms()[C.key], p = T.p, ic = CALL_SVG.replace(/18/g, '30'), down = ic.replace('<svg', '<svg style="transform:rotate(135deg)"');
   const btn = (act, cls, svg, l) => `<div><button class="call-b ${cls}" data-act="${act}">${svg}</button><div class="call-bl">${l}</div></div>`;
   const st = C.mode === 'in' ? '보이스톡' : C.mode === 'out' ? '연결 중…' : C.mode === 'end' ? `통화 종료 ${C.dur || ''}` : `<span id="call-tm">${mmss((Date.now() - C.t0) / 1000)}</span>`;
-  const mid = C.mode === 'on' ? `<div class="call-cap">${esc(callTalk(p, T))}</div>${callOpts(T).map((o, j) => `<button class="call-opt" data-act="callopt" data-j="${j}">${esc(o[0])}</button>`).join('')}` : '';
+  const mid = C.mode === 'on' && aiOn() ? `<div class="call-talk" id="call-talk">${(C.talk || []).map(l => `<div class="call-ln${l.me ? ' me' : ''}">${esc(l.text)}${!l.me && l.zh ? `<small>${esc(l.zh)}</small>` : ''}</div>`).join('')}${C.busy ? '<div class="call-ln">…</div>' : ''}</div>
+    <div class="call-in"><input id="call-in" placeholder="说点什么…" autocomplete="off"><button data-act="callmic" class="${C.mic ? 'on' : ''}" title="说话">🎤</button><button data-act="callsay">发送</button></div>`
+    : C.mode === 'on' ? `<div class="call-cap">${esc(callTalk(p, T))}</div>${callOpts(T).map((o, j) => `<button class="call-opt" data-act="callopt" data-j="${j}">${esc(o[0])}</button>`).join('')}` : '';
   const bot = C.mode === 'in' ? btn('callno', 'no', down, '거절') + btn('callok', 'ok', ic, '수락') : C.mode === 'out' ? btn('callcancel', 'no', down, '취소') : C.mode === 'on' ? btn('callhang', 'no', down, '종료') : '';
   return `${kAv(C.key, 'call-av')}<div class="call-nm">${esc(socDisp(p))}</div><div class="call-st">${st}</div><div class="call-mid">${mid}</div><div class="call-btns">${bot}</div>`;
 }
 function callShow() {
   let L = $('#call-ly'); if (!UI.call) { if (L) L.remove(); clearInterval(UI.callIv); return; }
-  if (!L) { L = document.createElement('div'); L.id = 'call-ly'; document.body.appendChild(L); } L.innerHTML = callHTML();
+  if (!L) { L = document.createElement('div'); L.id = 'call-ly'; document.body.appendChild(L); } const keepV = $('#call-in') ? $('#call-in').value : '', keepF = document.activeElement && document.activeElement.id === 'call-in'; L.innerHTML = callHTML(); { const el = $('#call-in'); if (el && keepV) el.value = keepV; if (el && keepF) el.focus({ preventScroll: true }); }
+  { const v = $('#call-talk'); if (v) v.scrollTop = v.scrollHeight; const inp = $('#call-in'); if (inp) inp.onkeydown = e => { if (e.key === 'Enter') callSay(); }; }
+  if (UI.call.mode === 'on' && aiOn() && !UI.call.talk) { UI.call.talk = []; callLine(null); } // 接通了：对方先开口
   clearInterval(UI.callIv); if (UI.call.mode === 'on') UI.callIv = setInterval(() => { const e = $('#call-tm'); if (e && UI.call) e.textContent = mmss((Date.now() - UI.call.t0) / 1000); }, 1000);
+}
+// 电话里真的聊：你打字或者说话，他按当时的状态和你们的聊天接着说（口语，一两句）
+async function callLine(mine) {
+  const C = UI.call; if (!C || C.mode !== 'on' || C.busy) return; const T = dms()[C.key], p = T.p, sr = p.key === SR_K, now = Date.now();
+  if (mine) C.talk.push({ me: 1, text: mine }); C.busy = 1; callShow();
+  const kkt = sr ? srChatLog(T, now, 14) : T.msgs.slice(-12).filter(m => !m.sys).map(m => `${m.me ? S.profile.name : socName(p)}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n');
+  try {
+    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（恩雪）和 ${socWho(p)} 正在打 KakaoTalk 语音电话（${C.by === 'me' ? '她打过去的' : '他打来的'}，现在 ${srClock(now)}）。你写${socName(p)}在电话里说的下一句。
+${sr ? srCtx(now, (mine || '') + ' ' + (T.call && T.call.topic || '')) : socCtx(p, now)}
+打电话前在 KKT 上聊到：
+${kkt || '（无）'}
+${T.call && T.call.topic ? `说好打电话是因为：${T.call.topic}\n` : ''}电话里到现在：
+${C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? l.text : l.text + (l.zh ? `（${l.zh}）` : '')}`).join('\n') || '（刚接通）'}
+${mine ? `她刚说：${mine}` : `电话刚接通，${C.by === 'me' ? '他接起来' : '她接起来了，他先开口'}。`}
+
+这是说出口的话，不是打字：口语、自然，一般一两句，可以有停顿和语气词（응, 아, 음…），笑就写（웃음）；不用 ㅋㅋ、emoji。接着她说的话聊，按他的性格和此刻的状态（累不累、在哪），不用每句都撩、都问问题；聊到自然该挂的时候（他要睡了、要去忙、话说完了）可以说要挂了，end=true。
+ko 是他说的韩语，zh 是中文意思。` }], 1500, { type: 'object', additionalProperties: false, required: ['ko', 'zh', 'end'], properties: { ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } }, KKT_SYS());
+    if (UI.call !== C) return; C.talk.push({ text: String(j.ko || '').trim(), zh: String(j.zh || '').trim() }); if (j.end) C.wantEnd = 1;
+  } catch (e) { if (UI.call === C) C.talk.push({ text: '여보세요? 잘 안 들려…', zh: '喂？听不太清…' }); }
+  finally { if (UI.call === C) { C.busy = 0; callShow(); } }
+}
+function callSay() { const el = $('#call-in'), v = (el && el.value || '').trim(); if (!v || !UI.call || UI.call.busy) return; el.value = ''; callStopMic(); callLine(v); }
+function callStopMic() { const C = UI.call; if (C && C.rec) { try { C.rec.stop(); } catch (e) { } C.rec = null; C.mic = 0; } }
+function callMic() { const C = UI.call; if (!C) return; if (C.mic) { callStopMic(); callShow(); return; } const SRc = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SRc) { toast('这个浏览器不支持语音识别', '可以直接打字'); return; }
+  const r = new SRc(); r.lang = S.prefs.srLang || 'zh-CN'; r.interimResults = true; r.continuous = false; C.rec = r; C.mic = 1;
+  r.onresult = e => { const t = Array.from(e.results).map(x => x[0].transcript).join(''); const el = $('#call-in'); if (el) el.value = t; if (e.results[e.results.length - 1].isFinal) { C.mic = 0; C.rec = null; callSay(); } };
+  r.onerror = () => { C.mic = 0; C.rec = null; callShow(); }; r.onend = () => { if (C.mic) { C.mic = 0; C.rec = null; callShow(); } };
+  try { r.start(); } catch (e) { C.mic = 0; } callShow(); }
+// 挂电话：真的聊过的话，按聊的内容记下来
+async function callHangTalk() {
+  const C = UI.call; if (!C) return; callStopMic(); const T = dms()[C.key], p = T.p, said = (C.talk || []).filter(l => l.me).length;
+  if (!said) { dmCallPick(1); return; }
+  const dur = mmss((Date.now() - C.t0) / 1000); callRec(T, C.by, 'done', dur); T.call.done = 1; const P = socPX(p), td = P.todo.find(x => x.id === T.call.td); if (td) { td.st = 'done'; td.doneDay = dkey(Date.now()); }
+  const log = C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? l.text : l.zh || l.text}`).join('\n'); C.mode = 'end'; C.dur = dur; callShow(); save(); setTimeout(() => callEnd(), 1200);
+  let sum = '通了电话，聊了一会儿';
+  try { const j = await aiRaw([{ type: 'text', text: `下面是 ${S.profile.name} 和 ${socWho(p)} 的一通电话。用一句中文概括聊了什么、有没有说定什么事（写事实，不写情绪名）：\n${log}` }], 300, { type: 'object', additionalProperties: false, required: ['sum'], properties: { sum: { type: 'string' } } }, null, S.ai.bgModel || undefined); if (j && j.sum) sum = String(j.sum).slice(0, 120); } catch (e) { }
+  socEx(p, 'call', `通了电话（${dur}）：${sum}`); socWhy(p, 1, '通了电话');
+  if (p.key === SR_K) { srMemAdd({ k: 'event', who: 'us', t: `通了电话（${dur}）：${sum}`, at: Date.now(), src: 'sys', imp: 3 }); const R = SR(); R.chat.him = Date.now(); R.conv = { t: `刚通完电话：${sum}`, open: [], at: Date.now() }; }
+  save();
 }
 function callEnd(after) { const key = UI.call && UI.call.key; UI.call = null; callShow(); save(); if (key && UI.dmOpen === key) { openModal(dmHTML(key)); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; } if (after) after(); }
 function callRetry(T, txt, inMin) { T.call.ringAt = (T.call.tries || 0) < 3 ? Date.now() + (inMin != null ? inMin * 60e3 : rand(1, 4) * 3600e3) : null; if (txt && T.p.key === SR_K) { srPromiseAdd({ t: `刚才电话没接通（${txt[1]}），之后跟她说一声或者再打`, cond: 'time', min: inMin || 30 }, Date.now()); return; } if (txt) dmQueue(T.p, [{ text: txt[0], zh: txt[1] }], rand(1, 3) * 60e3); }
@@ -11094,7 +11140,9 @@ document.addEventListener('click', async e => {
     case 'libsave': libSave(); break;
     case 'libdel': if (confirm('从曲库删掉这首？')) { S.cbLib = cbLib().filter(x => x.id !== t.dataset.id); UI.libF = null; save(); render(); } break;
     case 'callopt': dmCallPick(+t.dataset.j); break;
-    case 'callhang': dmCallPick(2); break;
+    case 'callhang': if (aiOn() && UI.call && UI.call.talk) callHangTalk(); else dmCallPick(2); break;
+    case 'callsay': callSay(); break;
+    case 'callmic': callMic(); break;
     case 'socpick': { const Q = UI.socPop; if (!Q || Q.res) break; const o = socOpts(socEv(Q.x.ev), Q.x.p, Q.x)[+t.dataset.j]; if (!o) break; socDone(Q, o.t, o); break; }
     case 'socwrite': { const Q = UI.socPop; if (!Q || Q.res) break; const v = ($('#soc-in').value || '').trim(); if (!v) { toast('写点什么吧'); break; } const e = socEv(Q.x.ev), neg = tone(v) === 'neg', o = { t: v, fam: neg ? -1 : v.replace(/\s/g, '').length > 8 ? 2 : 1, amb: e.fl.amb ? (neg ? -2 : 1) : 0, tone: neg ? '-' : '+', risk: neg ? 0 : (e.fl.r || 0) * .5, reply: neg ? socG('他好像有点尴尬', Q.x.p) : socG(pick(SOC_REPLY['+']), Q.x.p) };
       if (Q.x.o && Q.x.o.length) { const b = neg ? Q.x.o[Q.x.o.length - 1] : Q.x.o[0]; Object.assign(o, { fam: b.fam, amb: b.amb, th: b.th, fx: b.fx, risk: b.risk }); }
