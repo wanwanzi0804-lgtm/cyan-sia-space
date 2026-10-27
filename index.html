@@ -7976,7 +7976,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); mv404Thumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); mv404Thumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8755,10 +8755,10 @@ function dmQueue(p, list, delay) { const T = dmThread(p), d = delay == null ? dm
 function dmWillRead(T, at) { const upto = Date.now(); if (!T.rd || T.rd.at > at) T.rd = { at, upto }; else T.rd.upto = Math.max(T.rd.upto, upto); }
 // 到点了：他看了你发的所有消息，一次性回（不会每条各回一遍、前后矛盾）
 async function dmDueReply(T) {
-  T.gen = 1; T.genAt = Date.now(); save(); const when = Math.min(T.due.at, Date.now()); let keep = null; // 他是在这个时间看到并回的（就算你那时没开着页面）
+  T.gen = 1; T.genAt = Date.now(); save(); const when = Math.min(T.due.orig || T.due.at, Date.now()); let keep = null; // 他是在这个时间看到并回的（就算你那时没开着页面）
   try { const last = []; for (let i = T.msgs.length - 1; i >= 0 && T.msgs[i].me; i--) if (!kkHidden(T.msgs[i])) last.unshift(kkAI(T.msgs[i]));
     const later = !!T.due.later, task = T.due.task, n = T.due.n || 0; let r = last.length || task ? await dmChatAi(T, last.length ? last.join('\n') : '（她没有新消息，这次是你自己主动发）', when, later, task ? { task } : n >= 2 ? { task: '她发来的消息你已经拖了很久还没回，现在一定要回她（回答她的问题 / 接上她的话）。' } : null) : null;
-    if (r && r.retry) { if ((T.due.tries || 0) < 6) keep = { ...T.due, at: Date.now() + 30 * 60e3, tries: (T.due.tries || 0) + 1 }; else if (last.length) T.readTo = Math.max(T.readTo || 0, when); T.rd = null; return; }
+    if (r && r.retry) { if ((T.due.tries || 0) < 6) keep = { ...T.due, orig: T.due.orig || T.due.at, at: Date.now() + ((T.due.tries || 0) < 2 ? rand(2, 6) : 30) * 60e3, tries: (T.due.tries || 0) + 1 }; else if (last.length) T.readTo = Math.max(T.readTo || 0, when); T.rd = null; return; }
     if (r && r.later && n >= 4) { const ban = socBan(T.p); r = { list: [ban ? { text: '아 미안 이제 봤다ㅠ', zh: '啊抱歉现在才看到ㅠ' } : { text: '앗 죄송해요 이제 봤어요ㅠ', zh: '啊抱歉现在才看到ㅠ' }] }; } // 实在一直没空：至少先回一句
     if (r && r.later) { const at = when + Math.max(10, lognorm(socNow(T.p, when).busy ? 120 : 70, .7) * (dmClose(T.p) ? .45 : 1)) * 60e3; keep = { at, later: 1, task, n: n + 1 }; T.rd = null; return; } // 现在回不了：先不点开（「1」留着），等能回的时候再看再回
     if (r) { T.pend = T.pend || []; T.pend.push({ at: when, list: r.list }); } else T.readTo = Math.max(T.readTo || 0, when); // 不回也已经读过了
@@ -8837,7 +8837,7 @@ async function dmChatAi(T, mine, when, later, evt) {
     if (!close && Math.random() < (vibe === 'tired' ? .4 : vibe === 'brief' ? .25 : .1)) return null;
     return one(DM_FB[pers.id] || DM_FB.neutral) || one(DM_FB.neutral, close);
   };
-  if (!aiOn()) return local();
+  if (!aiOn()) return S.ai.enabled && S.ai.key && !aiOverCap() && T.due && (T.due.tries || 0) < 5 ? { retry: 1 } : local(); /* AI 开着、只是刚出错在冷却：等一会儿再写 */
   const lastMe = (T.msgs.filter(m => m.me).pop() || {}).at || when, seenLate = when - lastMe > 90 * 60e3;
   const mineL = T.msgs.filter(m => m.me && m.at > Math.max(0, ...T.msgs.filter(m => !m.me && !m.sys).map(m => m.at))).length;
   try {
@@ -8860,6 +8860,7 @@ ${S.profile.name}发来、他还没回的${mineL > 1 ? ` ${mineL} 条` : ''}消�
 - 已经说过的话不要再说一遍。例：他说「拍完看看日程再告诉你」，她回「好呀我哪天都可以」——这时他不会再说一遍「好，拍完我看看日子再跟你说」。真人会 read（不回），或者只回一个「ㅇㅋ」「웅」「ㅋㅋ」，或者干脆聊别的。重新确认、复述计划是最典型的 AI 味。
 - 不是每条都要完整回应。need 是 none 的时候，大多数情况就 read；要回也只是一两个字、一个笑或表情（act=react）。
 - 不用每次都反问、关心、鼓励、解释，也不用为了让聊天继续而找话。
+- 她开玩笑、夸你、半开玩笑地问你（比如「你是天才吗 / 你怎么知道的」），就顺着玩笑接：得意一下、自夸、装酷、损回去、或者说个真实的小理由都行。不要用「글쎄」「그냥」「몰라」这种一句话搪塞，那是在冷场。
 - 情绪不直接贴标签（不说「나 삐짐」「서운해」「기분 안 좋아」这种）：不爽、委屈、吃醋是从反问、变短的回复、阴阳怪气、开玩笑里带出来的。可以停在这里，也可以按他自己的心情顺手说点别的、吐槽一句。
 - 长短、条数、语气词（ㅋㅋ ㅎㅎ ㅠㅠ 感叹号 表情）由他的习惯、此刻的心情和这件事本身决定。语气词是情绪，不是装饰：真觉得好笑才 ㅋㅋ。不要每次都用「응 + …」「아 + …」开头。
 - 上面聊天记录里他以前的消息如果有复述、重复确认、句句带 ㅋㅋ 的毛病，那是之前写坏了，不要延续。ㅋㅋ / ㅎㅎ 大部分消息都不带；最近几条带过了，这次就不要再带。
@@ -8887,12 +8888,12 @@ meet_at：这次两个人说定了具体哪天几点见面（吃饭 / 喝咖啡�
 mem：只有她说了一件以后还值得记住的新事实（比如换了宿舍、要出国、家里出事）才用一句中文记下；问候、闲聊、日常吐槽都留空。
 unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 true，并且回复里不要把它当作事实。`;
     const dSchema = { type: 'object', additionalProperties: false, required: ['gist', 'need', 'act', 'msgs', 'todo', 'today', 'meet_at', 'mem', 'unsure', 'fu', 'fuMin'], properties: { meet_at: { type: 'string' }, gist: { type: 'string' }, need: { type: 'string', enum: ['answer', 'open', 'none'] }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } }, todo: { type: 'string', enum: ['', 'meal', 'coffee', 'chal', 'call'] }, fu: { type: 'string' }, fuMin: { type: 'integer' }, today: { type: 'boolean' }, mem: { type: 'string' }, unsure: { type: 'boolean' } } };
-    let j = await aiRaw([{ type: 'text', text: ptxt }], 900, dSchema, KKT_SYS());
+    let j = await aiRaw([{ type: 'text', text: ptxt }], 2400, dSchema, KKT_SYS());
     // 「等一下 / 晚点告诉你 / 确认一下再说」：他现在明明能回、手上也没在忙，就别拖，重写一次直接回她
     const DEFER = /(이따|나중에|잠깐만|조금 ?있다가?|확인(하고|해보고|해볼게)|일정 (한번 )?확인)[^.!?]{0,12}(말해|알려|얘기|연락|볼게|확인)|잠깐만[!~.]*$|等(一)?下(再)?(跟你说|告诉你)|晚点(再)?(说|告诉)/;
     { const ms = (j.msgs || []).filter(m => m.ko && m.ko.trim()); if (ms.length && ms.every(m => DEFER.test(m.ko) || DEFER.test(m.zh || '') || ms.length > 1 && m.ko.length <= 6) && ms.some(m => DEFER.test(m.ko) || DEFER.test(m.zh || ''))) { /* 光发一句「等一下 / 晚点说」等于什么都没说：真在忙就先不点开，空了再好好回；能回就直接回 */
       if (!later && (st0 => st0.busy && !st0.sleep)(socNow(p, when) || {})) return { later: 1 };
-      const j2 = await aiRaw([{ type: 'text', text: ptxt + `\n\n（刚才写的「${ms.map(m => m.ko).join(' / ')}」是在拖：他现在拿着手机、能回，也知道自己的安排。直接接她的话、给她答复，不要说「等一下 / 晚点告诉你 / 确认一下再说」。）` }], 900, dSchema, KKT_SYS()).catch(() => null); if (j2 && (j2.msgs || []).length) j = j2; } }
+      const j2 = await aiRaw([{ type: 'text', text: ptxt + `\n\n（刚才写的「${ms.map(m => m.ko).join(' / ')}」是在拖：他现在拿着手机、能回，也知道自己的安排。直接接她的话、给她答复，不要说「等一下 / 晚点告诉你 / 确认一下再说」。）` }], 2400, dSchema, KKT_SYS()).catch(() => null); if (j2 && (j2.msgs || []).length) j = j2; } }
     if (j.fu && j.fu.trim() && !T.fu) { let at = Date.now() + clamp(j.fuMin || 60, 20, 600) * 60e3; { const g = p.g === 'CRAVITY' && p.key !== SR_K && crvGroupNow(Date.now()); if (g && /结束|完|끝나|끝내|마치/.test(j.fu + ' ' + (j.msgs || []).map(m => m.ko + m.zh).join(' '))) at = srTs(dkey(Date.now()), g.e) + rand(5, 25) * 60e3; } /* 说「练完 / 结束了就…」：按团体安排真正结束的时间 */ const h = new Date(at).getHours(); if (h >= 1 && h < 9) { const d = new Date(at); d.setHours(9, ri(0, 50), 0, 0); at = d.getTime(); } T.fu = { at, task: j.fu.trim().slice(0, 120) }; } // 答应了晚点去做的事：到时候真的做完再来说
     if (j.meet_at) socMeetAt(p, j.meet_at, j.todo);
     if (j.mem && !j.unsure) { const C = P.cm || (P.cm = []); C.push({ day: dkey(when || Date.now()), d: j.mem.slice(0, 80) }); if (C.length > 12) C.splice(0, C.length - 12); }
@@ -8910,7 +8911,7 @@ unsure：如果${S.profile.name}提到了记录里没有的过去的事，填 tr
     if (act === 'later') return { later: 1 };
     if (act === 'read' || !msgs.length) return null;
     return { list: (act === 'react' ? msgs.slice(0, 1) : msgs.slice(0, 5)).map(m => ({ text: m.ko.trim(), zh: m.zh })) };
-  } catch (err) { return local(); }
+  } catch (err) { console.warn('dmChatAi', err); if (aiOn() && T.due && T.p.key !== SR_K) return { retry: 1 }; return local(); } /* 开着 AI 只是这次没写出来（断网 / 超时 / 输出被截断）：过几分钟再写，不发「음 글쎄」「이따 말해줄게」这种万能句 */
 }
 // 每天：同步真实发生的事（拍过的 challenge、行程表里一起的工作），很久不联系就慢慢淡，约定太久没落实就算了
 // 只有真的是对方发来的 KKT 消息才进聊天；加 Close Friends、点赞、评论这类在弹窗里出现
@@ -8980,6 +8981,7 @@ function jmStallFix1() { const SO = social(); if (SO.jmStall1) return; SO.jmStal
 function jmStallFix2() { const SO = social(); if (SO.jmStall2) return; SO.jmStall2 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } let n = 0; while (T.msgs.length && !T.msgs[T.msgs.length - 1].me && /잠깐만|이따 말해줄게|이따 알려줄게/.test(T.msgs[T.msgs.length - 1].text || '')) { T.msgs.pop(); n++; } if (n) { delete T.fu; T.pend = []; T.quiet = null; const lm = T.msgs.filter(x => x.me).pop(); T.readTo = lm ? lm.at - 1 : T.readTo; T.due = { at: Date.now() + rand(1, 3) * 60e3 }; } save(); }
 function jmStallFix3() { const SO = social(); if (SO.jmStall3) return; SO.jmStall3 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } let n = 0; while (T.msgs.length && !T.msgs[T.msgs.length - 1].me && /잠깐만|이따 말해줄게|이따 알려줄게/.test(T.msgs[T.msgs.length - 1].text || '')) { T.msgs.pop(); n++; } if (n) { delete T.fu; T.pend = []; T.quiet = null; const lm = T.msgs.filter(x => x.me).pop(); T.readTo = lm ? lm.at - 1 : T.readTo; T.due = { at: Date.now() + rand(1, 3) * 60e3 }; } save(); }
 function jmNightFix1() { const SO = social(); if (SO.jmNight1) return; SO.jmNight1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const i = T.msgs.findIndex(m => m.me && /돈까스 먹고 싶은/.test(m.text || '')); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) { save(); return; } const mine = T.msgs[i]; T.msgs = T.msgs.slice(0, i + 1); delete T.fu; T.pend = []; T.rd = null; T.quiet = null; T.readTo = mine.at - 1; T.due = { at: mine.at + rand(4, 12) * 60e3 }; save(); } /* 凌晨刚聊完还没睡：那时就该回 */
+function jmNightFix2() { const SO = social(); if (SO.jmNight2) return; SO.jmNight2 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const d0 = new Date('2026-10-27T00:00:00').getTime(), d1 = d0 + 3 * 3600e3; let i = -1; T.msgs.forEach((m, k) => { if (m.me && m.at >= d0 && m.at < d1) i = k; }); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) { save(); return; } const mine = T.msgs[i]; T.msgs = T.msgs.slice(0, i + 1); delete T.fu; T.pend = []; T.rd = null; T.quiet = null; T.gen = 0; T.readTo = mine.at - 1; T.due = { at: mine.at + rand(4, 12) * 60e3 }; save(); }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
