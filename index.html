@@ -686,6 +686,7 @@ video.bv-glow{pointer-events:none}
 .anv i:nth-child(3n){background:var(--accent)}.anv i:nth-child(3n+1){background:var(--accent2)}.anv i:nth-child(3n+2){background:#ffc94d}
 .anv i:nth-child(1){left:3.0%;animation-delay:0.00s}.anv i:nth-child(2){left:10.1%;animation-delay:0.17s}.anv i:nth-child(3){left:17.2%;animation-delay:0.34s}.anv i:nth-child(4){left:24.3%;animation-delay:0.51s}.anv i:nth-child(5){left:31.4%;animation-delay:0.68s}.anv i:nth-child(6){left:38.5%;animation-delay:0.85s}.anv i:nth-child(7){left:45.6%;animation-delay:1.02s}.anv i:nth-child(8){left:52.7%;animation-delay:1.19s}.anv i:nth-child(9){left:59.8%;animation-delay:1.36s}.anv i:nth-child(10){left:66.9%;animation-delay:1.53s}.anv i:nth-child(11){left:74.0%;animation-delay:1.70s}.anv i:nth-child(12){left:81.1%;animation-delay:1.87s}.anv i:nth-child(13){left:88.2%;animation-delay:2.04s}.anv i:nth-child(14){left:95.3%;animation-delay:2.21s}
 @keyframes anvf{to{transform:translateY(340px) rotate(300deg);opacity:0}}
+.yt-fold>summary{cursor:pointer;list-style:none}.yt-fold>summary::-webkit-details-marker{display:none}.yt-fold>summary::after{content:' ›';display:inline-block;transition:transform .2s}.yt-fold[open]>summary::after{transform:rotate(90deg)}
 </style>
 </head>
 <body>
@@ -3990,7 +3991,7 @@ function ytPlansHTML() {
   const Y = yt(), grp = [['审核中', ['ask', 'sub', 'rev', 'coord', 'fix']], ['制作中', ['ok', 'sched', 'booked', 'shoot', 'post']], ['待发布', ['ready']], ['已发布', ['pub']], ['拒绝 / 暂缓 / 取消', ['no', 'hold', 'cancel']]];
   const row = p => `<button class="m-alb" data-act="mgo" data-p="ytp:${p.id}"><div class="w-tx-l"><div class="w-tx-t">${esc(p.title)}${p.collab ? ` <span class="muted" style="font-size:12px">with ${esc(socName(p.collab))}</span>` : ''}</div><div class="w-tx-s">${p.by === 'co' ? '公司安排 · ' : ''}${YT_CAT[p.cat][0]} · ${ytFmt(p)[1]}</div></div><em class="w-tag ${['no', 'cancel'].includes(p.st) ? 'sys' : 't2'}">${YT_ST[p.st]}</em><i>›</i></button>`;
   const G = grp.map(([t, sts]) => [t, Y.plans.filter(p => sts.includes(p.st))]).filter(x => x[1].length);
-  return G.length ? G.map(([t, L]) => `<div class="w-day">${t}</div><div class="card w-list">${L.map(row).join('')}</div>`).join('') : '<div class="card muted" style="text-align:center">还没有提交过企划</div>';
+  return G.length ? G.map(([t, L]) => t === '已发布' ? `<details class="yt-fold"${UI.ytPubOpen ? ' open' : ''}><summary class="w-day" data-act="ytpubtg">已发布（${L.length}）</summary><div class="card w-list">${L.map(row).join('')}</div></details>` : `<div class="w-day">${t}</div><div class="card w-list">${L.map(row).join('')}</div>`).join('') : '<div class="card muted" style="text-align:center">还没有提交过企划</div>';
 }
 function ytFormHTML(editId) {
   const F = UI.ytF || (UI.ytF = { cat: 'vocal', fmt: 'photo', title: '', orig: '', with: '', note: '', vtitle: '' }), C = YT_CAT[F.cat], ppl = ytPeople();
@@ -11196,6 +11197,7 @@ document.addEventListener('click', async e => {
     case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
     case 'srsaytg': UI.srSayOpen = !t.parentElement.open; break;
     case 'srold': UI.srOldOpen = !t.parentElement.open; break;
+    case 'ytpubtg': UI.ytPubOpen = !t.parentElement.open; break;
     case 'srphold': UI.srPhOldOpen = !t.parentElement.open; break;
     case 'srsaymode': { const v = $('#sr-say')?.value || ''; UI.srSayOpen = 1; UI.srSayMode = t.dataset.m; openModal(serimCardHTML()); const el = $('#sr-say'); if (el) el.value = v; break; }
     case 'srsayw': { const v = $('#sr-say')?.value || '', sg = $('#sr-say-seg')?.value; UI.srSayOpen = 1; UI.srSayW = t.dataset.w; openModal(serimCardHTML()); const el = $('#sr-say'); if (el) el.value = v; if (sg && $('#sr-say-seg')) $('#sr-say-seg').value = sg; break; }
