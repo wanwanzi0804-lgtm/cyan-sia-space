@@ -3961,6 +3961,10 @@ function ytGrow(v) {
   if (v.viral > 1 && age >= v.viralAt && !v.viralDone) { v.viralDone = 1; const n = Math.round(v.base * v.viral * rand(.002, .005)); if (n) addFans(n, 'YouTube：' + v.title + ' 爆了'); pushNotif({ type: 'cb', text: `📈 「${v.title}」在 YouTube 突然火了`, sub: `播放一路往上涨 · 涨粉 +${fmtNum(n)}` }, true); }
 }
 // 频道里显示的所有内容（MV、Challenge 只读原来的数据，不复制）
+async function ytThumbSet(id, blob) { const Y = yt(), mid = 'yth' + uid(); await idbPut(mid, blob); urlCache[mid] = URL.createObjectURL(blob); const T = Y.thumbs || (Y.thumbs = {}); if (T[id]) idbDel(T[id]); T[id] = mid; save(); }
+/* 一次性：《404》MV 换成她指定的封面（图跟着网页一起发布在 img/ 下面） */
+let mv404Busy = 0;
+async function mv404Thumb1() { const Y = yt(); if (Y.mv404t1 || mv404Busy) return; mv404Busy = 1; setTimeout(() => mv404Busy = 0, 60e3); const a = released().find(x => /^404$/.test((x.name || '').trim()) || albTitle(x) === '404'); if (!a) return; try { const r = await fetch('img/404-mv.jpg'); if (!r.ok) return; await ytThumbSet('mv:' + a.id, await r.blob()); Y.mv404t1 = 1; save(); render(); } catch (e) { } }
 function ytAll() {
   const SS = salesState(), out = [];
   for (const a of released()) { const mv = SS.mv && SS.mv[a.id]; if (mv && mv.total >= 1) out.push({ id: 'mv:' + a.id, title: `${S.profile.name} - ${albTitle(a)} MV`, kind: '正式 MV', short: false, at: parseD(a.date).getTime(), views: Math.round(mv.total), likes: Math.round(mv.total * (.03 + .02 * srng('mv' + a.id)())), cmts: Math.round(mv.total * .002), alb: a }); }
@@ -3969,7 +3973,7 @@ function ytAll() {
   return out.sort((a, b) => b.at - a.at);
 }
 const YT_IC = '<svg viewBox="0 0 28 20" width="26" height="18"><rect width="28" height="20" rx="5" fill="#ff0033"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>';
-function ytThumb(x, cls) { const a = x.alb; return `<div class="yt-th ${cls || ''}${x.short ? ' s' : ''}">${a && a.cover ? `<img data-mid="${a.cover}" alt="">` : `<span>${esc((x.title || '').replace(/^Cyan - /, '').slice(0, 14))}</span>`}<i>▶</i></div>`; }
+function ytThumb(x, cls) { const a = x.alb, th = (yt().thumbs || {})[x.id]; return `<div class="yt-th ${cls || ''}${x.short ? ' s' : ''}">${th ? `<img data-mid="${th}" alt="">` : a && a.cover ? `<img data-mid="${a.cover}" alt="">` : `<span>${esc((x.title || '').replace(/^Cyan - /, '').slice(0, 14))}</span>`}<i>▶</i></div>`; }
 function ytEntryHTML() {
   const Y = yt(), all = ytAll(), mk = Y.plans.filter(p => ['ok', 'sched', 'booked', 'shoot', 'post', 'ready'].includes(p.st)).length, rv = Y.plans.filter(p => ['sub', 'rev', 'coord'].includes(p.st)).length;
   return mSec('官方 YouTube', 'CYAN OFFICIAL') + `<button class="card w-ct" data-act="mgo" data-p="yt"><span class="w-cti" style="background:none">${YT_IC}</span><div><b>Cyan Official</b><span>视频 ${all.length} · 制作中 ${mk} · 审核中 ${rv}</span></div><i>›</i></button>`;
@@ -4020,6 +4024,7 @@ function ytVideoHTML(id) {
   const v = x.v, kv = (k, val) => `<div class="w-kv"><span>${k}</span><b>${val}</b></div>`;
   const st = v ? (v.viral > 1 && v.viralDone ? '意外爆了' : (Date.now() - v.pubAt) / 86400e3 < 3 ? '正在传播' : '稳定') : '';
   return mHead(x.short ? 'Shorts' : '视频', 'yt') + `<div class="card yt-vd">${ytThumb(x, x.short ? 's big' : 'big')}<b>${esc(x.title)}</b><span>${esc(x.kind)} · ${new Date(x.at).toLocaleDateString('zh-CN')}</span>
+      <div style="margin-top:6px"><label class="link ext-pick" style="font-size:12.5px">更换封面<input type="file" id="yt-thumb-in" data-id="${esc(x.id)}" accept="image/*"></label>${(yt().thumbs || {})[x.id] ? ` · <button class="link" style="font-size:12.5px" data-act="ytthumbx" data-id="${esc(x.id)}">恢复默认</button>` : ''}</div>
       <div class="m-three" style="margin-top:12px"><div><b>${fmtNum(x.views)}</b><span>播放</span></div><div><b>${fmtNum(x.likes)}</b><span>点赞</span></div><div><b>${fmtNum(x.cmts)}</b><span>评论</span></div></div></div>
     <div class="card w-ov">${v ? kv('参与', esc(v.parts.join(' · '))) + (v.orig ? kv('原唱', esc(v.orig)) : '') + kv('制作形式', esc((YT_CAT[v.cat][1].find(f => f[0] === v.fmt) || [])[1] || '')) + (v.cost ? kv('制作成本', won(v.cost) + '（公司承担）') : '') + kv('传播状态', st) : x.ch ? kv('合作', esc(`${x.ch.p.g} ${x.ch.p.z || x.ch.p.n}`)) + (x.ch.song && x.ch.song[1] ? kv('歌曲', `《${esc(x.ch.song[1])}》`) : '') + kv('拍摄日期', x.ch.date.replace(/-/g, '.')) + (x.ch.fans ? kv('带来涨粉', '+' + fmtNum(x.ch.fans)) : '') : kv('作品', `《${esc(x.alb.name)}》`) + kv('发行日期', x.alb.date.replace(/-/g, '.'))}</div>
     ${v && v.cm ? `${mSec('评论')}<div class="card w-list">${v.cm.map(c => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t" style="font-size:13.5px">${esc(c)}</div></div></div>`).join('')}</div>` : ''}`;
@@ -7971,7 +7976,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); mv404Thumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -11198,6 +11203,7 @@ document.addEventListener('click', async e => {
     case 'serimopen': openModal(serimCardHTML()); break;
     case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
     case 'srsaytg': UI.srSayOpen = !t.parentElement.open; break;
+    case 'ytthumbx': { const Y = yt(), id = t.dataset.id; if (Y.thumbs && Y.thumbs[id]) { idbDel(Y.thumbs[id]); delete Y.thumbs[id]; save(); } break; }
     case 'srold': UI.srOldOpen = !t.parentElement.open; break;
     case 'ytpubtg': UI.ytPubOpen = !t.parentElement.open; break;
     case 'srphold': UI.srPhOldOpen = !t.parentElement.open; break;
@@ -11401,6 +11407,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', async e => {
   if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
+  if (e.target.id === 'yt-thumb-in') { const f = e.target.files && e.target.files[0], id = e.target.dataset.id; if (f && id) { await ytThumbSet(id, f); toast('封面换好了'); render(); } return; }
   if (e.target.id === 'serim-ph') { const f = e.target.files && e.target.files[0]; if (f) { SRPH = { file: f, url: URL.createObjectURL(f) }; openModal(serimCardHTML()); } return; }
   if (e.target.id === 'shfile-in') { const f = e.target.files && e.target.files[0]; if (f) { if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; } render(); return; }
   if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
