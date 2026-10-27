@@ -4164,7 +4164,7 @@ function mgrSplit(t) {
 }
 // 你发的消息也配翻译：写韩语配中文，写中文配韩语。开了 AI 用 AI，没开就用在线翻译
 async function trText(text, to, who, ctx) {
-  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。韩语缩写、初声（ㅅㄹㅎ、ㄱㅅ、ㅇㅋ、ㅈㅅ 这类）直接译成对应的口语（爱你、谢谢、OK、对不起），保留后面的 ~ ! 等符号；输出只有译文本身，绝不写「是…的缩写」「意思是…」。${ctx ? `\n前面的聊天（只用来理解这句话在说什么、指的是什么，不要翻译它们）：\n${ctx}\n按上下文译出她真正的意思，用韩国人会这么说的自然说法，不要逐字硬译。` : ''}`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (/缩写|意思是|的意思|翻译为|译为/.test(out)) { const q = out.match(/意思是[「“"]([^」”"]+)[」”"]/) || out.match(/[「“"]([^」”"]+)[」”"][^「“"]*$/); out = q ? q[1] + ((text.match(/[~～!！?？]+$/) || [''])[0]) : ''; } /* 译成了一段解释：只留真正的意思 */ if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（口语，保留ㅋㅋ/ㅠ等语气）'}。哪怕只有一两个字也照译，不要解释、不要评论。韩语缩写、初声（ㅅㄹㅎ、ㄱㅅ、ㅇㅋ、ㅈㅅ 这类）直接译成对应的口语（爱你、谢谢、OK、对不起），保留后面的 ~ ! 等符号；输出只有译文本身，绝不写「是…的缩写」「意思是…」。${to === 'ko' ? FANDOM_GLOSS : ''}${ctx ? `\n前面的聊天（只用来理解这句话在说什么、指的是什么，不要翻译它们）：\n${ctx}\n按上下文译出她真正的意思，用韩国人会这么说的自然说法，不要逐字硬译。` : ''}`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (/缩写|意思是|的意思|翻译为|译为/.test(out)) { const q = out.match(/意思是[「“"]([^」”"]+)[」”"]/) || out.match(/[「“"]([^」”"]+)[」”"][^「“"]*$/); out = q ? q[1] + ((text.match(/[~～!！?？]+$/) || [''])[0]) : ''; } /* 译成了一段解释：只留真正的意思 */ if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
   try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
@@ -8768,7 +8768,9 @@ function dmPendTick() { const now = Date.now(); for (const T of Object.values(dm
 // 自由聊天：按档案和规则回复，聊出来的约定只记成「待落实」
 // 这阵子聊天的意愿（临时状态，不是数值）：有时想聊、有时懒得打字、有时很累
 // 艺人 KKT 私聊用自己的设定（不用粉丝评论那套写作要求）
-const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁，住公司给的单人宿舍）在 KakaoTalk 上私聊。你写的是这个人自己会发出的消息：每个人说话方式都不一样，不要写成同一种「AI 聊天」的语气。只按要求输出 JSON。`;
+// 她打中文时常用的饭圈说法（直译成韩语会变成别的意思）
+const FANDOM_GLOSS = '她说中文时常用饭圈说法：物料＝官方 / 节目发的照片、视频、花絮、自制内容（콘텐츠、영상、자컨，不是「资料 자료」）；打歌＝음방；直拍＝직캠；饭拍＝팬캠；签售＝팬싸；舞台＝무대；营业＝팬서비스；糖 / 发糖＝달달한 장면·떡밥；嗑＝(커플) 앓다；回归＝컴백；团综＝자체 예능；花絮＝비하인드；爱豆＝아이돌。';
+const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。${FANDOM_GLOSS}你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁，住公司给的单人宿舍）在 KakaoTalk 上私聊。你写的是这个人自己会发出的消息：每个人说话方式都不一样，不要写成同一种「AI 聊天」的语气。只按要求输出 JSON。`;
 const VIBE_ZH = { chatty: '这会儿心情不错，有点想聊，有话会多说几句', normal: '状态普通，看内容回', brief: '手上有事 / 懒得打字，倾向简短回一下', tired: '很累，只想简单回或者干脆先不回，除非是重要的事' };
 function socVibe(p, when) {
   const SO = social(), V = SO.vibe || (SO.vibe = {}), now = when || Date.now(), cur = V[p.key];
@@ -9316,7 +9318,7 @@ function callHTML() {
   const C = UI.call, T = dms()[C.key], p = T.p, ic = CALL_SVG.replace(/18/g, '30'), down = ic.replace('<svg', '<svg style="transform:rotate(135deg)"');
   const btn = (act, cls, svg, l) => `<div><button class="call-b ${cls}" data-act="${act}">${svg}</button><div class="call-bl">${l}</div></div>`;
   const st = C.mode === 'in' ? '보이스톡' : C.mode === 'out' ? '연결 중…' : C.mode === 'end' ? `통화 종료 ${C.dur || ''}` : `<span id="call-tm">${mmss((Date.now() - C.t0) / 1000)}</span>`;
-  const mid = C.mode === 'on' && aiOn() ? `<div class="call-talk" id="call-talk">${(C.talk || []).map(l => `<div class="call-ln${l.me ? ' me' : ''}">${esc(l.text)}${!l.me && l.zh ? `<small>${esc(l.zh)}</small>` : ''}</div>`).join('')}${C.busy ? '<div class="call-ln">…</div>' : ''}</div>
+  const mid = C.mode === 'on' && aiOn() ? `<div class="call-talk" id="call-talk">${(C.talk || []).map(l => `<div class="call-ln${l.me ? ' me' : ''}">${esc(l.text)}${l.zh ? `<small>${esc(l.zh)}</small>` : ''}</div>`).join('')}${C.busy ? '<div class="call-ln">…</div>' : ''}</div>
     <div class="call-in"><input id="call-in" placeholder="说点什么…" autocomplete="off"><button data-act="callmic" class="${C.mic ? 'on' : ''}" title="说话">🎤</button><button data-act="callsay">发送</button></div>`
     : C.mode === 'on' ? `<div class="call-cap">${esc(callTalk(p, T))}</div>${callOpts(T).map((o, j) => `<button class="call-opt" data-act="callopt" data-j="${j}">${esc(o[0])}</button>`).join('')}` : '';
   const bot = C.mode === 'in' ? btn('callno', 'no', down, '거절') + btn('callok', 'ok', ic, '수락') : C.mode === 'out' ? btn('callcancel', 'no', down, '취소') : C.mode === 'on' ? btn('callhang', 'no', down, '종료') : '';
@@ -9332,7 +9334,7 @@ function callShow() {
 // 电话里真的聊：你打字或者说话，他按当时的状态和你们的聊天接着说（口语，一两句）
 async function callLine(mine) {
   const C = UI.call; if (!C || C.mode !== 'on' || C.busy) return; const T = dms()[C.key], p = T.p, sr = p.key === SR_K, now = Date.now();
-  if (mine) C.talk.push({ me: 1, text: mine }); C.busy = 1; callShow();
+  if (mine) { const ln = { me: 1, text: mine }; C.talk.push(ln); if (hasHan(mine)) trText(mine, 'ko', `${socName(p)}（${socBan(p) ? '很熟：用半语（반말）' : '用敬语'}；电话里说的口语）`, C.talk.slice(-6).map(l => `${l.me ? '她' : '他'}：${l.me ? l.zh || l.text : l.text}`).join('\n')).then(ko => { if (ko && ko !== mine) { ln.zh = mine; ln.text = ko; if (UI.call === C) callShow(); } }).catch(() => {}); } C.busy = 1; callShow();
   const kkt = sr ? srChatLog(T, now, 14) : T.msgs.slice(-12).filter(m => !m.sys).map(m => `${m.me ? S.profile.name : socName(p)}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n');
   try {
     const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（恩雪）和 ${socWho(p)} 正在打 KakaoTalk 语音电话（${C.by === 'me' ? '她打过去的' : '他打来的'}，现在 ${srClock(now)}）。你写${socName(p)}在电话里说的下一句。
@@ -9340,7 +9342,7 @@ ${sr ? srCtx(now, (mine || '') + ' ' + (T.call && T.call.topic || '')) : socCtx(
 打电话前在 KKT 上聊到：
 ${kkt || '（无）'}
 ${T.call && T.call.topic ? `说好打电话是因为：${T.call.topic}\n` : ''}电话里到现在：
-${C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? l.text : l.text + (l.zh ? `（${l.zh}）` : '')}`).join('\n') || '（刚接通）'}
+${C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? (l.zh ? `${l.text}（她说的原话：${l.zh}）` : l.text) : l.text + (l.zh ? `（${l.zh}）` : '')}`).join('\n') || '（刚接通）'}
 ${mine ? `她刚说：${mine}` : `电话刚接通，${C.by === 'me' ? '他接起来' : '她接起来了，他先开口'}。`}
 
 这是说出口的话，不是打字：口语、自然，一般一两句，可以有停顿和语气词（응, 아, 음…），笑就写（웃음）；不用 ㅋㅋ、emoji。接着她说的话聊，按他的性格和此刻的状态（累不累、在哪），不用每句都撩、都问问题；聊到自然该挂的时候（他要睡了、要去忙、话说完了）可以说要挂了，end=true。
@@ -9361,7 +9363,7 @@ async function callHangTalk() {
   const C = UI.call; if (!C) return; callStopMic(); const T = dms()[C.key], p = T.p, said = (C.talk || []).filter(l => l.me).length;
   if (!said) { dmCallPick(1); return; }
   const dur = mmss((Date.now() - C.t0) / 1000); callRec(T, C.by, 'done', dur); T.call.done = 1; const P = socPX(p), td = P.todo.find(x => x.id === T.call.td); if (td) { td.st = 'done'; td.doneDay = dkey(Date.now()); }
-  const log = C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? l.text : l.zh || l.text}`).join('\n'); C.mode = 'end'; C.dur = dur; callShow(); save(); setTimeout(() => callEnd(), 1200);
+  const log = C.talk.map(l => `${l.me ? '她' : '他'}：${l.zh || l.text}`).join('\n'); C.mode = 'end'; C.dur = dur; callShow(); save(); setTimeout(() => callEnd(), 1200);
   let sum = '通了电话，聊了一会儿';
   try { const j = await aiRaw([{ type: 'text', text: `下面是 ${S.profile.name} 和 ${socWho(p)} 的一通电话。用一句中文概括聊了什么、有没有说定什么事（写事实，不写情绪名）：\n${log}` }], 300, { type: 'object', additionalProperties: false, required: ['sum'], properties: { sum: { type: 'string' } } }, null, S.ai.bgModel || undefined); if (j && j.sum) sum = String(j.sum).slice(0, 120); } catch (e) { }
   socEx(p, 'call', `通了电话（${dur}）：${sum}`); socWhy(p, 1, '通了电话');
@@ -10301,6 +10303,7 @@ function srPingDedup1() { const R = SR(); if (R.pingDd1) return; R.pingDd1 = 1; 
   // 只剩一句「은설아」的那一轮也去掉
   T.msgs = M.filter(m => !drop.has(m.id)); const L = T.msgs; for (let i = 0; i < L.length; i++) { const m = L[i]; if (m.me || m.sys || m.at < t0 || m.at > t1 || !SR_NAME_ONLY.test((m.text || '').trim())) continue; const nx = L[i + 1]; if (!nx || nx.me || nx.at - m.at > 3 * 60e3) drop.add(m.id); }
   T.msgs = T.msgs.filter(m => !drop.has(m.id)); save(); }
+function srSmrunFix1() { const R = SR(); if (R.smFix1) return; R.smFix1 = 1; for (const m of dmThread(srP()).msgs) if (m.me && /smrun 자료/.test(m.text || '')) m.text = m.text.replace('smrun 자료', 'smrun 영상'); save(); }
 function srRedoSmrun1() { const R = SR(); if (R.redoSm1) return; R.redoSm1 = 1; srRedoFrom(/^무슨 소리야ㅋㅋ/); }
 function srKkFix2() { const R = SR(); if (R.kkFix2) return; R.kkFix2 = 1; for (const m of dmThread(srP()).msgs) if (!m.me && /^당연히 은설이 때문이지\s*ㅋㅋ/.test(m.text || '')) { m.text = '당연히 은설이 때문이지~'; m.zh = '当然是因为恩雪啊～'; } save(); }
 function srKkFix1() { const R = SR(); if (R.kkFix1) return; R.kkFix1 = 1; for (const m of dmThread(srP()).msgs) if (!m.me && /^전화 아직 안 해\?\s*ㅋㅋ/.test(m.text || '')) { m.text = '전화 아직 안 해?'; m.zh = '还没打电话吗？'; } save(); }
@@ -10352,7 +10355,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srKkFix1(); srKkFix2(); srRedoSmrun1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srKkFix1(); srKkFix2(); srRedoSmrun1(); srSmrunFix1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
