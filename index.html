@@ -687,6 +687,7 @@ video.bv-glow{pointer-events:none}
 .anv i:nth-child(1){left:3.0%;animation-delay:0.00s}.anv i:nth-child(2){left:10.1%;animation-delay:0.17s}.anv i:nth-child(3){left:17.2%;animation-delay:0.34s}.anv i:nth-child(4){left:24.3%;animation-delay:0.51s}.anv i:nth-child(5){left:31.4%;animation-delay:0.68s}.anv i:nth-child(6){left:38.5%;animation-delay:0.85s}.anv i:nth-child(7){left:45.6%;animation-delay:1.02s}.anv i:nth-child(8){left:52.7%;animation-delay:1.19s}.anv i:nth-child(9){left:59.8%;animation-delay:1.36s}.anv i:nth-child(10){left:66.9%;animation-delay:1.53s}.anv i:nth-child(11){left:74.0%;animation-delay:1.70s}.anv i:nth-child(12){left:81.1%;animation-delay:1.87s}.anv i:nth-child(13){left:88.2%;animation-delay:2.04s}.anv i:nth-child(14){left:95.3%;animation-delay:2.21s}
 @keyframes anvf{to{transform:translateY(340px) rotate(300deg);opacity:0}}
 .yt-fold>summary{cursor:pointer;list-style:none}.yt-fold>summary::-webkit-details-marker{display:none}.yt-fold>summary::after{content:' ›';display:inline-block;transition:transform .2s}.yt-fold[open]>summary::after{transform:rotate(90deg)}
+.yt-pcov{width:100%;margin-bottom:6px}.yt-pcov .yt-th{width:100%}
 </style>
 </head>
 <body>
@@ -3949,7 +3950,7 @@ const YT_CMT = { pos: ['목소리 진짜 미쳤다', '这首翻得太好了吧',
 function ytPublish(p) {
   const Y = yt(); if (p.vid || p.st !== 'ready') return; const b = ytBase(p), id = 'v' + uid();
   const v = { id, plan: p.id, title: p.vtitle || p.title, cat: p.cat, fmt: p.fmt, short: ytShort(p), parts: [S.profile.name].concat(p.collab ? [socName(p.collab)] : []), song: p.title, orig: p.orig || '', pubAt: Date.now(), cost: p.cost || 0, ...b, views: 0, likes: 0, cmts: 0, fanDone: 0, cm: pickN(YT_CMT.pos, 3).concat(pickN(YT_CMT.mid, 1), Math.random() < .5 ? pickN(YT_CMT.neg, 1) : []) };
-  Y.vids.unshift(v); p.vid = id; p.st = 'pub'; ytLog(p, '已发布');
+  Y.vids.unshift(v); p.vid = id; p.st = 'pub'; ytLog(p, '已发布'); if (p.thumb) { (Y.thumbs || (Y.thumbs = {}))[id] = p.thumb; delete p.thumb; }
   const n = Math.round(b.base * rand(.003, .008)); if (n) addFans(n, 'YouTube：' + v.title); v.fanDone = 1; // 发布带来的涨粉只算这一次
   if (p.collab) ytMem(p.collab.key, `和 Cyan 一起拍的${YT_CAT[p.cat][0]}《${p.title}》已经发布了`);
   ytGrow(v); save();
@@ -4019,7 +4020,7 @@ function ytPlanHTML(id) {
   return mHead('企划详情', 'yt') + `<div class="card w-ov">${kv('企划', esc(p.title))}${p.by === 'co' ? kv('来源', p.must ? '公司安排（回归必拍）' : '公司安排') : ''}${p.orig ? kv('原唱', esc(p.orig)) : ''}${kv('类型', YT_CAT[p.cat][0])}${kv('形式', ytFmt(p)[1])}${p.collab ? kv('合作', esc(`${p.collab.g} ${p.collab.z || p.collab.n}`)) : ''}${p.cost != null && p.st !== 'sub' && p.cost ? kv('制作预算', won(p.cost) + '（公司承担）') : ''}${kv('状态', YT_ST[p.st])}${sl ? kv('拍摄', `${sl.date.slice(5).replace('-', '/')} ${sl.start}-${sl.end}`) : ''}</div>
     ${p.note ? `<div class="card w-doc">${esc(p.note)}</div>` : ''}
     ${mSec('进度')}<div class="card w-list">${(p.log || []).slice().reverse().map(l => `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${YT_ST[l.st] || ''}</div><div class="w-tx-s">${new Date(l.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${l.msg ? ' · ' + esc(l.msg) : ''}</div></div></div>`).join('')}</div>
-    ${act || can ? `<div class="w-sh-b">${can ? `<button class="btn ghost" data-act="ytcancel" data-id="${p.id}">取消企划</button>` : '<span></span>'}${act || '<span></span>'}</div>` : ''}`;
+    ${p.st === 'ready' && !ytShort(p) ? `<div class="card" style="padding:12px"><div style="font-weight:700;font-size:14px">视频封面</div><div class="yt-pcov">${p.thumb ? `<div class="yt-th big"><img data-mid="${p.thumb}" alt=""></div>` : ''}<div class="row" style="gap:10px;justify-content:center;margin:8px 0"><label class="btn ghost sm ext-pick">${p.thumb ? '换一张封面' : '🖼 导入封面图'}<input type="file" id="yt-pcov-in" data-id="${p.id}" accept="image/*"></label>${p.thumb ? `<button class="link" data-act="ytpcovx" data-id="${p.id}">不用封面</button>` : '<span class="muted" style="font-size:12px">不导入就用默认封面</span>'}</div></div></div>` : ''}${act || can ? `<div class="w-sh-b">${can ? `<button class="btn ghost" data-act="ytcancel" data-id="${p.id}">取消企划</button>` : '<span></span>'}${act || '<span></span>'}</div>` : ''}`;
 }
 function ytVideoHTML(id) {
   const x = ytAll().find(v => v.id === id); if (!x) { UI.mPage = 'yt'; return ytPageHTML('yt'); }
@@ -11215,6 +11216,7 @@ document.addEventListener('click', async e => {
     case 'serimopen': openModal(serimCardHTML()); break;
     case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
     case 'srsaytg': UI.srSayOpen = !t.parentElement.open; break;
+    case 'ytpcovx': { const p = yt().plans.find(x => x.id === t.dataset.id); if (p && p.thumb) { idbDel(p.thumb); delete p.thumb; save(); } break; }
     case 'ytthumbx': { const Y = yt(), id = t.dataset.id; if (Y.thumbs && Y.thumbs[id]) { idbDel(Y.thumbs[id]); delete Y.thumbs[id]; save(); } break; }
     case 'srold': UI.srOldOpen = !t.parentElement.open; break;
     case 'ytpubtg': UI.ytPubOpen = !t.parentElement.open; break;
@@ -11419,6 +11421,7 @@ document.addEventListener('click', async e => {
 });
 document.addEventListener('change', async e => {
   if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
+  if (e.target.id === 'yt-pcov-in') { const f = e.target.files && e.target.files[0], p = yt().plans.find(x => x.id === e.target.dataset.id); if (f && p) { const mid = 'yth' + uid(); await idbPut(mid, f); urlCache[mid] = URL.createObjectURL(f); if (p.thumb) idbDel(p.thumb); p.thumb = mid; save(); render(); } return; }
   if (e.target.id === 'yt-thumb-in') { const f = e.target.files && e.target.files[0], id = e.target.dataset.id; if (f && id) { await ytThumbSet(id, f); toast('封面换好了'); render(); } return; }
   if (e.target.id === 'serim-ph') { const f = e.target.files && e.target.files[0]; if (f) { SRPH = { file: f, url: URL.createObjectURL(f) }; openModal(serimCardHTML()); } return; }
   if (e.target.id === 'shfile-in') { const f = e.target.files && e.target.files[0]; if (f) { if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; } render(); return; }
