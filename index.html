@@ -7976,7 +7976,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); mv404Thumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); mv404Thumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8737,7 +8737,8 @@ function dmDelay(p) {
   let rel = p.key === 'CRAVITY|세림' && serimLove() ? .25 : fr && fr.lv === 'best' ? .4 : stg === 'amb' ? .45 : stg === 'close' ? .6 : stg === 'friend' ? .85 : stg === 'acq' ? 1.8 : 3;
   if (Pp.cool && Pp.cool > dkey(now)) rel *= 1.8;
   const med = Math.sqrt(P.sp[0] * P.sp[1]); let m;
-  if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
+  if (st.sleep && T && T.lastOut && now - T.lastOut < 60 * 60e3) m = lognorm(5, .9) * (rel < .9 ? 1 : 1.6); /* 一小时内还在跟她聊：人还没睡，照常回 */
+  else if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
   else if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .7) m = lognorm(1.5, .8); // 正聊着
   else if (st.busy) m = Math.random() < (rel < .3 ? .5 : rel < .5 ? .3 : rel < .9 ? .15 : .06) ? lognorm(2, .6) : lognorm(D.check * .6, .7) * rel; // 行程中：偶尔刚好拿着手机（越亲的人越会偷偷回），大多等下一次空隙
   else {
@@ -8978,6 +8979,7 @@ function fanRuleHalf1() { const p = S.profile; if (p.fanRuleV2) return; p.fanRul
 function jmStallFix1() { const SO = social(); if (SO.jmStall1) return; SO.jmStall1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1]; if (m && !m.me && /잠깐만 이따 말해줄게/.test(m.text || '')) { T.msgs.pop(); delete T.fu; T.pend = []; T.quiet = null; const lm = T.msgs.filter(x => x.me).pop(); T.readTo = lm ? lm.at - 1 : T.readTo; T.due = { at: Date.now() + rand(2, 6) * 60e3 }; } save(); } // 悄悄删掉那句「等一下告诉你」，让他重新回
 function jmStallFix2() { const SO = social(); if (SO.jmStall2) return; SO.jmStall2 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } let n = 0; while (T.msgs.length && !T.msgs[T.msgs.length - 1].me && /잠깐만|이따 말해줄게|이따 알려줄게/.test(T.msgs[T.msgs.length - 1].text || '')) { T.msgs.pop(); n++; } if (n) { delete T.fu; T.pend = []; T.quiet = null; const lm = T.msgs.filter(x => x.me).pop(); T.readTo = lm ? lm.at - 1 : T.readTo; T.due = { at: Date.now() + rand(1, 3) * 60e3 }; } save(); }
 function jmStallFix3() { const SO = social(); if (SO.jmStall3) return; SO.jmStall3 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } let n = 0; while (T.msgs.length && !T.msgs[T.msgs.length - 1].me && /잠깐만|이따 말해줄게|이따 알려줄게/.test(T.msgs[T.msgs.length - 1].text || '')) { T.msgs.pop(); n++; } if (n) { delete T.fu; T.pend = []; T.quiet = null; const lm = T.msgs.filter(x => x.me).pop(); T.readTo = lm ? lm.at - 1 : T.readTo; T.due = { at: Date.now() + rand(1, 3) * 60e3 }; } save(); }
+function jmNightFix1() { const SO = social(); if (SO.jmNight1) return; SO.jmNight1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const i = T.msgs.findIndex(m => m.me && /돈까스 먹고 싶은/.test(m.text || '')); if (i < 0 || T.msgs.slice(i + 1).some(m => m.me)) { save(); return; } const mine = T.msgs[i]; T.msgs = T.msgs.slice(0, i + 1); delete T.fu; T.pend = []; T.rd = null; T.quiet = null; T.readTo = mine.at - 1; T.due = { at: mine.at + rand(4, 12) * 60e3 }; save(); } /* 凌晨刚聊完还没睡：那时就该回 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
