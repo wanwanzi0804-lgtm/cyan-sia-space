@@ -8755,6 +8755,7 @@ function dmDelay(p) {
   let rel = p.key === 'CRAVITY|세림' && serimLove() ? .25 : fr && fr.lv === 'best' ? .4 : stg === 'amb' ? .45 : stg === 'close' ? .6 : stg === 'friend' ? .85 : stg === 'acq' ? 1.8 : 3;
   if (Pp.cool && Pp.cool > dkey(now)) rel *= 1.8;
   const med = Math.sqrt(P.sp[0] * P.sp[1]); let m;
+  const gNo = p.g === 'CRAVITY' && p.key !== SR_K && crvGroupNow(now); if (gNo && SR_NOPHONE.test(gNo.what || '')) return (Math.max(1, gNo.e - srMin(now)) + lognorm(8, .7)) * 60e3; /* 团体签售 / 上台中：结束了才看手机 */
   if (st.sleep && T && T.lastOut && now - T.lastOut < 60 * 60e3) m = lognorm(5, .9) * (rel < .9 ? 1 : 1.6); /* 一小时内还在跟她聊：人还没睡，照常回 */
   else if (st.sleep) m = st.wakeIn + lognorm(25, 1); // 醒了先刷一会儿手机
   else if (T && T.lastOut && now - T.lastOut < 12 * 60e3 && Math.random() < .7) m = lognorm(1.5, .8); // 正聊着
@@ -9922,8 +9923,12 @@ function srMoodTick(now) {
 const srMoodZh = () => { const M = SR().mood; return `精力 ${Math.round(M.en)}/100${M.en < 30 ? '（很累）' : ''}；心情${M.val >= 1 ? '不错' : M.val <= -1 ? '不太好' : '平常'}${Math.abs(M.val) >= 1 && M.why ? '（起因：' + M.why + '）' : ''}`; }; // 心情只是内部状态：影响语气，不是要说出来的话
 
 /* ---------- 看手机的节奏：由他此刻在做什么决定；正聊着、又空着就回得很快 ---------- */
+/* 签售、舞台、演出、直播、录节目这种：全程不能碰手机，结束了才看 */
+const SR_NOPHONE = /签售|팬싸|팬사인|舞台|打歌|演出|演唱会|公演|콘서트|直播|录制|录节目|彩排|리허설|음방|fansign|stage|concert/i;
+const srNoPhone = st => !!(st && st.seg && st.kind === 'work' && SR_NOPHONE.test(st.seg.what || ''));
 function srCheckGap(at) {
   const st = srNow(at) || socNow0(srP(), at), C = SR().chat, M = SR().mood, sess = C.sess && at < C.sess;
+  if (srNoPhone(st)) return Math.max(1, st.seg.e - srMin(at)) + lognorm(6, .6); // 结束后过几分钟才拿起手机
   if (st.sleep) return (st.wakeIn || 60) + lognorm(10, .5);
   const work = st.kind ? st.kind === 'work' : st.busy;
   let m = work ? lognorm(sess ? 12 : 35, .5) : st.semi ? lognorm(sess ? 2 : 12, .5) : lognorm(sess ? .3 : 3, .5);
@@ -9938,6 +9943,7 @@ function srJob(type, at, data) { const R = SR(); if (type === 'reply' && R.jobs.
 function srCheck(at) {
   const T = dmThread(srP()), C = SR().chat; C.last = at;
   const her = srHer(T, at).filter(m => m.at > (T.readTo || 0)), st = srNow(at) || {};
+  if (srNoPhone(st)) return; // 正在签售 / 上台：手机不在手上，不会已读也不会回
   if (her.length) { T.readTo = Math.max(T.readTo || 0, at); T.rd = null; const quick = C.sess && at < C.sess && !st.busy; srJob('reply', at + (quick ? rand(2, 6) : rand(6, 25)) * 1e3); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); return; }
   const lm = T.msgs.filter(m => !m.sys && m.at <= at).pop();
   // 她的消息读了没回：她是在问他事情、他现在也空着，过一阵会想起来回；只是附和收尾的就不回了
