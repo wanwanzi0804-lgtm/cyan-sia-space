@@ -9336,8 +9336,8 @@ async function callLine(mine) {
   const C = UI.call; if (!C || C.mode !== 'on' || C.busy) return; const T = dms()[C.key], p = T.p, sr = p.key === SR_K, now = Date.now();
   if (mine) { const ln = { me: 1, text: mine }; C.talk.push(ln); if (hasHan(mine)) trText(mine, 'ko', `${socName(p)}（${socBan(p) ? '很熟：用半语（반말）' : '用敬语'}；电话里说的口语）`, C.talk.slice(-6).map(l => `${l.me ? '她' : '他'}：${l.me ? l.zh || l.text : l.text}`).join('\n')).then(ko => { if (ko && ko !== mine) { ln.zh = mine; ln.text = ko; if (UI.call === C) callShow(); } }).catch(() => {}); } C.busy = 1; callShow();
   const kkt = sr ? srChatLog(T, now, 14) : T.msgs.slice(-12).filter(m => !m.sys).map(m => `${m.me ? S.profile.name : socName(p)}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n');
-  try {
-    const j = await aiRaw([{ type: 'text', text: `${S.profile.name}（恩雪）和 ${socWho(p)} 正在打 KakaoTalk 语音电话（${C.by === 'me' ? '她打过去的' : '他打来的'}，现在 ${srClock(now)}）。你写${socName(p)}在电话里说的下一句。
+  const hisL = C.talk.filter(l => !l.me).map(l => l.text);
+  const ask = extra => aiRaw([{ type: 'text', text: `${S.profile.name}（恩雪）和 ${socWho(p)} 正在打 KakaoTalk 语音电话（${C.by === 'me' ? '她打过去的' : '他打来的'}，现在 ${srClock(now)}）。你写${socName(p)}在电话里说的下一句。
 ${sr ? srCtx(now, (mine || '') + ' ' + (T.call && T.call.topic || '')) : socCtx(p, now)}
 打电话前在 KKT 上聊到：
 ${kkt || '（无）'}
@@ -9345,8 +9345,14 @@ ${T.call && T.call.topic ? `说好打电话是因为：${T.call.topic}\n` : ''}�
 ${C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? (l.zh ? `${l.text}（她说的原话：${l.zh}）` : l.text) : l.text + (l.zh ? `（${l.zh}）` : '')}`).join('\n') || '（刚接通）'}
 ${mine ? `她刚说：${mine}` : `电话刚接通，${C.by === 'me' ? '他接起来' : '她接起来了，他先开口'}。`}
 
-这是说出口的话，不是打字：口语、自然，一般一两句，可以有停顿和语气词（응, 아, 음…），笑就写（웃음）；不用 ㅋㅋ、emoji。接着她说的话聊，按他的性格和此刻的状态（累不累、在哪），不用每句都撩、都问问题；聊到自然该挂的时候（他要睡了、要去忙、话说完了）可以说要挂了，end=true。
-ko 是他说的韩语，zh 是中文意思。` }], 1500, { type: 'object', additionalProperties: false, required: ['ko', 'zh', 'end'], properties: { ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } }, KKT_SYS());
+${hisL.length ? `他在这通电话里已经说过：\n${hisL.map(t => '- ' + t).join('\n')}\n这次不要再用同样的开头（不要每句都用「응,」「은설아」开头）、不要把说过的话换个说法再说一遍（比如又说她吃醋可爱、又说自己困了要睡）；接她这句，往下聊。\n` : ''}${p.key === SR_K ? '他是她男朋友，现在是两个人私下打电话：语气是放松、亲近的；就算累也是软软的、拖着声音的那种累，不会敷衍、不会像在打发她。她撒娇想听什么，他会配合（可能害羞、笑、顿一下再说），不会说「这下满意了吧」这种。\n' : ''}这是说出口的话，不是打字：口语、自然，一般一两句，可以有停顿和语气词（응, 아, 음…），笑就写（웃음）；不用 ㅋㅋ、emoji。接着她说的话聊，按他的性格和此刻的状态（累不累、在哪），不用每句都撩、都问问题；聊到自然该挂的时候（他要睡了、要去忙、话说完了）可以说要挂了，end=true。
+ko 是他说的韩语，zh 是中文意思。${extra || ''}` }], 1500, { type: 'object', additionalProperties: false, required: ['ko', 'zh', 'end'], properties: { ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } }, KKT_SYS());
+  try {
+    let j = await ask();
+    // 和他刚才说过的话太像（同样的意思、同样的开头）：重写一次
+    const rep = x => hisL.some(h => srSim(h, x) >= .45) || (hisL.length >= 2 && hisL.slice(-2).every(h => h.split(/[\s,，.]/)[0] === String(x).split(/[\s,，.]/)[0]));
+    if (j && j.ko && rep(j.ko)) { const j2 = await ask(`\n（刚才写的「${j.ko}」和他前面说过的太像了，换一个真正接着她这句往下说的。）`).catch(() => null); if (j2 && j2.ko) j = j2; }
+    if (j && j.ko && hisL.length && /^응[,，.]?\s/.test(hisL[hisL.length - 1]) && /^응[,，.]?\s/.test(j.ko)) { j.ko = j.ko.replace(/^응[,，.]?\s*/, ''); j.zh = String(j.zh || '').replace(/^嗯[，,。]?\s*/, ''); }
     if (UI.call !== C) return; C.talk.push({ text: String(j.ko || '').trim(), zh: String(j.zh || '').trim() }); if (j.end) C.wantEnd = 1;
   } catch (e) { if (UI.call === C) C.talk.push({ text: '여보세요? 잘 안 들려…', zh: '喂？听不太清…' }); }
   finally { if (UI.call === C) { C.busy = 0; callShow(); } }
