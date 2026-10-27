@@ -10308,6 +10308,15 @@ function srPingDedup1() { const R = SR(); if (R.pingDd1) return; R.pingDd1 = 1; 
   T.msgs = T.msgs.filter(m => !drop.has(m.id)); save(); }
 function srSmrunFix1() { const R = SR(); if (R.smFix1) return; R.smFix1 = 1; for (const m of dmThread(srP()).msgs) if (m.me && /smrun 자료/.test(m.text || '')) m.text = m.text.replace('smrun 자료', 'smrun 영상'); save(); }
 function srRedoSmrun1() { const R = SR(); if (R.redoSm1) return; R.redoSm1 = 1; srRedoFrom(/^무슨 소리야ㅋㅋ/); }
+// 重做：她说看了 smrun 物料之后他的回复（还有之后那通电话）都去掉，让他从那里重新回
+function srRedoSmrun2() { const R = SR(); if (R.redoSm2) return; R.redoSm2 = 1; const T = dmThread(srP()), M = T.msgs, k = M.map(m => m.me && /smrun/i.test(`${m.text} ${m.zh || ''}`)).lastIndexOf(true); if (k < 0) { save(); return; }
+  const i = M.findIndex((m, x) => x > k && !m.me && !m.sys); if (i < 0) { save(); return; } const t0 = M[i].at;
+  T.msgs = M.filter((m, x) => x < i || (m.me && !m.call));
+  R.mem = R.mem.filter(m => !(m.c >= t0 - 60e3 && (m.src === 'him' || m.src === 'her' || /^通了电话/.test(m.t))));
+  if (T.call && T.call.done) { T.call.done = 0; const P2 = socPX(T.p), td = (P2.todo || []).find(x => x.id === T.call.td); if (td) { td.st = 'open'; delete td.doneDay; } }
+  R.conv = null; R.jobs = R.jobs.filter(x => x.type !== 'reply'); T.pend = []; T.quiet = null;
+  const her = srHer(T, Date.now()); T.readTo = her.length ? her[0].at - 1 : T.readTo;
+  const prev = T.msgs.filter(m => !m.me && !m.sys && m.at < t0).pop(); R.chat.him = prev ? prev.at : 0; R.chat.sess = 0; R.chat.next = Date.now() + rand(1, 4) * 60e3; save(); }
 function srKkFix2() { const R = SR(); if (R.kkFix2) return; R.kkFix2 = 1; for (const m of dmThread(srP()).msgs) if (!m.me && /^당연히 은설이 때문이지\s*ㅋㅋ/.test(m.text || '')) { m.text = '당연히 은설이 때문이지~'; m.zh = '当然是因为恩雪啊～'; } save(); }
 function srKkFix1() { const R = SR(); if (R.kkFix1) return; R.kkFix1 = 1; for (const m of dmThread(srP()).msgs) if (!m.me && /^전화 아직 안 해\?\s*ㅋㅋ/.test(m.text || '')) { m.text = '전화 아직 안 해?'; m.zh = '还没打电话吗？'; } save(); }
 function srRedo630() { const R = SR(); if (R.redo630) return; R.redo630 = 1; srRedoFrom(/^아직 연습 좀 남았어/); }
@@ -10358,7 +10367,7 @@ function srTick() {
   if (srBusy && Date.now() - srBusyAt < 200e3) return; srBusy = 0; // 上一个任务卡住超过 3 分多钟（比如手机切到后台、请求被挂起）：不再等它
   if (!srBooted) { srBooted = 1; const R0 = SR(); R0.ai.next = 0; R0.ai.n = 0; for (const j of R0.jobs) { j.next = 0; j.n = 0; } } // 每次打开页面：之前失败攒下的等待时间清零，马上重试
   const R = SR(), now = Date.now(), td = dkey(now);
-  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srKkFix1(); srKkFix2(); srRedoSmrun1(); srSmrunFix1(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
+  try { srMigrate(); srUpgrade(); srRedo1026(); srDupFix1026(); srFix1026b(); srNoteRebuild1(); srRegenTomorrow1(); srNoteTiny1(); srRegenToday1(); srRegenToday2(); srRegenToday3(); herMsgDel1(); srUrgeCard1(); srV3Backup(); srUrgeCard2(); crvKnowMig1(); srCardMsgFix1(); srCardOpen2(); srRedo502(); srRedo630(); srRedoDorm1(); srPingDedup1(); srKkFix1(); srKkFix2(); srRedoSmrun1(); srSmrunFix1(); srRedoSmrun2(); srMoodTick(now); } catch (e) { console.error('sr prep', e); }
   try { srDayEnsure(td); if (srMin(now) >= 18 * 60) srDayEnsure(addDays(td, 1)); else srBitsEnsure(td); } catch (e) { console.error('sr day', e); }
   for (const k of Object.keys(R.day)) if (k < addDays(td, -14)) delete R.day[k];
   if (R.sumDay !== td) { R.sumDay = td; const y = addDays(td, -1); if (!R.jobs.some(j => j.type === 'daily' && j.dk === y)) R.jobs.push({ id: uid(), type: 'daily', dk: y, at: now, n: 0 }); }
