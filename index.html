@@ -9021,11 +9021,7 @@ function srCryFix1() { const R = SR(); if (R.cry1) return; R.cry1 = 1; const T =
   if (M.some(m => !m.me && /^은설아 갑자기 얘기한 거 맞아/.test(m.text || ''))) { srRedoFrom(/^은설아 갑자기 얘기한 거 맞아/); const lm = M.filter(m => m.me).pop(); if (lm) { const at = lm.at + Math.round(rand(.3, 1) * 60e3); R.jobs = R.jobs.filter(j => j.type !== 'reply'); R.jobs.push({ id: uid(), type: 'reply', at, n: 0 }); T.readTo = at; T.rd = null; R.chat.next = Date.now() + 5 * 60e3; } }
   for (const m of R.mem) if (/哭/.test(m.t || '') && m.c > Date.now() - 6 * 3600e3) m.t = m.t.replace(/哭(着|了|得)?/g, '撒娇'); save(); } /* ㅠㅠ 被当成真哭了：删掉「别哭」，重回「为什么突然要打电话」 */
 function srCallNow1() { const R = SR(); if (R.callNow1) return; R.callNow1 = 1; const T = dmThread(srP()); if (T.msgs.some(m => !m.me && /^지금 걸게/.test(m.text || '') && Date.now() - m.at < 3 * 3600e3)) { if (T.call && !T.call.done) { T.call.ringAt = Date.now() + 40e3; T.call.soon = 1; } else dmCallSet(T, '想听她的声音', true); } save(); } /* 他说「지금 걸게」却一直没打：马上打过来 */
-function srRecall1() { const R = SR(); if (R.recall1) return; R.recall1 = 1; const T = dmThread(srP()), cut = Date.now() - 3 * 3600e3, nowT = Date.now();
-  T.msgs = T.msgs.filter(m => !(m.call && m.call.st === 'done' && m.at > cut));
-  R.mem = R.mem.filter(m => !(/^通了电话/.test(m.t || '') && (m.c || m.at || 0) > cut)); if (R.conv && /电话/.test(R.conv.t || '')) R.conv = null;
-  { const P = socPX(T.p); if (P.ex) P.ex = P.ex.filter(e => !(e.t === 'call' && /通了电话/.test(e.d || '') && e.day === dkey(nowT))); }
-  T.call = null; dmCallSet(T, '想听她的声音', true); T.call.ringAt = nowT + rand(15, 30) * 1e3; save(); } /* 那通电话重来：记录删掉，刷新后他马上再打过来 */
+function srRecall1() { const R = SR(); if (R.recall1) return; R.recall1 = 1; const T = dmThread(srP()), nowT = Date.now(); T.call = null; dmCallSet(T, '刚才电话还没聊够，想再听听她的声音', true); T.call.ringAt = nowT + rand(15, 30) * 1e3; save(); } /* 刷新后他马上再打过来一次（之前那通的记录和内容都保留） */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
