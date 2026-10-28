@@ -7995,7 +7995,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9042,6 +9042,7 @@ function relayDup1() { const SO = social(); if (SO.relayDup1) return; SO.relayDu
   mgrSay([`아 근데 1theK 릴레이 댄스는 이미 ${+R[0].date.slice(5, 7)}월 ${+R[0].date.slice(8)}일에 잡혀 있었네요. ${+dup[0].date.slice(5, 7)}월 ${+dup[0].date.slice(8)}일 건은 중복이라 빼놨어요`, `啊不过 1theK Relay Dance 已经排在 ${+R[0].date.slice(5, 7)}月${+R[0].date.slice(8)}日了，${+dup[0].date.slice(5, 7)}月${+dup[0].date.slice(8)}日那个是重复的，我已经撤掉了`]); save(); }
 function payFast1() { const W = wallet(); if (W.payFast1) return; W.payFast1 = 1; const td = dkey(Date.now()); for (const x of W.recv || []) if (x.st === 'pend' && x.gross > 0 && x.date) { const cap = addDays(x.date, ri(3, 14)); if (x.payAt > cap) x.payAt = cap < td ? addDays(td, ri(0, 2)) : cap; } save(); } /* 已经在等的款也按新的速度来 */
 function srOppaFix1() { const R = SR(); if (R.oppa1) return; R.oppa1 = 1; for (const m of R.mem) if (/오빠|欧巴/.test(m.t || '') && /挨训|挨骂|혼날|紧张/.test(m.t || '')) m.t = m.t.replace(/[，,；;]?[^，,；;。]*(오빠|欧巴)[^，,；;。]*(挨训|挨骂|혼날|紧张)[^，,；;。]*/g, '').replace(/^[，,；;\s]+/, ''); save(); } /* 「叫오빠像要挨训」这个说法从记忆里去掉 */
+function srCommute1028() { const R = SR(); if (R.comm1028) return; R.comm1028 = 1; if (R.day['2026-10-28']) srFillCommute('2026-10-28'); if (R.day['2026-10-29']) srFillCommute('2026-10-29'); }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -10550,6 +10551,7 @@ sum：12 个字以内的笼统概括。`, 3000, { type: 'object', additionalProp
       mem: SR_MEM_SCHEMA, state: { type: 'object', additionalProperties: false, required: ['energy', 'mood_val', 'mood_to', 'why'], properties: { energy: { type: 'number' }, mood_val: { type: 'number' }, mood_to: { type: 'string' }, why: { type: 'string' } } },
       kkt: { type: 'object', additionalProperties: false, required: ['send', 'time', 'ko', 'zh'], properties: { send: { type: 'boolean' }, time: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' } } }, sum: { type: 'string' } } });
     srNoteSegs(n, (j.segs || []).map(x => ({ ...x, s: toMin(x.s), e: x.e === '24:00' || (toMin(x.e) <= toMin(x.s) && toMin(x.s) > 0) ? 1440 : toMin(x.e) })), j.drop);
+    for (const dk of new Set((j.segs || []).map(x => x.day).filter(Boolean))) srFillCommute(dk);
     srMemOps(j.mem, now, 'note'); if (j.sum) n.sum = String(j.sum).slice(0, 20);
     const st = j.state || {}, M = SR().mood; // 你记的「很累」「吃醋」真的会改到他现在的状态
     if (st.energy >= 0) M.en = clamp(+st.energy, 5, 100); if (st.mood_val) M.val = clamp(+st.mood_val, -2, 2); if (st.mood_to) M.to = String(st.mood_to).slice(0, 20); if (st.why && (st.energy >= 0 || st.mood_val || st.mood_to)) M.why = String(st.why).slice(0, 40); M.at = Date.now();
@@ -10567,6 +10569,18 @@ function srCut(D, s, e, nid) {
     else if (g.s < s) g.e = s; else g.s = e;
   }
 }
+/* 换地方就得有路上的时间：宿舍 ↔ 公司 / 现场之间没留路上的，补上；打歌、舞台之前还要做造型、彩排 */
+const SR_HOME = /宿舍|家里|床|房间|dorm/i, SR_SHOW = /打歌|音乐节目|M ?Countdown|Music Bank|音乐中心|Music Core|人气歌谣|Inkigayo|Show Champion|The Show|舞台|演出|公演/i;
+function srFillCommute(dk) { const D = srDay(dk); const L = () => D.segs.filter(g => !g.del && g.st !== 'cancel').sort((a, b) => a.s - b.s); const home = g => g.kind === 'sleep' || SR_HOME.test((g.where || '') + (g.what || '')) && !/路上/.test(g.where || ''), mk = (s, e, what, where, kind = 'move') => ({ id: uid(), s, e, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 });
+  for (let guard = 0; guard < 12; guard++) { const S0 = L(); let ch = 0;
+    for (let i = 0; i + 1 < S0.length; i++) { const a = S0[i], b = S0[i + 1]; if (a.kind === 'move' || b.kind === 'move' || /路上|车上/.test((a.where || '') + (b.where || ''))) continue; const gap = b.s - a.e;
+      if (home(a) && !home(b) && b.kind !== 'sleep') { const show = SR_SHOW.test((b.what || '') + (b.where || '')), prep = show ? 150 : 0, need = 35 + prep, st = b.s - need;
+        if (gap >= need) { D.segs.push(mk(b.s - 35 - prep, b.s - prep, show ? '坐公司的车去现场' : '去' + (b.where || '那边') + '的路上', '路上')); if (prep) D.segs.push(mk(b.s - prep, b.s, '到现场化妆、做造型、彩排、等候', b.where || '现场', 'work')); ch = 1; break; }
+        if (st > a.s + 30) { a.e = st; D.segs.push(mk(st, st + 35, show ? '坐公司的车去现场' : '去' + (b.where || '那边') + '的路上', '路上')); if (prep) D.segs.push(mk(st + 35, b.s, '到现场化妆、做造型、彩排、等候', b.where || '现场', 'work')); ch = 1; break; } }
+      if (!home(a) && home(b) && a.kind !== 'sleep' && gap >= 8) { D.segs.push(mk(a.e, a.e + Math.min(gap, 45), '回宿舍的路上', '路上')); ch = 1; break; }
+      if (!home(a) && home(b) && gap < 8 && b.kind !== 'sleep' && b.e - b.s > 50) { b.s = a.e + 30; D.segs.push(mk(a.e, a.e + 30, '回宿舍的路上', '路上')); ch = 1; break; } }
+    if (!ch) break; }
+  save(); }
 function srNoteSegs(n, list, drop) {
   for (const id of drop || []) for (const D of Object.values(SR().day)) for (const g of D.segs) if (g.id === id && g.src !== 'official' && !g.del) g.del = g.src === 'note' ? 'old' : 'drop';
   for (const x of list) {
