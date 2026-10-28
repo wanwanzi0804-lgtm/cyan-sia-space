@@ -7994,7 +7994,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9846,7 +9846,7 @@ async function srScriptAdd(raw, phId, mode, segRef, segWhen) {
   if (Q.length && !lines.some(l => SR_PH_LINE.test(l))) lines.unshift('【图片】'); // 选了照片却没写【图片】：照片先发
   for (const [i, l] of lines.entries()) {
     if (SR_PH_LINE.test(l)) { const p = Q.shift(); if (p) out.push(phOut(p)); if (!lines.slice(i + 1).some(x => SR_PH_LINE.test(x))) while (Q.length) out.push(phOut(Q.shift())); continue; } // 最后一行【图片】把多选的照片一起发
-    if (hasHan(l)) { const ko = await trText(l, 'ko', '女朋友 Cyan（最亲的人：必须用半语（반말），句尾不要带 -요；像二十多岁男生发 KKT 的口语）'); out.push({ ko: ko || l, zh: l }); }
+    if (hasHan(l)) { const ko = await trText(l, 'ko', '女朋友 Cyan（最亲的人：必须用半语（반말），句尾不要带 -요；像二十多岁男生发 KKT 的口语）'); out.push({ ko: ko || l, zh: l, own: 0 }); } // 中文翻过来的不算他本人的原话
     else { const zh = /^[ㅋㅎㅠㅜ~!?.\s]+$/.test(l) ? (/ㅋ|ㅎ/.test(l) ? '哈哈哈哈' : l) : await trText(l, 'zh'); out.push({ ko: l, zh: zh || '' }); }
   }
   if (!out.length) return false;
@@ -10101,7 +10101,7 @@ function srCtx(when, q) {
   const chat = srChatLog(T, when), recent = srRecent(T, when), cv = R.conv && when - R.conv.at < 12 * 3600e3 && R.conv.at <= when ? R.conv : null;
   const habits = srLive(when).filter(x => x.k === 'habit').map(x => x.t).slice(-8).join('；');
   const urg = (R.urges || []).filter(u => !u.used && u.at <= when && when - u.at < 36 * 3600e3).map(u => u.t).join('；');
-  return `【他】${socCardTxt(p)}
+  return `【他】${socCardTxt(p)}${srStyleTxt()}
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 此刻：${st ? st.zh : socNow0(p, when).zh}${st && st.seg && T.msgs.some(x => !x.me && !x.sys && x.at <= when && x.at >= srTs(dk, st.seg.s)) ? '（这段时间里他已经跟她聊过，她知道他在做这个）' : ''}；${srMoodZh()}
@@ -10663,6 +10663,10 @@ function serimNoteTick() {
   const now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   for (const n of serimNotes()) if (n.day === today && n.kkt && !n.kkt.done && nm >= n.kkt.at) { n.kkt.done = 1; dmPush(serimP(), { text: n.kkt.ko, zh: n.kkt.zh }); save(); }
 }
+/* 她亲手写给他发的那些话：最接近他本人的说话样子，回复时拿来参考语气、长短、语气词（不照抄内容） */
+function srStyleFix1() { const R = SR(); if (R.styleFix1) return; R.styleFix1 = 1; for (const x of R.script || []) for (const m of x.list) if (/사진을 좀 보내주고/.test(m.ko || '')) m.own = 0; save(); } /* 那条误发的说明不算他的说话样子 */
+function srStyleTxt() { const G = [], seen = new Set(); let n = 0; for (const x of (SR().script || []).slice().reverse()) { if (x.st === 'cancel' || n >= 24) continue; const g = x.list.filter(m => !m.ph && m.ko && m.own !== 0 && !seen.has(m.ko)).map(m => (seen.add(m.ko), m.ko)); if (g.length) { G.unshift(g); n += g.length; } }
+  const L = G.flat().slice(-24); return L.length ? `\n【他平时说话的样子】下面这些是他本人真实发过的消息，学的是语气、句子长短、断句、语气词和用词习惯（内容不要照抄、不要重复）：\n${L.map(t => '- ' + t).join('\n')}` : ''; }
 const srPhFree = () => { const R = SR(), held = new Set((R.script || []).filter(x => x.st === 'wait').flatMap(x => x.list.map(m => m.pid)).filter(Boolean)); return (R.photos || []).slice().reverse().filter(p => !p.sent && !held.has(p.id)); };
 function serimCardHTML() {
   const td = dkey(Date.now()), N = serimNotes().filter(n => n.day >= addDays(td, -1)).slice().reverse();
