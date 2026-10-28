@@ -10199,7 +10199,7 @@ ${mine}${gapTxt}
 
 asks：她这几条里在问他、等他回答或决定的事，照她的意思写一句（没有就空）。她是打中文再翻成韩语发的，可能有错字或翻得不准：按前后文理解她真正的意思（比如前后都在说练习，「联系结束」多半是「练习结束」）。她可能一次问了好几件，每一件都写上。
 inner：用他自己的口吻、第一人称写一两句：看到这几条时他脑子里先冒出来的是什么——哪句最戳到他、他此刻想说什么、心情怎么样。真人看消息时注意力只会落在一两个点上，其余的带过或不接；但 asks 里那件事他会回答（答应、拒绝、商量都行），她要是在生他的气他也会接住。（inner 不会发出去）
-act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。
+act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。later 只用于真的在工作、手上腾不出来的时候；刚结束签售 / 舞台在后台、在车上、回宿舍路上、吃饭这些时候他都会看手机，她有消息在等就回。
 ko：他在输入框里打出来、发出去的东西，就是顺着 inner 那一个反应说出来的话。他打字时会按回车把话拆成几个气泡（一行一个），这只是打字节奏，不是把几件事各回一条；可以只有一个词，也可以是几句连着说的话。zh：对应的中文，行数和 ko 一样。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
 conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
@@ -10222,7 +10222,8 @@ ${SR_BITS_HINT}`;
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; } // 她这几条已经有人回过了：不重复回
   let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
   srApply(j, when, T);
-  if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.seg ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(60, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
+  if (act === 'later' && msgs.length && !(srNow(when) || {}).busy) act = 'reply'; // 没在工作（候场、车上、回宿舍路上、吃饭）：手机就在手边，有话就现在说
+  if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.busy ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(12, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
   const fast = C.sess && when < C.sess, typ = (msgs[0].ko.length / 4.5) * 1e3; // 第一条的打字时间；后面几条由发送队列按打字速度接着发
   srSend(T, act === 'react' ? msgs.slice(0, 1) : msgs, when + Math.min(typ, fast ? 10e3 : 20e3));
