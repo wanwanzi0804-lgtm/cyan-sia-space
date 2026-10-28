@@ -7993,7 +7993,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9020,6 +9020,7 @@ function srSorryRedo2() { const R = SR(); if (R.sorry2) return; R.sorry2 = 1; co
 function srCryFix1() { const R = SR(); if (R.cry1) return; R.cry1 = 1; const T = dmThread(srP()), M = T.msgs; const i = M.findIndex(m => !m.me && /^은설아 울지 마/.test(m.text || '')); if (i >= 0) M.splice(i, 1);
   if (M.some(m => !m.me && /^은설아 갑자기 얘기한 거 맞아/.test(m.text || ''))) { srRedoFrom(/^은설아 갑자기 얘기한 거 맞아/); const lm = M.filter(m => m.me).pop(); if (lm) { const at = lm.at + Math.round(rand(.3, 1) * 60e3); R.jobs = R.jobs.filter(j => j.type !== 'reply'); R.jobs.push({ id: uid(), type: 'reply', at, n: 0 }); T.readTo = at; T.rd = null; R.chat.next = Date.now() + 5 * 60e3; } }
   for (const m of R.mem) if (/哭/.test(m.t || '') && m.c > Date.now() - 6 * 3600e3) m.t = m.t.replace(/哭(着|了|得)?/g, '撒娇'); save(); } /* ㅠㅠ 被当成真哭了：删掉「别哭」，重回「为什么突然要打电话」 */
+function srCallNow1() { const R = SR(); if (R.callNow1) return; R.callNow1 = 1; const T = dmThread(srP()); if (T.msgs.some(m => !m.me && /^지금 걸게/.test(m.text || '') && Date.now() - m.at < 3 * 3600e3)) { if (T.call && !T.call.done) { T.call.ringAt = Date.now() + 40e3; T.call.soon = 1; } else dmCallSet(T, '想听她的声音', true); } save(); } /* 他说「지금 걸게」却一直没打：马上打过来 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -9360,7 +9361,7 @@ function dmHTML(key) {
     <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div></aside></div>`;
 }
 // 📞 约好的电话：聊天里出现「보이스톡」，打过去后电话里说的事会记进你们的记忆，之后有后续
-function dmCallSet(T, topic) { if (T.call && !T.call.done) return; const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id, ringAt: Date.now() + rand(.3, 3) * 3600e3, tries: 0, ...(topic != null ? { topic: topic || '刚才聊的事' } : {}) }; }
+function dmCallSet(T, topic, soon) { if (T.call && !T.call.done) { if (soon && T.call.ringAt && T.call.ringAt > Date.now() + 3 * 60e3) { T.call.ringAt = Date.now() + rand(.5, 2) * 60e3; T.call.soon = 1; } return; } const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id, ringAt: Date.now() + (soon ? rand(.5, 2) * 60e3 : rand(.3, 3) * 3600e3), soon: soon ? 1 : 0, tries: 0, ...(topic != null ? { topic: topic || '刚才聊的事' } : {}) }; }
 const CALL_OPT_G = [['聊得很开心', 1, '通了电话，聊得很开心', [['오늘 통화 재밌었다ㅋㅋ', '今天电话聊得好开心哈哈']], 0], ['简单聊了几句', 0, '通了电话，简单聊了几句', [], 0], ['说有点累，早点挂了', 0, '通了电话，你说有点累，早早挂了', [['푹 쉬어!', '好好休息！']], 0]];
 const callOpts = T => T && T.call && T.call.topic ? CALL_OPT_G : CALL_OPT;
 const CALL_OPT = [
@@ -9440,11 +9441,11 @@ function callEnd(after) { const key = UI.call && UI.call.key; UI.call = null; ca
 function callRetry(T, txt, inMin) { T.call.ringAt = (T.call.tries || 0) < 3 ? Date.now() + (inMin != null ? inMin * 60e3 : rand(1, 4) * 3600e3) : null; if (txt && T.p.key === SR_K) { srPromiseAdd({ t: `刚才电话没接通（${txt[1]}），之后跟她说一声或者再打`, cond: 'time', min: inMin || 30 }, Date.now()); return; } if (txt) dmQueue(T.p, [{ text: txt[0], zh: txt[1] }], rand(1, 3) * 60e3); }
 // 对方打来
 function dmCallTick() {
-  const now = Date.now(), h = new Date().getHours(); if (UI.call || h < 10 || h >= 24) return;
-  for (const [key, T] of Object.entries(dms())) { const c = T.call; if (!c || c.done) continue;
+  const now = Date.now(), h = new Date().getHours(); if (UI.call) return;
+  for (const [key, T] of Object.entries(dms())) { const c = T.call; if (!c || c.done) continue; if (!c.soon && (h < 10 && !(key === SR_K && h < 2))) continue; // 说了「现在就打」的随时打；世琳夜里两点前也会打，其他人只在白天
     if (c.ringAt == null && !c.tries) { c.ringAt = now + rand(.3, 2) * 3600e3; continue; }
     if (!c.ringAt || now < c.ringAt) continue;
-    if (key === SR_K) { const st = srNow(now); if (st && (st.sleep || st.busy)) { c.ringAt = now + rand(20, 60) * 60e3; continue; } } // 他在睡觉 / 工作：不会这时候打来
+    if (key === SR_K && !c.soon) { const st = srNow(now); if (st && (st.sleep || st.busy)) { c.ringAt = now + rand(20, 60) * 60e3; continue; } } // 他在睡觉 / 工作：不会这时候打来
     c.ringAt = null; c.tries = (c.tries || 0) + 1; UI.call = { key, mode: 'in', by: 'them' }; callShow(); save();
     setTimeout(() => { if (UI.call && UI.call.key === key && UI.call.mode === 'in') { callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); callEnd(); } }, 30e3);
     return; }
@@ -10159,7 +10160,7 @@ function srApply(j, when, T) {
   if (j.conv && j.conv.t) SR().conv = { t: String(j.conv.t).slice(0, 120), open: (j.conv.open || []).slice(0, 4).map(x => String(x).slice(0, 60)), at: when, inner: String(j.inner || '').slice(0, 120) };
   if (j.promise && j.promise.t && j.promise.cond) srPromiseAdd(j.promise, when);
   if (j.mood) { const M = SR().mood; if (typeof j.mood.val === 'number') M.val = clamp(M.val * .4 + clamp(j.mood.val, -2, 2) * .6, -2, 2); M.to = String(j.mood.to || '').slice(0, 20); if (j.mood.why) M.why = String(j.mood.why).slice(0, 40); }
-  const pl = j.plan; if (pl && pl.type === 'call' && pl.confirmed) { if (!T.call || T.call.done) dmCallSet(T, (pl.what || '').slice(0, 40)); }
+  const pl = j.plan, callNow = /지금 ?(바로 )?(전화 ?)?(걸게|할게|건다|걸께)|바로 (전화|걸게)|现在(就)?(给你)?打/.test((j.ko || '') + ' ' + (j.zh || '')); if (pl && pl.type === 'call' && pl.confirmed || callNow) dmCallSet(T, ((pl && pl.what) || '').slice(0, 40), callNow); // 说了「现在就打」：一两分钟内真的打过来
   if (pl && pl.type === 'meet') srMeet(pl, when);
 }
 // 他自己说的安排变化：add 新的安排（比如临时被叫去公司）/ cancel 取消某段（比如晚饭约取消了）；你确认过的已发生的事不会被他的话改掉
