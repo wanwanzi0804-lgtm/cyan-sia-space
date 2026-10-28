@@ -7993,7 +7993,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9029,6 +9029,8 @@ function srCallRestore1() { const R = SR(); if (R.callRest1) return; R.callRest1
   if (!R.mem.some(m => /^通了电话/.test(m.t || '') && Math.abs((m.at || m.c || 0) - end) < 3 * 3600e3)) srMemAdd({ k: 'event', who: 'us', t: `通了电话（${dur}）：深夜躺着聊天，聊到以后怎么叫他（자기야、오빠、여보），他说最喜欢「자기야」；她开玩笑说叫全名「박세림」才更像要挨骂`, at: end, src: 'sys', imp: 3 }, end);
   { const P = socPX(T.p); if (!(P.ex || []).some(e => e.t === 'call' && e.day === dkey(end))) P.ex.push({ day: dkey(end), t: 'call', d: `通了电话（${dur}）：聊以后怎么称呼`, k: '' }); }
   const c = T.call; if (c && !c.done) { c.done = 1; c.ringAt = null; } save(); } /* 那通电话的记录没留下来（通话中刷新了页面）：补上 */
+function srWake1028() { const R = SR(); if (R.wake1028) return; R.wake1028 = 1; const dk = '2026-10-28', D = R.day[dk]; if (!D) { save(); return; } const sl = D.segs.find(g => g.kind === 'sleep' && g.s <= 200 && g.e >= 600); if (!sl) { save(); return; } const wake = 560 + ri(0, 15), old = sl.e; sl.e = wake;
+  if (old > wake) D.segs.push({ id: uid(), s: wake, e: old, what: '起床洗漱，躺回床上刷了会儿手机、回消息', where: '宿舍', with: '', kind: 'free', src: 'gen', st: '', share: 0, c: 0 }); D.segs.sort((a, b) => a.s - b.s); save(); } /* 今天睡太久了：练习日 9~11 点起，改成 9 点多起 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -9923,7 +9925,8 @@ async function srDayEnsure(dk) {
 只写这一天里新发生的普通事情；之前已经发生的事（包括上面提到的起因、前两天的经历）不要换个时间再写一遍。
 ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${done.length ? `这天已经过去的部分（照这个，不能改）：\n${done.map(g => '- ' + srSegZh(g, dk)).join('\n')}\n` : ''}${prev ? `前两天他做了这些（别照抄，生活有变化也有重复）：\n${prev}\n` : ''}
 要求：
-- 从 00:00 到 24:00 排满这一天（含睡觉；偶像作息偏晚，凌晨 2~4 点睡很常见），6~10 段，每段写具体但普通的事：和谁、在哪、干嘛。
+- 从 00:00 到 24:00 排满这一天（含睡觉），6~10 段，每段写具体但普通的事：和谁、在哪、干嘛。
+- 他的作息（按这天是什么日子，在范围里随机取，不要每天一样）：普通的日子 凌晨 0~2 点睡、8~10 点起；有练习的日子 1~3 点睡、9~11 点起；有拍摄的日子 6~9 点就得起；打歌（音乐节目）的日子凌晨 2~5 点就得起；休息日可以睡到中午。活动期睡得少，不是每天都能睡够七八个小时。前一天睡得晚，第二天也不会因此多睡到很晚——几点起是被这天的安排决定的。
 - 收工时间看这天忙不忙：练习、录音、活动期、准备演唱会的日子，常常练到很晚，十一点、十二点才回到宿舍（中间在公司吃个外卖或简单吃点）；不忙的日子才早点回去。不要每天都很早收工。
 - 时间像真实生活一样不规整：起床、出门、到达、结束都不会刚好卡在整点或半点（比如 10:40 起、13:05 到公司、18:50 练完），只有公司排的正式行程才是整点。
 - 路上的时间要合理：宿舍到公司 / 练习室 15~30 分钟，市区里去吃饭、见朋友一般 20~40 分钟；短的路程不用单独写成一段，并进前后的安排里就行。
