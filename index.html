@@ -9404,7 +9404,7 @@ ${sr ? srCtx(now, (mine || '') + ' ' + (T.call && T.call.topic || '')) : socCtx(
 ${kkt || '（无）'}
 ${T.call && T.call.topic ? `说好打电话是因为：${T.call.topic}\n` : ''}电话里到现在：
 ${C.talk.map(l => `${l.me ? '她' : '他'}：${l.me ? (l.zh ? `${l.text}（她说的原话：${l.zh}）` : l.text) : l.text + (l.zh ? `（${l.zh}）` : '')}`).join('\n') || '（刚接通）'}
-${mine ? `她刚说：${mine}` : `电话刚接通，${C.by === 'me' ? '他接起来' : '她接起来了，他先开口'}。`}
+${mine ? `她刚说：${mine}\n电话里是一来一回的口语：他一次只说一两句短的，说完等她接，不会一口气讲一大段。` : `电话刚接通，${C.by === 'me' ? '他接起来' : '她接起来了，他先开口'}。第一句就像真人接 / 打电话那样，只是一声招呼，几个字：「여보세요?」「응 은설아~」「어 나야」「받았네ㅎ」这种，等她回了再往下聊；不要一接通就说一大堆、直接切入正题。`}
 
 ${hisL.length ? `他在这通电话里已经说过：\n${hisL.map(t => '- ' + t).join('\n')}\n这次不要再用同样的开头（不要每句都用「응,」「은설아」开头）、不要把说过的话换个说法再说一遍（比如又说她吃醋可爱、又说自己困了要睡）；接她这句，往下聊。\n` : ''}${p.key === SR_K ? '他是她男朋友，现在是两个人私下打电话：语气是放松、亲近的；就算累也是软软的、拖着声音的那种累，不会敷衍、不会像在打发她。她撒娇想听什么，他会配合（可能害羞、笑、顿一下再说），不会说「这下满意了吧」这种。\n' : ''}这是说出口的话，不是打字：口语、自然，一般一两句，可以有停顿和语气词（응, 아, 음…），笑就写（웃음）；不用 ㅋㅋ、emoji。接着她说的话聊，按他的性格和此刻的状态（累不累、在哪），不用每句都撩、都问问题；聊到自然该挂的时候（他要睡了、要去忙、话说完了）可以说要挂了，end=true。
 ko 是他说的韩语，zh 是中文意思。${extra || ''}` }], 1500, { type: 'object', additionalProperties: false, required: ['ko', 'zh', 'end'], properties: { ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } }, KKT_SYS());
@@ -9414,6 +9414,7 @@ ko 是他说的韩语，zh 是中文意思。${extra || ''}` }], 1500, { type: '
     const rep = x => hisL.some(h => srSim(h, x) >= .45) || (hisL.length >= 2 && hisL.slice(-2).every(h => h.split(/[\s,，.]/)[0] === String(x).split(/[\s,，.]/)[0]));
     if (j && j.ko && rep(j.ko)) { const j2 = await ask(`\n（刚才写的「${j.ko}」和他前面说过的太像了，换一个真正接着她这句往下说的。）`).catch(() => null); if (j2 && j2.ko) j = j2; }
     if (j && j.ko && hisL.length && /^응[,，.]?\s/.test(hisL[hisL.length - 1]) && /^응[,，.]?\s/.test(j.ko)) { j.ko = j.ko.replace(/^응[,，.]?\s*/, ''); j.zh = String(j.zh || '').replace(/^嗯[，,。]?\s*/, ''); }
+    if (!mine && !hisL.length && j && j.ko && j.ko.length > 16) { const k1 = j.ko.split(/(?<=[.?!~])\s+/)[0], z1 = String(j.zh || '').split(/(?<=[。？！～~?!])\s*/)[0]; if (k1 && k1.length < j.ko.length) { j.ko = k1; j.zh = z1; } } // 刚接通只说第一声招呼
     if (UI.call !== C) return; C.talk.push({ text: String(j.ko || '').trim(), zh: String(j.zh || '').trim() }); if (j.end) C.wantEnd = 1;
   } catch (e) { if (UI.call === C) C.talk.push({ text: '여보세요? 잘 안 들려…', zh: '喂？听不太清…' }); }
   finally { if (UI.call === C) { C.busy = 0; callShow(); } }
