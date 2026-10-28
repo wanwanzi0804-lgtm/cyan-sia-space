@@ -2993,7 +2993,7 @@ function walletSchedFee(r, mult = 1) {
 }
 // 收入 - 成本 → 按合同分；负数就记进欠款
 // 不再当天到手：通告费等主办方付款，成本先记着，每月结算时一起算
-function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) { recvAdd(cat, note, dkey(at), gross, cost, why, kind, gross > 0 ? ri(10, 40) : 0); }
+function walletDeal(gross, cost, cat, note, why, kind = 'gen', at = Date.now()) { recvAdd(cat, note, dkey(at), gross, cost, why, kind, gross > 0 ? ri(3, 14) : 0); } // 主办方一般一两周内付款
 function recvAdd(src, title, date, gross, cost, why, kind = 'gen', payDays = 0) {
   const W = wallet(); (W.recv || (W.recv = [])).push({ id: uid(), src, title, date, gross: Math.round(gross), cost: Math.round(cost), why: why || '', kind, payAt: addDays(date, payDays), st: 'pend' });
 }
@@ -3082,7 +3082,7 @@ function financeTick() {
   for (const k of Object.keys(done)) if (k < addDays(today, -10)) delete done[k];
   // 主办方 / 平台付款
   for (const x of W.recv || []) if (x.st === 'pend' && x.payAt <= today) {
-    if (!x.due && x.gross > 0 && ['行程', '代言'].includes(x.src) && Math.random() < .06) { x.due = x.payAt; x.payAt = addDays(today, ri(10, 30)); continue; } // 主办方偶尔拖款
+    if (!x.due && x.gross > 0 && ['行程', '代言'].includes(x.src) && Math.random() < .06) { x.due = x.payAt; x.payAt = addDays(today, ri(3, 10)); continue; } // 主办方偶尔拖款（拖几天）
     x.st = 'paid'; x.paidOn = today;
   }
   // 结算
@@ -4108,6 +4108,7 @@ function mgrMakeOffer() {
   let pool = (cat === '校庆' ? UNIV_FEST : [...(MGR_POOL[cat] || PRESETS[cat] || []), ...(MGR_ONLY[cat] || [])]).filter(([t]) => !/AWARDS|Awards|大赏|金唱片|机场|会议|彩排|Showcase|歌谣|生日|Weverse|MV 拍摄|封面|预告照|Dance Practice|Vlog/.test(t));
   // 大型邀约（大综艺、大型公演、大校庆、高端画报）：不只看粉丝数，近期音源、销量、一位、话题热度一起算；STARSHIP 有一点资源加成
   const Y = yearStats(), bigSc = 1.05 * (.3 * Math.min(1.5, Math.sqrt(Y.fol / 80000)) + .2 * Math.min(1.5, Math.sqrt(Y.strm / 2.5e7)) + .15 * Math.min(1.5, Math.sqrt(Y.alb / 50000)) + .15 * Math.min(1, Y.wins) + .2 * clamp((heat() - .6) / .7, 0, 1.5)), bigP = clamp((bigSc - .55) * 1.4, .03, .7);
+  { const have = new Set([...S.schedule.rules.filter(r => r.repeat !== 'once' || r.date >= addDays(today, -14)).map(r => r.title), ...(mgr().offers || []).map(o => o.title)]); pool = pool.filter(([t]) => !have.has(t) && ![...have].some(h => h.includes(t) || t.includes(h))); } // 已经排上 / 正在问的同一个活动，不会再来一次邀约
   pool = pool.filter(([t]) => (!big.test(t) || Math.random() < bigP) && !Object.values(POPUPS).some(p => p.re.test(t)));
   if (!pool.length) return null;
   let [title, loc] = pick(pool), pop = null;
@@ -7994,7 +7995,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9036,6 +9037,10 @@ function srMorning1028() { const R = SR(); if (R.morn1028) return; R.morn1028 = 
   const sl = D.segs.find(g => !g.del && g.kind === 'sleep' && g.s <= 200 && g.e >= 500), fr = D.segs.find(g => !g.del && /起床洗漱/.test(g.what || '')), w = 548, mv = 600 + ri(0, 4);
   if (sl) sl.e = w; if (fr) { fr.s = w; fr.e = mv; fr.what = '起床洗漱，在宿舍健身房做了二十分钟拉伸和核心，简单吃了点'; } else D.segs.push({ id: uid(), s: w, e: mv, what: '起床洗漱，在宿舍健身房做了二十分钟拉伸和核心，简单吃了点', where: '宿舍', with: '', kind: 'free', src: 'gen', st: '', share: 0, c: 0 });
   D.segs.push({ id: uid(), s: mv, e: 630, what: '坐地铁去公司', where: '去公司路上', with: '', kind: 'move', src: 'gen', st: '', share: 0, c: 0 }); D.segs.sort((a, b) => a.s - b.s); save(); } /* 早上被「一整天练习」盖掉的健身和通勤：起早一点，挤一段短的拉伸，再坐地铁去公司 */
+function relayDup1() { const SO = social(); if (SO.relayDup1) return; SO.relayDup1 = 1; const R = S.schedule.rules.filter(r => /1theK.*Relay Dance/.test(r.title) && r.repeat === 'once').sort((a, b) => a.date.localeCompare(b.date)); if (R.length < 2) { save(); return; } const dup = R.filter(r => r !== R[0]); S.schedule.rules = S.schedule.rules.filter(r => !dup.includes(r));
+  const C = mgrChat(); C.chat = (C.chat || []).filter(m => !(m.card && m.card.type === 'gift' && dup.some(r => r.id === m.card.id)));
+  mgrSay([`아 근데 1theK 릴레이 댄스는 이미 ${+R[0].date.slice(5, 7)}월 ${+R[0].date.slice(8)}일에 잡혀 있었네요. ${+dup[0].date.slice(5, 7)}월 ${+dup[0].date.slice(8)}일 건은 중복이라 빼놨어요`, `啊不过 1theK Relay Dance 已经排在 ${+R[0].date.slice(5, 7)}月${+R[0].date.slice(8)}日了，${+dup[0].date.slice(5, 7)}月${+dup[0].date.slice(8)}日那个是重复的，我已经撤掉了`]); save(); }
+function payFast1() { const W = wallet(); if (W.payFast1) return; W.payFast1 = 1; const td = dkey(Date.now()); for (const x of W.recv || []) if (x.st === 'pend' && x.gross > 0 && x.date) { const cap = addDays(x.date, ri(3, 14)); if (x.payAt > cap) x.payAt = cap < td ? addDays(td, ri(0, 2)) : cap; } save(); } /* 已经在等的款也按新的速度来 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
