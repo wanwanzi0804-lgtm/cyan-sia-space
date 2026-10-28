@@ -688,6 +688,7 @@ video.bv-glow{pointer-events:none}
 @keyframes anvf{to{transform:translateY(340px) rotate(300deg);opacity:0}}
 .yt-fold>summary{cursor:pointer;list-style:none}.yt-fold>summary::-webkit-details-marker{display:none}.yt-fold>summary::after{content:' ›';display:inline-block;transition:transform .2s}.yt-fold[open]>summary::after{transform:rotate(90deg)}
 .yt-pcov{width:100%;margin-bottom:6px}.yt-pcov .yt-th{width:100%}
+.s-night{display:block;font-style:normal;font-size:10px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -6571,7 +6572,7 @@ setInterval(() => {
 /* =========================================================
    UI 状态 & 渲染
    ========================================================= */
-const UI = { tab: 'feed', postId: null, sort: 'new', schedDate: dkey(Date.now()), replyTo: null, newHot: 0 };
+const UI = { tab: 'feed', postId: null, sort: 'new', schedDate: dkey(Date.now() - 300 * 60e3), replyTo: null, newHot: 0 };
 let draft = '', pending = [], draftTags = [], draftDesc = '';
 const view = $('#view');
 
@@ -7499,6 +7500,10 @@ Object.assign(PRESETS, {
 });
 // 经纪人接下来的行程：后台只能看，不能改 / 删
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
+/* 行程里的「一天」从早上 5 点到第二天早上 5 点：凌晨的工作算在前一天 */
+const DAY_CUT = 300, early = r => toMin(r.start) < DAY_CUT;
+const logicalToday = () => dkey(Date.now() - DAY_CUT * 60e3);
+function dayItems(k) { const nx = addDays(k, 1); return rulesFor(k).filter(r => !early(r)).map(r => ({ r, dk: k, off: 0 })).concat(rulesFor(nx).filter(early).map(r => ({ r, dk: nx, off: 1440 }))); }
 function rulesFor(k) {
   const dow = parseD(k).getDay();
   return S.schedule.rules.filter(r => !(r.skip || []).includes(k)).filter(r => r.repeat === 'daily' || (r.repeat === 'weekly' && (r.days || []).includes(dow)) || (r.repeat === 'once' && r.date === k))
@@ -7506,10 +7511,10 @@ function rulesFor(k) {
 }
 const toMin = t => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m; };
 function viewSched() {
-  const k = UI.schedDate, today = dkey(Date.now());
+  const k = UI.schedDate, today = logicalToday();
   const d0 = parseD(k); const mon = addDays(k, -((d0.getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
-  const items = rulesFor(k); const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const IT = dayItems(k), items = IT.map(x => x.r); const nowMin = Math.round((Date.now() - parseD(today).getTime()) / 60e3); // 过了零点就是 24:xx、25:xx
   return `
   <div class="s-head"><div class="s-date"><b>${d0.getMonth() + 1}月${d0.getDate()}日</b><span>周${WD[d0.getDay()]}</span>${k === today ? '<em>今天</em>' : `<button class="link" data-act="sdate" data-k="${today}">回到今天</button>`}</div>
     <button class="btn ghost sm" data-act="tglist" style="position:relative">📋 通告<span class="badge" id="tg-badge">${(tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length) || ''}</span></button>
@@ -7517,21 +7522,21 @@ function viewSched() {
   <div class="s-links">${chBackfillList().length ? `<button class="link" data-act="chbfopen">有 ${chBackfillList().length} 个日子可以补 challenge ›</button>` : ''}</div>
   <div class="card week">
     <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
-    ${days.map(x => { const n = rulesFor(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
+    ${days.map(x => { const n = dayItems(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
     <button class="link" data-act="sdate" data-k="${addDays(k, 7)}">›</button>
   </div>
   <div class="rest-tg"><span>${isRestWeek(k) ? '🌙 这周是休息周' : '这周正常营业'}</span><label class="sw"><input type="checkbox" data-act="resttg" data-k="${mon}" ${isRestWeek(k) ? 'checked' : ''}><i></i></label></div>
-  <div class="card s-list">${items.length ? items.map(r => {
-    const dk = k + '|' + r.id, done = !!S.schedule.done[dk];
+  <div class="card s-list">${items.length ? IT.map(({ r, dk: rk, off }) => {
+    const dk = rk + '|' + r.id, done = !!S.schedule.done[dk];
     let st = '', ph = '';
-    if (k === today) { const s = toMin(r.start), e = toMin(r.end), left = s - nowMin; ph = done ? 'done' : nowMin >= e ? 'over' : nowMin >= s ? 'now' : 'soon'; st = done ? '<span class="status ok">已完成</span>' : nowMin >= e ? '<span class="status">已结束</span>' : nowMin >= s ? '<span class="status now">进行中</span>' : `<span class="status">${left <= 60 ? '即将开始 · ' : ''}${left >= 60 ? Math.floor(left / 60) + ' 小时' : ''}${left % 60 ? left % 60 + ' 分钟' : ''}后</span>`; }
+    if (k === today) { const s = toMin(r.start) + off; let e = toMin(r.end) + off; if (e <= s) e += 1440; const left = s - nowMin; ph = done ? 'done' : nowMin >= e ? 'over' : nowMin >= s ? 'now' : 'soon'; st = done ? '<span class="status ok">已完成</span>' : nowMin >= e ? '<span class="status">已结束</span>' : nowMin >= s ? '<span class="status now">进行中</span>' : `<span class="status">${left <= 60 ? '即将开始 · ' : ''}${left >= 60 ? Math.floor(left / 60) + ' 小时' : ''}${left % 60 ? left % 60 + ' 分钟' : ''}后</span>`; }
     else if (done) { ph = 'done'; st = '<span class="status ok">已完成</span>'; }
     const cc = CATS[r.cat] || '#999';
-    return `<div class="sched ${done ? 'done' : ''} ${ph}"><div class="time">${r.start}<span>${r.end}</span></div><div class="bar" style="background:${cc}"></div>
+    return `<div class="sched ${done ? 'done' : ''} ${ph}"><div class="time">${off ? '<em class="s-night">凌晨</em>' : ''}${r.start}<span>${toMin(r.end) <= toMin(r.start) && !off ? '次日 ' : ''}${r.end}</span></div><div class="bar" style="background:${cc}"></div>
       <div style="flex:1;min-width:0"><div class="stitle">${esc(r.title)}</div>
       <div class="smeta"><span class="stag" style="color:${cc};background:color-mix(in srgb,${cc} 13%,transparent)">${esc(r.cat)}</span>${r.loc ? `<span class="sloc">${esc(r.loc)}</span>` : ''}${r.note ? `<span class="sloc">${esc(r.note)}</span>` : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
-  }).join('') + (k === today && items.every(r => S.schedule.done[k + '|' + r.id] || nowMin >= toMin(r.end)) ? '<div class="s-fin">今天的行程都结束了，辛苦了 🐱</div>' : '') + workSumHTML(k, items, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
+  }).join('') + (k === today && IT.every(({ r, dk: rk, off }) => S.schedule.done[rk + '|' + r.id] || nowMin >= (toMin(r.end) <= toMin(r.start) ? toMin(r.end) + 1440 : toMin(r.end)) + off) ? '<div class="s-fin">今天的行程都结束了，辛苦了 🐱</div>' : '') + workSumHTML(k, IT, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
 }
 /* =========================================================
    🎬 Challenge 邀请：有活动的日子可以邀请别的艺人一起拍你的歌的挑战视频
@@ -10749,10 +10754,11 @@ function chPickHTML(k) {
       <div class="row" style="gap:6px;margin-top:8px"><input id="ch-fg" placeholder="团名" style="flex:1;min-width:0"><input id="ch-fn" placeholder="名字（韩文）" style="flex:1;min-width:0"><input id="ch-fz" placeholder="中文名（可空）" style="flex:1;min-width:0"><select id="ch-flv" style="width:auto"><option value="friend">朋友</option><option value="acq">熟人</option><option value="close">很熟</option></select><button class="btn sm" data-act="chfriend" data-k="${k}">加</button></div></details>
     <details class="me-more"><summary>其他艺人（四代起）</summary>${grp(CH_OTHERS)}</details>`;
 }
-function workSumHTML(k, items, today, nowMin) {
-  const fin = r => S.schedule.done[k + '|' + r.id] || k < today || (k === today && nowMin >= toMin(r.end));
-  if (!items.every(fin)) return '';
-  const iv = items.map(r => { const s = toMin(r.start); let e = toMin(r.end); if (e <= s) e += 1440; return [s, e]; }).sort((a, b) => a[0] - b[0]);
+function workSumHTML(k, IT, today, nowMin) {
+  const span = ({ r, off }) => { const s = toMin(r.start) + off; let e = toMin(r.end) + off; if (e <= s) e += 1440; return [s, e]; }, items = IT.map(x => x.r);
+  const fin = x => S.schedule.done[x.dk + '|' + x.r.id] || k < today || (k === today && nowMin >= span(x)[1]);
+  if (!IT.every(fin)) return '';
+  const iv = IT.map(span).sort((a, b) => a[0] - b[0]);
   let tot = 0, cs = -1, ce = -1;
   for (const [s, e] of iv) { if (s > ce) { if (ce > cs) tot += ce - cs; cs = s; ce = e; } else ce = Math.max(ce, e); }
   if (ce > cs) tot += ce - cs;
@@ -10804,7 +10810,7 @@ function adminHTML(edit) {
       <option value="weekly" ${r.repeat === 'weekly' ? 'selected' : ''}>每周（选择星期）</option>
       <option value="daily" ${r.repeat === 'daily' ? 'selected' : ''}>每天</option></select></div>
     <div class="field" id="r-days-f"><label>星期</label><div class="days">${[1, 2, 3, 4, 5, 6, 0].map(d => `<label><input type="checkbox" value="${d}" ${(r.days || []).includes(d) ? 'checked' : ''}>周${WD[d]}</label>`).join('')}</div></div>
-    <div class="field" id="r-date-f"><label>日期</label><input type="date" id="r-date" value="${r.date || UI.schedDate}"></div>
+    <div class="field" id="r-date-f"><label>日期</label><input type="date" id="r-date" value="${r.date && r.start && toMin(r.start) < DAY_CUT ? addDays(r.date, -1) : r.date || UI.schedDate}"><div class="muted" style="font-size:11.5px;margin-top:3px">凌晨 0～5 点的行程算在前一天（选前一天的日期就行）</div></div>
     <div class="field"><label>粉丝回礼 / 逆应援 <span class="muted">（公开行程可选，结束时扣款）</span></label>${giftMultiHTML('r', '', r.gift)}</div>
     <div class="field"><label>备注</label><input id="r-note" value="${esc(r.note)}"></div>
     <div class="row"><span class="sp"></span>${edit ? '<button class="btn ghost" data-act="admin">取消编辑</button>' : ''}<button class="btn primary" data-act="rsave">${edit ? '保存修改' : '添加到行程'}</button></div>
@@ -10904,6 +10910,7 @@ function saveRule() {
   if (!$('#r-start').value || !$('#r-end').value) return toast('请填写开始和结束时间');
   if (r.repeat === 'weekly' && !r.days.length) return toast('请至少选择一个星期');
   if (r.repeat === 'once' && !r.date) return toast('请选择日期');
+  if (r.repeat === 'once' && toMin(r.start) < DAY_CUT) r.date = addDays(r.date, 1); // 凌晨的：其实是第二天的日期
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
   r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now(); r.gift = giftMultiVal('r');
   if (isMusicRule(r)) { const v = $('#r-work').value; r.workId = v === '__new' ? mzNew(($('#r-wn').value || '').trim(), $('#r-wg').value).id : v; } else r.workId = '';
