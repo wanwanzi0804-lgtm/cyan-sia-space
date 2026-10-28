@@ -689,6 +689,7 @@ video.bv-glow{pointer-events:none}
 .yt-fold>summary{cursor:pointer;list-style:none}.yt-fold>summary::-webkit-details-marker{display:none}.yt-fold>summary::after{content:' ›';display:inline-block;transition:transform .2s}.yt-fold[open]>summary::after{transform:rotate(90deg)}
 .yt-pcov{width:100%;margin-bottom:6px}.yt-pcov .yt-th{width:100%}
 .s-night{display:block;font-style:normal;font-size:10px;color:var(--muted)}
+.sr-phpick{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}.sr-phpick button{position:relative;flex:none;width:68px;border:2px solid transparent;border-radius:10px;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.sr-phpick button.on{border-color:var(--accent)}.sr-phpick img{width:64px;height:64px;object-fit:cover;border-radius:8px}.sr-phpick b{position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}.sr-phpick span{font-size:10.5px;color:var(--muted);max-width:64px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -9841,9 +9842,10 @@ let SRPH = null;
 const SR_PH_LINE = /^[【\[](图片|照片|사진)[】\]]$/;
 async function srScriptAdd(raw, phId, mode, segRef, segWhen) {
   const R = SR(), lines = raw.split('\n').map(x => x.trim()).filter(Boolean).slice(0, 12); if (!lines.length) return false;
-  const ph = (R.photos || []).find(p => p.id === phId), out = [];
-  for (const l of lines) {
-    if (SR_PH_LINE.test(l)) { if (ph) out.push({ ko: '[사진]', zh: '[照片]', ph: ph.mid, pid: ph.id }); continue; }
+  const ids = (Array.isArray(phId) ? phId : [phId]).filter(Boolean), Q = ids.map(id => (R.photos || []).find(p => p.id === id)).filter(Boolean), out = [], phOut = p => ({ ko: '[사진]', zh: '[照片]', ph: p.mid, pid: p.id });
+  if (Q.length && !lines.some(l => SR_PH_LINE.test(l))) lines.unshift('【图片】'); // 选了照片却没写【图片】：照片先发
+  for (const [i, l] of lines.entries()) {
+    if (SR_PH_LINE.test(l)) { const p = Q.shift(); if (p) out.push(phOut(p)); if (!lines.slice(i + 1).some(x => SR_PH_LINE.test(x))) while (Q.length) out.push(phOut(Q.shift())); continue; } // 最后一行【图片】把多选的照片一起发
     if (hasHan(l)) { const ko = await trText(l, 'ko', '女朋友 Cyan（最亲的人：必须用半语（반말），句尾不要带 -요；像二十多岁男生发 KKT 的口语）'); out.push({ ko: ko || l, zh: l }); }
     else { const zh = /^[ㅋㅎㅠㅜ~!?.\s]+$/.test(l) ? (/ㅋ|ㅎ/.test(l) ? '哈哈哈哈' : l) : await trText(l, 'zh'); out.push({ ko: l, zh: zh || '' }); }
   }
@@ -10661,21 +10663,22 @@ function serimNoteTick() {
   const now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   for (const n of serimNotes()) if (n.day === today && n.kkt && !n.kkt.done && nm >= n.kkt.at) { n.kkt.done = 1; dmPush(serimP(), { text: n.kkt.ko, zh: n.kkt.zh }); save(); }
 }
+const srPhFree = () => { const R = SR(), held = new Set((R.script || []).filter(x => x.st === 'wait').flatMap(x => x.list.map(m => m.pid)).filter(Boolean)); return (R.photos || []).slice().reverse().filter(p => !p.sent && !held.has(p.id)); };
 function serimCardHTML() {
   const td = dkey(Date.now()), N = serimNotes().filter(n => n.day >= addDays(td, -1)).slice().reverse();
   return `<div class="row"><h3 style="flex:1">💙 世琳</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="card"><textarea id="serim-in" style="min-height:64px" placeholder="比如：世琳今天下午去了咖啡馆，晚上准备和成员一起吃饭"></textarea>
       <div class="sr-ph">${SRPH ? `<img src="${SRPH.url}" alt=""><input id="serim-phd" placeholder="照片里是什么（比如：敏熙的小卡，放在宿舍桌上拍的）" style="flex:1"><button class="link" data-act="serimphx">去掉</button>` : '<label class="btn ghost sm ext-pick">📷 给他一张照片<input type="file" id="serim-ph" accept="image/*"></label><span class="muted" style="font-size:12px">他手机里会有这张照片，聊到相关的时候可能发给你</span>'}</div>
       <div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary sm" data-act="serimset">记下</button></div></div>
-    ${(() => { const P = (SR().photos || []).slice().reverse(), row = p => `<div class="rule" style="align-items:center;gap:8px"><img data-mid="${p.mid}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px"><span style="flex:1;font-size:13px">${esc(p.d)}</span><button class="link" data-act="srphdel" data-id="${p.id}">删</button></div>`, A = P.filter(p => !p.sent), B = P.filter(p => p.sent);
+    ${(() => { const P = (SR().photos || []).slice().reverse(), row = p => `<div class="rule" style="align-items:center;gap:8px"><img data-mid="${p.mid}" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px"><span style="flex:1;font-size:13px">${esc(p.d)}</span>${p.sent ? '' : (SR().script || []).some(x => x.st === 'wait' && x.list.some(m => m.pid === p.id)) ? '<span class="muted" style="font-size:12px">已安排</span>' : `<button class="link" data-act="srphplan" data-id="${p.id}">安排发</button>`}<button class="link" data-act="srphdel" data-id="${p.id}">删</button></div>`, A = P.filter(p => !p.sent), B = P.filter(p => p.sent);
       return (A.length ? `<div class="muted" style="font-size:12.5px;margin:8px 4px 4px">他手机里的照片</div><div class="card" style="padding:4px 12px">${A.map(row).join('')}</div>` : '') + (B.length ? `<details class="card" style="padding:4px 12px;margin-top:10px"${UI.srPhOldOpen ? ' open' : ''}><summary data-act="srphold" style="font-weight:700;padding:8px 0">发过的照片（${B.length}）</summary>${B.map(row).join('')}</details>` : ''); })()}
     ${(() => { const row = n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === td ? '今天' : '昨天'} ${hhmm(srMin(n.at))}${n.parsed === 'fb' ? ' · 粗略记录（AI 恢复后会重新理解）' : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link" data-act="serimdel" data-id="${n.id}">删</button></div>`, A = N.filter(n => n.day === td), B = N.filter(n => n.day !== td);
       return (A.length ? `<div class="sec-title" style="margin-top:10px">你今天记下的</div><div class="card" style="padding:4px 12px">${A.map(row).join('')}</div>` : '') + (B.length ? `<details class="card" style="padding:4px 12px;margin-top:10px"${UI.srOldOpen ? ' open' : ''}><summary data-act="srold" style="font-weight:700;padding:8px 0">昨天的记录（${B.length}）</summary>${B.map(row).join('')}</details>` : ''); })()}
     ${SR().jobs.some(j => j.type === 'reparse') || serimNotes().some(n => n.day === td && !n.parsed) ? '<div class="muted" style="font-size:12.5px;margin:10px 4px 0">⏳ 正在根据你记的内容更新时间线…</div>' : ''}
     <details class="card" style="margin-top:10px" ${UI.srSayOpen ? 'open' : ''}><summary style="font-weight:700" data-act="srsaytg">✉️ 让他发一段消息</summary>
-      <textarea id="sr-say" style="min-height:110px;margin-top:8px" placeholder="一行一条，写【图片】的那行发一张照片：&#10;오늘 너무 힘들다&#10;근데 옷 주머니에서 포카 나왔어&#10;【图片】&#10;이게 왜 여기에"></textarea>
+      <textarea id="sr-say" style="min-height:110px;margin-top:8px" placeholder="一行一条，写【图片】的那行发一张照片（可以写好几行【图片】，按下面选的顺序发）：&#10;오늘 너무 힘들다&#10;근데 옷 주머니에서 포카 나왔어&#10;【图片】&#10;이게 왜 여기에">${esc(UI.srSayDraft || '')}</textarea>
       <div class="muted" style="font-size:12px;margin:4px 2px">韩语照原样发；写中文的那行会翻成他的口吻（半语）。</div>
-      ${(SR().photos || []).some(p => !p.sent) ? `<div class="row" style="gap:8px;margin-top:6px"><span style="font-size:13px;white-space:nowrap">【图片】用</span><select id="sr-say-ph" style="flex:1">${SR().photos.slice().reverse().filter(p => !p.sent).map(p => `<option value="${p.id}">${esc(p.d.slice(0, 24))}</option>`).join('')}</select></div>` : '<div class="muted" style="font-size:12px;margin:4px 2px">要发照片的话，先在上面「给他一张照片」（发过的照片不会再出现在这里）。</div>'}
+      ${(() => { const L = srPhFree(), sel = (UI.srSayPh || []).filter(id => L.some(p => p.id === id)); UI.srSayPh = sel; return L.length ? `<div style="font-size:13px;margin:8px 2px 4px">【图片】按顺序用这几张（点选，可以选好几张）：</div><div class="sr-phpick">${L.map(p => { const k = sel.indexOf(p.id); return `<button class="${k >= 0 ? 'on' : ''}" data-act="srsayph" data-id="${p.id}"><img data-mid="${p.mid}" alt="">${k >= 0 ? `<b>${k + 1}</b>` : ''}<span>${esc(p.d.slice(0, 10))}</span></button>`; }).join('')}</div>` : '<div class="muted" style="font-size:12px;margin:4px 2px">要发照片的话，先在上面「给他一张照片」（发过的、已经安排好的照片不会再出现在这里）。</div>'; })()}
       <div class="seg" style="margin:8px 0 0">${[['next', '他下次拿起手机时'], ['seg', '他某段日程的时候']].map(([k, t]) => `<button class="${(UI.srSayMode || 'next') === k ? 'on' : ''}" data-act="srsaymode" data-m="${k}">${t}</button>`).join('')}</div>
       ${(UI.srSayMode || 'next') === 'seg' ? (() => { const now = Date.now(), td = dkey(now), L = [td, addDays(td, 1)].filter(k => SR().day[k]).flatMap(k => srSegs(k).filter(g => g.kind !== 'sleep' && srTs(k, g.e) + 20 * 60e3 > now).map(g => `<option value="${k}|${g.id}">${k === td ? '今天' : '明天'} ${hhmm(g.s)}-${hhmm(g.e)} ${esc(g.what)}</option>`));
         return L.length ? `<select id="sr-say-seg" style="margin-top:8px;width:100%">${L.join('')}</select><div class="seg" style="margin:8px 0 0">${[['start', '刚开始时'], ['mid', '进行中'], ['end', '结束后']].map(([k, t]) => `<button class="${(UI.srSayW || 'mid') === k ? 'on' : ''}" data-act="srsayw" data-w="${k}">${t}</button>`).join('')}</div>` : '<div class="muted" style="font-size:12.5px;margin-top:8px">今天接下来没有日程了</div>'; })() : ''}
@@ -11288,6 +11291,8 @@ document.addEventListener('click', async e => {
     case 'serimopen': openModal(serimCardHTML()); break;
     case 'serimphx': SRPH = null; openModal(serimCardHTML()); break;
     case 'srsaytg': UI.srSayOpen = !t.parentElement.open; break;
+    case 'srsayph': { const L = UI.srSayPh || (UI.srSayPh = []), i = L.indexOf(t.dataset.id); if (i >= 0) L.splice(i, 1); else L.push(t.dataset.id); UI.srSayOpen = 1; openModal(serimCardHTML()); break; }
+    case 'srphplan': { UI.srSayOpen = 1; UI.srSayPh = [t.dataset.id]; if (!/【图片】|\[图片\]/.test(UI.srSayDraft || '')) UI.srSayDraft = '【图片】\n' + (UI.srSayDraft || ''); openModal(serimCardHTML()); setTimeout(() => { const el = $('#sr-say'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } }, 50); break; }
     case 'ytpcovx': { const p = yt().plans.find(x => x.id === t.dataset.id); if (p && p.thumb) { idbDel(p.thumb); delete p.thumb; save(); } break; }
     case 'ytthumbx': { const Y = yt(), id = t.dataset.id; if (Y.thumbs && Y.thumbs[id]) { idbDel(Y.thumbs[id]); delete Y.thumbs[id]; save(); } break; }
     case 'srold': UI.srOldOpen = !t.parentElement.open; break;
@@ -11296,8 +11301,8 @@ document.addEventListener('click', async e => {
     case 'srsaymode': { const v = $('#sr-say')?.value || ''; UI.srSayOpen = 1; UI.srSayMode = t.dataset.m; openModal(serimCardHTML()); const el = $('#sr-say'); if (el) el.value = v; break; }
     case 'srsayw': { const v = $('#sr-say')?.value || '', sg = $('#sr-say-seg')?.value; UI.srSayOpen = 1; UI.srSayW = t.dataset.w; openModal(serimCardHTML()); const el = $('#sr-say'); if (el) el.value = v; if (sg && $('#sr-say-seg')) $('#sr-say-seg').value = sg; break; }
     case 'srsaydel': { const R = SR(); R.script = (R.script || []).filter(x => x.id !== t.dataset.id); save(); UI.srSayOpen = 1; openModal(serimCardHTML()); break; }
-    case 'srsay': { const v = ($('#sr-say')?.value || '').trim(); if (!v) break; if (v.split('\n').some(l => SR_PH_LINE.test(l.trim())) && !$('#sr-say-ph')) { toast('没有还没发过的照片', '先在上面给他一张照片'); break; } t.disabled = true; t.textContent = '翻译中…';
-      if ((UI.srSayMode || 'next') === 'seg' && !$('#sr-say-seg')) { t.disabled = false; t.textContent = '安排'; toast('没有可以选的日程'); break; } const ok = await srScriptAdd(v, $('#sr-say-ph')?.value, UI.srSayMode || 'next', $('#sr-say-seg')?.value, UI.srSayW || 'mid'); UI.srSayOpen = 1; if (ok) toast('安排好了'); openModal(serimCardHTML()); break; }
+    case 'srsay': { const v = ($('#sr-say')?.value || '').trim(); if (!v) break; const nPh = v.split('\n').filter(l => SR_PH_LINE.test(l.trim())).length, sel = UI.srSayPh || []; if (nPh && !sel.length) { toast('先选要发的照片', '在【图片】下面点选'); break; } if (nPh > sel.length) { toast(`写了 ${nPh} 行【图片】，只选了 ${sel.length} 张照片`); break; } t.disabled = true; t.textContent = '翻译中…';
+      if ((UI.srSayMode || 'next') === 'seg' && !$('#sr-say-seg')) { t.disabled = false; t.textContent = '安排'; toast('没有可以选的日程'); break; } const ok = await srScriptAdd(v, UI.srSayPh || [], UI.srSayMode || 'next', $('#sr-say-seg')?.value, UI.srSayW || 'mid'); UI.srSayOpen = 1; if (ok) { toast('安排好了'); UI.srSayDraft = ''; UI.srSayPh = []; } openModal(serimCardHTML()); if (ok) { const el = $('#sr-say'); if (el) el.value = ''; } break; }
     case 'srphdel': { const R = SR(); R.photos = (R.photos || []).filter(p => p.id !== t.dataset.id); save(); openModal(serimCardHTML()); break; }
     case 'serimset': { if (SRPH) { const d = ($('#serim-phd')?.value || '').trim(); if (!d) { toast('写一句照片里是什么', '他会按这个判断什么时候发'); break; } const f = SRPH.file; URL.revokeObjectURL(SRPH.url); SRPH = null; await srPhotoAdd(f, d); toast('照片存到他手机里了'); if (!($('#serim-in')?.value || '').trim()) { openModal(serimCardHTML()); break; } }
       const el = $('#serim-in'), v = (el && el.value || '').trim(); if (!v) break; el.value = ''; t.disabled = true; serimNoteAdd(v); toast('记下了'); openModal(serimCardHTML()); break; }
@@ -11556,6 +11561,7 @@ document.addEventListener('change', async e => {
   }
 });
 document.addEventListener('input', e => {
+  if (e.target.id === 'sr-say') UI.srSayDraft = e.target.value;
   if (e.target.id === 'r-title') syncWorkField();
   if (e.target.id === 'b-level') { S.prefs.beauty = Object.assign(beautyCfg(), { level: +e.target.value }); const v = $('#b-val'); if (v) v.textContent = e.target.value; applyBeauty(); save(); }
   if (e.target.id === 'w-in' || e.target.id === 'w-cur') walletPreview();
