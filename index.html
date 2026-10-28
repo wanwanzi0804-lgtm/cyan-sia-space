@@ -9767,6 +9767,7 @@ function srEvPick(now) {
   return { id: e.id, at: now, dk: x.dk, until: now + 40 * 60e3, round: 0, log: [], opts: e.o.slice(), where: place, her: (x.herNow || x.herJust || {}).title || '', his: x.g ? x.g.what : '', co: /^co/.test(e.w) || e.w === 'herPractice' || e.w === 'herCoEve' };
 }
 function srEvTick(now) {
+  { const E = SR().evNow; if (E && E.busy && !srEvLive && !E.st) { const l = E.log[E.log.length - 1]; E.busy = 0; if (l && !l.narr) { E.log.pop(); save(); srEvAct(l.mine); } else save(); } } // 写到一半页面被关掉 / 刷新了：接着重新写，不会一直卡在「…」
   const R = SR(), E = R.evNow;
   if (E && !E.st) { if (now > E.until && !E.log.length) { R.evNow = null; save(); return; } if (!UI.socPop && !UI.chPop && !$('#modal').classList.contains('on')) { E.shown = 1; UI.socPop = { srev: 1 }; openModal(socPopHTML()); save(); } return; } // 弹出来还没处理就刷新了：重新弹
   if (R.evDay === dkey(now) || (R.evChk && now - R.evChk < 25 * 60e3)) return; R.evChk = now;
@@ -9776,16 +9777,16 @@ function srEvTick(now) {
 function srEvHTML() {
   const E = SR().evNow; if (!E) return ''; const e = SR_EVS.find(x => x.id === E.id), busy = E.busy;
   const head = `<div class="row"><h3 style="flex:1">💙 世琳 · ${esc(e.g)}</h3></div><div class="muted" style="font-size:12.5px;margin-bottom:8px">${hhmm(srMin(E.at))}${E.where ? ' · ' + esc(E.where) : ''}${E.her ? ' · 你：' + esc(E.her) : ''}${E.his ? ' · 世琳：' + esc(E.his) : ''}</div>`;
-  const body = `<div style="margin-bottom:10px;line-height:1.65">${esc(e.d)}</div>` + E.log.map(l => `<div class="card" style="margin:0 0 8px"><div style="margin-bottom:6px">你：${esc(l.mine)}</div><div class="muted" style="line-height:1.65">${l.narr ? esc(l.narr) : '…'}</div></div>`).join('');
+  const body = `<div style="margin-bottom:10px;line-height:1.65">${esc(e.d)}</div>` + E.log.map(l => `<div class="card" style="margin:0 0 8px"><div style="margin-bottom:6px">你：${esc(l.mine)}</div><div class="muted" style="line-height:1.65">${l.narr ? esc(l.narr) : '<span class="typing">正在写接下来发生的事…</span>'}</div></div>`).join('');
   if (E.st === 'end') return head + body + `<div class="row" style="margin-top:6px"><span class="sp"></span><button class="btn primary" data-act="srevclose">好</button></div>`;
-  if (busy) return head + body + `<div class="muted" style="text-align:center;padding:8px 0">…</div>`;
+  if (busy) return head + body + `<div class="muted" style="text-align:center;padding:8px 0;font-size:12.5px">AI 在想接下来会发生什么，大概要半分钟～一分钟</div>`;
   return head + body + E.opts.map((o, j) => `<button class="hot-opt" data-act="srevpick" data-j="${j}">${esc(o)}</button>`).join('') + `
     <div class="row" style="gap:6px;margin-top:6px"><input id="soc-in" placeholder="自己写你怎么做 / 说什么…" style="flex:1;min-width:0"><button class="btn sm" data-act="srevwrite">好</button></div>
     <div class="row" style="margin-top:8px"><span class="sp"></span><button class="link" data-act="srevclose">${E.log.length ? '就到这里' : '先不管'}</button></div>`;
 }
 async function srEvAct(mine) {
   const R = SR(), E = R.evNow; if (!E || E.busy || E.st) return; const e = SR_EVS.find(x => x.id === E.id), now = Date.now();
-  E.busy = 1; E.log.push({ mine, narr: '' }); save(); openModal(socPopHTML());
+  E.busy = 1; E.busyAt = now; srEvLive = 1; E.log.push({ mine, narr: '' }); save(); openModal(socPopHTML());
   const last = E.round >= 2, mem = e.m === '?' ? Object.keys(CRV_KZ).filter(n => !crvKnows(n))[0] : e.m;
   try {
     const j = await srAI(`这是模拟器里 Cyan（恩雪，STARSHIP solo 女歌手）和 CRAVITY 世琳（同公司，两人秘密交往中）之间正在发生的一件事。你来写接下来发生了什么。
@@ -9820,8 +9821,9 @@ ${SR_MEM_HINT}`, 12000, { type: 'object', additionalProperties: false, required:
     if (j.cancel_meet) { const mt = rulesFor(E.dk).find(r => r.srMeet); if (mt) srMeetCancel(mt.id, now); }
     if (end) srEvEnd(E, String(j.sum || '').slice(0, 120));
   } catch (err) { E.log[E.log.length - 1].narr = '（AI 暂时连不上，这件事先记下你的选择）'; srEvEnd(E, `${e.d.slice(0, 40)}……她：${mine}`); }
-  finally { E.busy = 0; save(); if (UI.socPop && UI.socPop.srev) openModal(socPopHTML()); }
+  finally { E.busy = 0; srEvLive = 0; save(); if (UI.socPop && UI.socPop.srev) openModal(socPopHTML()); }
 }
+let srEvLive = 0;
 const CRAV_ZH = n => CRV_KZ[n] || n;
 function srEvEnd(E, sum) {
   const R = SR(), e = SR_EVS.find(x => x.id === E.id), now = Date.now(); E.st = 'end';
