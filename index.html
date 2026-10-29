@@ -7995,7 +7995,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -8806,7 +8806,7 @@ function dmPendTick() { const now = Date.now(); for (const T of Object.values(dm
 // 这阵子聊天的意愿（临时状态，不是数值）：有时想聊、有时懒得打字、有时很累
 // 艺人 KKT 私聊用自己的设定（不用粉丝评论那套写作要求）
 // 她打中文时常用的饭圈说法（直译成韩语会变成别的意思）
-const FANDOM_GLOSS = '她说中文时常用饭圈说法：物料＝官方 / 节目发的照片、视频、花絮、自制内容（콘텐츠、영상、자컨，不是「资料 자료」）；打歌＝음방；直拍＝직캠；饭拍＝팬캠；签售＝팬싸；舞台＝무대；营业＝팬서비스；糖 / 发糖＝달달한 장면·떡밥；嗑＝(커플) 앓다；回归＝컴백；团综＝자체 예능；花絮＝비하인드；爱豆＝아이돌。';
+const FANDOM_GLOSS = '团里的人：멤버 / 멤버들＝成员 / 成员们（不是「同事」「会员」）；형＝哥（男生叫）；동생들＝弟弟们 / 队里的弟弟们。她说中文时常用饭圈说法：物料＝官方 / 节目发的照片、视频、花絮、自制内容（콘텐츠、영상、자컨，不是「资料 자료」）；打歌＝음방；直拍＝직캠；饭拍＝팬캠；签售＝팬싸；舞台＝무대；营业＝팬서비스；糖 / 发糖＝달달한 장면·떡밥；嗑＝(커플) 앓다；回归＝컴백；团综＝자체 예능；花絮＝비하인드；爱豆＝아이돌。';
 const KKT_SYS = () => `这是一个偶像模拟器（平行世界设定）。${FANDOM_GLOSS}你扮演一位真实存在的韩国艺人，和 solo 女歌手 ${S.profile.name}（本名 은설，${S.profile.company || 'STARSHIP'}，${ageOf()} 岁，住公司给的单人宿舍）在 KakaoTalk 上私聊。你写的是这个人自己会发出的消息：每个人说话方式都不一样，不要写成同一种「AI 聊天」的语气。只按要求输出 JSON。`;
 const VIBE_ZH = { chatty: '这会儿心情不错，有点想聊，有话会多说几句', normal: '状态普通，看内容回', brief: '手上有事 / 懒得打字，倾向简短回一下', tired: '很累，只想简单回或者干脆先不回，除非是重要的事' };
 function socVibe(p, when) {
@@ -9045,6 +9045,7 @@ function srOppaFix1() { const R = SR(); if (R.oppa1) return; R.oppa1 = 1; for (c
 function srCommute1028() { const R = SR(); if (R.comm1028) return; R.comm1028 = 1; if (R.day['2026-10-28']) srFillCommute('2026-10-28'); if (R.day['2026-10-29']) srFillCommute('2026-10-29'); }
 function ytRunShort1() { const Y = yt(); if (Y.runShort1) return; Y.runShort1 = 1; for (const v of Y.vids) if (/^Let.s run into unknown/i.test(v.title || '')) v.short = true; save(); }
 function srSleep1029() { const R = SR(); if (R.sleep1029) return; R.sleep1029 = 1; const D = R.day['2026-10-29']; if (D) { srSleepClamp(D); save(); } }
+function srMemberZh1() { const R = SR(); if (R.memZh1) return; R.memZh1 = 1; const T = dmThread(srP()); for (const m of T.msgs) if (!m.me && /멤버/.test(m.text || '') && /同事/.test(m.zh || '')) m.zh = m.zh.replace(/同事们/g, '成员们').replace(/同事/g, '成员'); for (const x of R.script || []) for (const l of x.list) if (/멤버/.test(l.ko || '') && /同事/.test(l.zh || '')) l.zh = l.zh.replace(/同事们/g, '成员们').replace(/同事/g, '成员'); save(); }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
