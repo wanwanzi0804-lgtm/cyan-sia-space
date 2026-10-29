@@ -4345,11 +4345,11 @@ function mgrChatter() {
 }
 function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div><div class="kk-list">${dmListHTML(true)}</div>${socHistHTML()}`; }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
-function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...rulesFor(dk).map(x => toMin(x.end))), from = Math.min(27 * 60, Math.max(21 * 60, last + 20)); return parseD(dk).getTime() + (from + Math.floor(r() * (28 * 60 - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
+function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...dayItems(dk).map(({ r: x, off }) => (toMin(x.end) <= toMin(x.start) ? toMin(x.end) + 1440 : toMin(x.end)) + off)), from = Math.max(21 * 60, last + 20), to = Math.max(28 * 60, from + 40); return parseD(dk).getTime() + (from + Math.floor(r() * (to - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
 // 一整天都在宿舍（或没有行程）就不发日报
-const dormDay = dk => rulesFor(dk).every(r => /宿舍/.test(r.loc || ''));
+const dormDay = dk => dayItems(dk).every(({ r }) => /宿舍/.test(r.loc || '')); // 一天按早上 5 点算
 function mgrReport() {
-  const M = mgrChat(), now = Date.now(), today = dkey(now);
+  const M = mgrChat(), now = Date.now(), today = logicalToday();
   if (!M.dormRepFix) { M.dormRepFix = 1; for (let i = 0; i <= 30; i++) { const dk = addDays(today, -i); if (!dormDay(dk)) continue; const tag = `[${kd(dk)} 일정 보고]`; M.chat = M.chat.filter(m => !(m.text || '').startsWith(tag)); } save(); mgrRefresh(); } // 以前发过的「全天在宿舍」日报删掉
   for (const dk of [addDays(today, -1), today]) {
     const at = mgrReportAt(dk); if (M.said['rep' + dk] || now < at || now > at + 10 * 3600e3) continue;
@@ -4359,14 +4359,14 @@ function mgrReport() {
   }
 }
 function mgrReportText(dk) {
-  const R = S.schedule.res || {}, rs = rulesFor(dk), d0 = parseD(dk), ko = [], zh = [], both = (k, z) => { ko.push(k); zh.push(z === undefined ? k : z); };
+  const R = S.schedule.res || {}, IT = dayItems(dk), rs = IT.map(x => x.r), d0 = parseD(dk), ko = [], zh = [], both = (k, z) => { ko.push(k); zh.push(z === undefined ? k : z); };
   both(`[${kd(dk)} 일정 보고]`, `[${zd(dk)}日程报告]`); both('');
   if (!rs.length) both('금일 일정 없음', '今日无日程');
   else {
     both('■ 일정 수행', '■ 日程执行');
-    rs.forEach((r, i) => {
-      const x = R[dk + '|' + r.id], future = Date.now() < d0.getTime() + toMin(r.start) * 60e3;
-      const ended = Date.now() >= d0.getTime() + toMin(r.end) * 60e3, [sk, sz] = !x ? (future ? ['예정', '待进行'] : ended && !TG_EVENTS[r.cat] ? ['완료', '完成'] : ['진행 중', '进行中']) : ['旷', '缺'].includes(x.grade) ? ['불참', '未参加'] : ['완료', '完成'];
+    IT.forEach(({ r, dk: rk, off }, i) => { const e0 = toMin(r.end) <= toMin(r.start) ? toMin(r.end) + 1440 : toMin(r.end);
+      const x = R[rk + '|' + r.id], future = Date.now() < d0.getTime() + (toMin(r.start) + off) * 60e3;
+      const ended = Date.now() >= d0.getTime() + (e0 + off) * 60e3, [sk, sz] = !x ? (future ? ['예정', '待进行'] : ended && !TG_EVENTS[r.cat] ? ['완료', '完成'] : ['진행 중', '进行中']) : ['旷', '缺'].includes(x.grade) ? ['불참', '未参加'] : ['완료', '完成'];
       both(`${i + 1}. ${r.start}~${r.end} ${toKo(r.title)}${r.loc ? ' / ' + toKo(r.loc) : ''} - ${sk}`, `${i + 1}. ${r.start}~${r.end} ${r.title}${r.loc ? ' / ' + r.loc : ''} - ${sz}`);
     });
   }
@@ -4380,7 +4380,7 @@ function mgrReportText(dk) {
   }
   // 特이사항：不到场、音乐节目结果、主办方付款
   const notes = [];
-  for (const r of rs) { const x = R[dk + '|' + r.id]; if (x && x.grade === '旷') notes.push([`${toKo(r.title)} 불참 건은 회사 규정에 따라 처리 예정입니다.`, `${r.title} 未参加的情况会按公司规定处理。`]); }
+  for (const { r, dk: rk } of IT) { const x = R[rk + '|' + r.id]; if (x && x.grade === '旷') notes.push([`${toKo(r.title)} 불참 건은 회사 규정에 따라 처리 예정입니다.`, `${r.title} 未参加的情况会按公司规定处理。`]); }
   for (const [k, v] of Object.entries(showsState().res)) if (k.startsWith(dk + '|') && v.rank <= 3) { const sh = SHOWS.find(x => x[0] === k.split('|')[1]), n = sh ? sh[1] : ''; notes.push(v.rank === 1 ? [`${n} 1위`, `${n} 一位`] : [`${n} 1위 후보 (최종 ${v.rank}위)`, `${n} 一位候补（最终第 ${v.rank}）`]); }
   const paid = (wallet().recv || []).filter(x => x.paidOn === dk && x.gross > 0 && ['行程', '课程'].includes(x.src));
   if (paid.length) notes.push([`주최 측 입금 확인: ${paid.map(x => toKo(x.title)).join(', ')} (정산일에 반영)`, `主办方已付款：${paid.map(x => x.title).join('、')}（结算日计入）`]);
