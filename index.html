@@ -7995,7 +7995,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9044,6 +9044,7 @@ function payFast1() { const W = wallet(); if (W.payFast1) return; W.payFast1 = 1
 function srOppaFix1() { const R = SR(); if (R.oppa1) return; R.oppa1 = 1; for (const m of R.mem) if (/오빠|欧巴/.test(m.t || '') && /挨训|挨骂|혼날|紧张/.test(m.t || '')) m.t = m.t.replace(/[，,；;]?[^，,；;。]*(오빠|欧巴)[^，,；;。]*(挨训|挨骂|혼날|紧张)[^，,；;。]*/g, '').replace(/^[，,；;\s]+/, ''); save(); } /* 「叫오빠像要挨训」这个说法从记忆里去掉 */
 function srCommute1028() { const R = SR(); if (R.comm1028) return; R.comm1028 = 1; if (R.day['2026-10-28']) srFillCommute('2026-10-28'); if (R.day['2026-10-29']) srFillCommute('2026-10-29'); }
 function ytRunShort1() { const Y = yt(); if (Y.runShort1) return; Y.runShort1 = 1; for (const v of Y.vids) if (/^Let.s run into unknown/i.test(v.title || '')) v.short = true; save(); }
+function srSleep1029() { const R = SR(); if (R.sleep1029) return; R.sleep1029 = 1; const D = R.day['2026-10-29']; if (D) { srSleepClamp(D); save(); } }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -9960,7 +9961,7 @@ ${fixed.length ? `这些已经确定，不能改也不能重叠：\n${fixed.map(
     const raw = (j.segs || []).map(x => ({ ...x, s: J(toMin(x.s)), e: x.e === '24:00' ? 1440 : J(toMin(x.e)) }));
     for (let i = 0; i < raw.length; i++) { const x = raw[i]; if (x.kind === 'move' && x.e - x.s > 50) { const ns = x.e - ri(18, 40); if (i && raw[i - 1].e === x.s) raw[i - 1].e = ns; x.s = ns; } }
     const segs = raw.map(x => ({ id: uid(), s: x.s, e: x.e <= x.s ? 1440 : x.e, what: String(x.what || '').slice(0, 40), where: String(x.where || '').slice(0, 20), with: String(x.with || '').slice(0, 20), kind: x.kind, src: 'gen', st: '', share: clamp(+x.share || 0, 0, 1), c: 0 })).filter(g => g.what && g.e > g.s);
-    if (segs.length >= 3) { const keep = nowM > 0 ? D.segs.filter(g => (g.src === 'fb' || g.src === 'gen') && g.s < nowM).map(g => ({ ...g, e: Math.min(g.e, nowM) })) : []; D.segs = D.segs.filter(g => g.src !== 'fb' && g.src !== 'gen').concat(keep, nowM > 0 ? segs.filter(g => g.e > nowM).map(g => ({ ...g, s: Math.max(g.s, nowM) })) : segs); D.gen = Date.now(); save(); }
+    if (segs.length >= 3) { const keep = nowM > 0 ? D.segs.filter(g => (g.src === 'fb' || g.src === 'gen') && g.s < nowM).map(g => ({ ...g, e: Math.min(g.e, nowM) })) : []; D.segs = D.segs.filter(g => g.src !== 'fb' && g.src !== 'gen').concat(keep, nowM > 0 ? segs.filter(g => g.e > nowM).map(g => ({ ...g, s: Math.max(g.s, nowM) })) : segs); srSleepClamp(D); D.gen = Date.now(); save(); }
   } catch (e) { console.warn('srDay', e.message); } finally { srGenBusy = 0; }
 }
 
@@ -10572,6 +10573,12 @@ function srCut(D, s, e, nid) {
 }
 /* 换地方就得有路上的时间：宿舍 ↔ 公司 / 现场之间没留路上的，补上；打歌、舞台之前还要做造型、彩排 */
 const SR_HOME = /宿舍|家里|床|房间|dorm/i, SR_SHOW = /打歌|音乐节目|M ?Countdown|Music Bank|音乐中心|Music Core|人气歌谣|Inkigayo|Show Champion|The Show|舞台|演出|公演/i;
+/* 不休息的日子睡不了那么久：凌晨那一觉超过七个多小时的，入睡时间往后挪（之前在刷手机、和成员闹） */
+function srSleepClamp(D) { const L = D.segs.filter(g => !g.del && g.st !== 'cancel'), work = L.some(g => g.kind === 'work'); if (!work) return; const sl = L.find(g => g.kind === 'sleep' && g.s < 300 && g.e > 360); if (!sl) return; const max = Math.round(rand(5.5, 7) * 60); if (sl.e - sl.s <= max + 30) return;
+  const old = sl.s, oe = sl.e, ne = oe > 570 ? Math.min(oe, ri(510, 570)) : oe, ns = Math.max(old, Math.min(ne - max, ri(150, 185))); /* 平常 8 点半到 9 点半之间起，睡五个半到七个小时 */ sl.s = ns; sl.e = ne;
+  if (ns > old) D.segs.push({ id: uid(), s: old, e: ns, what: '洗完澡躺着刷手机，和成员在群里闹了一会儿才睡', where: '宿舍', with: '', kind: 'free', src: sl.src || 'gen', st: '', share: 0, c: 0 });
+  if (ne < oe) { const nx = L.find(g => g !== sl && g.s === oe && g.kind !== 'work'); if (nx) nx.s = ne; else D.segs.push({ id: uid(), s: ne, e: oe, what: '醒了，起床洗漱、刷了会儿手机', where: '宿舍', with: '', kind: 'free', src: sl.src || 'gen', st: '', share: 0, c: 0 }); }
+  D.segs.sort((a, b) => a.s - b.s); }
 function srFillCommute(dk) { const D = srDay(dk); const L = () => D.segs.filter(g => !g.del && g.st !== 'cancel').sort((a, b) => a.s - b.s); const home = g => g.kind === 'sleep' || SR_HOME.test((g.where || '') + (g.what || '')) && !/路上/.test(g.where || ''), mk = (s, e, what, where, kind = 'move') => ({ id: uid(), s, e, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 });
   for (let guard = 0; guard < 12; guard++) { const S0 = L(); let ch = 0;
     for (let i = 0; i + 1 < S0.length; i++) { const a = S0[i], b = S0[i + 1]; if (a.kind === 'move' || b.kind === 'move' || /路上|车上/.test((a.where || '') + (b.where || ''))) continue; const gap = b.s - a.e;
