@@ -9496,6 +9496,7 @@ function dmCallTick() {
   for (const [key, T] of Object.entries(dms())) { const c = T.call; if (!c || c.done) continue; if (!c.soon && (h < 10 && !(key === SR_K && h < 2))) continue; // 说了「现在就打」的随时打；世琳夜里两点前也会打，其他人只在白天
     if (c.ringAt == null && !c.tries) { c.ringAt = now + rand(.3, 2) * 3600e3; continue; }
     if (!c.ringAt || now < c.ringAt) continue;
+    if (key === SR_K) { const calls = T.msgs.filter(m => m.call && !m.me && now - m.at < 24 * 3600e3), last = Math.max(0, ...T.msgs.filter(m => m.call).map(m => m.at)), today = calls.filter(m => dkey(m.at) === dkey(now)).length; if (now - last < (c.soon ? 90 : 240) * 60e3 || today >= 2) { c.ringAt = Math.max(now + 30 * 60e3, last + 240 * 60e3); if (today >= 2) { c.done = 1; c.ringAt = null; } continue; } } // 他打电话不会太频繁：离上一通至少几个小时，一天最多主动打两次（包括没接的）
     if (key === SR_K && !c.soon) { const st = srNow(now); if (st && (st.sleep || st.busy)) { c.ringAt = now + rand(20, 60) * 60e3; continue; } } // 他在睡觉 / 工作：不会这时候打来
     c.ringAt = null; c.tries = (c.tries || 0) + 1; UI.call = { key, mode: 'in', by: 'them' }; callShow(); save();
     setTimeout(() => { if (UI.call && UI.call.key === key && UI.call.mode === 'in') { callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); callEnd(); } }, 30e3);
@@ -10168,6 +10169,7 @@ const SR_VOICE = `世琳这个人怎么说话（比后面所有具体规则都�
 - 场景不同，反应就不同，没有哪一种是标准答案：闲聊就是闲聊；开玩笑他会接着玩或者损回去；她撒娇他可能甜回去、可能逗她、可能害羞；认真讨论时他有自己的看法，会同意也会不同意；吵架时他有自己的立场和情绪，会委屈、会嘴硬、也会让步；和好时不一定很正式；她心情不好时，他怎么反应取决于他是什么样的人、此刻发生了什么——可能问、可能就陪着、可能逗她、也可能自己都不知道该怎么办。
 - 他温柔、体贴、会照顾人：这体现在他在意什么、记得什么、做什么，而不是一直用平静、礼貌、有分寸的语气提供支持。熟悉的恋人之间说话是随意的、带个人色彩的，有时候还不完美。
 - 要避免的是「AI 腔」，不是某些词或某种情绪：每次都差不多的回应套路；把她的话换个说法复述一遍再给回应；不管什么情况都同一个语气（永远平静温和、永远积极、永远甜）；像咨询师那样确认她的感受、给她许可、承诺陪着她，却没有一点他自己的东西；为了显得亲密硬塞昵称和甜话；为了显得自然硬加语气词或者硬缩短。
+- 打电话：平时主要是打字聊，打电话是有事要说、很想听她声音、或者两个人说好了的时候才打，一天一两次就算多的；刚打过（或刚没接到）就不会马上又说要打。说「忙完给你打」的话，是忙完以后的事。
 - 分寸：一件事说过一次、她回应了（「知道了」「别担心」「我自己会看着办」），他就放下了——最多再轻轻带一句或者开个玩笑，不会一轮一轮绕回去叮嘱，也不会一遍遍解释自己有多担心、多在意。他信任她是个会照顾自己的成年人。她要去忙、要挂电话了，他就自然地道个别，不会趁最后再塞一遍叮嘱。
 - 关系和记忆：两人之间发生过的事、她之前说过的话他都知道，接着那个背景说，不会重新问已经知道的事；也不会为了显得记得而翻旧事。
 `;
@@ -10242,7 +10244,7 @@ function srApply(j, when, T) {
   if (j.conv && j.conv.t) SR().conv = { t: String(j.conv.t).slice(0, 120), open: (j.conv.open || []).slice(0, 4).map(x => String(x).slice(0, 60)), at: when, inner: String(j.inner || '').slice(0, 120) };
   if (j.promise && j.promise.t && j.promise.cond) srPromiseAdd(j.promise, when);
   if (j.mood) { const M = SR().mood; if (typeof j.mood.val === 'number') M.val = clamp(M.val * .4 + clamp(j.mood.val, -2, 2) * .6, -2, 2); M.to = String(j.mood.to || '').slice(0, 20); if (j.mood.why) M.why = String(j.mood.why).slice(0, 40); }
-  const pl = j.plan, callNow = /지금 ?(바로 )?(전화 ?)?(걸게|할게|건다|걸께)|바로 (전화|걸게)|现在(就)?(给你)?打/.test((j.ko || '') + ' ' + (j.zh || '')); if (pl && pl.type === 'call' && pl.confirmed || callNow) dmCallSet(T, ((pl && pl.what) || '').slice(0, 40), callNow); // 说了「现在就打」：一两分钟内真的打过来
+  const pl = j.plan, callNow = /지금 ?(바로 )?(전화 ?)?(걸게|할게|건다|걸께)|바로 (전화|걸게)|现在(就)?(给你)?打/.test((j.ko || '') + ' ' + (j.zh || '')) && !/끝나(면|고)|이따|나중에|후에|있다가|완了|之后|以后|等.{0,6}(完|结束)|忙完/.test((j.ko || '') + ' ' + (j.zh || '')); /* 「忙完马上打」不是现在打：按承诺在那段安排结束后再说 */ if (pl && pl.type === 'call' && pl.confirmed || callNow) dmCallSet(T, ((pl && pl.what) || '').slice(0, 40), callNow); // 说了「现在就打」：一两分钟内真的打过来
   if (pl && pl.type === 'meet') srMeet(pl, when);
 }
 // 他自己说的安排变化：add 新的安排（比如临时被叫去公司）/ cancel 取消某段（比如晚饭约取消了）；你确认过的已发生的事不会被他的话改掉
