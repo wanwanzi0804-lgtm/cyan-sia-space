@@ -1643,7 +1643,8 @@ function hotVenue(ev) {
 // 只用真实发生过的事：最近的直播（你说过的话）、最近结束的行程
 function hotLive(need) {
   const ok = (S.lives || []).filter(l => Date.now() - l.end < 7 * 86400e3 && (!need.video || l.mode === 'video'));
-  const cands = ok.map(l => ({ l, qs: (l.said || []).filter(x => x.length >= 5 && x.length <= 40 && !/^(大家|你们)?(好|晚上好|早上好|早安|晚安|拜拜|下次见)/.test(x) && !LEAVE_RE.test(x) && (!need.kw || need.kw.test(x))) })).filter(x => need.video && !need.kw ? true : x.qs.length);
+  const meaningful = x => { const w = (x.match(/[\u4e00-\u9fff\uac00-\ud7a3a-zA-Z]/g) || []).length, d = (x.match(/\d/g) || []).length; return w >= 5 && d <= w / 3 && !/(.)\1{3,}/.test(x); }; // 语音识别出来的数字串、乱码、拖长音不算一句话
+  const cands = ok.map(l => ({ l, qs: (l.said || []).filter(x => x.length >= 5 && x.length <= 40 && meaningful(x) && !/^(大家|你们)?(好|晚上好|早上好|早安|晚安|拜拜|下次见)/.test(x) && !LEAVE_RE.test(x) && (!need.kw || need.kw.test(x))) })).filter(x => need.video && !need.kw ? true : x.qs.length);
   if (!cands.length) return null;
   const c = pick(cands); return { lt: c.l.title || '直播', q: c.qs.length ? pick(c.qs) : '' };
 }
@@ -1692,7 +1693,7 @@ function hotNewPost(p, ev) {
   const f = S.profile.followers, sc = f / 15000;
   const body = hotFill(ev.body, p), media = /\[视频\]/.test(body) ? 'video' : /\[图片\]/.test(body) ? 'image' : '';
   const post = { eid: ev.id, p: { song: p.song, e: p.e, q: p.q, lt: p.lt }, au: ev.au[0], tag: ev.au[1], body: body.replace(/\s*\[(视频|图片)\]/g, ''), media, at: Date.now(), likes: Math.round(rand(80, 400) * sc), rt: Math.round(rand(10, 80) * sc), cc: 0, liked: false, cm: [] };
-  for (let i = 0; i < ri(6, 10); i++) { const c = hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, p)) }); post.cm.push(c); post.cc += ri(1, Math.max(2, Math.round(4 * sc))); }
+  for (let i = 0, tries = 0; i < ri(6, 10) && tries < 40; tries++) { const c = hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, p)) }); if (post.cm.some(x => x.text === c.text)) continue; post.cm.push(c); post.cc += ri(1, Math.max(2, Math.round(4 * sc))); i++; } // 同一句评论不会出现两次
   post.cm.sort((a, b) => b.likes - a.likes);
   return post;
 }
@@ -7995,7 +7996,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9056,6 +9057,7 @@ function nightTrainMove2() { const SO = social(); if (SO.ntMv2) return; SO.ntMv2
 function srFix1102() { const R = SR(); if (R.fix1102) return; R.fix1102 = 1; if (R.day['2026-11-02']) { srDedupeGen('2026-11-02'); srFillCommute('2026-11-02'); }
   const T = dmThread(srP()), h = T.msgs.find(m => !m.me && /^아니야ㅠ 은설이 때문에 그런 거 아니야/.test(m.text || '')); if (h) { srRedoFrom(/^아니야ㅠ 은설이 때문에 그런 거 아니야/); const lm = T.msgs.filter(m => m.me).pop(); if (lm) { const at = lm.at + Math.round(rand(.5, 1.5) * 60e3); R.jobs = R.jobs.filter(j => j.type !== 'reply'); R.jobs.push({ id: uid(), type: 'reply', at, n: 0 }); T.readTo = at; T.rd = null; R.chat.next = Date.now() + 5 * 60e3; } }
   R.mem = R.mem.filter(m => !(/合练|합연습/.test(m.t || '') && (m.c || 0) > Date.now() - 6 * 3600e3)); save(); } /* 他说「这两天在合练」和他今天的行程对不上：删掉重回；今天重复的健身 / 出门 / 午饭让位给你记的 */
+function hotQFix1() { const H = hotState(); if (H.qFix1) return; H.qFix1 = 1; for (const [k, p] of Object.entries(H.posts || {})) if (p && p.eid === 'liveclip' && /\d{2}\s*\d{2}/.test((p.p && p.p.q) || '')) delete H.posts[k]; if (H.talk && /\d{2}\s*\d{2}/.test(H.talk.q || '')) H.talk = null; if (H.cur && H.cur.id === 'liveclip' && /\d{2}\s*\d{2}/.test(H.cur.q || '')) { if (H.cur.key) delete H.posts[H.cur.key]; H.cur = null; H.next = Date.now() + 3 * 3600e3; } save(); } /* 那条把数字串当成一句话的切片热门撤掉 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
