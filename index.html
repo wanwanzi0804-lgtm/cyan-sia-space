@@ -7554,7 +7554,7 @@ function viewSched() {
       <div style="flex:1;min-width:0"><div class="stitle">${esc(r.title)}</div>
       <div class="smeta"><span class="stag" style="color:${cc};background:color-mix(in srgb,${cc} 13%,transparent)">${esc(r.cat)}</span>${r.loc ? `<span class="sloc">${esc(r.loc)}</span>` : ''}${r.note ? `<span class="sloc">${esc(r.note)}</span>` : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
       <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
-  }).join('') + (k === today && IT.every(({ r, dk: rk, off }) => S.schedule.done[rk + '|' + r.id] || nowMin >= (toMin(r.end) <= toMin(r.start) ? toMin(r.end) + 1440 : toMin(r.end)) + off) ? '<div class="s-fin">今天的行程都结束了，辛苦了 🐱</div>' : '') + workSumHTML(k, IT, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
+  }).join('') + workSumHTML(k, IT, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
 }
 /* =========================================================
    🎬 Challenge 邀请：有活动的日子可以邀请别的艺人一起拍你的歌的挑战视频
