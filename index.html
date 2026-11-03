@@ -6603,7 +6603,11 @@ function layoutVars() {
 }
 addEventListener('resize', layoutVars);
 const isTextField = el => el && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|range|file|button|submit|color)$/.test(el.type)));
-document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#sheet')) UI.tapHold = Date.now(); const t = e.target; if (t && (t.id === 'dm-in' || t.id === 'mgr-in')) UI.inHold = Date.now(); }, true); // 刚点输入框的那一下不要被刷新打断
+const ptrRelease = () => { if (!UI.ptrDown) return; UI.ptrDown = 0; clearTimeout(UI._ptrT); const h = UI._pendHTML; UI._pendHTML = null; if (h && $('#modal').classList.contains('on')) { UI._flush = 1; try { openModal(h); } finally { UI._flush = 0; } } };
+// 松手后等这一下点击处理完（它自己会重画并清掉待补的）再补画；没有点击（拖动了）就过一会儿补
+document.addEventListener('pointerup', () => { if (UI.ptrDown) { clearTimeout(UI._ptrT); UI._ptrT = setTimeout(ptrRelease, 350); } }, true); document.addEventListener('pointercancel', () => { clearTimeout(UI._ptrT); UI._ptrT = setTimeout(ptrRelease, 50); }, true);
+document.addEventListener('click', () => { if (UI.ptrDown) setTimeout(ptrRelease, 0); }, true);
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#sheet')) UI.ptrDown = 1; const t = e.target; if (t && (t.id === 'dm-in' || t.id === 'mgr-in')) UI.inHold = Date.now(); }, true); // 刚点输入框的那一下不要被刷新打断
 document.addEventListener('focusin', e => { if (isTextField(e.target)) document.body.classList.add('typing'); if (e.target.id === 'bb-in' && UI.bbStk) { UI.bbStk = false; $('#bb-stk').innerHTML = ''; $('.bb-emo')?.classList.remove('on'); } });
 document.addEventListener('focusout', () => setTimeout(() => { if (!isTextField(document.activeElement)) { document.body.classList.remove('typing'); if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0); layoutVars(); } }, 50));
 function render() {
@@ -11208,7 +11212,7 @@ function viewMe() {
 // 刷新弹窗时保留输入框里的字、键盘焦点和聊天记录的滚动位置（之前一发消息界面就跳回顶部）
 function openModal(html) {
   const sh = $('#sheet'), keep = {}, act = document.activeElement, wasOn = $('#modal').classList.contains('on');
-  if (wasOn && Date.now() - (UI.tapHold || 0) < 450) { UI._pendHTML = html; clearTimeout(UI._pendT); UI._pendT = setTimeout(() => { const h = UI._pendHTML; UI._pendHTML = null; if (h && $('#modal').classList.contains('on')) openModal(h); }, 480); return; } // 手指正按在弹窗里（点返回、点按钮）的那一下不重画，不然按钮被换掉、这一下就点空了
+  if (wasOn && UI.ptrDown && !UI._flush) { UI._pendHTML = html; return; } // 手指正按在弹窗里（点返回、点按钮）时，后台的刷新先不画，松手、点击生效之后再补，不然按钮被换掉、这一下就点空了
   UI._pendHTML = null;
   { /* 正在聊天框里打字（或刚点了输入框）：只刷新聊天记录，不重建输入框——重建会把输入法打断，没确认的中文变成拼音字母，点输入框也会没反应 */
     const inp = ['dm-in', 'mgr-in'].map(id => sh.querySelector('#' + id)).find(Boolean), typing = inp && wasOn && (act === inp || Date.now() - (UI.inHold || 0) < 1200);
@@ -11223,11 +11227,12 @@ function openModal(html) {
   for (const id of ['dm-log', 'mgr-log']) { const el = sh.querySelector('#' + id); if (!el) continue; const k = keep[id]; el.scrollTop = !k || k.bottom ? el.scrollHeight : k.top; }
   sh.scrollTop = keep.sheet != null && sig() === oldSig ? keep.sheet : 0; // 同一个弹窗刷新才保留位置，换成别的弹窗从顶上开始
   for (const id of ['dm-in', 'mgr-in', 'soc-in', 'serim-in', 'serim-phd', 'sr-say']) { const el = sh.querySelector('#' + id), k = keep[id]; if (el && k) { el.value = k.v; if (k.f) { el.focus({ preventScroll: true }); try { el.setSelectionRange(k.s, k.s); } catch (e) { } } } }
+  if (sh.querySelector('#r-rep') && typeof syncRepFields === 'function') try { syncRepFields(); } catch (e) { } // 行程表单：按「重复」显示星期 / 日期
 }
 let BODY_Y = 0;
 function bodyLock(on) { const b = document.body; if (on) { if (b.classList.contains('locked')) return; BODY_Y = window.scrollY || 0; b.style.top = -BODY_Y + 'px'; b.classList.add('locked'); } else { if (!b.classList.contains('locked')) return; b.classList.remove('locked'); b.style.top = ''; window.scrollTo(0, BODY_Y); } }
 const bodyLockSync = () => bodyLock(!!($('#modal') && $('#modal').classList.contains('on')) || !!$('#call-ly') || !!$('#kk-view'));
-function closeModal() { UI._pendHTML = null; clearTimeout(UI._pendT); UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; bodyLockSync(); }
+function closeModal() { UI._pendHTML = null; UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; bodyLockSync(); }
 $('#modal').addEventListener('click', e => { if (e.target.id !== 'modal') return; if (UI.socPop) { const b = document.querySelector('#sheet [data-act=socclose]'); if (b) { b.click(); return; } UI.socPop = null; } if (UI.chPop) UI.chPop = null; if (UI.meet) UI.meet = 0; closeModal(); }); // 点外面关掉：弹窗状态也要清掉，不然之后的事件会被卡住
 
 /* =========================================================
