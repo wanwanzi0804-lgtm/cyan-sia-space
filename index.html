@@ -690,6 +690,7 @@ video.bv-glow{pointer-events:none}
 .yt-pcov{width:100%;margin-bottom:6px}.yt-pcov .yt-th{width:100%}
 .s-night{display:block;font-style:normal;font-size:10px;color:var(--muted)}
 .sr-phpick{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}.sr-phpick button{position:relative;flex:none;width:68px;border:2px solid transparent;border-radius:10px;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.sr-phpick button.on{border-color:var(--accent)}.sr-phpick img{width:64px;height:64px;object-fit:cover;border-radius:8px}.sr-phpick b{position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}.sr-phpick span{font-size:10.5px;color:var(--muted);max-width:64px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#vc-ly{position:fixed;inset:0;z-index:151;background:#0d0f13;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(64px + env(safe-area-inset-top)) 22px calc(36px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;overflow:hidden}.vc-bg{position:absolute;inset:0;z-index:0;overflow:hidden}.vc-bg *{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;border-radius:0!important;margin:0!important}.vc-bg img{object-fit:cover;filter:blur(18px) brightness(.5);transform:scale(1.15)}.vc-on .vc-bg img{filter:none;transform:none}.vc-on .vc-top .call-av{display:none}.vc-on .vc-top{text-shadow:0 1px 6px rgba(0,0,0,.6)}.vc-top{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center}.vc-btns{position:relative;z-index:1}.vc-me{position:absolute;z-index:1;right:18px;top:calc(18px + env(safe-area-inset-top));width:92px;height:130px;border-radius:14px;background:#2a2f38;border:2px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:13px;color:#cfd6df}
 </style>
 </head>
 <body>
@@ -9424,7 +9425,7 @@ function dmLogHTML(T, key, tr) {
 function dmHTML(key) {
   const T = dms()[key]; if (!T) return ''; T.msgs.slice(-20).forEach(m => { if (m.call) return; if (!m.me && !m.sys && m.text && !m.zh && !m._trTry && /[가-힣]/.test(m.text)) { m._trTry = 1; trText(m.text, 'zh', '', (i => T.msgs.slice(Math.max(0, i - 4), i).filter(x => !x.sys).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh ? x.zh : x.text}`).join('\n'))(T.msgs.indexOf(m))).then(out => { if (out && out !== m.text && !trBad(m.text, out)) { m.zh = out; save(); if (UI.dmOpen === key) openModal(dmHTML(key)); } }).catch(() => {}); } /* 对方的消息漏了翻译：补上 */ if (m.me && m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.me && !m.call && !m.zh && !m._tr && (!m._trTry || Date.now() - m._trTry > 30e3)) { m._trTry = Date.now(); setTimeout(() => dmTrMe(T, m), 0); } }); const p = T.p, SO = social(), tr = UI.mgrTr !== false;
   const pend = SO.q.find(x => x.dm && !x.ans && (x.via || x.p).key === key), e = pend && socEv(pend.ev);
-  return `<div class="kk-room${UI.kkDr === key ? ' dr' : ''}"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button><button class="kk-hb" data-act="kkdr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
+  return `<div class="kk-room${UI.kkDr === key ? ' dr' : ''}"><div class="kk-top"><button class="kk-hb" data-act="close"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="kk-nm">${esc(socDisp(p))}</b><button class="kk-hb kk-tr${tr ? ' on' : ''}" data-act="mgrtr2" data-k="${esc(key)}">翻译</button>${key === SR_K ? `<button class="kk-hb" data-act="vcgo" title="페이스톡" style="font-size:18px">🎥</button>` : ''}<button class="kk-hb" data-act="kkdr"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
     ${socMemHTML(key) ? `<div class="kk-note">${socMemHTML(key)}</div>` : ''}<div class="kk-log" id="dm-log">${dmLogHTML(T, key, tr)}${UI.typing && UI.typing[key] > Date.now() ? `<div class="kk-row">${kAv(key, 'mgr-av sm')}<div class="kk-b muted">输入中…</div></div>` : ''}</div>
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div class="kk-opts">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
     ${e ? `<div class="kk-opts">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
@@ -9445,7 +9446,29 @@ const CALL_OPT = [
 ];
 // 通话界面：对方打来（接 / 拒）或你打过去（连接中 / 取消），接通后在电话里聊；聊天里留下 KKT 那样的通话记录，谁打的就在谁那边
 const CALL_SVG = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24c1.1.37 2.3.57 3.6.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>';
-const callLbl = c => c.st === 'done' ? '보이스톡' : c.st === 'cancel' ? '보이스톡 취소' : '부재중 보이스톡';
+/* ---------- 페이스톡（视频通话）：随时可以由她打；也可以在后台让他过一阵自己提出来。通话内容不进记忆，挂了以后她不发消息他也不会再发 ---------- */
+function vcShow() { let L = $('#vc-ly'); const V = UI.vc; if (!V) { if (L) L.remove(); clearInterval(UI.vcIv); bodyLockSync(); return; } bodyLock(true); if (!L) { L = document.createElement('div'); L.id = 'vc-ly'; document.body.appendChild(L); }
+  const ic = CALL_SVG.replace(/18/g, '30'), down = ic.replace('<svg', '<svg style="transform:rotate(135deg)"'), btn = (act, cls, svg, l) => `<div><button class="call-b ${cls}" data-act="${act}">${svg}</button><div class="call-bl">${l}</div></div>`;
+  const st = V.mode === 'in' ? '페이스톡' : V.mode === 'out' ? '연결 중…' : V.mode === 'end' ? `통화 종료 ${V.dur || ''}` : `<span id="vc-tm">${mmss((Date.now() - V.t0) / 1000)}</span>`;
+  const bot = V.mode === 'in' ? btn('vcno', 'no', down, '거절') + btn('vcok', 'ok', ic, '수락') : V.mode === 'out' ? btn('vchang', 'no', down, '취소') : V.mode === 'on' ? btn('vchang', 'no', down, '종료') : '';
+  L.classList.toggle('vc-on', V.mode === 'on'); L.innerHTML = `<div class="vc-bg">${kAv(SR_K, 'vc-bgimg')}</div><div class="vc-top">${kAv(SR_K, 'call-av')}<div class="call-nm">${esc(socDisp(srP()))}</div><div class="call-st">${st}</div></div>${V.mode === 'on' ? '<div class="vc-me">나</div>' : ''}<div class="call-btns vc-btns">${bot}</div>`; hydrate(L);
+  clearInterval(UI.vcIv); if (V.mode === 'on') UI.vcIv = setInterval(() => { const e = $('#vc-tm'); if (e && UI.vc) e.textContent = mmss((Date.now() - UI.vc.t0) / 1000); }, 1000); }
+function vcRec(by, st, dur) { const T = dmThread(srP()), R = SR(), now = Date.now(); T.msgs.push({ id: uid(), at: now, me: by === 'me', text: callLbl({ st, video: 1 }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '', video: 1 } }); if (st === 'done') { (R.reach || (R.reach = [])).push({ at: now, kind: 'video', topic: '视频通话' }); R.chat.him = now; T.readTo = Math.max(T.readTo || 0, now); } save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); }
+function vcCanAnswer(at) { const st = srNow(at) || {}; if (srNoPhone(st)) return 0; if (st.sleep) return st.seg && at - srTs(dkey(at), st.seg.s) < 40 * 60e3 ? .6 : .15; if (st.busy) return .45; return .95; }
+function vcStart() { if (UI.vc || UI.call) return; UI.vc = { mode: 'out', by: 'me', at: Date.now() }; vcShow(); const V = UI.vc, ok = Math.random() < vcCanAnswer(Date.now());
+  setTimeout(() => { if (UI.vc !== V || V.mode !== 'out') return; if (ok) { V.mode = 'on'; V.t0 = Date.now(); vcShow(); } }, rand(3, 9) * 1e3);
+  setTimeout(() => { if (UI.vc !== V || V.mode !== 'out') return; vcRec('me', 'cancel'); const st = srNow(Date.now()) || {}; if (!st.sleep) srUrge('她刚才打视频过来，他在忙没接到', .7, Date.now() + 20 * 60e3, 'vc' + Date.now()); UI.vc = null; vcShow(); }, 30e3); }
+function vcHang() { const V = UI.vc; if (!V) return; if (V.mode === 'on') { const dur = mmss((Date.now() - V.t0) / 1000); vcRec(V.by, 'done', dur); V.mode = 'end'; V.dur = dur; vcShow(); setTimeout(() => { if (UI.vc === V) { UI.vc = null; vcShow(); } }, 1100); } else if (V.mode === 'out') { vcRec('me', 'cancel'); UI.vc = null; vcShow(); } else { UI.vc = null; vcShow(); } }
+async function vcAskGen() { const R = SR(), T = dmThread(srP()), now = Date.now(); try {
+    const j = await srAI(`${srCtx(now, '视频 페이스톡')}\n\n现在是 ${srClock(now)}。他现在想跟她打视频（페이스톡），用他自己的方式在 KKT 上提出来。为什么想打、怎么开口，看此刻的情况和你们最近的聊天：可能是想她了、想看看她、刚忙完、准备睡了、刚洗完澡躺下……也可能就是一句很随意的问。不要固定句式，不要每次都一样；一两条短消息，半语口语，可以带他的语气词。上面聊天里如果她刚说了什么还没回，先顺着接一句再提。\nmsgs：每条 ko 原文、zh 中文。`, 2500, { type: 'object', additionalProperties: false, required: ['msgs'], properties: { msgs: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['ko', 'zh'], properties: { ko: { type: 'string' }, zh: { type: 'string' } } } } } }, false, 'low', SR_SYS('kkt'));
+    const L = (j.msgs || []).filter(m => m.ko && m.ko.trim()).slice(0, 3); if (!L.length) throw new Error('empty');
+    (T.pend || (T.pend = [])).push({ at: Date.now(), list: L.map(m => ({ text: m.ko.trim(), zh: (m.zh || '').trim(), ping: 1 })) }); R.vcAsk = null; (R.reach || (R.reach = [])).push({ at: Date.now(), kind: 'video-ask', topic: '想打视频' }); save();
+  } catch (e) { R.vcAsk.at = Date.now() + 3 * 60e3; R.vcAsk.n = (R.vcAsk.n || 0) + 1; if (R.vcAsk.n > 4) R.vcAsk = null; save(); } }
+let vcAskBusy = 0;
+function srVcTick(now) { const R = SR();
+  if (R.vcAsk && now >= R.vcAsk.at && !vcAskBusy && srAIState().ok) { const st = srNow(now) || {}; if (srNoPhone(st) || st.sleep) R.vcAsk.at = st.seg ? srTs(dkey(now), st.seg.e) + rand(5, 20) * 60e3 : now + 30 * 60e3; else { vcAskBusy = 1; vcAskGen().finally(() => { vcAskBusy = 0; }); } }
+  if (R.vcRing && now >= R.vcRing && !UI.vc && !UI.call) { R.vcRing = 0; save(); UI.vc = { mode: 'in', by: 'them', at: now }; vcShow(); const V = UI.vc; setTimeout(() => { if (UI.vc === V && V.mode === 'in') { vcRec('them', 'miss'); UI.vc = null; vcShow(); } }, 30e3); } }
+const callLbl = c => { const n = c.video ? '페이스톡' : '보이스톡'; return c.st === 'done' ? n : c.st === 'cancel' ? n + ' 취소' : '부재중 ' + n; };
 function callRec(T, by, st, dur) { dmPush(T.p, { me: by === 'me', text: callLbl({ st }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '' } }); }
 const callTalk = (p, T) => T && T.call && T.call.topic ? socG(`电话接通了。${socName(p)}的声音听起来心情不错，你们接着刚才 KKT 里的话聊了起来。`, p) : socG(`${socName(p)}说下次回归的新歌已经有 demo 了，想先让你听听，问你愿不愿意给点意见。`, p);
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -10256,7 +10279,7 @@ const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required:
   act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] },
   end: { type: 'boolean' }, mem: SR_MEM_SCHEMA,
   promise: { type: 'object', additionalProperties: false, required: ['t', 'cond', 'min', 'imp'], properties: { t: { type: 'string' }, cond: { type: 'string', enum: ['', 'segEnd', 'time'] }, min: { type: 'integer' }, imp: { type: 'integer' } } },
-  plan: { type: 'object', additionalProperties: false, required: ['type', 'when', 'what', 'confirmed'], properties: { type: { type: 'string', enum: ['', 'meet', 'call'] }, when: { type: 'string' }, what: { type: 'string' }, confirmed: { type: 'boolean' } } },
+  plan: { type: 'object', additionalProperties: false, required: ['type', 'when', 'what', 'confirmed'], properties: { type: { type: 'string', enum: ['', 'meet', 'call', 'video'] }, when: { type: 'string' }, what: { type: 'string' }, confirmed: { type: 'boolean' } } },
   mood: { type: 'object', additionalProperties: false, required: ['val', 'to', 'why'], properties: { val: { type: 'number' }, to: { type: 'string' }, why: { type: 'string' } } } } };
 // 发出去之前：开头单独喊一声「은설아」偶尔才有（最近已经这样开过头就去掉）；和他这几个小时自己说过的话重复的气泡去掉
 const SR_NAME_ONLY = /^(은설|은설아|은설이|恩雪|恩雪啊|恩雪呀)[\s!~.ㅎㅋ…]*$/;
@@ -10287,6 +10310,7 @@ function srApply(j, when, T) {
   if (j.mood) { const M = SR().mood; if (typeof j.mood.val === 'number') M.val = clamp(M.val * .4 + clamp(j.mood.val, -2, 2) * .6, -2, 2); M.to = String(j.mood.to || '').slice(0, 20); if (j.mood.why) M.why = String(j.mood.why).slice(0, 40); }
   const pl = j.plan, callNow = /지금 ?(바로 )?(전화 ?)?(걸게|할게|건다|걸께)|바로 (전화|걸게)|现在(就)?(给你)?打/.test((j.ko || '') + ' ' + (j.zh || '')) && !/끝나(면|고)|이따|나중에|후에|있다가|완了|之后|以后|等.{0,6}(完|结束)|忙完/.test((j.ko || '') + ' ' + (j.zh || '')); /* 「忙完马上打」不是现在打：按承诺在那段安排结束后再说 */ if (pl && pl.type === 'call' && pl.confirmed || callNow) dmCallSet(T, ((pl && pl.what) || '').slice(0, 40), callNow); // 说了「现在就打」：一两分钟内真的打过来
   if (pl && pl.type === 'meet') srMeet(pl, when);
+  if (pl && pl.type === 'video' && pl.confirmed) { const R = SR(), w = srWhen(pl.when || '') || 0; R.vcRing = Math.max(Date.now() + rand(20, 90) * 1e3, w && w > Date.now() ? w : 0); R.vcAsk = null; }
 }
 // 他自己说的安排变化：add 新的安排（比如临时被叫去公司）/ cancel 取消某段（比如晚饭约取消了）；你确认过的已发生的事不会被他的话改掉
 function srSched(L, when) {
@@ -10344,7 +10368,7 @@ end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / �
 conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
 promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
 ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（合适的话这次顺便兑现，并在 mem 里把那条 upd 成 done）\n` : ''}sched：他在这次聊天里说到自己的安排有变（临时有事、改时间、取消、现在在做的事和上面不一样）才填，时间写 HH:MM、day 写 YYYY-MM-DD；没有就空数组。
-plan：两人在约见面（meet）或打电话（call）时填：when 写 YYYY-MM-DD HH:MM，confirmed 只有双方都明确说定了才 true；没约就 type 空。约之前要看他自己的安排和他知道的她的行程。
+plan：两人在约见面（meet）、打电话（call）或者打视频（video，페이스톡：说好现在 / 一会儿视频，他会打过去）时填：when 写 YYYY-MM-DD HH:MM，confirmed 只有双方都明确说定了才 true；没约就 type 空。约之前要看他自己的安排和他知道的她的行程。
 mood：这次聊完他整体的心情 val（-2 很差 ~ 2 很好，大多数普通聊天就是 0 左右）、to 填空字符串、why 一句起因（写发生了什么事，不写情绪名）。
 ${SR_MEM_HINT}
 
@@ -10594,6 +10618,7 @@ function srTick() {
   while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   try { srScriptTick(now); } catch (e) { console.error('sr script', e); }
   try { srEvTick(now); } catch (e) { console.error('sr ev', e); }
+  try { srVcTick(now); } catch (e) { console.error('sr vc', e); }
   srNoteRetry();
   R.jobs = R.jobs.filter(j => !((j.type === 'reach' && now - j.at > 3 * 3600e3) || (j.type === 'reply' && ((j.n || 0) >= 6 && now - j.at > 6 * 3600e3 || now - j.at > 18 * 3600e3)))); // 卡住太久的任务丢掉，不然会一直挡着他主动找她
   const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
@@ -10816,6 +10841,7 @@ function serimCardHTML() {
     ${(() => { const row = n => `<div class="rule" style="align-items:flex-start"><span style="flex:1;min-width:0"><span class="muted" style="font-size:12px">${n.day === td ? '今天' : '昨天'} ${hhmm(srMin(n.at))}${n.parsed === 'fb' ? ` · 粗略记录 <button class="link" data-act="srnotere" data-id="${n.id}" style="font-size:12px">现在重新理解</button>` : ''}</span><div style="font-size:13.5px">${esc(n.text)}</div></span><button class="link" data-act="serimdel" data-id="${n.id}">删</button></div>`, A = N.filter(n => n.day === td), B = N.filter(n => n.day !== td);
       return (A.length ? `<div class="sec-title" style="margin-top:10px">你今天记下的</div><div class="card" style="padding:4px 12px">${A.map(row).join('')}</div>` : '') + (B.length ? `<details class="card" style="padding:4px 12px;margin-top:10px"${UI.srOldOpen ? ' open' : ''}><summary data-act="srold" style="font-weight:700;padding:8px 0">昨天的记录（${B.length}）</summary>${B.map(row).join('')}</details>` : ''); })()}
     ${SR().jobs.some(j => j.type === 'reparse') || serimNotes().some(n => n.day === td && !n.parsed) ? '<div class="muted" style="font-size:12.5px;margin:10px 4px 0">⏳ 正在根据你记的内容更新时间线…</div>' : ''}
+    <div class="card" style="margin-top:10px"><div class="row" style="gap:8px;align-items:center"><b style="flex:1;font-size:14px">🎥 让他提出打视频</b>${SR().vcAsk ? `<span class="muted" style="font-size:12.5px">约 ${hhmm(srMin(SR().vcAsk.at))} 前后</span><button class="link" data-act="vcaskx">取消</button>` : `<select id="vc-ask-in" style="width:auto"><option value="3">马上</option><option value="15">15 分钟内</option><option value="40" selected>40 分钟内</option><option value="90">一个半小时内</option></select><button class="btn primary sm" data-act="vcask">好</button>`}</div><div class="muted" style="font-size:12px;margin-top:4px">他会在这段时间里自己在 KKT 上提出来（说法每次不一样）；你答应了他就打过来。在睡觉 / 签售这类时候会等他空了再说。</div></div>
     <details class="card" style="margin-top:10px" ${UI.srSayOpen ? 'open' : ''}><summary style="font-weight:700" data-act="srsaytg">✉️ 让他发一段消息</summary>
       <textarea id="sr-say" style="min-height:110px;margin-top:8px" placeholder="一行一条，写【图片】的那行发一张照片（可以写好几行【图片】，按下面选的顺序发）：&#10;오늘 너무 힘들다&#10;근데 옷 주머니에서 포카 나왔어&#10;【图片】&#10;이게 왜 여기에">${esc(UI.srSayDraft || '')}</textarea>
       <div class="muted" style="font-size:12px;margin:4px 2px">韩语照原样发；写中文的那行会翻成他的口吻（半语）。</div>
@@ -11405,6 +11431,12 @@ document.addEventListener('click', async e => {
     case 'kkstkpick': { const k = t.dataset.k, x = STICKERS[t.dataset.id]; if (!x) break; const T = dms()[k] || dmThread(chFind(...k.split('|')) || { g: k.split('|')[0], n: k.split('|')[1], key: k }); UI.kkStk = false;
       dmPush(T.p, { me: true, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }); dmAnswer(k, `[表情包] ${x.d}`, { t: `发了一个表情包（${x.d}）`, fam: 0, amb: 0, tone: '0', risk: 0, reply: '' }, true); openModal(dmHTML(k)); break; }
     case 'dmcall': dmCallOut(t.dataset.k); break;
+    case 'vcgo': vcStart(); break;
+    case 'vchang': vcHang(); break;
+    case 'vcno': if (UI.vc) { vcRec('them', 'miss'); UI.vc = null; vcShow(); } break;
+    case 'vcok': if (UI.vc && UI.vc.mode === 'in') { UI.vc.mode = 'on'; UI.vc.t0 = Date.now(); vcShow(); } break;
+    case 'vcask': { const R = SR(), m = +($('#vc-ask-in')?.value || 10); R.vcAsk = { at: Date.now() + Math.round(rand(.3, 1) * m * 60e3), n: 0 }; save(); toast('好', `他会在 ${m} 分钟内自己提出来`); openModal(serimCardHTML()); break; }
+    case 'vcaskx': { SR().vcAsk = null; save(); openModal(serimCardHTML()); break; }
     case 'callok': if (UI.call && UI.call.mode === 'in') { UI.call.mode = 'on'; UI.call.t0 = Date.now(); callShow(); } break;
     case 'callno': if (UI.call && UI.call.mode === 'in') { const T = dms()[UI.call.key]; callRec(T, 'them', 'miss'); callRetry(T, ['바쁜가 보네ㅎㅎ 편할 때 전화줘', '在忙吧哈哈 方便的时候打给我']); callEnd(); } break;
     case 'callcancel': if (UI.call && UI.call.mode === 'out') { callRec(dms()[UI.call.key], 'me', 'cancel'); callEnd(); } break;
