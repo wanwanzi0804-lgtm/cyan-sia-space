@@ -8014,7 +8014,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srAskRedo1(); studioWord1(); mgrPrivClean1(); srKissFix1(); srNoteRe1104(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srAskRedo1(); studioWord1(); mgrPrivClean1(); srKissFix1(); srNoteRe1104(); srEvRedo1104(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9103,6 +9103,7 @@ function mgrPrivClean1() { const M = mgrChat(); if (M.privClean1) return; M.priv
 function srKissFix1() { const R = SR(); if (R.kiss1) return; R.kiss1 = 1; const T = dmThread(srP()), m = T.msgs.find(x => x.me && /스튜디오에서 꼭 키스하고 싶었어요/.test(x.text || '')); if (!m) { save(); return; } m.text = '...아까 작업실에서 진짜 너한테 키스하고 싶었어';
   if (T.msgs.some(x => !x.me && /^진짜야\?/.test(x.text || '') && x.at > m.at)) { srRedoFrom(/^진짜야\?/); const at = m.at + Math.round(rand(.4, 1.2) * 60e3); R.jobs = R.jobs.filter(j => j.type !== 'reply'); R.jobs.push({ id: uid(), type: 'reply', at, n: 0 }); T.readTo = at; T.rd = null; } save(); } /* 她那句被翻成了「现在在 studio、敬语」：改正，他重新回 */
 function srNoteRe1104() { const R = SR(); if (R.nre1104) return; R.nre1104 = 1; const n = serimNotes().find(x => /吃完饭后继续练习到八点多/.test(x.text || '')); if (n) { srNoteDrop(n.id); delete n.parsed; n.re = 0; n.reAt = 0; n.at = Math.min(n.at, Date.now() - 2 * 60e3); } save(); } /* 那条「练到八点多」被当成了早上：重新理解 */
+function srEvRedo1104() { const R = SR(); if (R.evRedo1104) return; R.evRedo1104 = 1; const E = R.evNow; if (E && !E.st && E.log.some(l => /宇彬/.test(l.narr || ''))) { const e = SR_EVS.find(x => x.id === E.id); E.log = []; E.round = 0; E.busy = 0; E.opts = e ? e.o.slice() : E.opts; E.until = Date.now() + 40 * 60e3; } save(); } /* 宇彬叫吃饭那件事和他正在合练、刚吃过饭对不上：从头重来 */
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -9865,7 +9866,8 @@ const SR_EV_N = {
 };
 function srEvPick(now) {
   if (!serimLove()) return null; const x = srEvState(now), R = x.R, used = R.evUsed || {}, lastNear = Math.max(0, ...(R.evLog || []).filter(e => e.near).map(e => e.at));
-  const ok = SR_EVS.filter(e => SR_EV_W[e.w] && SR_EV_W[e.w](x) && e.n.every(k => SR_EV_N[k] && SR_EV_N[k](x)) && !(used[e.id] && used[e.id] > addDays(x.dk, -30)) && !(e.near && now - lastNear < 6 * 864e5));
+  const ate = srSegs(x.dk, now).some(g => /吃|饭|餐|外卖|便当/.test(g.what || '') && srTs(x.dk, g.e) <= now && now - srTs(x.dk, g.e) < 150 * 60e3), meal = e => /一起吃|吃饭|午饭|晚饭|吃宵夜|去吃/.test(e.d); // 他正在工作、或者刚吃过饭：不会冒出「一起去吃饭」的事
+  const ok = SR_EVS.filter(e => !(meal(e) && (ate || (x.g && x.g.kind === 'work'))) && SR_EV_W[e.w] && SR_EV_W[e.w](x) && e.n.every(k => SR_EV_N[k] && SR_EV_N[k](x)) && !(used[e.id] && used[e.id] > addDays(x.dk, -30)) && !(e.near && now - lastNear < 6 * 864e5));
   if (!ok.length) return null; const W = ok.map(e => e.near ? .45 : e.w === 'any' ? 1.5 : 1); let r = Math.random() * W.reduce((a, b) => a + b, 0), e = ok[0]; for (let i = 0; i < ok.length; i++) { r -= W[i]; if (r <= 0) { e = ok[i]; break; } }
   const place = x.herCo || x.hisCo ? '公司' : x.meet && /date/.test(e.w) ? '约会' : '';
   return { id: e.id, at: now, dk: x.dk, until: now + 40 * 60e3, round: 0, log: [], opts: e.o.slice(), where: place, her: (x.herNow || x.herJust || {}).title || '', his: x.g ? x.g.what : '', co: /^co/.test(e.w) || e.w === 'herPractice' || e.w === 'herCoEve' };
@@ -9905,7 +9907,8 @@ ${E.log.slice(0, -1).map(l => `她：${l.mine}\n→ ${l.narr}`).join('\n')}
 
 写接下来发生的事（narr，中文，2~5 句，第三人称叙述，像生活里真的会发生的那样）：
 - 只写世琳和周围的人怎么反应、说了什么；世琳说的话写成「韩语原话」（中文意思）。她的心理活动、感受和下一步动作不要替她写——她做什么由她自己决定。
-- 她的行动可能超出原来的情境（自由输入），就顺着她做的事发展，不要拉回原来的设定。
+- 情境要和世琳此刻的安排、刚做过的事、你们最近的聊天对得上（看上面【他今天】和聊天）：比如他正在合练，那就是休息间隙或者练完以后；他刚吃过饭，就不会又去吃午饭——原来的情境和这些冲突时，改成说得通的版本（比如约的是练完后的晚饭）。
+- 她的行动可能超出原来的情境（自由输入），就顺着她做的事发展，不要拉回原来的设定。叙述里她叫「恩雪」，不要写成 Cyan。
 - 世琳按他自己的性格和此刻的状态反应：他也有自己的工作和顾虑，不是每次都说撩人的话；轻松、好笑、普通、有点甜、有点尴尬都可以，看情境。周围人的反应要符合他们知不知道这段关系、符合韩国偶像公司里的真实环境（工作人员、经纪人、成员都各忙各的）。
 - 不要把小事写成差点被发现的大事件；风险只有在情境里真的有（有人在场、在拍、在问）时才出现，结果也和这件事的分量相称。
 - end：这件事是不是自然告一段落了${last ? '（这已经是第三轮，写一个自然的收尾，end=true）' : ''}；没结束的话 opts 给她 3 个接下来可以做的事（短，不带情绪描写，不替她决定心情），结束了 opts 空。
@@ -9916,7 +9919,7 @@ plan：如果这次说定了见面或打电话（meet / call），when 写 YYYY-
 ${SR_MEM_HINT}`, 12000, { type: 'object', additionalProperties: false, required: ['narr', 'end', 'opts', 'sum', 'know', 'evid', 'plan', 'cancel_meet', 'mem'], properties: { narr: { type: 'string' }, end: { type: 'boolean' }, opts: { type: 'array', items: { type: 'string' } }, sum: { type: 'string' }, evid: { type: 'integer' }, cancel_meet: { type: 'boolean' }, mem: SR_MEM_SCHEMA,
       know: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['who', 'st', 'why'], properties: { who: { type: 'string' }, st: { type: 'string', enum: ['suspect', 'knows'] }, why: { type: 'string' } } } },
       plan: SR_REPLY_SCHEMA.properties.plan } }, false, 'medium');
-    E.log[E.log.length - 1].narr = String(j.narr || '').trim(); E.round++;
+    E.log[E.log.length - 1].narr = String(j.narr || '').trim().replace(/Cyan/g, '恩雪'); E.round++;
     const end = j.end || last || !(j.opts || []).length; E.opts = end ? [] : j.opts.slice(0, 3).map(x => String(x).slice(0, 40));
     srMemOps(j.mem, now, 'him');
     for (const k of j.know || []) if (CRV_KZ[k.who] && !crvKnows(k.who)) crvKnow()[k.who] = { st: k.st, why: String(k.why || '').slice(0, 60), at: now };
