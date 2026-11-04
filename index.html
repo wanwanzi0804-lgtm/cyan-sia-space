@@ -2061,7 +2061,7 @@ const mzQLabel = q => q >= 85 ? '出色' : q >= 72 ? '优秀' : q >= 58 ? '不�
 const mzCLabel = c => c >= 80 ? '很有爆款潜力' : c >= 65 ? '大众接受度高' : c >= 50 ? '中规中矩' : '比较小众';
 function mzComplete(w, k) {
   const lv = mzLv(), gfit = /舞曲|Pop|EDM/.test(w.genre) ? 4 : /Lo-fi|摇滚/.test(w.genre) ? -4 : 0;
-  w.q = Math.round(clamp(w.pot * 55 + 15 + lv * 4 + w.qb + rand(-8, 8), 15, 98));
+  w.q = Math.round(clamp(w.pot * 55 + 15 + lv * 4 + w.qb + (skills().prod - 45) * .15 + rand(-8, 8), 15, 98)); /* 作曲制作能力越高，Demo 底子越好 */
   w.c = Math.round(clamp(35 + rand(-15, 25) + w.cb + (w.q - 50) * .25 + gfit, 10, 97));
   w.prog = w.need; w.done = k; w.status = 'demo';
 }
@@ -4058,15 +4058,16 @@ function ytSubmit(editId) {
 /* =========================================================
    能力 / 休息周 / 经纪人邀约 / 📋 通告（每个行程当天一张机遇卡）
    ========================================================= */
-const SKILLS = [['vocal', '声乐'], ['dance', '舞蹈'], ['rap', 'Rap'], ['face', '表情管理'], ['stamina', '体能'], ['variety', '综艺感'], ['lang', '外语']];
+const SKILLS = [['vocal', '声乐'], ['dance', '舞蹈'], ['rap', 'Rap'], ['face', '表情管理'], ['stamina', '体能'], ['variety', '综艺感'], ['lang', '外语'], ['prod', '作曲制作']];
 function skills() {
   const K = S.skills || (S.skills = { vocal: 55, dance: 60, rap: 70, face: 50, stamina: 48, variety: 40, lang: 50, day: dkey(Date.now()), v: 2 });
   if ((K.v || 1) < 2) { K.rap = Math.max(K.rap, Math.max(K.vocal, K.dance) + 10); K.stamina = Math.max(10, K.stamina - 7); K.lang = Math.min(100, K.lang + 15); K.v = 2; } // Rap 是强项，体能稍弱，外语更好
+  if (K.prod == null) K.prod = 45; /* 作曲制作：后加的能力 */
   return K;
 }
 function skillTick() { const K = skills(), today = dkey(Date.now()); while (K.day < today) { K.day = addDays(K.day, 1); for (const [k] of SKILLS) K[k] = Math.max(10, K[k] - .03); } } // 不练会慢慢退步
 const CAT_SKILL = { 打歌: { dance: .35, vocal: .25, rap: .15, face: .25 }, 综艺: { variety: .7, face: .3 }, 电台: { vocal: .4, variety: .6 }, 签售: { variety: .5, face: .5 }, 物料: { face: .7, dance: .3 }, 公演: { stamina: .4, vocal: .3, dance: .3 }, 校庆: { stamina: .4, vocal: .3, dance: .3 }, 活动: { face: .5, variety: .5 }, 演唱会: { stamina: .3, vocal: .35, dance: .35 } };
-function lessonSkill(title) { return /声乐|Vocal|vocal|唱/.test(title) ? 'vocal' : /舞|Dance|dance/.test(title) ? 'dance' : /Rap|rap/.test(title) ? 'rap' : /表演|表情/.test(title) ? 'face' : /体能|健身|普拉提/.test(title) ? 'stamina' : /语|英|日|中文/.test(title) ? 'lang' : /综艺/.test(title) ? 'variety' : 'vocal'; }
+function lessonSkill(title) { return /作曲|制作|编曲|作词|混音|프로듀싱|작곡/.test(title) ? 'prod' : /声乐|Vocal|vocal|唱/.test(title) ? 'vocal' : /舞|Dance|dance/.test(title) ? 'dance' : /Rap|rap/.test(title) ? 'rap' : /表演|表情/.test(title) ? 'face' : /体能|健身|普拉提/.test(title) ? 'stamina' : /语|英|日|中文/.test(title) ? 'lang' : /综艺/.test(title) ? 'variety' : 'vocal'; }
 function skillScore(cat) { const w = CAT_SKILL[cat]; if (!w) return .5; const K = skills(); return Object.entries(w).reduce((s, [k, v]) => s + v * K[k] / 100, 0); }
 function skillUp(k, n) { const K = skills(); K[k] = Math.min(100, K[k] + n * (1 - K[k] / 130)); }
 function skillsHTML() {
@@ -8014,7 +8015,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srAskRedo1(); studioWord1(); mgrPrivClean1(); srKissFix1(); srNoteRe1104(); srEvRedo1104(); srEvDrop1104(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srAskRedo1(); studioWord1(); mgrPrivClean1(); srKissFix1(); srNoteRe1104(); srEvRedo1104(); srEvDrop1104(); prodSkillFix1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9105,6 +9106,9 @@ function srKissFix1() { const R = SR(); if (R.kiss1) return; R.kiss1 = 1; const 
 function srNoteRe1104() { const R = SR(); if (R.nre1104) return; R.nre1104 = 1; const n = serimNotes().find(x => /吃完饭后继续练习到八点多/.test(x.text || '')); if (n) { srNoteDrop(n.id); delete n.parsed; n.re = 0; n.reAt = 0; n.at = Math.min(n.at, Date.now() - 2 * 60e3); } save(); } /* 那条「练到八点多」被当成了早上：重新理解 */
 function srEvRedo1104() { const R = SR(); if (R.evRedo1104) return; R.evRedo1104 = 1; const E = R.evNow; if (E && !E.st && E.log.some(l => /宇彬/.test(l.narr || ''))) { const e = SR_EVS.find(x => x.id === E.id); E.log = []; E.round = 0; E.busy = 0; E.opts = e ? e.o.slice() : E.opts; E.until = Date.now() + 40 * 60e3; } save(); } /* 宇彬叫吃饭那件事和他正在合练、刚吃过饭对不上：从头重来 */
 function srEvDrop1104() { const R = SR(); if (R.evDrop1104) return; R.evDrop1104 = 1; const E = R.evNow; if (E && !E.st) { const e = SR_EVS.find(x => x.id === E.id); if (e && /宇彬|一起吃|吃饭/.test(e.d)) { R.evNow = null; if (UI.socPop && UI.socPop.srev) { UI.socPop = null; closeModal(); } } } save(); } /* 那件「宇彬叫去吃午饭」的事和他的行程对不上：直接撤掉，不重来 */
+function prodSkillFix1() { const SO = social(); if (SO.prodSk1) return; SO.prodSk1 = 1; const K = skills(), R = (S.schedule || {}).res || {};
+  for (const [key, v] of Object.entries(R)) { const id = key.split('|')[1], r = (S.schedule.rules || []).find(x => x.id === id); if (!r || r.cat !== '上课' || lessonSkill(r.title) !== 'prod' || !v || !/^声乐 \+/.test(v.note || '')) continue; const n = parseFloat(v.note.slice(4)) || 0; K.vocal = Math.max(10, K.vocal - n); K.prod = Math.min(100, K.prod + n); v.note = v.note.replace(/^声乐/, '作曲制作'); }
+  save(); }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
