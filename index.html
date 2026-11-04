@@ -8011,7 +8011,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9089,6 +9089,7 @@ function srSleepRedo1() { const R = SR(); if (R.slpRedo1) return; R.slpRedo1 = 1
 function srNoteRe1103() { const R = SR(); if (R.nre1103) return; R.nre1103 = 1; const n = serimNotes().find(x => /九点多结束练习/.test(x.text || '') && x.day === '2026-11-03'); if (n) { srNoteDrop(n.id); delete n.parsed; delete n.re; n.at = Math.min(n.at, Date.now() - 2 * 60e3); } save(); } /* 那条按「今天晚上」放错了：重新理解（会放到昨晚） */
 function srNoteRe1103b() { const R = SR(); if (R.nre1103b) return; R.nre1103b = 1; const n = serimNotes().find(x => /九点多结束练习/.test(x.text || '') && x.day === '2026-11-03'); if (n && n.parsed !== 1) { n.re = 0; n.reAt = 0; } save(); }
 function bbPayFast1() { const W = wallet(); if (W.bbFast1) return; W.bbFast1 = 1; const td = dkey(Date.now()); for (const x of W.recv || []) if (x.st === 'pend' && x.kind === 'bb' && x.date) { const cap = addDays(x.date, ri(1, 3)); if (x.payAt > cap) x.payAt = cap < td ? td : cap; } save(); }
+function srReachNow1() { const R = SR(); if (R.reachNow1) return; R.reachNow1 = 1; R.jobs = R.jobs.filter(j => j.type !== 'reach'); srJob('reach', Date.now() + rand(1, 3) * 60e3, { why: { kind: 'miss', d: '- 今天一整天都在练习，休息的时候想起来一天都没怎么找她\n- 他这会儿拿着手机', ref: '', refs: [] } }); save(); }
 function jmMealFix1() { const SO = social(); if (SO.jmMeal1) return; SO.jmMeal1 = 1; const T = dms()['CRAVITY|정모']; if (!T) { save(); return; } const m = T.msgs[T.msgs.length - 1];
   if (m && !m.me && /확인하고 알려줄게|확인해볼게/.test(m.text || '')) { T.fu = { at: Date.now() + rand(3, 10) * 60e3, task: '她问明天晚上能不能一起吃饭（她明天晚上都有空），你说过要确认一下：按你自己明天的安排给她明确的答复——能的话说定几点、在哪（定下 meet_at），不能就说哪天可以' }; }
   save(); }
@@ -10135,11 +10136,12 @@ function srReachEval(at) {
   const quiet = last ? (at - last.at) / 3600e3 : 12; if (quiet > 4) add('quiet', (quiet - 4) / 9, `上次聊天是 ${Math.round(quiet)} 小时前`);
   for (const u of R.urges || []) if (!u.used && u.at <= at && at - u.at < 36 * 3600e3) add('urge', u.w * 1.25 * ((u.tries || 0) >= 2 ? .5 : 1), `他知道、还没跟她提的事：${u.t}`, 'urge' + u.id);
   if (!working && !st.semi && R.mood.en >= 35) add('idle', .3 + (R.mood.val > .5 ? .15 : 0), '他这会儿闲着，手机在手上');
+  if (serimLove()) { const mine = msgs.filter(m => !m.me && m.at > at - 864e5).length, lastHis = Math.max(0, ...msgs.filter(m => !m.me).map(m => m.at)); if (at - lastHis > 5 * 3600e3) add('miss', .35 + Math.min(.5, (at - lastHis - 5 * 3600e3) / 36e6) + (mine ? 0 : .15), `交往中，他已经 ${Math.round((at - lastHis) / 3600e3)} 个小时没给她发消息了（休息的时候会想起她）`); } // 在交往：一整天不找她不正常
   if (!Mo.length) return;
   Mo.sort((a, b) => b.v - a.v); if (pingWait) return; const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
   const today = R.reach.filter(x => dkey(x.at) === dk).length, init = (socCard(srP()) || {}).init || 1;
   const need = 1 + .4 * today + (R.mood.en < 30 ? .15 : 0) + (st.semi ? .3 : 0) + (working ? .2 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
-  if (urge < need) return;
+  if (urge < need - (serimLove() ? .2 : 0)) return;
   srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 4).map(x => '- ' + x.d).join('\n'), ref: Mo[0].ref, refs: Mo.slice(0, 4).map(x => x.ref).filter(Boolean) } });
 }
 
@@ -10587,6 +10589,7 @@ function srTick() {
   try { srScriptTick(now); } catch (e) { console.error('sr script', e); }
   try { srEvTick(now); } catch (e) { console.error('sr ev', e); }
   srNoteRetry();
+  R.jobs = R.jobs.filter(j => !((j.type === 'reach' && now - j.at > 3 * 3600e3) || (j.type === 'reply' && ((j.n || 0) >= 6 && now - j.at > 6 * 3600e3 || now - j.at > 18 * 3600e3)))); // 卡住太久的任务丢掉，不然会一直挡着他主动找她
   const PRI = { reply: 0, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
   const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
   const run = { reply: srReply, reach: srReach, daily: srDaily, digest: srDigest, reparse: async jb => { for (const id of jb.ids) { const n = serimNotes().find(x => x.id === id); if (n && !n.parsed) await srNoteParse(n); } return true; } }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
