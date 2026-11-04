@@ -9912,7 +9912,7 @@ ${E.log.slice(0, -1).map(l => `她：${l.mine}\n→ ${l.narr}`).join('\n')}
 - 她的行动可能超出原来的情境（自由输入），就顺着她做的事发展，不要拉回原来的设定。叙述里她叫「恩雪」，不要写成 Cyan。
 - 世琳按他自己的性格和此刻的状态反应：他也有自己的工作和顾虑，不是每次都说撩人的话；轻松、好笑、普通、有点甜、有点尴尬都可以，看情境。周围人的反应要符合他们知不知道这段关系、符合韩国偶像公司里的真实环境（工作人员、经纪人、成员都各忙各的）。
 - 不要把小事写成差点被发现的大事件；风险只有在情境里真的有（有人在场、在拍、在问）时才出现，结果也和这件事的分量相称。
-- end：这件事是不是自然告一段落了${last ? '（这已经是第三轮，写一个自然的收尾，end=true）' : ''}；没结束的话 opts 给她 3 个接下来可以做的事（短，不带情绪描写，不替她决定心情），结束了 opts 空。
+- end：这件事是不是自然告一段落了${last ? '（这已经是第三轮，写一个自然的收尾，end=true）' : ''}；没结束的话 opts 给她 3 个接下来可以做的事（是她——恩雪——自己的动作或要说的话，用她的视角写，比如「问他晚上几点练完」「先回练习室」，不能写成「和恩雪……」这种世琳视角的；三个要有明显不同的方向，不重复刚发生过的事，要和此刻的场景、在场的人对得上；短，不带情绪描写，不替她决定心情），结束了 opts 空。
 sum：这件事整体发生了什么（一句中文，给世琳的记忆用；写事实，不写情绪名）。
 know：这件事之后，某个成员对他们关系的知情程度有变化才写（who 写韩文名：${Object.keys(CRV_KZ).join('/')}；st：suspect 开始察觉 / knows 知道了；why 一句原因），没有就空。
 evid：这件事有没有在外界留下能被粉丝 / 媒体注意到的痕迹（公开场合同框太亲近、被拍到、同款东西被公开使用等）：0 没有 / 1 有一点 / 2 明显；大多数事件是 0。
@@ -9921,7 +9921,7 @@ ${SR_MEM_HINT}`, 12000, { type: 'object', additionalProperties: false, required:
       know: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['who', 'st', 'why'], properties: { who: { type: 'string' }, st: { type: 'string', enum: ['suspect', 'knows'] }, why: { type: 'string' } } } },
       plan: SR_REPLY_SCHEMA.properties.plan } }, false, 'medium');
     E.log[E.log.length - 1].narr = String(j.narr || '').trim().replace(/Cyan/g, '恩雪'); E.round++;
-    const end = j.end || last || !(j.opts || []).length; E.opts = end ? [] : j.opts.slice(0, 3).map(x => String(x).slice(0, 40));
+    const end = j.end || last || !(j.opts || []).length; E.opts = end ? [] : j.opts.slice(0, 3).map(x => String(x).replace(/Cyan|은설/g, '恩雪').slice(0, 40)).filter(x => !/和恩雪|跟恩雪|与恩雪/.test(x));
     srMemOps(j.mem, now, 'him');
     for (const k of j.know || []) if (CRV_KZ[k.who] && !crvKnows(k.who)) crvKnow()[k.who] = { st: k.st, why: String(k.why || '').slice(0, 60), at: now };
     const RK = R.risk || (R.risk = { evid: 0 }); RK.evid = Math.min(5, (RK.evid || 0) + clamp(+j.evid || 0, 0, 2));
