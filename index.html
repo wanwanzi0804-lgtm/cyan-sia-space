@@ -9538,7 +9538,7 @@ function srVcTick(now) { const R = SR();
   if (R.vcAsk && now >= R.vcAsk.at && !vcAskBusy && srAIState().ok) { const st = srNow(now) || {}; if (srNoPhone(st) || st.sleep) R.vcAsk.at = st.seg ? srTs(dkey(now), st.seg.e) + rand(5, 20) * 60e3 : now + 30 * 60e3; else { vcAskBusy = 1; vcAskGen().finally(() => { vcAskBusy = 0; }); } }
   if (R.vcRing && now >= R.vcRing && !UI.vc && !UI.call) { R.vcRing = 0; save(); UI.vc = { mode: 'in', by: 'them', at: now }; vcShow(); const V = UI.vc; setTimeout(() => { if (UI.vc === V && V.mode === 'in') { vcRec('them', 'miss'); UI.vc = null; vcShow(); } }, 30e3); } }
 const callLbl = c => { const n = c.video ? '페이스톡' : '보이스톡'; return c.st === 'done' ? n : c.st === 'cancel' ? n + ' 취소' : '부재중 ' + n; };
-function callRec(T, by, st, dur) { dmPush(T.p, { me: by === 'me', text: callLbl({ st }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '' } }); }
+function callRec(T, by, st, dur) { if (T.call) T.call.ringing = 0; dmPush(T.p, { me: by === 'me', text: callLbl({ st }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '' } }); }
 const callTalk = (p, T) => T && T.call && T.call.topic ? socG(`电话接通了。${socName(p)}的声音听起来心情不错，你们接着刚才 KKT 里的话聊了起来。`, p) : socG(`${socName(p)}说下次回归的新歌已经有 demo 了，想先让你听听，问你愿不愿意给点意见。`, p);
 const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 function callHTML() {
@@ -9623,13 +9623,17 @@ function callEnd(after) { const key = UI.call && UI.call.key; UI.call = null; ca
 function callRetry(T, txt, inMin) { T.call.ringAt = (T.call.tries || 0) < 3 ? Date.now() + (inMin != null ? inMin * 60e3 : rand(1, 4) * 3600e3) : null; if (txt && T.p.key === SR_K) { srPromiseAdd({ t: `刚才电话没接通（${txt[1]}），之后跟她说一声或者再打`, cond: 'time', min: inMin || 30 }, Date.now()); return; } if (txt) dmQueue(T.p, [{ text: txt[0], zh: txt[1] }], rand(1, 3) * 60e3); }
 // 对方打来
 function dmCallTick() {
-  const now = Date.now(), h = new Date().getHours(); if (UI.call) return;
+  const now = Date.now(), h = new Date().getHours();
+  for (const T of Object.values(dms())) { const c = T.call; if (c && c.ringing && now - c.ringing > 35e3 && !(UI.call && UI.call.key === T.p.key)) { c.ringing = 0; callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); save(); } } /* 响铃时页面被关掉 / 刷新了：照样记一条未接来电 */
+  if (UI.call) return;
   for (const [key, T] of Object.entries(dms())) { const c = T.call; if (!c || c.done) continue; if (!c.soon && (h < 10 && !(key === SR_K && h < 2))) continue; // 说了「现在就打」的随时打；世琳夜里两点前也会打，其他人只在白天
     if (c.ringAt == null && !c.tries) { c.ringAt = now + rand(.3, 2) * 3600e3; continue; }
     if (!c.ringAt || now < c.ringAt) continue;
     if (key === SR_K) { const calls = T.msgs.filter(m => m.call && !m.me && now - m.at < 24 * 3600e3), last = Math.max(0, ...T.msgs.filter(m => m.call).map(m => m.at)), today = calls.filter(m => dkey(m.at) === dkey(now)).length; if (now - last < (c.soon ? 90 : 240) * 60e3 || today >= 2) { c.ringAt = Math.max(now + 30 * 60e3, last + 240 * 60e3); if (today >= 2) { c.done = 1; c.ringAt = null; } continue; } } // 他打电话不会太频繁：离上一通至少几个小时，一天最多主动打两次（包括没接的）
     if (key === SR_K && !c.soon) { const st = srNow(now); if (st && (st.sleep || st.busy)) { c.ringAt = now + rand(20, 60) * 60e3; continue; } } // 他在睡觉 / 工作：不会这时候打来
-    c.ringAt = null; c.tries = (c.tries || 0) + 1; UI.call = { key, mode: 'in', by: 'them' }; callShow(); save();
+    c.ringAt = null; c.tries = (c.tries || 0) + 1;
+    if (document.hidden) { callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); save(); return; } /* 你没开着页面：就是没接到，记一条未接来电 */
+    c.ringing = now; UI.call = { key, mode: 'in', by: 'them' }; callShow(); save();
     setTimeout(() => { if (UI.call && UI.call.key === key && UI.call.mode === 'in') { callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); callEnd(); } }, 30e3);
     return; }
 }
@@ -10189,7 +10193,7 @@ function srPromiseStep(at) {
     if (st.semi && m.imp <= 2 && st.seg && srTs(dkey(at), st.seg.e) < m.cond.win) continue; // 小事：等手上这段结束再说
     if (srHer(dmThread(srP()), at).filter(x => x.at > (R.chat.him || 0)).length) return false; // 她有新消息：在回复里一起说
     { const L = dmThread(srP()).msgs.filter(x => !x.sys && x.at <= at), lst = L[L.length - 1]; if (lst && !lst.me && lst.ping && lst.at >= (m.c || 0)) { m.st = 'done'; m.u = at; m.why = '已经主动找过她了，她还没回'; continue; } } // 他已经找过她了、她还没回：不再追着发
-    if (/电话|打给|통화|전화|视频|영상통화|페이스톡/.test(m.t)) { const T = dmThread(srP()); dmCallSet(T, m.t, true); m.st = 'done'; m.u = at; save(); return true; } /* 答应了打电话：真的打过去 */
+    if (/电话|打给|통화|전화|视频|영상통화|페이스톡/.test(m.t) && !(h >= 2 && h < 9)) { const T = dmThread(srP()); dmCallSet(T, m.t, false); if (T.call && !T.call.done) T.call.ringAt = Date.now() + rand(1, 3) * 60e3; m.st = 'done'; m.u = at; save(); return true; } /* 答应了打电话：真的打过去（太晚了就改成发消息，不会凌晨打来） */
     srJob('reach', at + rand(10, 40) * 1e3, { why: { kind: 'promise', d: `他之前答应过：${m.t}（现在有空了，兑现它，要和现在的情况对得上）`, ref: m.id } }); return true;
   }
   return false;
@@ -11522,7 +11526,7 @@ document.addEventListener('click', async e => {
     case 'vcok': if (UI.vc && UI.vc.mode === 'in') { UI.vc.mode = 'on'; UI.vc.t0 = Date.now(); vcShow(); } break;
     case 'vcask': { const R = SR(), m = +($('#vc-ask-in')?.value || 10); R.vcAsk = { at: Date.now() + Math.round(rand(.3, 1) * m * 60e3), n: 0 }; save(); toast('好', `他会在 ${m} 分钟内自己提出来`); openModal(serimCardHTML()); break; }
     case 'vcaskx': { SR().vcAsk = null; save(); openModal(serimCardHTML()); break; }
-    case 'callok': if (UI.call && UI.call.mode === 'in') { UI.call.mode = 'on'; UI.call.t0 = Date.now(); callShow(); } break;
+    case 'callok': if (UI.call && UI.call.mode === 'in') { { const T0 = dms()[UI.call.key]; if (T0 && T0.call) T0.call.ringing = 0; } UI.call.mode = 'on'; UI.call.t0 = Date.now(); callShow(); } break;
     case 'callno': if (UI.call && UI.call.mode === 'in') { const T = dms()[UI.call.key]; callRec(T, 'them', 'miss'); callRetry(T, ['바쁜가 보네ㅎㅎ 편할 때 전화줘', '在忙吧哈哈 方便的时候打给我']); callEnd(); } break;
     case 'callcancel': if (UI.call && UI.call.mode === 'out') { callRec(dms()[UI.call.key], 'me', 'cancel'); callEnd(); } break;
     case 'democlose': { const L = $('#demo-ly'); if (L) { L.querySelector('audio')?.pause(); L.remove(); } break; }
