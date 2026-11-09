@@ -10101,6 +10101,7 @@ const SR_BITS_HINT = `told：这次他提到了上面哪些小事（填方括号
 bits_add：他这次说到了自己今天的一件小事、而上面没有写的，写下来（time HH:MM、t 一句中文）；必须和那个时间他在做的事对得上，不能和时间线、和他说过的话矛盾。没有就空。`;
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
+  if (D.gen && D.gen !== 'fb') try { srTailFill(dk); } catch (e) { }
   if (!D.gen) { D.segs.push(...srDayFb(dk)); D.gen = 'fb'; save(); }
   if (D.gen !== 'fb' || (srGenBusy && Date.now() - srGenBusy < 120e3) || !srAIState().ok || (D.try && Date.now() - D.try < 20 * 60e3)) return;
   srGenBusy = Date.now(); D.try = Date.now();
@@ -10793,6 +10794,12 @@ function srDedupeGen(dk) { const D = srDay(dk), L = D.segs.filter(g => !g.del &&
     const keep = D.segs.filter(g => !g.del && g.st !== 'cancel').sort((x, y) => x.s - y.s), homeLike = g => g.kind === 'sleep' || SR_HOME.test((g.where || '') + (g.what || ''));
     for (let i = 0; i + 1 < keep.length; i++) { const a = keep[i], b = keep[i + 1]; if (b.s - a.e < 10) continue; const h = homeLike(a) || (a.kind === 'free' && !a.where); if (!h && b.s - a.e > 60) { D.segs.push({ id: uid(), s: a.e, e: a.e + 30, what: '回宿舍的路上', where: '路上', with: '', kind: 'move', src: 'gen', st: '', share: 0, c: 0 }, { id: uid(), s: a.e + 30, e: b.s, what: '在宿舍休息、刷手机', where: '宿舍', with: '', kind: 'free', src: 'gen', st: '', share: 0, c: 0 }); continue; } D.segs.push({ id: uid(), s: a.e, e: b.s, what: h ? '在宿舍休息、刷手机' : '在那边待着，休息一下', where: h ? '宿舍' : (a.where || ''), with: '', kind: 'free', src: 'gen', st: '', share: 0, c: 0 }); }
     save(); } }
+/* 一天的安排在半夜前就断了：补上回宿舍、洗漱休息到 24 点；已经在宿舍还写「回宿舍冲澡」的改成「在宿舍」 */
+function srTailFill(dk) { const D = srDay(dk); if (!D.gen) return; const L = srSegs(dk); if (!L.length) return; const home = g => g.kind === 'sleep' || (SR_HOME.test((g.where || '') + (g.what || '')) && !/路上/.test(g.where || ''));
+  for (let i = 1; i < L.length; i++) { const a = L[i - 1], b = L[i]; if (home(a) && b.s - a.e < 10 && /^回宿舍/.test(b.what || '') && b.src === 'gen') { const g = D.segs.find(x => x.id === b.id); if (g) g.what = g.what.replace(/^回宿舍(后)?/, '在宿舍'); } }
+  const last = L[L.length - 1]; if (last.e >= 1420) return; const mk = (s0, e0, what, where, kind) => ({ id: uid(), s: s0, e: e0, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 }); let t = last.e;
+  if (!home(last)) { const e0 = Math.min(1440, t + 30); D.segs.push(mk(t, e0, '回宿舍的路上', '路上', 'move')); t = e0; }
+  if (t < 1430) D.segs.push(mk(t, 1440, '回到宿舍洗漱、躺着刷手机休息', '宿舍', 'free')); save(); }
 function srFillCommute(dk) { const D = srDay(dk); for (const g of D.segs) if (!g.del && g.src === 'gen' && g.kind !== 'sleep' && g.e - g.s < 10) g.del = 'tiny'; /* 被你记的盖剩下的几分钟碎片：去掉 */ const L = () => D.segs.filter(g => !g.del && g.st !== 'cancel').sort((a, b) => a.s - b.s); const home = g => g.kind === 'sleep' || SR_HOME.test((g.where || '') + (g.what || '')) && !/路上/.test(g.where || ''), mk = (s, e, what, where, kind = 'move') => ({ id: uid(), s, e, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 });
   for (let guard = 0; guard < 12; guard++) { const S0 = L(); let ch = 0;
     for (let i = 0; i + 1 < S0.length; i++) { const a = S0[i], b = S0[i + 1]; if (a.kind === 'move' || b.kind === 'move' || /路上|车上/.test((a.where || '') + (b.where || ''))) continue; const gap = b.s - a.e;
