@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261110075200';
+const BUILD = '20261110075514';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10401,6 +10401,7 @@ ${srRulesTxt()}`;
 /* 世琳说话的底层：先是一个真实的人在反应，不是在完成「安慰 / 提供情绪价值 / 推进对话」的任务。KKT 和电话共用 */
 const SR_VOICE = `世琳这个人怎么说话（比后面所有具体规则都优先）：
 - 亲密关系里的聊天，大部分本来就是没什么意义的废话：「ㅋㅋㅋ 뭐야」「배고프다」「나 방금 넘어질 뻔」「이거 봐」。这种话本身就是亲近，不需要有信息、有作用、有情绪价值。他不会因为一句话「没意义」就不说，也不会因为想让每句话「有意义」而加料。
+- 他拿着手机打字是想到哪打到哪：一个念头可能分几条发出去，中间停一下、改口、补一句、重复强调、自言自语都很正常；有时又只回一个字。他会顺着某个词想到自己的事、以前的经历、最近在迷的东西，话题跳过去也不用过渡。这些都看他那一刻的状态，不是固定的格式。
 - 他每次只有一个注意力焦点：看到她的消息，被哪一点勾住就接哪一点，或者想到自己的事就说自己的事。不会在一次回复里把所有事照顾周全（解释自己刚才在干嘛 + 回应之前的话题 + 关心她 + 甜话收尾），那是在完成清单，不是在聊天。
 - 他记得之前聊过、还没聊完的事，但记得不等于要提。要不要追问，看他此刻的心情、她的状态、气氛，以及他自己想不想——很多事真人就是放着不问了，或者过几天突然想起来。
 - 他黏人、撒娇、说爱你，是因为那一刻真的想说（被她一句话戳到、深夜、刚分开、想见她），所以有时一晚上说好几遍，有时一整天都没说；不是当作一段对话的固定结尾。
@@ -10452,6 +10453,32 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - upd：上面【记得的事】里某条（填它的编号）有了新情况，比如约定完成了（st=done）、取消了、她纠正了说法。
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
+/* 说话那一下只管说话：他看到消息、想到什么就打什么，不同时做「记忆 / 约定 / 心情」这些整理工作（那会让他像在处理任务） */
+const SR_SAY_SCHEMA = { type: 'object', additionalProperties: false, required: ['inner', 'act', 'ko', 'zh', 'end'], properties: { inner: { type: 'string' }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } };
+/* 说完之后在后台单独记账：这次对话里有什么值得记、约了什么、心情怎样 */
+async function srBook(ctx, mine, j, when) {
+  const props = { ...SR_REPLY_SCHEMA.properties }; for (const k of ['asks', 'inner', 'act', 'ko', 'zh', 'end']) delete props[k];
+  const schema = { type: 'object', additionalProperties: false, required: Object.keys(props), properties: props };
+  return await srAI(`下面是 CRAVITY 世琳和女朋友 Cyan（恩雪）的 KKT。你是记录员，不是世琳：只根据实际发生的对话，整理需要记下来的东西。
+背景：
+${ctx}
+
+她刚发的：
+${mine}
+世琳回的：${j.act === 'read' ? '（看了没回）' : j.act === 'later' ? '（现在没回，晚点再说）' : (j.ko || '').replace(/\n/g, ' / ')}
+他当时心里想的：${j.inner || ''}
+
+按下面的说明填（这些只是记录，没有就空）：
+${BOOK_TXT}`, 4000, schema, true, 'low'); }
+const BOOK_TXT = `conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
+promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
+sched：他在这次聊天里说到自己的安排有变（临时有事、改时间、取消、现在在做的事和上面不一样）才填，时间写 HH:MM、day 写 YYYY-MM-DD；没有就空数组。
+plan：两人在约见面（meet）、打电话（call）或者打视频（video，페이스톡：说好现在 / 一会儿视频，他会打过去）时填：when 写 YYYY-MM-DD HH:MM，confirmed 只有双方都明确说定了才 true；没约就 type 空。约之前要看他自己的安排和他知道的她的行程。
+mood：这次聊完他整体的心情 val（-2 很差 ~ 2 很好，大多数普通聊天就是 0 左右）、to 填空字符串、why 一句起因（写发生了什么事，不写情绪名）。
+${SR_MEM_HINT}
+
+aired：如果背景里有【他脑子里偶尔会闪过的事】，而这次他说出来了（或者她已经主动解释清楚了），true；否则 false。
+${SR_BITS_HINT}`;
 const SR_REPLY_SCHEMA = { type: 'object', additionalProperties: false, required: ['asks', 'inner', 'act', 'ko', 'zh', 'end', 'conv', 'mem', 'promise', 'plan', 'mood', 'sched', 'aired', 'told', 'bits_add'], properties: {
   asks: { type: 'string' }, inner: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' },
   aired: { type: 'boolean' }, ...SR_BITS_SCHEMA,
@@ -10547,33 +10574,24 @@ ${ctx}
 现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（聊天里最后几条）：
 ${mine}${gapTxt}
 
-asks：她这几条里在问他、等他回答或决定的事，照她的意思写一句（没有就空）。她是打中文再翻成韩语发的，可能有错字或翻得不准：按前后文理解她真正的意思（比如前后都在说练习，「联系结束」多半是「练习结束」）。她可能一次问了好几件，每一件都写上。
 inner：用他自己的口吻、第一人称写一两句：看到这几条时他脑子里先冒出来的是什么。可以有明显的情绪，也可以只是普通地想接一句、想到自己的事、或者没什么特别的感觉；不用有目的，也不用在 ko 里说出来。真人看消息时注意力只会落在一两个点上，其余的带过或不接；她真在等他答复的事（要不要、几点、怎么了）他会接（答应、拒绝、商量都行），她在生他的气他也会接住；顺带的问句、感叹、已经聊过的事不用逐条回应。（inner 不会发出去）
 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。later 只用于真的在工作、手上腾不出来的时候；刚结束签售 / 舞台在后台、在车上、回宿舍路上、吃饭这些时候他都会看手机，她有消息在等就回。
 ko：他在输入框里打出来、发出去的东西，就是顺着 inner 那一个反应说出来的话。他打字时会按回车把话拆成几个气泡（一行一个），这只是打字节奏，不是把几件事各回一条；可以只有一个词，也可以是几句连着说的话。zh：对应的中文，行数和 ko 一样。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
-conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
-promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
-${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（合适的话这次顺便兑现，并在 mem 里把那条 upd 成 done）\n` : ''}sched：他在这次聊天里说到自己的安排有变（临时有事、改时间、取消、现在在做的事和上面不一样）才填，时间写 HH:MM、day 写 YYYY-MM-DD；没有就空数组。
-plan：两人在约见面（meet）、打电话（call）或者打视频（video，페이스톡：说好现在 / 一会儿视频，他会打过去）时填：when 写 YYYY-MM-DD HH:MM，confirmed 只有双方都明确说定了才 true；没约就 type 空。约之前要看他自己的安排和他知道的她的行程。
-mood：这次聊完他整体的心情 val（-2 很差 ~ 2 很好，大多数普通聊天就是 0 左右）、to 填空字符串、why 一句起因（写发生了什么事，不写情绪名）。
-${SR_MEM_HINT}
-
-${SR_RULES}
-aired：如果上面有【他心里记着、还没跟她提的事】，而这次他说出来了（或者她已经主动解释清楚了），true；否则 false。
-${SR_BITS_HINT}`;
+${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（他记得；合适的话会顺手做到，不合适就之后再说）\n` : ''}${SR_RULES}
+`;
   // 回复要先想清楚（看懂她在问什么、前后文），所以用 medium；思考也算在 max_tokens 里，给足
-  let j = await srAI(prompt, 12000, SR_REPLY_SCHEMA, false, 'medium', SR_SYS('kkt')); const dbg = { at: Date.now(), mode: 'KKT', sys: SR_SYS('kkt'), user: prompt, first: { inner: j.inner, ko: j.ko } };
+  let j = await srAI(prompt, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')); const dbg = { at: Date.now(), mode: 'KKT', sys: SR_SYS('kkt'), user: prompt, first: { inner: j.inner, ko: j.ko } };
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
   // 他这几个小时里自己说过的话：写出来的又是同一句（比如又说一遍「结束了就打给你」），说明没在接她这次的话，重写一次
   const hisSaid = T.msgs.filter(m => !m.me && !m.sys && m.at > when - 6 * 3600e3 && m.at <= when).map(m => m.text || ''), srNorm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, '');
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
-  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_REPLY_SCHEMA, false, 'medium', SR_SYS('kkt')); if (job.rid !== srRunId) return 'stale'; } }
-  if (j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_REPLY_SCHEMA, false, 'medium', SR_SYS('kkt')).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
+  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')); if (job.rid !== srRunId) return 'stale'; } }
+  if (j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
   { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; }
   if (!job.tech && T.msgs.some(m => m.me && !m.sys && m.at > Math.max(when, her[her.length - 1].at) && m.at <= Date.now())) { SR().jobs.push({ id: uid(), type: 'reply', at: Date.now() + rand(3, 8) * 1e3, n: 0 }); return true; } // 他在想怎么回的时候她又发了几条：这次不发，连新的一起看了再回 // 她这几条已经有人回过了：不重复回
   let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
-  srApply(j, when, T);
+  { const bk = await srBook(ctx, mine, j, when).catch(() => null); Object.assign(j, bk || {}); } srApply(j, when, T); /* 记忆、约定、心情这些「记账」在他说完话以后另外做，不掺进他说话的那一下 */
   if (act === 'later' && msgs.length && !(srNow(when) || {}).busy) act = 'reply'; // 没在工作（候场、车上、回宿舍路上、吃饭）：手机就在手边，有话就现在说
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.busy ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(12, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }

@@ -39,6 +39,7 @@ const path = require('path');
     ok('聊天记录里能看到最近一通电话说了什么', /他都记得[\s\S]*她：最近好累/.test(srChatLog({ msgs: [{ at: Date.now() - 1e3, call: { st: 'done', dur: '1:00', sum: 's', log: '她：最近好累\n他：怎么了' } }] }, Date.now())));
     { const R = SR(), q0 = R.quietUntil, n0 = R.jobs.length; R.quietUntil = Date.now() + 3600e3; srReachEval(Date.now()); ok('说了晚安以后不再主动找她', R.jobs.length === n0); R.quietUntil = q0; }
     { const T = { msgs: [{ me: 1, text: 'a', at: 1 }, { me: 1, call: { st: 'done' }, at: 2 }, { me: 1, text: 'b', at: 3 }] }; ok('电话之前她发的不会在电话之后再回', srHer(T, 10).map(m => m.text).join() === 'b'); }
+    ok('说话和记账分开：说话那一下只输出话', SR_SAY_SCHEMA.required.join() === 'inner,act,ko,zh,end' && typeof srBook === 'function');
     ok('「哥哥」翻成 오빠 不是 형', '나는 형의 마음에'.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠') === '나는 오빠의 마음에');
     return out;
   });
