@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261110080139';
+const BUILD = '20261110081012';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6932,7 +6932,10 @@ function updBadges() {
   $('#bell-badge').textContent = t; const kb = $('#kkt-badge'), ku = ((S.mgr && S.mgr.unread) || 0) + Object.values((S.social && S.social.dm) || {}).reduce((a, T) => a + (T.unread || 0), 0); if (kb) kb.textContent = ku ? (ku > 99 ? '99+' : String(ku)) : '';
   const bb = $('#bb-badge'), u = (S.bubble && S.bubble.unread) || 0;
   if (bb) { bb.classList.toggle('dot', !!(u && S.bubble.muted)); bb.textContent = u && !S.bubble.muted ? (u > 99 ? '99+' : String(u)) : ''; }
+  appBadge(ku + (S.bubble && !S.bubble.muted ? u : 0));
 }
+/* 桌面图标上的未读角标（KKT + 泡泡）：主屏幕版、iOS 16.4 以上、允许了通知才有；页面在运行时更新，关掉后停在最后的数字 */
+function appBadge(n) { if (!S.prefs.appBadge || !('setAppBadge' in navigator)) return; if (UI._badgeN === n) return; UI._badgeN = n; try { (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => { }); } catch (e) { } }
 function toast(text, sub = '', onClick) {
   const el = document.createElement('div'); el.className = 'toast';
   el.innerHTML = `<div style="font-size:20px">🔔</div><div style="min-width:0;flex:1"><div>${esc(text)}</div>${sub ? `<div class="ns">${esc(sub)}</div>` : ''}</div>`;
@@ -11469,6 +11472,7 @@ function viewMe() {
   <div class="sec-title">⚙ 其他设置</div>
   <div class="card">
     <div class="switch"><span>外语评论自动显示翻译</span><input type="checkbox" id="pf-tr" ${S.prefs.autoTr ? 'checked' : ''}></div>
+    <div class="switch"><span>桌面图标显示未读角标（KKT 和泡泡）</span><input type="checkbox" id="pf-badge" ${S.prefs.appBadge ? 'checked' : ''}></div>
     <div class="switch"><span>页面在后台时弹出系统通知</span><input type="checkbox" id="pf-sys" ${S.prefs.sysNotif ? 'checked' : ''}></div>
     <div class="switch"><span>时间流速（测试用，加速后热度衰减更快）</span><select id="pf-speed" style="width:auto">${[1, 5, 20, 60].map(v => `<option value="${v}" ${S.prefs.speed == v ? 'selected' : ''}>${v}×</option>`).join('')}</select></div>
   </div>
@@ -11946,6 +11950,9 @@ async function importSave(f) { if (!f) return; toast('正在读取存档…', f.
 }
 (() => { const inp = document.createElement('input'); inp.type = 'file'; inp.id = 'imp-file-g'; inp.accept = '.json,application/json,text/plain'; inp.style.display = 'none'; inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; importSave(f); }); document.body.appendChild(inp); })();
 document.addEventListener('change', async e => {
+  if (e.target.id === 'pf-badge') { const on = e.target.checked; if (on && !('setAppBadge' in navigator)) { e.target.checked = false; toast('这个浏览器不支持桌面角标', '要从主屏幕打开（iOS 16.4 以上）才有'); return; }
+    if (on && window.Notification && Notification.permission !== 'granted') { const r = await Notification.requestPermission().catch(() => 'denied'); if (r !== 'granted') { e.target.checked = false; toast('需要允许通知才能显示角标', '可以在 iPhone 设置 → 通知 → SIA SPACE 里打开'); return; } }
+    S.prefs.appBadge = on; UI._badgeN = null; if (!on) { try { navigator.clearAppBadge(); } catch (err) { } } save(); updBadges(); toast(on ? '桌面角标已开启' : '桌面角标已关闭'); return; }
   if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
   if (e.target.id === 'yt-pcov-in') { const f = e.target.files && e.target.files[0], p = yt().plans.find(x => x.id === e.target.dataset.id); if (f && p) { const mid = 'yth' + uid(); await idbPut(mid, f); urlCache[mid] = URL.createObjectURL(f); if (p.thumb) idbDel(p.thumb); p.thumb = mid; save(); render(); } return; }
   if (e.target.id === 'yt-thumb-in') { const f = e.target.files && e.target.files[0], id = e.target.dataset.id; if (f && id) { await ytThumbSet(id, f); toast('封面换好了'); render(); } return; }
