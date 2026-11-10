@@ -11843,7 +11843,11 @@ document.addEventListener('click', async e => {
 function keyRepair(st) { let n = 0; const seen = new Set(); const walk = (o, depth) => { if (!o || typeof o !== 'object' || depth > 12 || seen.has(o)) return; seen.add(o);
     if (!Array.isArray(o) && typeof o.g === 'string' && typeof o.n === 'string' && o.key == null && o !== st.ai) { o.key = o.g + '|' + o.n; n++; }
     for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v, depth + 1); };
-  walk(st, 0); const D = st.social && st.social.dm; if (D) for (const [k, T] of Object.entries(D)) if (T && T.p && T.p.key !== k) { T.p.key = k; n++; } return n; }
+  walk(st, 0); const D = st.social && st.social.dm;
+  if (D) for (const [k, T] of Object.entries(D)) { if (!T || !T.p) continue; const want = T.p.g && T.p.n ? T.p.g + '|' + T.p.n : k; /* key 丢了时新消息被记到了「undefined」这样的错的聊天里：并回原来那个 */
+    if (k !== want && (!k.includes('|') || k === 'undefined')) { const A = D[want] || (D[want] = { ...T, msgs: [] }), ids = new Set(A.msgs.map(m => m.id)); for (const m of T.msgs || []) if (!m.id || !ids.has(m.id)) A.msgs.push(m); A.msgs.sort((a, b) => a.at - b.at); A.unread = (A.unread || 0) + (T.unread || 0); if (T.call && !A.call) A.call = T.call; A.p.key = want; delete D[k]; n++; continue; }
+    if (T.p.key !== k) { T.p.key = k; n++; } }
+  return n; }
 async function importSave(f) { if (!f) return; toast('正在读取存档…', f.name);
     try { const j = JSON.parse(await f.text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; keyRepair(j); if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
     catch (err) { toast('导入失败', err.message); }
@@ -12016,7 +12020,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
-{ const D = S.social && S.social.dm; if (D && Object.values(D).some(T => T && T.p && T.p.key !== undefined ? false : true)) { keyRepair(S); save(); setTimeout(render, 50); } } /* 导入后聊天的 key 丢了：自动补回来 */
+{ const D = S.social && S.social.dm; if (D && (Object.keys(D).some(k => !k.includes('|')) || Object.values(D).some(T => T && T.p && T.p.key !== undefined ? false : true))) { keyRepair(S); save(); setTimeout(render, 50); } } /* 导入后聊天的 key 丢了：自动补回来 */
 setTimeout(() => { const app = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); if (!FRESH_SAVE || !app || $('#modal').classList.contains('on')) return; openModal(`<div class="row"><h3 style="flex:1">📱 主屏幕版</h3></div><div style="line-height:1.7">从主屏幕打开的 SIA SPACE 和浏览器里的存档是分开的，这里现在是一个新存档。<br>要接着玩原来的进度：先在 <b>Safari</b> 里打开网站，到「我的 → 设置」点<b>导出数据</b>；再回到这里，同一个地方点<b>导入数据</b>，选刚才导出的文件。</div><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="close">知道了</button></div>`); }, 2500); /* 从主屏幕第一次打开：提示把浏览器里的存档导过来 */
 setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; chBfNext(0); }, 6000); // 补 challenge 只弹一次
 setInterval(flushAgg, 6000);
