@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261110081012';
+const BUILD = '20261110163648';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10857,7 +10857,7 @@ function srTick() {
   if (['reply', 'reach'].includes(job.type)) { const st0 = srNow(now); if (srNoPhone(st0)) { job.next = srTs(dkey(now), st0.seg.e) + rand(3, 10) * 60e3; return; } } // 签售 / 上台中：结束了再回
   if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
   srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId; job.rid = rid;
-  run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
+  run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.err = String(e && e.message || e).slice(0, 160); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
     .finally(() => { if (rid === srRunId) srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); else if ($('#serim-in')) openModal(serimCardHTML()); });
   // 注：卡住被放弃的旧请求晚回来时 rid 已经过期，它的结果直接丢掉（不会再发一遍）
 }
@@ -10866,7 +10866,7 @@ function srTechHTML() {
   const R = SR(), j = R.jobs.find(x => ['reply', 'reach'].includes(x.type) && x.at <= Date.now()); if (!j) return '';
   const st = srAIState(); if (st.ok && !j.tech) return '';
   const wait = j.next && j.next > Date.now() ? Math.ceil((j.next - Date.now()) / 60e3) : 0, gen = st.ok && !wait && srBusy;
-  return `<div class="kk-tech">⚙ ${esc(!st.ok ? st.zh : gen ? '正在生成世琳的回复（要先想一想，可能需要一分钟左右）…' : wait ? `上次生成失败，${wait} 分钟后重试` : '准备重新生成世琳的回复…')}${!st.ok && st.kind !== 'net' ? '，恢复后世琳会接着回' : ''}${!st.ok || wait ? ` <button class="link" data-act="srretry">现在重试</button>` : ''}</div>`;
+  return `<div class="kk-tech">⚙ ${esc(!st.ok ? st.zh : gen ? '正在生成世琳的回复（要先想一想，可能需要一分钟左右）…' : wait ? `上次生成失败，${wait} 分钟后重试${j.err ? `（原因：${j.err}）` : ''}` : '准备重新生成世琳的回复…')}${!st.ok && st.kind !== 'net' ? '，恢复后世琳会接着回' : ''}${!st.ok || wait ? ` <button class="link" data-act="srretry">现在重试</button>` : ''}</div>`;
 }
 
 /* ---------- 你记下的世琳日常：拆成时间段（已发生 / 正在 / 计划），覆盖系统生成的日常 ---------- */
