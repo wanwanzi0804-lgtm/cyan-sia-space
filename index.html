@@ -6655,10 +6655,11 @@ const ptrRelease = () => { if (!UI.ptrDown) return; UI.ptrDown = 0; clearTimeout
 // 松手后等这一下点击处理完（它自己会重画并清掉待补的）再补画；没有点击（拖动了）就过一会儿补
 document.addEventListener('pointerup', () => { if (UI.ptrDown) { clearTimeout(UI._ptrT); UI._ptrT = setTimeout(ptrRelease, 350); } }, true); document.addEventListener('pointercancel', () => { clearTimeout(UI._ptrT); UI._ptrT = setTimeout(ptrRelease, 50); }, true);
 document.addEventListener('click', () => { if (UI.ptrDown) setTimeout(ptrRelease, 0); }, true);
-document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#view')) UI.ptrView = 1; if (e.target.closest && e.target.closest('#sheet')) UI.ptrDown = 1; const t = e.target; if (t && (t.id === 'dm-in' || t.id === 'mgr-in')) UI.inHold = Date.now(); }, true); // 刚点输入框的那一下不要被刷新打断
+document.addEventListener('pointerdown', e => { UI.ptrAt = Date.now(); if (e.target.closest && e.target.closest('#view')) UI.ptrView = 1; if (e.target.closest && e.target.closest('#sheet')) UI.ptrDown = 1; const t = e.target; if (t && (t.id === 'dm-in' || t.id === 'mgr-in')) UI.inHold = Date.now(); }, true); // 刚点输入框的那一下不要被刷新打断
 document.addEventListener('focusin', e => { if (isTextField(e.target)) document.body.classList.add('typing'); if (e.target.id === 'bb-in' && UI.bbStk) { UI.bbStk = false; $('#bb-stk').innerHTML = ''; $('.bb-emo')?.classList.remove('on'); } });
 document.addEventListener('focusout', () => setTimeout(() => { if (!isTextField(document.activeElement)) { document.body.classList.remove('typing'); if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0); layoutVars(); } }, 50));
 /* 手指按在页面上（点聊天列表、按钮）时，后台来的刷新先不画，松手点完再画：不然点到一半那一行被换掉，这一下就点空了 */
+setInterval(() => { if ((UI.ptrDown || UI.ptrView) && Date.now() - (UI.ptrAt || 0) > 2500) { if (UI.ptrDown) ptrRelease(); viewRelease(); } }, 1000); /* 系统弹出的日期 / 选项选择器会吞掉松手事件：超过 2.5 秒还算「按着」就强制放开，页面不会卡住 */
 const viewRelease = () => { if (!UI.ptrView) return; UI.ptrView = 0; if (UI._pendRender) { UI._pendRender = 0; setTimeout(render, 0); } };
 document.addEventListener('click', viewRelease, true); /* 点击本身要马上生效：先放开，再执行点的那个动作 */ document.addEventListener('pointerup', () => setTimeout(viewRelease, 350), true); document.addEventListener('pointercancel', () => setTimeout(viewRelease, 350), true);
 /* 键盘弹出时：全屏聊天跟着可见区域走，输入框贴着键盘，不留缝 */
@@ -10871,9 +10872,10 @@ function srDedupeGen(dk) { const D = srDay(dk), L = D.segs.filter(g => !g.del &&
 /* 一天的安排在半夜前就断了：补上回宿舍、洗漱休息到 24 点；已经在宿舍还写「回宿舍冲澡」的改成「在宿舍」 */
 function srTailFill(dk) { const D = srDay(dk); if (!D.gen) return; const L = srSegs(dk); if (!L.length) return; const home = g => g.kind === 'sleep' || (SR_HOME.test((g.where || '') + (g.what || '')) && !/路上/.test(g.where || ''));
   for (let i = 1; i < L.length; i++) { const a = L[i - 1], b = L[i]; if (home(a) && b.s - a.e < 10 && /^回宿舍/.test(b.what || '') && b.src === 'gen') { const g = D.segs.find(x => x.id === b.id); if (g) g.what = g.what.replace(/^回宿舍(后)?/, '在宿舍'); } }
-  const last = L[L.length - 1]; if (last.e >= 1420) return; const mk = (s0, e0, what, where, kind) => ({ id: uid(), s: s0, e: e0, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 }); let t = last.e;
-  if (!home(last)) { const e0 = Math.min(1440, t + 30); D.segs.push(mk(t, e0, '回宿舍的路上', '路上', 'move')); t = e0; }
-  if (t < 1430) D.segs.push(mk(t, 1440, '回到宿舍洗漱、躺着刷手机休息', '宿舍', 'free')); save(); }
+  const last = L[L.length - 1]; if (last.e >= 1420 || D.segs.filter(g => g.tail && !g.del).length >= 2) return; const mk = (s0, e0, what, where, kind) => ({ id: uid(), s: s0, e: e0, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 }); let t = last.e;
+  for (const g of D.segs) if (g.tail) g.del = 'tail'; /* 之前补的先去掉，按现在的安排重新补 */
+  if (!home(last)) { const e0 = Math.min(1440, t + 30); D.segs.push({ ...mk(t, e0, '回宿舍的路上', '路上', 'move'), tail: 1 }); t = e0; }
+  if (t < 1430) D.segs.push({ ...mk(t, 1440, '回到宿舍洗漱、躺着刷手机休息', '宿舍', 'free'), tail: 1 }); save(); }
 function srFillCommute(dk) { const D = srDay(dk); for (const g of D.segs) if (!g.del && g.src === 'gen' && g.kind !== 'sleep' && g.e - g.s < 10) g.del = 'tiny'; /* 被你记的盖剩下的几分钟碎片：去掉 */ const L = () => D.segs.filter(g => !g.del && g.st !== 'cancel').sort((a, b) => a.s - b.s); const home = g => g.kind === 'sleep' || SR_HOME.test((g.where || '') + (g.what || '')) && !/路上/.test(g.where || ''), mk = (s, e, what, where, kind = 'move') => ({ id: uid(), s, e, what, where, with: '', kind, src: 'gen', st: '', share: 0, c: 0 });
   for (let guard = 0; guard < 12; guard++) { const S0 = L(); let ch = 0;
     for (let i = 0; i + 1 < S0.length; i++) { const a = S0[i], b = S0[i + 1]; if (a.kind === 'move' || b.kind === 'move' || /路上|车上/.test((a.where || '') + (b.where || ''))) continue; const gap = b.s - a.e;

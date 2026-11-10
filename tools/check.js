@@ -21,8 +21,9 @@ const path = require('path');
     ok('规则里有认真倾诉时给安慰和建议', srRules().some(x => /倾诉烦恼/.test(x)));
     ok('规则里有打电话更黏糊', srRules().some(x => /黏糊/.test(x)));
     ok('后台能看到规则', /世琳的规则/.test(serimCardHTML()));
-    { const R = SR(), dd = '2030-01-05'; R.day[dd] = { gen: 'ai', segs: [{ id: 'a', s: 0, e: 600, what: '睡觉', kind: 'sleep', src: 'gen', where: '宿舍' }, { id: 'b', s: 1200, e: 1290, what: '健身', kind: 'free', src: 'note', where: '健身房' }] }; srTailFill(dd);
-      ok('一天的安排会补到 24 点', Math.max(...srSegs(dd).map(g => g.e)) >= 1430); delete R.day[dd]; }
+    { const R = SR(), dd = '2030-01-05'; R.day[dd] = { gen: 'ai', segs: [{ id: 'a', s: 0, e: 600, what: '睡觉', kind: 'sleep', src: 'gen', where: '宿舍' }, { id: 'b', s: 1200, e: 1290, what: '健身', kind: 'free', src: 'note', where: '健身房' }] }; srTailFill(dd); srTailFill(dd); srTailFill(dd);
+      ok('一天的安排会补到 24 点', Math.max(...srSegs(dd).map(g => g.e)) >= 1430);
+      ok('补到 24 点不会越补越多', R.day[dd].segs.filter(g => g.tail && !g.del).length <= 2); delete R.day[dd]; }
     ok('安排日常时知道 14 号的演唱会', /CONCERT|演唱会/.test(srUpcoming('2026-11-10')));
     ok('演唱会当天只固定演出本身，前面的彩排化妆让 AI 排', (srOfficial('2026-11-14')[0] || {}).s >= 17 * 60);
     { const st = { ai: {}, social: { dm: { 'A|b': { p: { g: 'A', n: 'b' }, msgs: [] } } } }; keyRepair(st); ok('导入后聊天的 key 能补回来', st.social.dm['A|b'].p.key === 'A|b'); }
