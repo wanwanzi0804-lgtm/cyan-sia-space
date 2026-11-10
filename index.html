@@ -10150,7 +10150,7 @@ const srMoodZh = () => { const M = SR().mood; return `精力 ${Math.round(M.en)}
 /* ---------- 看手机的节奏：由他此刻在做什么决定；正聊着、又空着就回得很快 ---------- */
 /* 签售、舞台、演出、直播、录节目这种：全程不能碰手机，结束了才看 */
 const SR_NOPHONE = /签售|팬싸|팬사인|舞台|打歌|演出|演唱会|公演|콘서트|直播|录制|录节目|彩排|리허설|음방|fansign|stage|concert/i;
-const srNoPhone = st => !!(st && st.seg && !st.sleep && SR_NOPHONE.test((st.seg.what || '') + ' ' + (st.seg.where || '')));
+const srNoPhone = st => !!(st && st.seg && !st.sleep && SR_NOPHONE.test((st.seg.what || '') + ' ' + (st.seg.where || '')) && !/练|准备|开会|会议|讨论/.test(st.seg.what || '') && st.seg.e - st.seg.s <= 180); /* 只有真的在台上 / 签售 / 录制那一两个小时手机不在手上；为演唱会合练、长时间的现场行程，中间休息都会看手机 */
 function srCheckGap(at) {
   const st = srNow(at) || socNow0(srP(), at), C = SR().chat, M = SR().mood, sess = C.sess && at < C.sess;
   if (srNoPhone(st)) return Math.max(1, st.seg.e - srMin(at)) + lognorm(6, .6); // 结束后过几分钟才拿起手机
