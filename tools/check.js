@@ -34,6 +34,8 @@ const path = require('path');
     { const L = chal().list; L.push({ st: 'done', p: { n: 'x' } }); const u0 = UI.tab; UI.tab = 'sched'; render(); ok('有缺日期的 challenge 记录时行程页也能打开', !/这个页面出错了/.test(view.innerHTML)); L.pop(); UI.tab = u0; render(); }
     { const st = { ai: {}, x: { cards: { '2026-11-07|r1': { title: 't' } } } }; keyRepair(st); ok('通告卡片丢了 key 也能补回来', st.x.cards['2026-11-07|r1'].key === '2026-11-07|r1'); }
     { const T = tgState(), k = dkey(Date.now()); T.cards[k + '|zz'] = { title: 'x' }; const u0 = UI.tab; UI.tab = 'sched'; render(); ok('通告卡片缺 key 时行程页也能打开', !/这个页面出错了/.test(view.innerHTML)); delete T.cards[k + '|zz']; UI.tab = u0; render(); }
+    ok('聊天记录里能看到最近一通电话说了什么', /他都记得[\s\S]*她：最近好累/.test(srChatLog({ msgs: [{ at: Date.now() - 1e3, call: { st: 'done', dur: '1:00', sum: 's', log: '她：最近好累\n他：怎么了' } }] }, Date.now())));
+    { const R = SR(), q0 = R.quietUntil, n0 = R.jobs.length; R.quietUntil = Date.now() + 3600e3; srReachEval(Date.now()); ok('说了晚安以后不再主动找她', R.jobs.length === n0); R.quietUntil = q0; }
     ok('「哥哥」翻成 오빠 不是 형', '나는 형의 마음에'.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠') === '나는 오빠의 마음에');
     return out;
   });
