@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>SIA SPACE · Cyan</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="SIA SPACE">
+<meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1316" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="icon" type="image/png" href="img/icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
 .rmb{display:none!important}
 :root{
@@ -808,6 +817,7 @@ function defaultState() {
 }
 let S;
 try { S = JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch (e) { S = null; }
+const FRESH_SAVE = !S;
 if (!S) S = defaultState();
 { const d = defaultState(); for (const k of Object.keys(d)) if (S[k] === undefined) S[k] = d[k];
   for (const k of ['profile', 'ai', 'prefs', 'schedule']) S[k] = Object.assign({}, d[k], S[k]); }
@@ -836,6 +846,8 @@ function db() {
   }));
 }
 async function idbPut(id, blob) { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('m', 'readwrite'); t.objectStore('m').put(blob, id); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+async function idbAll() { const d = await db(); return new Promise((res, rej) => { const out = [], q = d.transaction('m').objectStore('m').openCursor(); q.onsuccess = () => { const c = q.result; if (!c) return res(out); out.push([c.key, c.value]); c.continue(); }; q.onerror = () => rej(q.error); }); }
+const blobUrl = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
 async function idbGet(id) { const d = await db(); return new Promise((res, rej) => { const q = d.transaction('m').objectStore('m').get(id); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
 async function idbDel(id) { const d = await db(); return new Promise(res => { const t = d.transaction('m', 'readwrite'); t.objectStore('m').delete(id); t.oncomplete = res; t.onerror = res; }); }
 const urlCache = {};
@@ -11772,7 +11784,8 @@ document.addEventListener('click', async e => {
       t.disabled = false; t.textContent = '测试连接'; break;
     }
     case 'export': {
-      const blob = new Blob([JSON.stringify(S, (k, v) => k.startsWith('_') || k === 'key' ? undefined : v, 1)], { type: 'application/json' });
+      toast('正在打包存档…', '照片、视频也会一起导出，可能要几秒'); let media = []; try { media = await Promise.all((await idbAll()).filter(([, b]) => b instanceof Blob).map(async ([id, b]) => [id, await blobUrl(b)])); } catch (e) { }
+      const base = JSON.stringify(S, (k, v) => k.startsWith('_') || k === 'key' ? undefined : v), blob = new Blob([base.slice(0, -1) + ',"siaMedia":' + JSON.stringify(media) + '}'], { type: 'application/json' }); /* 存档 + 所有照片视频（IndexedDB 里的）一起导出，换浏览器 / 主屏幕版也不会丢图 */
       const filename = `sia-space-${dkey(Date.now())}.json`;
       // 在 claude.ai 链接里打开时走平台的下载确认；直接打开本地文件时用普通下载
       const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
@@ -11825,7 +11838,7 @@ document.addEventListener('change', async e => {
     if (S.profile.avatar) idbDel(S.profile.avatar);
     S.profile.avatar = id; save(); render(); toast('头像已更新');
   } else if (t.id === 'imp-file' && t.files[0]) {
-    try { const j = JSON.parse(await t.files[0].text()); if (!j.profile || !j.posts) throw new Error('格式不对'); j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; save(); location.reload(); }
+    try { const j = JSON.parse(await t.files[0].text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; save(); location.reload(); }
     catch (err) { toast('导入失败', err.message); }
   } else if (t.id === 'bb-file' && t.files[0]) {
     const f = t.files[0]; t.value = ''; bbDraftAdd(f.type.startsWith('video') ? 'video' : 'image', { blob: f });
@@ -11952,6 +11965,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
+setTimeout(() => { const app = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); if (!FRESH_SAVE || !app || $('#modal').classList.contains('on')) return; openModal(`<div class="row"><h3 style="flex:1">📱 主屏幕版</h3></div><div style="line-height:1.7">从主屏幕打开的 SIA SPACE 和浏览器里的存档是分开的，这里现在是一个新存档。<br>要接着玩原来的进度：先在 <b>Safari</b> 里打开网站，到「我的 → 设置」点<b>导出数据</b>；再回到这里，同一个地方点<b>导入数据</b>，选刚才导出的文件。</div><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="close">知道了</button></div>`); }, 2500); /* 从主屏幕第一次打开：提示把浏览器里的存档导过来 */
 setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; chBfNext(0); }, 6000); // 补 challenge 只弹一次
 setInterval(flushAgg, 6000);
 setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
