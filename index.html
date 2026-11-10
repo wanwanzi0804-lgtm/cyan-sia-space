@@ -567,7 +567,7 @@ body.locked{position:fixed;left:0;right:0;width:100%;overflow:hidden}
 #modal,#modal .sheet,.kk-log,#call-ly,.call-talk,#kk-view .kv-wrap,.bb-stkg{overscroll-behavior:contain}
 #modal .sheet{background:var(--bg);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px}
 @media (min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
-#modal.full{background:none;align-items:stretch}#modal.full .sheet{height:100vh;height:100dvh;max-height:none;border-radius:0;padding:0;overflow:hidden;background:#bacee0}#modal.full .sheet.slide{animation:kkIn .22s ease-out}@keyframes kkIn{from{transform:translateX(100%)}to{transform:none}}
+#modal.full{background:none;align-items:stretch}#modal.full .sheet{height:100%;max-height:none;border-radius:0;padding:0;overflow:hidden;background:#bacee0}#modal.full .sheet.slide{animation:kkIn .22s ease-out}@keyframes kkIn{from{transform:translateX(100%)}to{transform:none}}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #modal.full .sheet{background:#22303b}}:root[data-theme="dark"] #modal.full .sheet{background:#22303b}
 .kk-room{--kk-bg:#bacee0;--kk-o:#fff;--kk-ot:#191919;--kk-tm:#556270;display:flex;flex-direction:column;height:100%;background:var(--kk-bg);color:var(--kk-ot)}
 .kk-top{display:flex;align-items:center;gap:2px;padding:calc(env(safe-area-inset-top) + 8px) 6px 8px;flex:none}.kk-nm{flex:1;font-size:16.5px;font-weight:600;margin-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -6642,10 +6642,18 @@ const ptrRelease = () => { if (!UI.ptrDown) return; UI.ptrDown = 0; clearTimeout
 // 松手后等这一下点击处理完（它自己会重画并清掉待补的）再补画；没有点击（拖动了）就过一会儿补
 document.addEventListener('pointerup', () => { if (UI.ptrDown) { clearTimeout(UI._ptrT); UI._ptrT = setTimeout(ptrRelease, 350); } }, true); document.addEventListener('pointercancel', () => { clearTimeout(UI._ptrT); UI._ptrT = setTimeout(ptrRelease, 50); }, true);
 document.addEventListener('click', () => { if (UI.ptrDown) setTimeout(ptrRelease, 0); }, true);
-document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#sheet')) UI.ptrDown = 1; const t = e.target; if (t && (t.id === 'dm-in' || t.id === 'mgr-in')) UI.inHold = Date.now(); }, true); // 刚点输入框的那一下不要被刷新打断
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#view')) UI.ptrView = 1; if (e.target.closest && e.target.closest('#sheet')) UI.ptrDown = 1; const t = e.target; if (t && (t.id === 'dm-in' || t.id === 'mgr-in')) UI.inHold = Date.now(); }, true); // 刚点输入框的那一下不要被刷新打断
 document.addEventListener('focusin', e => { if (isTextField(e.target)) document.body.classList.add('typing'); if (e.target.id === 'bb-in' && UI.bbStk) { UI.bbStk = false; $('#bb-stk').innerHTML = ''; $('.bb-emo')?.classList.remove('on'); } });
 document.addEventListener('focusout', () => setTimeout(() => { if (!isTextField(document.activeElement)) { document.body.classList.remove('typing'); if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0); layoutVars(); } }, 50));
+/* 手指按在页面上（点聊天列表、按钮）时，后台来的刷新先不画，松手点完再画：不然点到一半那一行被换掉，这一下就点空了 */
+const viewRelease = () => { if (!UI.ptrView) return; UI.ptrView = 0; if (UI._pendRender) { UI._pendRender = 0; setTimeout(render, 0); } };
+document.addEventListener('pointerup', () => setTimeout(viewRelease, 350), true); document.addEventListener('pointercancel', () => setTimeout(viewRelease, 350), true);
+/* 键盘弹出时：全屏聊天跟着可见区域走，输入框贴着键盘，不留缝 */
+function vvFit() { const v = window.visualViewport, m = $('#modal'); if (!v || !m) return; if (!m.classList.contains('full') || !m.classList.contains('on')) { if (m.style.height) { m.style.top = ''; m.style.height = ''; m.style.bottom = ''; } return; }
+  const h0 = parseFloat(m.style.height) || innerHeight; m.style.top = v.offsetTop + 'px'; m.style.height = v.height + 'px'; m.style.bottom = 'auto'; if (v.height < h0 - 40) { const lg = $('#dm-log') || $('#sheet .kk-log'); if (lg) lg.scrollTop = lg.scrollHeight; } }
+if (window.visualViewport) { visualViewport.addEventListener('resize', vvFit); visualViewport.addEventListener('scroll', vvFit); }
 function render() {
+  if (UI.ptrView) { UI._pendRender = 1; return; }
   $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === (UI.tab === 'live' ? 'feed' : UI.tab)));
   let h = '';
   if (UI.tab === 'feed') h = UI.postId ? viewPost() : viewFeed();
@@ -11526,7 +11534,7 @@ document.addEventListener('click', async e => {
       if (ok) C.list.push({ id: uid(), date: o.date, p: o.p, song: ['', ''], st: 'book', at: Date.now(), bk: { min: o.min, where: o.where, act: o.act, music: o.music, relMin: o.relMin } });
       mgrReply(ok ? ['네 그날로 잡아둘게요', '好，那天给你安排上'] : ['네 그쪽에 말해둘게요', '好，我跟那边说一声'], true); B.offer = null; save(); render(); break; }
     case 'chpopclose': (chal().pop || {}).open = null; chSeenDay(UI.chPop); UI.chPop = null; closeModal(); render(); break;
-    case 'dmopen': { UI.kkDr = null; let T = dms()[t.dataset.k]; if (!T) { const f = chal().friends.find(f => f.g + '|' + f.n === t.dataset.k); if (!f) break; T = dmThread(friendP(f)); } T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; }
+    case 'dmopen': try { UI.kkDr = null; let T = dms()[t.dataset.k]; if (!T) { const f = chal().friends.find(f => f.g + '|' + f.n === t.dataset.k); if (!f) break; T = dmThread(friendP(f)); } T.unread = 0; UI.dmOpen = t.dataset.k; openModal(dmHTML(t.dataset.k)); updBadges(); save(); const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; break; } catch (err) { console.error(err); toast('这个聊天打不开', String(err && err.message || err).slice(0, 80)); break; }
     case 'dmprof': UI.kpEdit = null; UI.kkDr = null; openModal(dmProfHTML(t.dataset.k)); break;
     case 'kpedit': UI.kpEdit = t.dataset.k; openModal(dmProfHTML(t.dataset.k)); { const el = $('#dmp-rm'); if (el) el.focus(); } break;
     case 'kkdr': { const r = t.closest('.kk-room'); if (r) UI.kkDr = r.classList.toggle('dr') ? UI.dmOpen : null; break; }
