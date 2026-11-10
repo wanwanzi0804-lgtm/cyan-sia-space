@@ -28,6 +28,7 @@ const path = require('path');
     { const st = { ai: {}, social: { dm: { 'A|b': { p: { g: 'A', n: 'b' }, msgs: [] } } } }; keyRepair(st); ok('导入后聊天的 key 能补回来', st.social.dm['A|b'].p.key === 'A|b'); }
     { const st = { ai: {}, social: { dm: { 'C|s': { p: { g: 'C', n: 's', key: 'C|s' }, msgs: [{ id: 1, at: 1 }] }, 'undefined': { p: { g: 'C', n: 's' }, msgs: [{ id: 2, at: 2, call: {} }] } } } }; keyRepair(st); ok('记到错的聊天里的电话记录会并回来', !st.social.dm.undefined && st.social.dm['C|s'].msgs.length === 2); }
     ok('聊天记录里能看到电话聊了什么', /语音通话 1:00：聊了演唱会/.test(srChatLog({ msgs: [{ at: Date.now() - 1e3, call: { st: 'done', dur: '1:00', sum: '聊了演唱会' } }] }, Date.now())));
+    ok('官方号自己发的帖子能显示、能删', /OFFICIAL[\s\S]*offdel/.test(offCard({ id: 'man:t', k: 'man', at: Date.now(), txt: '공지', media: [], base: 10, cc: 1, cm: [] })));
     ok('「哥哥」翻成 오빠 不是 형', '나는 형의 마음에'.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠') === '나는 오빠의 마음에');
     return out;
   });

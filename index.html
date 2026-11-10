@@ -2760,6 +2760,7 @@ const OFF_CM = {
   mvt: [['cyan_daily', '뮤비 스케일 무슨 일이야'], ['sia_tw', '预告就这么好看正片怎么办'], ['moon_cy', '이틀 남았다 🥹'], ['今天也想你', '已经循环二十遍了']],
   out: [['sia_0829', '컴백 축하해!!! 스밍 달린다'], ['雪落的时候', '打榜打榜！'], ['cyan_daily', '타이틀 미쳤어요 진짜'], ['blue_sia', 'MV is a masterpiece'], ['今天也想你', '整张专辑都好好听']]
 };
+const OFF_CM_GEN = [['sia_0829', '공지 확인했어요!!'], ['雪落的时候', '收到！'], ['cyan_daily', '항상 응원해요 💙'], ['blue_sia', 'thank you for the update!'], ['今天也想你', '官方号终于营业了'], ['moon_cy', '알림 설정 완료'], ['snowy_cyan', '기다리고 있을게요'], ['sia_tw', '每天都来蹲官方号']];
 function offTick(o) {
   const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM`;
   const tags = `#${S.profile.name} #시안 #${a.name.replace(/\s+/g, '')}`;
@@ -2787,9 +2788,9 @@ function offCard(x) {
   const P = x.poster, poster = !P ? '' : P === 'sched' ? `<div class="op-sched"><h4>${esc(S.profile.name.toUpperCase())} ${esc(albLabel(a).replace(/\s*\[.*$/, '').toUpperCase())}</h4><h2>${esc(a.name.toUpperCase())}</h2>${dates.map(([d, t]) => `<div class="op-q"><span>${d}</span><b>${t}</b></div>`).join('')}<div class="op-f">STARSHIP ENTERTAINMENT</div></div>`
     : P === 'trk' ? `<div class="op-trk"><h2>${esc(a.name.toUpperCase())}</h2>${a.tracks.map((t, i) => `<div class="op-w"><span class="n">${String(i + 1).padStart(2, '0')}</span><span>${esc(t.name)}${t.title ? '<span class="tt">TITLE</span>' : ''}</span></div>`).join('')}</div>`
     : `<div class="op-poster" style="background:linear-gradient(165deg,${col}cc,${col} 55%,#111)">${P === 'hl' || P === 'mvt' ? '<span class="kk-play" style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%)">▶</span>' : ''}<div class="t1">${esc(S.profile.name.toUpperCase())} ${esc(albLabel(a).replace(/\s*\[.*$/, '').toUpperCase())}</div><div class="t2">${esc(a.name.toUpperCase())}</div><div class="t3">${{ soon: 'COMING SOON', logo: 'CONCEPT PHOTO', hl: 'HIGHLIGHT MEDLEY', mvt: `'${esc(albTitle(a))}' M/V TEASER`, out: 'OUT NOW' }[P] || ''} · ${(a.date || '').replace(/-/g, '.')} 6PM</div></div>`;
-  const imgs = x.media.length ? `<div class="media n${Math.min(x.media.length, 4)}">${x.media.slice(0, 4).map(id => `<div class="m"><img data-mid="${id}" alt=""></div>`).join('')}</div>` : '';
+  const imgs = x.media.length ? `<div class="media n${Math.min(x.media.length, 4)}">${x.media.slice(0, 4).map(m => { const id = m.id || m; return `<div class="m">${m.type === 'video' ? `<video data-mid="${id}" muted playsinline controls preload="metadata"></video>` : `<img data-mid="${id}" alt="">`}</div>`; }).join('')}</div>` : '';
   const txt = esc(x.txt).replace(/(^|\s)(#(?![0-9])[^\s&<#]+)/g, '$1<span class="off-tag">$2</span>'); // 只有话题标签变蓝（引号转义和 #1 #2 不算）
-  return `<div class="card post off-post"><div class="op-head"><div class="off-av">${esc((S.profile.name || 'C')[0].toUpperCase())}</div><div style="min-width:0"><div class="ph-nm">${esc(S.profile.name)}<span class="off-b">OFFICIAL</span></div><div class="ph-t">${ago(x.at)}</div></div></div><div class="off-tx">${txt}</div>${imgs}${poster}<div class="off-act"><span>♡ ${fmtNum(likes)}</span><span>💬 ${fmtNum(cc)}</span></div>${x.cm.length && cc ? `<div class="off-cm">${x.cm.slice(0, Math.min(x.cm.length, 1 + Math.floor(age * 6))).map(([u, t]) => `<div><b>${esc(u)}</b>${esc(t)}</div>`).join('')}</div>` : ''}</div>`;
+  return `<div class="card post off-post"><div class="op-head"><div class="off-av">${esc((S.profile.name || 'C')[0].toUpperCase())}</div><div style="min-width:0"><div class="ph-nm">${esc(S.profile.name)}<span class="off-b">OFFICIAL</span></div><div class="ph-t">${ago(x.at)}</div></div>${x.k === 'man' ? `<span class="sp"></span><button class="link muted" data-act="offdel" data-id="${x.id}" style="font-size:12.5px">删除</button>` : ''}</div><div class="off-tx">${txt}</div>${imgs}${poster}<div class="off-act"><span>♡ ${fmtNum(likes)}</span><span>💬 ${fmtNum(cc)}</span></div>${x.cm.length && cc ? `<div class="off-cm">${x.cm.slice(0, Math.min(x.cm.length, 1 + Math.floor(age * 6))).map(([u, t]) => `<div><b>${esc(u)}</b>${esc(t)}</div>`).join('')}</div>` : ''}</div>`;
 }
 // 回归流程每次 tick：会议 / 选曲 / 官方号
 function cbFlowTick() { const o = prepOn(); if (!o) return; meetTick(o); pickTick(o); offTick(o); }
@@ -6648,7 +6649,7 @@ document.addEventListener('focusin', e => { if (isTextField(e.target)) document.
 document.addEventListener('focusout', () => setTimeout(() => { if (!isTextField(document.activeElement)) { document.body.classList.remove('typing'); if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0); layoutVars(); } }, 50));
 /* 手指按在页面上（点聊天列表、按钮）时，后台来的刷新先不画，松手点完再画：不然点到一半那一行被换掉，这一下就点空了 */
 const viewRelease = () => { if (!UI.ptrView) return; UI.ptrView = 0; if (UI._pendRender) { UI._pendRender = 0; setTimeout(render, 0); } };
-document.addEventListener('pointerup', () => setTimeout(viewRelease, 350), true); document.addEventListener('pointercancel', () => setTimeout(viewRelease, 350), true);
+document.addEventListener('click', viewRelease, true); /* 点击本身要马上生效：先放开，再执行点的那个动作 */ document.addEventListener('pointerup', () => setTimeout(viewRelease, 350), true); document.addEventListener('pointercancel', () => setTimeout(viewRelease, 350), true);
 /* 键盘弹出时：全屏聊天跟着可见区域走，输入框贴着键盘，不留缝 */
 function vvFit() { const v = window.visualViewport, m = $('#modal'); if (!v || !m) return; document.body.classList.toggle('kbopen', v.height < (window.innerHeight || v.height) - 120 || (document.activeElement && /^(TEXTAREA|INPUT)$/.test(document.activeElement.tagName) && v.height < screen.height * .75)); /* 键盘弹出来时底部不再留 Home 条的空 */ { const L = $('#call-ly'); if (L) { if (L.classList.contains('kb')) { L.style.top = v.offsetTop + 'px'; L.style.height = v.height + 'px'; L.style.bottom = 'auto'; const t = $('#call-talk'); if (t) t.scrollTop = t.scrollHeight; } else if (L.style.height) { L.style.top = ''; L.style.height = ''; L.style.bottom = ''; } } } if (!m.classList.contains('full') || !m.classList.contains('on')) { if (m.style.height) { m.style.top = ''; m.style.height = ''; m.style.bottom = ''; } return; }
   const h0 = parseFloat(m.style.height) || innerHeight; m.style.top = v.offsetTop + 'px'; m.style.height = v.height + 'px'; m.style.bottom = 'auto'; if (v.height < h0 - 40) { const lg = $('#dm-log') || $('#sheet .kk-log'); if (lg) lg.scrollTop = lg.scrollHeight; } }
@@ -6694,7 +6695,7 @@ function viewFeed() {
     <div class="hero-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)}</b><span>今日</span></div></div></div>`;
   if (sub === 'media') {
     const L = S.posts.filter(x => x.media.length), OF = ((S.off || { posts: [] }).posts || []).filter(x => x.media.length).sort((a, b) => b.at - a.at);
-    const offTiles = OF.flatMap(x => x.media.map(id => `<div class="mg"><img data-mid="${id}" alt=""><i class="mg-n" style="font-size:9.5px">OFFICIAL</i></div>`)).join('');
+    const offTiles = OF.flatMap(x => x.media.filter(m => m.type !== 'video').map(m => m.id || m).map(id => `<div class="mg"><img data-mid="${id}" alt=""><i class="mg-n" style="font-size:9.5px">OFFICIAL</i></div>`)).join('');
     return feedNav('media') + hero + (offTiles && !L.length ? `<div class="mgrid">${offTiles}</div>` : '') + (L.length ? `<div class="mgrid">${offTiles}${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : (offTiles ? '' : '<div class="empty">还没有发过图片或视频</div>'));
   }
   const open = UI.cmpOpen || pending.length > 0;
@@ -6705,6 +6706,7 @@ function viewFeed() {
     <div id="cmp-meta"></div>
     <div class="row">
       <label class="btn ghost sm">🖼 图片/视频<input type="file" id="cmp-file" accept="image/*,video/*" multiple hidden></label>
+      <button class="btn ${UI.cmpOff ? 'primary' : 'ghost'} sm" data-act="cmpas" title="用哪个账号发">${UI.cmpOff ? '🏢 官方号' : '👤 我自己'}</button>
       <span class="sp"></span>
       <button class="link" data-act="cmpclose" style="font-size:13.5px;margin-right:6px">收起</button>
       <button class="btn primary sm" data-act="publish">发布</button>
@@ -6755,6 +6757,10 @@ async function publish() {
     try { await idbPut(id, f); urlCache[id] = f._url; } catch (e) { urlCache[id] = f._url; toast('媒体保存失败，刷新后可能看不到', String(e.message || e)); }
     media.push({ id, type: f.type.startsWith('video') ? 'video' : 'image' });
   }
+  if (UI.cmpOff) { /* 官方号发的：公告、回归宣传、通知。不是你的个人帖子，粉丝反应按官方号来 */
+    const f = S.profile.followers, base = Math.round(f * rand(.3, .6) * (media.length ? 1.2 : 1)), pool = OFF_CM_GEN;
+    offState().posts.push({ id: 'man:' + uid(), alb: null, k: 'man', at: Date.now(), txt: text, media, poster: null, base, cc: Math.round(base * rand(.03, .06)), cm: pickN(pool, Math.min(3, pool.length)) });
+    draft = ''; pending = []; draftTags = []; draftDesc = ''; UI.cmpOpen = false; UI.cmpOff = false; save(); render(); toast('官方号已发布', '粉丝们会陆续看到'); return; }
   const p = S.profile, boost = media.length ? 1.25 : 1, h = heat(), tn = tone(text);
   const L = Math.round(rand(p.activeMin, p.activeMax) * rand(1.1, 1.8) * boost * h * folRatio() * (tn === 'neg' ? .75 : tn === 'romance' ? 1.3 : tn === 'pos' ? 1.05 : 1));
   let folD = L * .012 * h, folR = '帖子互动';
@@ -11441,6 +11447,8 @@ document.addEventListener('click', async e => {
     case 'open': UI.feedY = UI.postId ? UI.feedY : window.scrollY; UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); window.scrollTo(0, UI.feedY || 0); break; // 回到列表原来看到的位置
     case 'publish': publish(); break;
+    case 'cmpas': UI.cmpOff = !UI.cmpOff; { const v = $('#cmp-text') ? $('#cmp-text').value : ''; render(); const t2 = $('#cmp-text'); if (t2) t2.value = v; } break;
+    case 'offdel': if (confirm('删掉这条官方号的帖子？')) { const O = offState(); O.posts = O.posts.filter(x => x.id !== t.dataset.id); save(); render(); } break;
     case 'cmpopen': UI.cmpOpen = true; render(); $('#cmp-text')?.focus(); break;
     case 'cmpclose': draft = ($('#cmp-text')?.value || ''); UI.cmpOpen = false; render(); break;
     case 'feedsub': UI.feedSub = t.dataset.s; UI.postId = null; render(); window.scrollTo(0, 0); break;
