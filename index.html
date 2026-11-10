@@ -816,6 +816,13 @@ function defaultState() {
     seeded: false
   };
 }
+/* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
+const BUILD = '20261110063501';
+function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
+    const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+    const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
+    if (!busy()) go(); else { const iv = setInterval(() => { if (!busy()) { clearInterval(iv); go(); } }, 5000); } }).catch(() => { }); }
+setTimeout(buildCheck, 4000); setInterval(buildCheck, 5 * 60e3); document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(buildCheck, 1500); });
 let S;
 try { S = JSON.parse(localStorage.getItem(STORE_KEY)) || null; } catch (e) { S = null; }
 const FRESH_SAVE = !S;
