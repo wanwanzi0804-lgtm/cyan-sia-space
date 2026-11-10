@@ -11827,7 +11827,7 @@ document.addEventListener('click', async e => {
     case 'impopen': $('#imp-file-g').click(); break;
     case 'export': {
       toast('正在打包存档…', '照片、视频也会一起导出，可能要几秒'); let media = []; try { media = await Promise.all((await idbAll()).filter(([, b]) => b instanceof Blob).map(async ([id, b]) => [id, await blobUrl(b)])); } catch (e) { }
-      const base = JSON.stringify(S, (k, v) => k.startsWith('_') || k === 'key' ? undefined : v), blob = new Blob([base.slice(0, -1) + ',"siaMedia":' + JSON.stringify(media) + '}'], { type: 'application/json' }); /* 存档 + 所有照片视频（IndexedDB 里的）一起导出，换浏览器 / 主屏幕版也不会丢图 */
+      const base = JSON.stringify(S, function (k, v) { return k.startsWith('_') || (k === 'key' && this === S.ai) ? undefined : v; }), blob = new Blob([base.slice(0, -1) + ',"siaMedia":' + JSON.stringify(media) + '}'], { type: 'application/json' }); /* 存档 + 所有照片视频（IndexedDB 里的）一起导出，换浏览器 / 主屏幕版也不会丢图 */
       const filename = `sia-space-${dkey(Date.now())}.json`;
       // 在 claude.ai 链接里打开时走平台的下载确认；直接打开本地文件时用普通下载
       const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
@@ -11838,8 +11838,13 @@ document.addEventListener('click', async e => {
   }
 });
 /* 导入存档：用挂在 body 上、不会被页面重绘替换掉的文件框（设置页每隔一会儿会重绘，选文件期间原来的输入框被换掉，选完就没反应） */
+/* 之前导出把所有叫 key 的字段都去掉了（本来只想去掉 API Key）：人物 / 聊天的 key 补回来 */
+function keyRepair(st) { let n = 0; const seen = new Set(); const walk = (o, depth) => { if (!o || typeof o !== 'object' || depth > 12 || seen.has(o)) return; seen.add(o);
+    if (!Array.isArray(o) && typeof o.g === 'string' && typeof o.n === 'string' && o.key == null && o !== st.ai) { o.key = o.g + '|' + o.n; n++; }
+    for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v, depth + 1); };
+  walk(st, 0); const D = st.social && st.social.dm; if (D) for (const [k, T] of Object.entries(D)) if (T && T.p && T.p.key !== k) { T.p.key = k; n++; } return n; }
 async function importSave(f) { if (!f) return; toast('正在读取存档…', f.name);
-    try { const j = JSON.parse(await f.text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
+    try { const j = JSON.parse(await f.text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; keyRepair(j); if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
     catch (err) { toast('导入失败', err.message); }
 }
 (() => { const inp = document.createElement('input'); inp.type = 'file'; inp.id = 'imp-file-g'; inp.accept = '.json,application/json,text/plain'; inp.style.display = 'none'; inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; importSave(f); }); document.body.appendChild(inp); })();
@@ -12010,6 +12015,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
+{ const D = S.social && S.social.dm; if (D && Object.values(D).some(T => T && T.p && T.p.key !== undefined ? false : true)) { keyRepair(S); save(); setTimeout(render, 50); } } /* 导入后聊天的 key 丢了：自动补回来 */
 setTimeout(() => { const app = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); if (!FRESH_SAVE || !app || $('#modal').classList.contains('on')) return; openModal(`<div class="row"><h3 style="flex:1">📱 主屏幕版</h3></div><div style="line-height:1.7">从主屏幕打开的 SIA SPACE 和浏览器里的存档是分开的，这里现在是一个新存档。<br>要接着玩原来的进度：先在 <b>Safari</b> 里打开网站，到「我的 → 设置」点<b>导出数据</b>；再回到这里，同一个地方点<b>导入数据</b>，选刚才导出的文件。</div><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="close">知道了</button></div>`); }, 2500); /* 从主屏幕第一次打开：提示把浏览器里的存档导过来 */
 setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; chBfNext(0); }, 6000); // 补 challenge 只弹一次
 setInterval(flushAgg, 6000);
