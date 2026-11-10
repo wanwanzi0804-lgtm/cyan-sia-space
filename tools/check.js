@@ -15,7 +15,9 @@ const path = require('path');
     ok('一整天的颁奖礼现场中间会看手机', !srNoPhone(seg('KGMA 颁奖典礼', 660, 1290)));
     { const t0 = srTs(dk, 0), T = { msgs: [{ text: '점심 꼭 챙겨 먹고ㅎ', zh: '午饭一定要吃哦', at: t0 + 60e3 }] }, L = srTidy([{ ko: '팬싸 끝났어?ㅎ 밥은 먹었어?', zh: '签售结束了吗？ㅎ 吃饭了吗？' }], T, Date.now());
       ok('一天不重复问吃饭', L.length === 1 && !/밥/.test(L[0].ko)); }
-    ok('她的规则会带进世琳的每次对话', /她定下的规则/.test(srCtx(Date.now(), '')));
+    ok('她的规则会带进世琳的每次对话', /他这个人平时的样子/.test(srCtx(Date.now(), '')));
+    ok('规则不是按次数的指标', !srRules().some(x => /一天里自然地说一两次|会先找她一次|至少回一句/.test(x)));
+    ok('说话底层强调废话和单一焦点', /没什么意义的废话/.test(SR_VOICE) && /完成清单/.test(SR_VOICE));
     ok('规则里有早上找她', srRules().some(x => /早上/.test(x)));
     ok('规则里有不要老说困', srRules().some(x => /困不困/.test(x)));
     ok('规则里有认真倾诉时给安慰和建议', srRules().some(x => /倾诉烦恼/.test(x)));
