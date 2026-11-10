@@ -6671,6 +6671,7 @@ function render() {
   if (UI.ptrView) { UI._pendRender = 1; return; }
   $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === (UI.tab === 'live' ? 'feed' : UI.tab)));
   let h = '';
+  try {
   if (UI.tab === 'feed') h = UI.postId ? viewPost() : viewFeed();
   else if (UI.tab === 'live') h = viewLive();
   else if (UI.tab === 'sched') h = viewSched();
@@ -6678,6 +6679,7 @@ function render() {
   else if (UI.tab === 'notif') h = viewNotif();
   else if (UI.tab === 'kkt') h = viewKkt();
   else h = viewMe();
+  } catch (err) { console.error('render', UI.tab, err); h = `<div class="card" style="margin-top:14px"><b>这个页面出错了，打不开</b><div class="muted" style="font-size:12.5px;margin:8px 0;word-break:break-all">页面：${esc(UI.tab)}<br>${esc(String(err && err.message || err))}<br>${esc(String(err && err.stack || '').split('\n').slice(0, 3).join(' / ')).slice(0, 300)}</div><div class="muted" style="font-size:12.5px">把这一屏截图发给我就能修。</div></div>`; } /* 页面出错时不再「点了没反应」：直接把错误显示出来 */
   view.innerHTML = h;
   view.classList.toggle('flush', UI.tab === 'bubble' && !!S.bubble.welcome);
   document.body.classList.toggle('bbmode', UI.tab === 'bubble' && !!S.bubble.welcome);
@@ -11074,7 +11076,7 @@ function chalTick() {
 }
 // 数量要合理：一天最多拍 1 个；7 天内最多 2 个，回归打歌期 3 个（被婉拒的不算）
 function chLimit(k) {
-  const L = chal().list.filter(x => x.st !== 'no'), cap = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? 3 : 2;
+  const L = chal().list.filter(x => x && x.st !== 'no' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')), cap = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? 3 : 2;
   if (L.some(x => x.date === k)) return '这天已经约了一个了';
   const near = L.filter(x => Math.abs((parseD(x.date) - parseD(k)) / 86400e3) < 7).length;
   return near >= cap ? `前后一周已经有 ${near} 个 challenge 了，太密粉丝会腻` : '';
@@ -11090,7 +11092,7 @@ function chBfNext(n) {
 // 补 challenge：最近 30 天有活动的日子，当时如果和别人拍过可以补上
 /* 当天现场那个 challenge 弹窗已经处理过（拍了 / 没拍 / 关掉）：这天以后不会再出现在「补 challenge」里 */
 function chSeenDay(Q) { if (!Q || Q.bf || !Q.k) return; const C = chal(); (C.bf || (C.bf = {}))[Q.k] = 1; save(); }
-function chBackfillList() { const today = dkey(Date.now()), D = chal().bf || {}, out = []; for (let i = 1; i <= 30; i++) { const k = addDays(today, -i); if (D[k] || chal().list.some(x => x.date === k) || chLimit(k)) continue; const rs = rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) out.push({ k, rs }); } return out; }
+function chBackfillList() { const today = dkey(Date.now()), D = chal().bf || {}, out = []; for (let i = 1; i <= 30; i++) { const k = addDays(today, -i); let lim = ''; try { lim = chLimit(k); } catch (e) { } if (D[k] || chal().list.some(x => x && x.date === k) || lim) continue; const rs = rulesFor(k).filter(r => CH_DAY_CATS.includes(r.cat)); if (rs.length) out.push({ k, rs }); } return out; }
 function chGroupOpts() { const F = chal().friends; return `<option value="">没有</option>${F.length ? '<option value="好友">好友</option>' : ''}<optgroup label="同公司">${CH_SAME.map(x => `<option value="${esc(x[0])}">${esc(x[0])}</option>`).join('')}</optgroup><optgroup label="其他艺人">${CH_OTHERS.map(x => `<option value="${esc(x[0])}">${esc(x[0])}</option>`).join('')}</optgroup>`; }
 function chMemberOpts(g) { if (!g) return ''; if (g === '好友') return chal().friends.map(f => `<option value="${esc(f.g + '|' + f.n)}">${esc(f.z || f.n)}（${esc(f.g)}）</option>`).join(''); const G = [...CH_SAME, ...CH_OTHERS].find(x => x[0] === g); return G ? G[3].map(([n, z]) => `<option value="${esc(g + '|' + n)}">${esc(n)}${z ? ' ' + esc(z) : ''}</option>`).join('') : ''; }
 function chPartnerOpts() { const o = (lab, L) => `<optgroup label="${esc(lab)}">${L.map(([g, gk, t, ms]) => ms.map(([n, z]) => `<option value="${esc(g + '|' + n)}">${esc(g)} ${esc(n)}${z ? ' ' + esc(z) : ''}</option>`).join('')).join('')}</optgroup>`; const F = chal().friends; return `<option value="">没有</option>${F.length ? `<optgroup label="好友">${F.map(f => `<option value="${esc(f.g + '|' + f.n)}">${esc(f.g)} ${esc(f.n)}${f.z ? ' ' + esc(f.z) : ''}</option>`).join('')}</optgroup>` : ''}${o('同公司', CH_SAME)}${o('其他艺人', CH_OTHERS)}`; }
