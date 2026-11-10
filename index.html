@@ -2734,13 +2734,19 @@ function prodHTML() {
     ${lock ? '<div class="cb-warn ok">录音已经完成，专辑内容已经定稿</div>' : '<div class="muted" style="font-size:12.5px;margin:-4px 0 10px">录音完成之前都可以改</div>'}
     <div class="card"><div class="row" style="gap:12px;align-items:flex-start">${albCover(a, 'lg')}<div style="flex:1;min-width:0"><b>封面</b><div class="muted" style="font-size:12px;margin:2px 0 6px">${a.cover ? '已上传' : '还没有封面'}</div>${lock ? '' : '<label class="btn ghost sm">上传封面<input type="file" id="pp-cover" accept="image/*" hidden></label>'}</div></div></div>
     <div class="card"><b>概念照</b><div class="muted" style="font-size:12px;margin:2px 0 6px">预热期官方号会按日程发出（前一半 #1，后一半 #2）</div><div class="pp-ph">${ph.map((id, i) => `<div class="pp-pi"><img data-mid="${id}" alt="">${lock ? '' : `<button data-act="ppphdel" data-i="${i}">✕</button>`}</div>`).join('')}${lock || ph.length >= 8 ? '' : '<label class="pp-pi add">＋<input type="file" id="pp-photo" accept="image/*" multiple hidden></label>'}</div></div>
+    ${offMatHTML(a)}
     <div class="card"><div class="field"><label>专辑简介</label><textarea id="pp-intro" style="min-height:90px" ${lock ? 'disabled' : ''}>${esc(a.intro || '')}</textarea></div>
       ${a.tracks.map((x, i) => `<div class="field"><label>${String(i + 1).padStart(2, '0')}. ${esc(x.name)}${x.title ? ' <span class="alb-star">主打</span>' : ''}</label><textarea class="pp-td" data-i="${i}" style="min-height:52px" placeholder="这首歌的介绍" ${lock ? 'disabled' : ''}>${esc(x.desc || '')}</textarea></div>`).join('')}
-      ${lock ? '' : '<div class="row"><span class="sp"></span><button class="btn primary sm" data-act="ppsave">保存</button></div>'}</div>`;
+      <div class="row"><span class="sp"></span><button class="btn primary sm" data-act="ppsave">保存</button></div></div>`;
 }
+/* 官方号预热宣发素材：每一步可以自己放图 / 视频、自己写文案；没放的就用默认的海报样式和默认文案 */
+const OFF_MAT_K = [['soon', 'Coming Soon'], ['sched', 'Scheduler'], ['trk', 'Tracklist'], ['hl', 'Highlight Medley'], ['mvt', 'M/V Teaser'], ['out', 'Out Now']];
+function offMatHTML(a) { const M = a.offMat || {}, posted = k => offState().posts.some(x => x.id === a.id + ':' + k);
+  return `<div class="card"><b>官方号宣发素材</b><div class="muted" style="font-size:12px;margin:2px 0 8px">预热期官方号会按日程自动发。每一步都可以放自己的图片 / 视频、写自己的文案；不放就用默认海报和默认文案。已经发出去的那步就不能再改了。概念照在上面那栏。</div>${OFF_MAT_K.map(([k, n]) => { const m = M[k] || {}, done = posted(k); return `<div style="border-top:1px solid var(--line);padding:8px 0"><div class="row" style="gap:8px"><b style="flex:1;font-size:13.5px">${n}${done ? ' <span class="muted" style="font-size:12px">· 已发出</span>' : ''}</b>${m.media ? `<span class="muted" style="font-size:12px">${m.media.type === 'video' ? '🎬 视频' : '🖼 图片'}已放</span>${done ? '' : `<button class="link" data-act="offmatdel" data-k="${k}">删素材</button>`}` : done ? '<span class="muted" style="font-size:12px">默认海报</span>' : `<label class="btn ghost sm">放图 / 视频<input type="file" class="pp-offmat" data-k="${k}" accept="image/*,video/*" hidden></label>`}</div>${done ? '' : `<textarea class="pp-offtx" data-k="${k}" style="min-height:44px;margin-top:6px" placeholder="自己写文案（不写就用默认的）">${esc(m.txt || '')}</textarea>`}</div>`; }).join('')}</div>`; }
 function prodSave() {
-  const o = prepOn(); if (!o || o.t.rec.done) return; const a = o.a;
-  a.intro = ($('#pp-intro')?.value || '').trim(); $$('.pp-td').forEach(el => { const x = a.tracks[+el.dataset.i]; if (x) x.desc = el.value.trim(); });
+  const o = prepOn(); if (!o) return; const a = o.a;
+  { const M = a.offMat || (a.offMat = {}); $$('.pp-offtx').forEach(el => { const k = el.dataset.k, v = el.value.trim(); if (v) (M[k] || (M[k] = {})).txt = v; else if (M[k]) delete M[k].txt; }); }
+  if (!o.t.rec.done) a.intro = ($('#pp-intro')?.value || '').trim(); if (!o.t.rec.done) $$('.pp-td').forEach(el => { const x = a.tracks[+el.dataset.i]; if (x) x.desc = el.value.trim(); });
   save(); toast('专辑内容已保存');
 }
 
@@ -2760,6 +2766,10 @@ const OFF_CM = {
   mvt: [['cyan_daily', '뮤비 스케일 무슨 일이야'], ['sia_tw', '预告就这么好看正片怎么办'], ['moon_cy', '이틀 남았다 🥹'], ['今天也想你', '已经循环二十遍了']],
   out: [['sia_0829', '컴백 축하해!!! 스밍 달린다'], ['雪落的时候', '打榜打榜！'], ['cyan_daily', '타이틀 미쳤어요 진짜'], ['blue_sia', 'MV is a masterpiece'], ['今天也想你', '整张专辑都好好听']]
 };
+/* 官方号帖子下面的粉丝反应：按官方号发的内容来（公告、日程、预告），和艺人本人日常帖子下的评论不一样 */
+async function offAiCm(x) { if (!aiOn() || !x || x._cm) return; x._cm = 1;
+  try { const j = await aiRaw([{ type: 'text', text: `STARSHIP 女 solo 歌手 ${S.profile.name}（粉丝名 SIA）的官方账号（不是她本人，是公司运营的官方号）刚发了这条：\n「${x.txt}」${x.media && x.media.length ? `\n（附 ${x.media.length} 个图片 / 视频）` : ''}${x.poster ? `\n（是一张官方宣传海报：${x.poster}）` : ''}\n写 8 条粉丝在这条官方帖下面的评论。粉丝是在回应官方发的内容：确认收到公告、对日程 / 预告 / 概念的反应、问具体问题（几点、在哪、怎么买）、刷支持、对公司提要求（多发点物料、照顾好她）。不是在跟她本人聊天，不要写成「姐姐今天吃了吗」这种。韩国粉丝和中国粉丝混合（大约一半韩语一半中文，偶尔英语），口语、短，像真实的评论区；用户名像真实粉丝 ID。` }], 900, { type: 'object', additionalProperties: false, required: ['cm'], properties: { cm: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['u', 't'], properties: { u: { type: 'string' }, t: { type: 'string' } } } } } }, null, S.ai.bgModel || undefined);
+    if (j && j.cm && j.cm.length) { x.cm = j.cm.slice(0, 8).map(c => [String(c.u).slice(0, 20), String(c.t).slice(0, 80)]); save(); if (UI.tab === 'feed') render(); } } catch (e) { } }
 const OFF_CM_GEN = [['sia_0829', '공지 확인했어요!!'], ['雪落的时候', '收到！'], ['cyan_daily', '항상 응원해요 💙'], ['blue_sia', 'thank you for the update!'], ['今天也想你', '官方号终于营业了'], ['moon_cy', '알림 설정 완료'], ['snowy_cyan', '기다리고 있을게요'], ['sia_tw', '每天都来蹲官方号']];
 function offTick(o) {
   const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM`;
@@ -2770,12 +2780,13 @@ function offTick(o) {
     let media = [], poster = null;
     if (k === 'cp1') media = ph.slice(0, half); else if (k === 'cp2') media = ph.slice(half);
     if ((k === 'cp1' || k === 'cp2') && !media.length) poster = 'logo'; else if (['soon', 'sched', 'trk', 'hl', 'mvt', 'out'].includes(k)) poster = k;
+    const mat = (a.offMat || {})[k] || {}; if (mat.media) { media = [mat.media]; poster = null; }
     if (k === 'trk' && !o.t.final.done) continue; // 曲目还没定：先不发曲目表
     const ttl = k === 'mvt' ? `'${albTitle(a)}' M/V TEASER` : k === 'out' ? `'${albTitle(a)}' M/V OUT NOW` : title;
-    const txt = `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM 발매' : when}\n\n${tags}`;
+    const txt = mat.txt ? `${mat.txt}\n\n${tags}` : `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM 발매' : when}\n\n${tags}`;
     const f = S.profile.followers, base = Math.round(f * rand(.5, .9) * (k === 'out' ? 1.6 : k.startsWith('cp') || k === 'mvt' ? 1.2 : 1));
     const pool = OFF_CM[k.startsWith('cp') ? 'cp' : k] || OFF_CM.soon;
-    O.posts.push({ id, alb: a.id, k, at, txt, media, poster, base, cc: Math.round(base * rand(.04, .08)), cm: pickN(pool, Math.min(3, pool.length)).map(([u, x]) => [u, x.replace('{n}', a.tracks.length)]) });
+    O.posts.push({ id, alb: a.id, k, at, txt, media, poster, base, cc: Math.round(base * rand(.04, .08)), cm: pickN(pool, Math.min(3, pool.length)).map(([u, x]) => [u, x.replace('{n}', a.tracks.length)]) }); offAiCm(O.posts[O.posts.length - 1]);
     if (k === 'soon') mgrSay(['오늘부터 티저 들어가요! 공식 계정에서 일정대로 올라갈 거예요', '今天开始预热！官方号会按日程发预告']);
     if (k === 'cp1') mgrSay(['콘셉트 포토 반응 좋아요ㅎㅎ', '概念照反应很好哈哈']);
     addFans(Math.round(f * rand(.002, .005)), '回归预热');
@@ -6759,7 +6770,7 @@ async function publish() {
   }
   if (UI.cmpOff) { /* 官方号发的：公告、回归宣传、通知。不是你的个人帖子，粉丝反应按官方号来 */
     const f = S.profile.followers, base = Math.round(f * rand(.3, .6) * (media.length ? 1.2 : 1)), pool = OFF_CM_GEN;
-    offState().posts.push({ id: 'man:' + uid(), alb: null, k: 'man', at: Date.now(), txt: text, media, poster: null, base, cc: Math.round(base * rand(.03, .06)), cm: pickN(pool, Math.min(3, pool.length)) });
+    offState().posts.push({ id: 'man:' + uid(), alb: null, k: 'man', at: Date.now(), txt: text, media, poster: null, base, cc: Math.round(base * rand(.03, .06)), cm: pickN(pool, Math.min(3, pool.length)) }); offAiCm(offState().posts[offState().posts.length - 1]);
     draft = ''; pending = []; draftTags = []; draftDesc = ''; UI.cmpOpen = false; UI.cmpOff = false; save(); render(); toast('官方号已发布', '粉丝们会陆续看到'); return; }
   const p = S.profile, boost = media.length ? 1.25 : 1, h = heat(), tn = tone(text);
   const L = Math.round(rand(p.activeMin, p.activeMax) * rand(1.1, 1.8) * boost * h * folRatio() * (tn === 'neg' ? .75 : tn === 'romance' ? 1.3 : tn === 'pos' ? 1.05 : 1));
@@ -11622,6 +11633,7 @@ document.addEventListener('click', async e => {
     case 'picksend': pickSend(); break;
     case 'prodopen': openModal(prodHTML()); break;
     case 'ppsave': prodSave(); break;
+    case 'offmatdel': { const o = prepOn(); if (!o) break; const M = o.a.offMat || {}, m = M[t.dataset.k]; if (m && m.media) { idbDel(m.media.id); delete m.media; } save(); openModal(prodHTML()); break; }
     case 'ppphdel': { const o = prepOn(); if (!o || o.t.rec.done) break; const L = o.a.cphotos || []; const [id] = L.splice(+t.dataset.i, 1); if (id) idbDel(id); save(); openModal(prodHTML()); break; }
     case 'libadd': UI.libF = { genre: MZ_GENRES[0] }; UI.libOpen = 1; render(); break;
     case 'libedit': UI.libF = { ...(cbLib().find(x => x.id === t.dataset.id) || {}) }; UI.libOpen = 1; render(); break;
@@ -11889,6 +11901,9 @@ document.addEventListener('change', async e => {
     }
     if (pending.length > 9) { pending.slice(9).forEach(f => URL.revokeObjectURL(f._url)); pending = pending.slice(0, 9); toast('最多 9 个图片/视频'); }
     t.value = ''; renderPending();
+  } else if (t.classList && t.classList.contains('pp-offmat') && t.files[0]) {
+    const o = prepOn(); if (!o) return; const a = o.a, M = a.offMat || (a.offMat = {}), k = t.dataset.k, f = t.files[0], id = uid(); try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f);
+    const m = M[k] || (M[k] = {}); if (m.media) idbDel(m.media.id); m.media = { id, type: f.type.startsWith('video') ? 'video' : 'image' }; save(); openModal(prodHTML()); toast('素材已放好', '到时间官方号会用这个发');
   } else if ((t.id === 'pp-cover' || t.id === 'pp-photo') && t.files[0]) {
     const o = prepOn(); if (!o || o.t.rec.done) return; const a = o.a;
     if (t.id === 'pp-cover') { const id = uid(), f = t.files[0]; try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f); if (a.cover) idbDel(a.cover); a.cover = id; }
