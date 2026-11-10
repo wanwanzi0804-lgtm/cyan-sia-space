@@ -9799,6 +9799,8 @@ ${convo}
 世琳准备${mode === 'call' ? '说' : '发'}的是：${cand}
 
 判断这句是不是「AI 腔」。AI 腔指的是：和他这个人、这段关系、这个具体时刻无关的通用回应；咨询师式地复述 / 确认她的感受、给她许可、承诺陪着她，却没有他自己的东西；和他前面说过的套路一样；她已经回应过「知道了 / 别担心」了，他还在绕回同一件事叮嘱、或者一遍遍说自己有多担心多在意；他前面已经说过自己困 / 累 / 忙，这句又在说一遍；没人问也硬塞爱意、昵称、甜话或关心；为了推进对话硬问问题；书面腔、太完整太周到；没接住她刚说的话。
+另外，下面是她定下的规则，违反任何一条也判 ok=false（why 写违反了哪条）：
+${srRules().map((x, i) => `${i + 1}. ${x}`).join('\n')}
 不算 AI 腔的：温柔地说愿意听她说，如果在这个时刻、用他自己的方式说出来，是正常的；普通的短回应、随口一句、没有情绪价值的接话，都正常；认真聊的时候说得长也正常。只有明显不像真人在这个时刻会说的才判 ok=false。
 ok：这句是否自然、像他本人；why：不自然的话，一句中文说清楚问题在哪（ok=true 时空）。` }], 700, { type: 'object', additionalProperties: false, required: ['ok', 'why'], properties: { ok: { type: 'boolean' }, why: { type: 'string' } } }, null, S.ai.bgModel || 'claude-sonnet-5-5', 'low'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 25e3))]); }
   catch (e) { return null; } }
@@ -10311,6 +10313,10 @@ function srRecent(T, when) {
   return out.join('\n');
 }
 
+/* 她通过反馈定下的规则：每次世琳说话、打电话、发生事件都带上，判断自然不自然时也拿来对照。可以在世琳后台里看、加、删 */
+const SR_LESSONS = ['交往中，他每天早上起来、上午空下来的时候会先找她一次（早安、刚起、今天干嘛）。', '白天再忙（练习、合练、拍摄、长时间的现场行程）也会在休息、候场、路上看手机；交往中好几个小时一点音讯都没有是不正常的，至少回一句、发个表情或说一声自己在干嘛。', '只有真的在台上、签售、录节目那一两个小时手机不在手上；结束后会马上看手机。', '做不到的承诺不说（后面还排着工作就不说「结束马上打给你」）；说出口的要做到，真没做到下次先跟她说。', '关心她吃饭，一天问过一次、她回过了就不再问；她自己说起吃的才接着聊。', '他自己的行程只是计划，可以按实际情况改；拒绝她不会拿「我要吃饭」当理由。', '她叫「오빠」他是开心的；只有被叫全名「박세림」才像要挨骂。', '她打的 ㅠㅠ、🥺 是语气词、撒娇，不是真的在哭，除非她明说。', '会想她：一天里自然地说一两次想她（보고 싶다 / 보고싶어ㅠ），忙完、晚上、好久没见的时候，不是每条都说。', '她不在身边时，事情只能隔着手机发生；当着不知道他们在交往的人，不说也不暗示他们的关系。', '她在后台记下的事（比如「前一天晚上通过电话了」）就是事实，不要再为已经做过的事道歉或重新问。'];
+function srRules() { const SO = social(); if (!SO.srRules) SO.srRules = SR_LESSONS.slice(); return SO.srRules; }
+const srRulesTxt = () => { const L = srRules(); return L.length ? `【她定下的规则（来自她的反馈，比上面其他说明都优先，必须做到）】\n${L.map((x, i) => `${i + 1}. ${x}`).join('\n')}` : ''; };
 function srCtx(when, q) {
   const p = srP(), T = dmThread(p), dk = dkey(when), m = srMin(when), st = srNow(when), R = SR();
   const today = srSegs(dk, when).map(g => (g.e <= m ? '✓ ' : g.s <= m ? '▶ 现在 ' : '· ') + srSegZh(g, dk, when) + (srBitsVis(g, dk, when).length ? '\n    小事：' + srBitsVis(g, dk, when).map(srBitLine).join('；') : '')).join('\n') + srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del).map(g => '\n✕ ' + srSegZh(g, dk, when)).join('');
@@ -10332,7 +10338,8 @@ ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${srPhotoTxt(when)}${urg ? `\n【他心里记着、还没跟她提的事】${urg}（只是事实。他在不在意、在意到什么程度、提不提、什么时候提、怎么提，看他的性格和当时的气氛；可以顺嘴带出来，也可以先不提）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
 ${meals.length ? `【今天他已经问过 / 叮嘱过她吃饭 ${meals.length} 次】${meals.slice(-3).map(m => `${srClock(m.at)}「${(m.text || '').slice(0, 30)}」`).join('；')}。真人一天不会反复问「吃了没」「多吃点」：除非她自己说起吃的，否则不再问吃饭、不再叮嘱吃饭，想关心她就关心别的（累不累、签售怎么样、晚上干嘛）。\n` : ''}${recent ? `【最近他对她的回应】（系统按聊天时间和他的安排算出来的事实）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；还没解决：${cv.open.join('；')}` : ''}\n` : ''}【KKT 聊天】
-${chat || '（还没聊过）'}`;
+${chat || '（还没聊过）'}
+${srRulesTxt()}`;
 }
 /* 世琳说话的底层：先是一个真实的人在反应，不是在完成「安慰 / 提供情绪价值 / 推进对话」的任务。KKT 和电话共用 */
 const SR_VOICE = `世琳这个人怎么说话（比后面所有具体规则都优先）：
@@ -10966,6 +10973,7 @@ function serimCardHTML() {
       return (A.length ? `<div class="sec-title" style="margin-top:10px">你今天记下的</div><div class="card" style="padding:4px 12px">${A.map(row).join('')}</div>` : '') + (B.length ? `<details class="card" style="padding:4px 12px;margin-top:10px"${UI.srOldOpen ? ' open' : ''}><summary data-act="srold" style="font-weight:700;padding:8px 0">昨天的记录（${B.length}）</summary>${B.map(row).join('')}</details>` : ''); })()}
     ${SR().jobs.some(j => j.type === 'reparse') || serimNotes().some(n => n.day === td && !n.parsed) ? '<div class="muted" style="font-size:12.5px;margin:10px 4px 0">⏳ 正在根据你记的内容更新时间线…</div>' : ''}
     <div class="card" style="margin-top:10px"><div class="row" style="gap:8px;align-items:center"><b style="flex:1;font-size:14px">🎥 让他提出打视频</b>${SR().vcAsk ? `<span class="muted" style="font-size:12.5px">约 ${hhmm(srMin(SR().vcAsk.at))} 前后</span><button class="link" data-act="vcaskx">取消</button>` : `<select id="vc-ask-in" style="width:auto"><option value="3">马上</option><option value="15">15 分钟内</option><option value="40" selected>40 分钟内</option><option value="90">一个半小时内</option></select><button class="btn primary sm" data-act="vcask">好</button>`}</div><div class="muted" style="font-size:12px;margin-top:4px">他会在这段时间里自己在 KKT 上提出来（说法每次不一样）；你答应了他就打过来。在睡觉 / 签售这类时候会等他空了再说。</div></div>
+    <details class="card" style="margin-top:10px"><summary style="font-weight:700">📏 世琳的规则（你的反馈，${srRules().length} 条）</summary><div class="muted" style="font-size:12.5px;margin:6px 0 8px">他每次回消息、主动找你、打电话、发生事件都会遵守这些；检查回复自然不自然时也会对照，违反了就重写。觉得他哪里不对，直接在这里加一条。</div>${srRules().map((x, i) => `<div class="row" style="align-items:flex-start;gap:6px;margin-bottom:6px"><span style="flex:1;font-size:13.5px;line-height:1.55">${i + 1}. ${esc(x)}</span><button class="link" data-act="srruledel" data-i="${i}">删</button></div>`).join('')}<div class="row" style="gap:6px;margin-top:6px"><input id="sr-rule-in" placeholder="比如：他不会连续发好几条一样意思的话" style="flex:1;min-width:0"><button class="btn sm" data-act="sruleadd">加</button></div></details>
     <details class="card" style="margin-top:10px" ${UI.srSayOpen ? 'open' : ''}><summary style="font-weight:700" data-act="srsaytg">✉️ 让他发一段消息</summary>
       <textarea id="sr-say" style="min-height:110px;margin-top:8px" placeholder="一行一条，写【图片】的那行发一张照片（可以写好几行【图片】，按下面选的顺序发）：&#10;오늘 너무 힘들다&#10;근데 옷 주머니에서 포카 나왔어&#10;【图片】&#10;이게 왜 여기에">${esc(UI.srSayDraft || '')}</textarea>
       <div class="muted" style="font-size:12px;margin:4px 2px">韩语照原样发；写中文的那行会翻成他的口吻（半语）。</div>
@@ -11800,6 +11808,8 @@ document.addEventListener('click', async e => {
       catch (err) { toast('连接失败', String(err.message || err)); S.ai.lastError = String(err.message || err); save(); }
       t.disabled = false; t.textContent = '测试连接'; break;
     }
+    case 'sruleadd': { const v = ($('#sr-rule-in') || {}).value; if (!v || !v.trim()) break; srRules().push(v.trim().slice(0, 200)); save(); openModal(serimCardHTML()); toast('加好了', '之后他说话都会遵守'); break; }
+    case 'srruledel': if (confirm('删掉这条规则？')) { srRules().splice(+t.dataset.i, 1); save(); openModal(serimCardHTML()); } break;
     case 'impopen': $('#imp-file-g').click(); break;
     case 'export': {
       toast('正在打包存档…', '照片、视频也会一起导出，可能要几秒'); let media = []; try { media = await Promise.all((await idbAll()).filter(([, b]) => b instanceof Blob).map(async ([id, b]) => [id, await blobUrl(b)])); } catch (e) { }
