@@ -10223,6 +10223,7 @@ function srReachEval(at) {
   const R = SR(), T = dmThread(srP()), st = srNow(at) || socNow0(srP(), at), working = st.kind ? st.kind === 'work' : !!st.busy; if (st.sleep) return;
   const h = new Date(at).getHours(); if (h >= 3 && h < 8) return;
   if (R.jobs.some(j => j.type === 'reply' || j.type === 'reach')) return;
+  if (serimLove() && h >= 7 && h < 14 && R.mornDay !== dkey(at)) { const t5 = srTs(dkey(at), 5 * 60); if (!T.msgs.some(m => !m.me && !m.sys && m.at >= t5 && m.at <= at)) { R.mornDay = dkey(at); srJob('reach', at + rand(30, 240) * 1e3, { why: { kind: 'morning', force: 1, d: `- 他今天起来以后还没找过她。交往中的人早上醒了、或者上午空下来的时候，一般会发一句：早安、刚起、昨晚睡得怎么样、今天要干嘛、吃了个鸡蛋……按他此刻真实在做的事说${T.msgs.some(m => m.me && m.at > (Math.max(0, ...T.msgs.filter(x => !x.me && !x.sys).map(x => x.at))))? '；她之前发来的消息他还没回，顺便接上' : ''}` } }); return; } else R.mornDay = dkey(at); } /* 早上起来先跟她说一声 */
   if (serimLove()) { const hisAt = Math.max(0, ...T.msgs.filter(m => !m.me && !m.sys && m.at <= at).map(m => m.at)), gap = at - hisAt; if (hisAt && gap > 6 * 3600e3 && !(R.forceAt && at - R.forceAt < 6 * 3600e3)) { R.forceAt = at; srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: 'miss', force: 1, d: `- 交往中，他已经 ${Math.round(gap / 3600e3)} 个小时没给她发过任何消息了。再忙，真人也会在候场、换场、上厕所、车上的空当看一眼手机，回一句、发个表情或一张照片，说一声自己在干嘛${T.msgs.some(m => m.me && m.at > hisAt) ? '；她这期间发来的消息他也没回' : ''}` } }); return; } } /* 交往中不会一连好几个小时一点音讯都没有 */
   const C = R.chat; if (C.sess && at < C.sess) return; // 正聊着
   const msgs = T.msgs.filter(m => !m.sys && m.at <= at), last = msgs[msgs.length - 1];
