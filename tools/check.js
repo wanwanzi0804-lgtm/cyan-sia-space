@@ -46,6 +46,8 @@ const path = require('path');
       T.msgs = [...m0, { id: 'h1', text: 'ㅋㅋ', at: now - 3 * 3600e3 }]; ok('几个小时没聊：不算正在聊', srEngage(now).lv === 'cold');
       R.chat.endAt = now - 60e3; T.msgs = [...m0, { id: 'h1', text: '잘자', at: now - 60e3 }]; ok('说了先这样：不再算手机在手上', srEngage(now).lv !== 'hot');
       T.msgs = m0; R.chat.endAt = e0; window.srNow = sn; }
+    { const T = { msgs: [{ me: 1, text: '그렇게 재밌어?', at: 100 }, { text: '응 은근 재밌어', at: 200, gen: 150 }, { text: '아까도 주인공이…', at: 300, gen: 150 }, { me: 1, text: '나랑 비교하면?', at: 350 }, { text: '어이없어서 혼자 웃었잖아ㅋㅋ', at: 400, gen: 150 }] };
+      ok('他还在发的时候插嘴：插的那句算还没回', srHer(T, 1000).map(m => m.text).join() === '나랑 비교하면?'); }
     ok('「哥哥」翻成 오빠 不是 형', '나는 형의 마음에'.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠') === '나는 오빠의 마음에');
     return out;
   });

@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261110075810';
+const BUILD = '20261110080139';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10262,7 +10262,7 @@ function srCheckGap(at) {
   if (M.en < 20 && !sess) m *= 1.3; // 很累的时候看手机也懒
   return Math.max(.15, m);
 }
-const srHer = (T, upto) => { const out = []; for (let i = T.msgs.length - 1; i >= 0; i--) { const m = T.msgs[i]; if (m.at > upto) continue; if (!m.me && !m.sys) break; if (m.call && m.call.st === 'done') break; /* 通过电话了：电话之前她发的已经在电话里聊过 */ if (m.me && !m.call && !kkHidden(m)) out.unshift(m); } return out; };
+const srHer = (T, upto) => { const out = []; let seen = -Infinity; for (let i = T.msgs.length - 1; i >= 0; i--) { const m = T.msgs[i]; if (m.at > upto || m.sys) continue; if (m.call && m.call.st === 'done') break; /* 通过电话了：电话之前她发的已经在电话里聊过 */ if (!m.me) { seen = Math.max(seen, m.gen || m.at); continue; } /* 他每条消息写的时候看到了哪些（gen）：她在他写完之后才插进来的，不算回过 */ if (m.call || kkHidden(m)) continue; if (m.at <= seen) break; out.unshift(m); } return out; };
 // 她发消息时：他要是正拿着手机，就早点看到
 function srOnHer() { const C = SR().chat, now = Date.now(), gap = srCheckGap(now) * 60e3; if (!C.next || C.next > now + gap) C.next = now + gap; save(); } /* 她发了消息：他什么时候看到，取决于这一轮对话现在的状态（正聊着就很快） */ // 他刚看过手机、手机还在手上：很快就看到
 function srJob(type, at, data) { const R = SR(); if (type === 'reply' && R.jobs.some(j => j.type === 'reply')) return; R.jobs.push({ id: uid(), type, at, n: 0, ...(data || {}) }); R.jobs.sort((a, b) => a.at - b.at); }
@@ -10271,6 +10271,7 @@ function srCheck(at) {
   const T = dmThread(srP()), C = SR().chat; C.last = at;
   const her = srHer(T, at).filter(m => m.at > (T.readTo || 0)), st = srNow(at) || {};
   if (srNoPhone(st)) return; // 正在签售 / 上台：手机不在手上，不会已读也不会回
+  { const un = srHer(T, at), lu = un[un.length - 1]; if (lu && !her.length && lu.id !== C.handled && T.quiet !== lu.id && !SR().jobs.some(j => j.type === 'reply') && srEngage(at).lv !== 'cold') { srJob('reply', at + rand(3, 10) * 1e3); return; } } /* 已读了还没处理的（他发着发着她插了一句）：接着回 */
   if (her.length) { T.readTo = Math.max(T.readTo || 0, at); T.rd = null; const lv = srEngage(at).lv; srJob('reply', at + (lv === 'hot' ? rand(2, 6) : lv === 'warm' ? rand(4, 14) : rand(6, 25)) * 1e3); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); return; }
   const lm = T.msgs.filter(m => !m.sys && m.at <= at).pop();
   // 她的消息读了没回：她是在问他事情、他现在也空着，过一阵会想起来回；只是附和收尾的就不回了
@@ -10578,6 +10579,7 @@ function srWithHer(at, ahead = 0) { const dk = dkey(at), m = srMin(at); return s
 async function srReply(job) {
   const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, her = srHer(T, when);
   if (!her.length) return true;
+  SR().chat.handled = her[her.length - 1].id;
   if (T.msgs.some(m => m.call && m.call.st === 'done' && m.at > her[her.length - 1].at && m.at <= Date.now())) { T.readTo = Math.max(T.readTo || 0, Date.now()); T.quiet = her[her.length - 1].id; save(); return true; } /* 她发完这几条后你们已经通过电话了：电话里都聊过了，不再回这几条 */
   // 正在见面 / 几分钟后就见到了：KKT 看了就不用回了（人都在眼前）
   if (srWithHer(when, 0)) { /* 人已经在她面前了才不用回；还在路上的话照样回（「곧 도착」也是回） */ T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; SR().chat.sess = 0; save(); return true; }
@@ -10608,7 +10610,7 @@ ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).jo
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
   { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')); if (job.rid !== srRunId) return 'stale'; } }
   if (j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
-  { const lastHer = her[her.length - 1]; if ((T.pend && T.pend.length) || T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at)) return true; }
+  { const lastHer = her[her.length - 1]; if (T.pend && T.pend.length) { SR().jobs.push({ id: uid(), type: 'reply', at: Math.max(...T.pend.map(x => x.at)) + rand(3, 8) * 1e3, n: 0 }); return true; } /* 他前面那几条还没发完：发完再接她插的那句 */ if (T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at && !(m.gen && m.gen < lastHer.at))) return true; }
   if (!job.tech && T.msgs.some(m => m.me && !m.sys && m.at > Math.max(when, her[her.length - 1].at) && m.at <= Date.now())) { SR().jobs.push({ id: uid(), type: 'reply', at: Date.now() + rand(3, 8) * 1e3, n: 0 }); return true; } // 他在想怎么回的时候她又发了几条：这次不发，连新的一起看了再回 // 她这几条已经有人回过了：不重复回
   let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
   { const bk = await srBook(ctx, mine, j, when).catch(() => null); Object.assign(j, bk || {}); } srApply(j, when, T); /* 记忆、约定、心情这些「记账」在他说完话以后另外做，不掺进他说话的那一下 */
@@ -10616,7 +10618,7 @@ ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).jo
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.busy ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(12, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
   if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) { T.quiet = m.id; C.endAt = when; } C.sess = 0; return true; }
   const fast = C.sess && when < C.sess, typ = (msgs[0].ko.length / 4.5) * 1e3; // 第一条的打字时间；后面几条由发送队列按打字速度接着发
-  srSend(T, act === 'react' ? msgs.slice(0, 1) : msgs, when + Math.min(typ, fast ? 10e3 : 20e3));
+  srSend(T, act === 'react' ? msgs.slice(0, 1) : msgs, when + Math.min(typ, fast ? 10e3 : 20e3), { gen: Date.now() }); /* gen：他写这几条时已经看到了哪些消息（之后她插进来的，不算他回过） */
   if (j.aired) for (const u of SR().urges || []) if (!u.used && u.at <= when) u.used = 1; // 心里搁着的事这次说出来了：不会再当成找她的理由
   C.sess = j.end ? 0 : when + 15 * 60e3; C.him = when; if (j.end) C.endAt = when; else C.endAt = 0;
   return true;
@@ -10655,7 +10657,7 @@ ${w.force ? '这次他一定会发点什么（send=true）：哪怕很短、一�
   const pm = w.kind === 'promise' && R.mem.find(m => m.id === w.ref);
   if (!j.send || !(j.msgs || []).length) { if (pm) { if (T.msgs.some(x => !x.me && x.ping && x.at > when - 3 * 3600e3 && x.at >= (pm.c || 0))) { pm.st = 'done'; pm.u = when; } else pm.cond.at = when + 40 * 60e3; } return true; } // 答应的事这次没说出口：过一会儿再想起来（窗口过了就算没做到）
   if (srHer(T, Date.now()).filter(m => m.at > when).length && !job.tech) return true; // 生成期间她发了消息
-  srSend(T, j.msgs, when + Math.min((j.msgs[0].ko.length / 4.5) * 1e3, 15e3), { ping: 1 }); if (pm) { pm.st = 'done'; pm.u = when; const call = /电话|打给|打电话|통화|전화/.test(pm.t); for (const o of R.mem) if (o !== pm && o.k === 'promise' && o.st === 'planned' && (srSim(o.t, pm.t) >= .35 || (call && /电话|打给|打电话|통화|전화/.test(o.t)))) { o.st = 'done'; o.u = when; } } // 同一件事答应了好几次：兑现一次就都算了
+  srSend(T, j.msgs, when + Math.min((j.msgs[0].ko.length / 4.5) * 1e3, 15e3), { ping: 1, gen: Date.now() }); if (pm) { pm.st = 'done'; pm.u = when; const call = /电话|打给|打电话|통화|전화/.test(pm.t); for (const o of R.mem) if (o !== pm && o.k === 'promise' && o.st === 'planned' && (srSim(o.t, pm.t) >= .35 || (call && /电话|打给|打电话|통화|전화/.test(o.t)))) { o.st = 'done'; o.u = when; } } // 同一件事答应了好几次：兑现一次就都算了
   R.reach.push({ at: when, kind: w.kind || 'quiet', topic: String(j.topic || '').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
   R.chat.him = when; R.chat.sess = when + 15 * 60e3; return true;
 }
