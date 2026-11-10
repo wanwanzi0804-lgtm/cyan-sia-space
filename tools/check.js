@@ -18,6 +18,7 @@ const path = require('path');
     ok('她的规则会带进世琳的每次对话', /她定下的规则/.test(srCtx(Date.now(), '')));
     ok('规则里有早上找她', srRules().some(x => /早上/.test(x)));
     ok('规则里有不要老说困', srRules().some(x => /困不困/.test(x)));
+    ok('规则里有认真倾诉时给安慰和建议', srRules().some(x => /倾诉烦恼/.test(x)));
     ok('后台能看到规则', /世琳的规则/.test(serimCardHTML()));
     { const R = SR(), dd = '2030-01-05'; R.day[dd] = { gen: 'ai', segs: [{ id: 'a', s: 0, e: 600, what: '睡觉', kind: 'sleep', src: 'gen', where: '宿舍' }, { id: 'b', s: 1200, e: 1290, what: '健身', kind: 'free', src: 'note', where: '健身房' }] }; srTailFill(dd);
       ok('一天的安排会补到 24 点', Math.max(...srSegs(dd).map(g => g.e)) >= 1430); delete R.day[dd]; }
