@@ -11347,7 +11347,7 @@ function viewMe() {
   <div class="sec-title">🗄 数据</div>
   <div class="card">
     <p class="muted" style="margin-top:0">所有数据都保存在你这个浏览器里（换浏览器或清除网站数据会丢失）。</p>
-    <div class="row wrap"><button class="btn ghost" data-act="export">导出数据（JSON）</button><label class="btn ghost">导入数据<input type="file" id="imp-file" accept="application/json" hidden></label><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
+    <div class="row wrap"><button class="btn ghost" data-act="export">导出数据（JSON）</button><button class="btn ghost" data-act="impopen">导入数据</button><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
   </div>
   `}[UI.meTab || 'stats']()}
   `;
@@ -11783,6 +11783,7 @@ document.addEventListener('click', async e => {
       catch (err) { toast('连接失败', String(err.message || err)); S.ai.lastError = String(err.message || err); save(); }
       t.disabled = false; t.textContent = '测试连接'; break;
     }
+    case 'impopen': $('#imp-file-g').click(); break;
     case 'export': {
       toast('正在打包存档…', '照片、视频也会一起导出，可能要几秒'); let media = []; try { media = await Promise.all((await idbAll()).filter(([, b]) => b instanceof Blob).map(async ([id, b]) => [id, await blobUrl(b)])); } catch (e) { }
       const base = JSON.stringify(S, (k, v) => k.startsWith('_') || k === 'key' ? undefined : v), blob = new Blob([base.slice(0, -1) + ',"siaMedia":' + JSON.stringify(media) + '}'], { type: 'application/json' }); /* 存档 + 所有照片视频（IndexedDB 里的）一起导出，换浏览器 / 主屏幕版也不会丢图 */
@@ -11795,6 +11796,12 @@ document.addEventListener('click', async e => {
     case 'reset': if (confirm('确定重置所有数据？帖子、评论、行程都会清空。')) { localStorage.removeItem(STORE_KEY); indexedDB.deleteDatabase('cyan-idol-media'); location.reload(); } break;
   }
 });
+/* 导入存档：用挂在 body 上、不会被页面重绘替换掉的文件框（设置页每隔一会儿会重绘，选文件期间原来的输入框被换掉，选完就没反应） */
+async function importSave(f) { if (!f) return; toast('正在读取存档…', f.name);
+    try { const j = JSON.parse(await f.text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
+    catch (err) { toast('导入失败', err.message); }
+}
+(() => { const inp = document.createElement('input'); inp.type = 'file'; inp.id = 'imp-file-g'; inp.accept = '.json,application/json,text/plain'; inp.style.display = 'none'; inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; importSave(f); }); document.body.appendChild(inp); })();
 document.addEventListener('change', async e => {
   if (e.target.id === 'ext-in') { extPick(e.target.files && e.target.files[0]); render(); return; }
   if (e.target.id === 'yt-pcov-in') { const f = e.target.files && e.target.files[0], p = yt().plans.find(x => x.id === e.target.dataset.id); if (f && p) { const mid = 'yth' + uid(); await idbPut(mid, f); urlCache[mid] = URL.createObjectURL(f); if (p.thumb) idbDel(p.thumb); p.thumb = mid; save(); render(); } return; }
@@ -11837,9 +11844,6 @@ document.addEventListener('change', async e => {
     urlCache[id] = URL.createObjectURL(f);
     if (S.profile.avatar) idbDel(S.profile.avatar);
     S.profile.avatar = id; save(); render(); toast('头像已更新');
-  } else if (t.id === 'imp-file' && t.files[0]) {
-    try { const j = JSON.parse(await t.files[0].text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
-    catch (err) { toast('导入失败', err.message); }
   } else if (t.id === 'bb-file' && t.files[0]) {
     const f = t.files[0]; t.value = ''; bbDraftAdd(f.type.startsWith('video') ? 'video' : 'image', { blob: f });
   } else if ((t.id === 'bb-av-file' || t.id === 'bb-wall-file') && t.files[0]) {
