@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261110075514';
+const BUILD = '20261110075810';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10233,25 +10233,45 @@ const srMoodZh = () => { const M = SR().mood; return `精力 ${Math.round(M.en)}
 /* 签售、舞台、演出、直播、录节目这种：全程不能碰手机，结束了才看 */
 const SR_NOPHONE = /签售|팬싸|팬사인|舞台|打歌|演出|演唱会|公演|콘서트|直播|录制|录节目|彩排|리허설|음방|fansign|stage|concert/i;
 const srNoPhone = st => !!(st && st.seg && !st.sleep && SR_NOPHONE.test((st.seg.what || '') + ' ' + (st.seg.where || '')) && !/练|准备|开会|会议|讨论/.test(st.seg.what || '') && st.seg.e - st.seg.s <= 180); /* 只有真的在台上 / 签售 / 录制那一两个小时手机不在手上；为演唱会合练、长时间的现场行程，中间休息都会看手机 */
+/* 现在是不是「正在聊」：不看某一条消息，而是看这一轮对话实际的样子——他最后一条真正发出去的时间、两个人最近来回的节奏、他这会儿在干嘛、这段对话是不是已经说完了。
+   hot：手机就在手上，基本是看着聊天的；warm：刚聊过，手机放下了但还会时不时拿起来；cold：各忙各的 */
+function srEngage(at) {
+  const T = dmThread(srP()), C = SR().chat, st = srNow(at) || socNow0(srP(), at);
+  if (srNoPhone(st) || st.sleep) return { lv: 'cold', st };
+  const L = T.msgs.filter(m => !m.sys && !m.call && m.at <= at), his = L.filter(m => !m.me).pop(), her = L.filter(m => m.me).pop();
+  if (!his) return { lv: 'cold', st };
+  const since = (at - his.at) / 60e3, ended = C.endAt && C.endAt >= his.at - 60e3, work = st.kind ? st.kind === 'work' : !!st.busy;
+  const recent = L.filter(m => at - m.at < 20 * 60e3), back = recent.length >= 3 && recent.some(m => m.me) && recent.some(m => !m.me); /* 最近二十分钟里是你来我往的 */
+  const herAfter = her && her.at > his.at ? (her.at - his.at) / 60e3 : null; /* 他说完之后她多快接上的 */
+  let lv = 'cold';
+  if (!ended) {
+    const hold = work ? 6 : back ? 14 : 10; /* 工作中只是休息的空当拿手机；来回聊得起劲时手机更不离手 */
+    if (since < hold) lv = 'hot'; else if (since < (work ? 15 : 35)) lv = 'warm';
+    if (lv === 'warm' && herAfter != null && herAfter < 3 && since < 20) lv = 'hot'; /* 他刚说完她马上回：他多半还没放下手机 */
+    if (work && st.seg && srTs(dkey(at), st.seg.s) > his.at && lv === 'hot') lv = 'warm'; /* 他说话之后开始了新的一段工作 */
+  } else if (since < 8 && !work) lv = 'warm'; /* 说了「先这样」但刚放下手机 */
+  return { lv, st, work, since };
+}
 function srCheckGap(at) {
-  const st = srNow(at) || socNow0(srP(), at), C = SR().chat, M = SR().mood, sess = C.sess && at < C.sess;
+  const st = srNow(at) || socNow0(srP(), at), C = SR().chat, M = SR().mood, E = srEngage(at), sess = E.lv !== 'cold';
   if (srNoPhone(st)) return Math.max(1, st.seg.e - srMin(at)) + lognorm(6, .6); // 结束后过几分钟才拿起手机
   if (st.sleep) return (st.wakeIn || 60) + lognorm(10, .5);
   const work = st.kind ? st.kind === 'work' : st.busy;
-  let m = work ? lognorm(sess ? 12 : 35, .5) : st.semi ? lognorm(sess ? 2 : 12, .5) : lognorm(sess ? .3 : 3, .5);
+  if (E.lv === 'hot') return Math.max(.1, lognorm(work ? .8 : .35, .45)); /* 正聊着：几十秒内就会看到 */
+  let m = work ? lognorm(sess ? 6 : 35, .5) : st.semi ? lognorm(sess ? 1.5 : 12, .5) : lognorm(sess ? 1 : 3, .5);
   if (M.en < 20 && !sess) m *= 1.3; // 很累的时候看手机也懒
   return Math.max(.15, m);
 }
 const srHer = (T, upto) => { const out = []; for (let i = T.msgs.length - 1; i >= 0; i--) { const m = T.msgs[i]; if (m.at > upto) continue; if (!m.me && !m.sys) break; if (m.call && m.call.st === 'done') break; /* 通过电话了：电话之前她发的已经在电话里聊过 */ if (m.me && !m.call && !kkHidden(m)) out.unshift(m); } return out; };
 // 她发消息时：他要是正拿着手机，就早点看到
-function srOnHer() { const C = SR().chat, now = Date.now(), gap = (C.last && now - C.last < 90e3 && !(srNow(now) || {}).busy ? rand(.1, .4) : srCheckGap(now)) * 60e3; if (!C.next || C.next > now + gap) C.next = now + gap; save(); } // 他刚看过手机、手机还在手上：很快就看到
+function srOnHer() { const C = SR().chat, now = Date.now(), gap = srCheckGap(now) * 60e3; if (!C.next || C.next > now + gap) C.next = now + gap; save(); } /* 她发了消息：他什么时候看到，取决于这一轮对话现在的状态（正聊着就很快） */ // 他刚看过手机、手机还在手上：很快就看到
 function srJob(type, at, data) { const R = SR(); if (type === 'reply' && R.jobs.some(j => j.type === 'reply')) return; R.jobs.push({ id: uid(), type, at, n: 0, ...(data || {}) }); R.jobs.sort((a, b) => a.at - b.at); }
 // 一次看手机：读掉她的消息；有要回的排回复；没有就处理答应过的事、再看看想不想主动找她
 function srCheck(at) {
   const T = dmThread(srP()), C = SR().chat; C.last = at;
   const her = srHer(T, at).filter(m => m.at > (T.readTo || 0)), st = srNow(at) || {};
   if (srNoPhone(st)) return; // 正在签售 / 上台：手机不在手上，不会已读也不会回
-  if (her.length) { T.readTo = Math.max(T.readTo || 0, at); T.rd = null; const quick = C.sess && at < C.sess && !st.busy; srJob('reply', at + (quick ? rand(2, 6) : rand(6, 25)) * 1e3); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); return; }
+  if (her.length) { T.readTo = Math.max(T.readTo || 0, at); T.rd = null; const lv = srEngage(at).lv; srJob('reply', at + (lv === 'hot' ? rand(2, 6) : lv === 'warm' ? rand(4, 14) : rand(6, 25)) * 1e3); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); return; }
   const lm = T.msgs.filter(m => !m.sys && m.at <= at).pop();
   // 她的消息读了没回：她是在问他事情、他现在也空着，过一阵会想起来回；只是附和收尾的就不回了
   if (lm && lm.me && !SR().jobs.some(j => j.type === 'reply') && T.quiet !== lm.id && !lm.srAsk && at - lm.at > 40 * 60e3 && !st.busy) { lm.srAsk = 1; if (dmAsk(srHer(T, at).map(m => m.text).join(' '))) srJob('reply', at + rand(10, 60) * 1e3, { late: 1 }); return; }
@@ -10309,7 +10329,7 @@ function srReachEval(at) {
   if (R.jobs.some(j => j.type === 'reply' || j.type === 'reach')) return;
   if (serimLove() && h >= 7 && h < 14 && R.mornDay !== dkey(at)) { const t5 = srTs(dkey(at), 5 * 60); if (!T.msgs.some(m => !m.me && !m.sys && m.at >= t5 && m.at <= at)) { R.mornDay = dkey(at); srJob('reach', at + rand(30, 240) * 1e3, { why: { kind: 'morning', force: 1, d: `- 他今天起来以后还没找过她。交往中的人早上醒了、或者上午空下来的时候，一般会随手发点什么：可能是早安、刚起、一句没头没尾的话、正在吃的东西，按他此刻真实的状态和心情，想说什么就说什么${T.msgs.some(m => m.me && m.at > (Math.max(0, ...T.msgs.filter(x => !x.me && !x.sys).map(x => x.at))))? '；她之前发来的消息他还没回，顺便接上' : ''}` } }); return; } else R.mornDay = dkey(at); } /* 早上起来先跟她说一声 */
   if (serimLove()) { const hisAt = Math.max(0, ...T.msgs.filter(m => !m.me && !m.sys && m.at <= at).map(m => m.at)), gap = at - hisAt; if (hisAt && gap > (h >= 9 ? 3 : 6) * 3600e3 && !(R.forceAt && at - R.forceAt < 3 * 3600e3)) { R.forceAt = at; srJob('reach', at + rand(10, 60) * 1e3, { why: { kind: 'miss', force: 1, d: `- 交往中，他已经 ${Math.round(gap / 3600e3)} 个小时没给她发过任何消息了。再忙，真人也会在候场、换场、车上的空当看一眼手机，随手发点什么：一个表情、一句废话、一张照片、刚看到的东西，不需要交代自己在干嘛${T.msgs.some(m => m.me && m.at > hisAt) ? '；她这期间发来的消息他也没回' : ''}` } }); return; } } /* 交往中不会一连好几个小时一点音讯都没有 */
-  const C = R.chat; if (C.sess && at < C.sess) return; // 正聊着
+  const C = R.chat; if ((C.sess && at < C.sess) || srEngage(at).lv === 'hot') return; // 正聊着
   const msgs = T.msgs.filter(m => !m.sys && m.at <= at), last = msgs[msgs.length - 1];
   if (last && last.me && T.quiet !== last.id && at - last.at < 3 * 3600e3) return; // 她的消息他读了没回：不会马上转头去聊别的（对话已经自然结束、或者过了好几个小时就不算）
   // 他主动找过她、她还没回：不追着发。（他回完她的话、对话自然结束，不算在这里）
@@ -10594,11 +10614,11 @@ ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).jo
   { const bk = await srBook(ctx, mine, j, when).catch(() => null); Object.assign(j, bk || {}); } srApply(j, when, T); /* 记忆、约定、心情这些「记账」在他说完话以后另外做，不掺进他说话的那一下 */
   if (act === 'later' && msgs.length && !(srNow(when) || {}).busy) act = 'reply'; // 没在工作（候场、车上、回宿舍路上、吃饭）：手机就在手边，有话就现在说
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.busy ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(12, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
-  if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) T.quiet = m.id; C.sess = 0; return true; }
+  if (act === 'read' || !msgs.length) { const m = her[her.length - 1]; if (j.end) { T.quiet = m.id; C.endAt = when; } C.sess = 0; return true; }
   const fast = C.sess && when < C.sess, typ = (msgs[0].ko.length / 4.5) * 1e3; // 第一条的打字时间；后面几条由发送队列按打字速度接着发
   srSend(T, act === 'react' ? msgs.slice(0, 1) : msgs, when + Math.min(typ, fast ? 10e3 : 20e3));
   if (j.aired) for (const u of SR().urges || []) if (!u.used && u.at <= when) u.used = 1; // 心里搁着的事这次说出来了：不会再当成找她的理由
-  C.sess = j.end ? 0 : when + 15 * 60e3; C.him = when;
+  C.sess = j.end ? 0 : when + 15 * 60e3; C.him = when; if (j.end) C.endAt = when; else C.endAt = 0;
   return true;
 }
 /* ---------- 主动找她 ---------- */
@@ -10820,7 +10840,7 @@ function srTick() {
   const C = R.chat; if (!C.next || !isFinite(C.next)) C.next = now + 60e3;
   let guard = 0;
   const aiOk = srAIState().ok;
-  while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) break; try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
+  while (C.next <= now && guard++ < 300) { const at = C.next; if (aiOk && R.jobs.some(j => j.type !== 'daily' && j.type !== 'digest' && j.at <= at)) { try { if (srEngage(now).lv === 'hot') { const T0 = dmThread(srP()); if (srHer(T0, now).some(m => m.at > (T0.readTo || 0))) { T0.readTo = now; if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); } } } catch (e) { } break; } /* 他正在想怎么回、她又发来一条：正聊着的话这条也马上已读，回复和前面的一起想 */ try { srCheck(at); } catch (e) { console.error('sr check', e); } const gp = srCheckGap(at); C.next = at + (isFinite(gp) ? gp : 5) * 60e3; } // AI 正常时按顺序：先把这次的回复算完再往后；AI 出故障时他照样看手机（会已读），回复等恢复
   try { srScriptTick(now); } catch (e) { console.error('sr script', e); }
   try { srEvTick(now); } catch (e) { console.error('sr ev', e); }
   try { srVcTick(now); } catch (e) { console.error('sr vc', e); }
