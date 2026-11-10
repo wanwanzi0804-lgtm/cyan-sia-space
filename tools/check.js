@@ -32,6 +32,8 @@ const path = require('path');
     ok('官方号自己发的帖子能显示、能删', /CYAN OFFICIAL[\s\S]*offdel/.test(offCard({ id: 'man:t', k: 'man', at: Date.now(), txt: '공지', media: [], base: 10, cc: 1, cm: [] })));
     ok('回归企划里能放官方号宣发素材', /官方号宣发素材[\s\S]*Coming Soon[\s\S]*pp-offmat/.test(offMatHTML({ id: 'x', tracks: [] })));
     { const L = chal().list; L.push({ st: 'done', p: { n: 'x' } }); const u0 = UI.tab; UI.tab = 'sched'; render(); ok('有缺日期的 challenge 记录时行程页也能打开', !/这个页面出错了/.test(view.innerHTML)); L.pop(); UI.tab = u0; render(); }
+    { const st = { ai: {}, x: { cards: { '2026-11-07|r1': { title: 't' } } } }; keyRepair(st); ok('通告卡片丢了 key 也能补回来', st.x.cards['2026-11-07|r1'].key === '2026-11-07|r1'); }
+    { const T = tgState(), k = dkey(Date.now()); T.cards[k + '|zz'] = { title: 'x' }; const u0 = UI.tab; UI.tab = 'sched'; render(); ok('通告卡片缺 key 时行程页也能打开', !/这个页面出错了/.test(view.innerHTML)); delete T.cards[k + '|zz']; UI.tab = u0; render(); }
     ok('「哥哥」翻成 오빠 不是 형', '나는 형의 마음에'.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠') === '나는 오빠의 마음에');
     return out;
   });

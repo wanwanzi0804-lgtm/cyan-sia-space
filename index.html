@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261110063501';
+const BUILD = '20261110073942';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2283,7 +2283,7 @@ function mzCard(k, r, key) {
   const w = mzRuleWork(r), open = mzOpen(w);
   const rr = srng('mz' + (r.mzSalt ? r.mzSalt + '|' : '') + key), x = rr(); if (x < .4) return null; // 40% 正常创作，没有事件
   const frac = !open ? .5 : w.status === 'revising' ? .8 : w.prog / w.need, co = /公司|工作室|录音室/.test(r.loc || ''), fr = mzFriend();
-  const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
+  const used = new Set(Object.values(T.cards).filter(c => c && c.key && c.key.startsWith(k + '|') && c.mz).map(c => c.csig)), cyc = T.cyc || (T.cyc = {}), seen = new Set(cyc.mz || []);
   let pool = MZ_EV.map((e, i) => ({ e, i })).filter(({ e }) => frac >= e.s[0] - .05 && frac <= e.s[1] + .05 && (!e.co || co) && (!e.dorm || /宿舍/.test(r.loc || '')) && (!e.fr || fr) && (!e.need || ((open && w.flags) || {})[e.need]) && (open || !['name', 'concept', 'desc'].includes(e.w)));
   const want = x >= .85 ? pool.filter(p => p.e.sp) : pool.filter(p => !p.e.sp); if (want.length) pool = want; pool = pool.filter(p => !used.has('mz#' + p.i));
   let fresh = pool.filter(p => !seen.has('mz#' + p.i)); if (!fresh.length) { cyc.mz = []; fresh = pool; } if (!fresh.length) return null;
@@ -5685,7 +5685,7 @@ function tgCard(k, r) {
   // 剧情事件为主，小游戏偶尔出现
   // 同一天不重复：别的行程今天已经用过的事件 / 同一种小游戏都跳过；事件池里重复的也只算一个
   const sigOf = e => TG_GAME_KINDS.includes(e.kind) ? 'g:' + e.kind : e._i || String(e.d).split(r.title).join('§');
-  const used = new Set(Object.values(T.cards).filter(c => c.key.startsWith(k + '|') && c.key !== key).map(c => c.sig || (TG_GAME_KINDS.includes(c.kind) ? 'g:' + c.kind : String(c.d).split(c.title).join('§'))));
+  const used = new Set(Object.values(T.cards).filter(c => c && c.key && c.key.startsWith(k + '|') && c.key !== key).map(c => c.sig || (TG_GAME_KINDS.includes(c.kind) ? 'g:' + c.kind : String(c.d).split(c.title).join('§'))));
   // 循环：这一类的每个事件都出现过一次之前不重复，全部出现过后再重置
   const csig = e => e._i || String(e.d).split(r.title).join('§'), cyc = T.cyc || (T.cyc = {}), ck = evs === TG_EVENTS['校庆'] ? '校庆' : r.cat === '签售' && VCALL_RE.test(r.title || '') ? '视频签售' : r.cat;
   const uniq = es => { const seen = new Set(); return es.filter(e => { const g = String(e.d).split(r.title).join('§'); if (seen.has(g)) return false; seen.add(g); return true; }); };
@@ -11880,8 +11880,9 @@ document.addEventListener('click', async e => {
 /* 之前导出把所有叫 key 的字段都去掉了（本来只想去掉 API Key）：人物 / 聊天的 key 补回来 */
 function keyRepair(st) { let n = 0; const seen = new Set(); const walk = (o, depth) => { if (!o || typeof o !== 'object' || depth > 12 || seen.has(o)) return; seen.add(o);
     if (!Array.isArray(o) && typeof o.g === 'string' && typeof o.n === 'string' && o.key == null && o !== st.ai) { o.key = o.g + '|' + o.n; n++; }
+    if (!Array.isArray(o)) for (const [k, v] of Object.entries(o)) if (v && typeof v === 'object' && !Array.isArray(v) && v.key == null && k.includes('|') && v !== st.ai) { v.key = k; n++; } /* 以 key 为名存的东西（通告卡片 2026-11-07|id、人物 团|名）：key 就是它在表里的名字 */
     for (const v of Array.isArray(o) ? o : Object.values(o)) walk(v, depth + 1); };
-  walk(st, 0); const D = st.social && st.social.dm;
+  walk(st, 0); if (st.hot && st.hot.cur && !st.hot.cur.key) st.hot.cur = null; const D = st.social && st.social.dm;
   if (D) for (const [k, T] of Object.entries(D)) { if (!T || !T.p) continue; const want = T.p.g && T.p.n ? T.p.g + '|' + T.p.n : k; /* key 丢了时新消息被记到了「undefined」这样的错的聊天里：并回原来那个 */
     if (k !== want && (!k.includes('|') || k === 'undefined')) { const A = D[want] || (D[want] = { ...T, msgs: [] }), ids = new Set(A.msgs.map(m => m.id)); for (const m of T.msgs || []) if (!m.id || !ids.has(m.id)) A.msgs.push(m); A.msgs.sort((a, b) => a.at - b.at); A.unread = (A.unread || 0) + (T.unread || 0); if (T.call && !A.call) A.call = T.call; A.p.key = want; delete D[k]; n++; continue; }
     if (T.p.key !== k) { T.p.key = k; n++; } }
@@ -12061,7 +12062,7 @@ save();
 render();
 hotBar();
 setInterval(tick, 1500);
-{ const D = S.social && S.social.dm; if (D && (Object.keys(D).some(k => !k.includes('|')) || Object.values(D).some(T => T && T.p && T.p.key !== undefined ? false : true))) { keyRepair(S); save(); setTimeout(render, 50); } } /* 导入后聊天的 key 丢了：自动补回来 */
+{ const D = S.social && S.social.dm; if (!S.keyFix2 || (D && (Object.keys(D).some(k => !k.includes('|')) || Object.values(D).some(T => T && T.p && T.p.key !== undefined ? false : true)))) { S.keyFix2 = 1; keyRepair(S); save(); setTimeout(render, 50); } } /* 导入后聊天的 key 丢了：自动补回来 */
 setTimeout(() => { const app = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); if (!FRESH_SAVE || !app || $('#modal').classList.contains('on')) return; openModal(`<div class="row"><h3 style="flex:1">📱 主屏幕版</h3></div><div style="line-height:1.7">从主屏幕打开的 SIA SPACE 和浏览器里的存档是分开的，这里现在是一个新存档。<br>要接着玩原来的进度：先在 <b>Safari</b> 里打开网站，到「我的 → 设置」点<b>导出数据</b>；再回到这里，同一个地方点<b>导入数据</b>，选刚才导出的文件。</div><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="close">知道了</button></div>`); }, 2500); /* 从主屏幕第一次打开：提示把浏览器里的存档导过来 */
 setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; chBfNext(0); }, 6000); // 补 challenge 只弹一次
 setInterval(flushAgg, 6000);
