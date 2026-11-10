@@ -8055,7 +8055,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srAskRedo1(); studioWord1(); mgrPrivClean1(); srKissFix1(); srNoteRe1104(); srEvRedo1104(); srEvDrop1104(); prodSkillFix1(); settleOctFix1(); chMissed1105(); mgrFm1105(); srMeal1105(); srEvRedo1106(); srComplain1107(); srCallFix1109(); srKgma1107(); del1107(); srKgma1107b(); propFm1107(); del1108(); { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } /* 11/7 那天其实没处理过：放回「补 challenge」里 */ srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
+  serimRedoMig(); serimMemFix(); serimRedo2(); serimClearMig(); mgrTrimMig(); mgrRep1019(); mgrCarFix(); ahMsgFix(); inviteReplyFix1(); jmMealFix1(); jmStallFix1(); jmStallFix2(); jmStallFix3(); jmNightFix1(); jmNightFix2(); srLoveRedo1(); srScriptFix1(); srScriptFix2(); srJmDinnerRedo1(); srJmDinnerRedo2(); srJmDinnerRedo3(); srStudioRedo1(); srSorryRedo1(); srSorryRedo2(); srCryFix1(); srCallNow1(); srRecallOff1(); srCallRestore1(); srStyleFix1(); srMorning1028(); relayDup1(); payFast1(); srOppaFix1(); srCommute1028(); ytRunShort1(); srSleep1029(); srMemberZh1(); srVoiceCall1(); srVoiceCall2(); deluluMove1(); nightTrainMove1(); nightTrainMove2(); srFix1102(); hotQFix1(); fanmeet1107(); cbReopen1(); taesanFix1(); taesanFix2(); srSleepRedo1(); srNoteRe1103(); srNoteRe1103b(); bbPayFast1(); srReachNow1(); srAskRedo1(); studioWord1(); mgrPrivClean1(); srKissFix1(); srNoteRe1104(); srEvRedo1104(); srEvDrop1104(); prodSkillFix1(); settleOctFix1(); chMissed1105(); mgrFm1105(); srMeal1105(); srEvRedo1106(); srComplain1107(); srCallFix1109(); srPlanRedo1110(); srKgma1107(); del1107(); srKgma1107b(); propFm1107(); del1108(); { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } /* 11/7 那天其实没处理过：放回「补 challenge」里 */ srWake1028(); jmMeal7pm1(); crvMeetClashTick(); mv404Thumb1(); mvBehindThumb1(); fanRuleHalf1(); crvFuFix1(); trExplainFix1(); srRepeatDel1(); nameMig(); soloMig(); socExMig(); socDaily(); dmPendTick(); dmCleanMig(); ahFollowMig(); dmUnstick1(); dmCallZh1(); dmCallTick(); ahReset1(); dmPolishMig(); serimNoteTick(); serimPingTick(); annivTick(); vcRedo1022();
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
   if (Date.now() < SOC_BOOST_UNTIL && nm < 1425 && !SO.q.some(x => x.day === today && !x.done) && (!SO.boostAt || Date.now() - SO.boostAt > 20 * 60e3)) {
@@ -9165,6 +9165,8 @@ function srKgma1107() { const R = SR(); if (R.kgma1107) return; R.kgma1107 = 1; 
   const T = dmThread(srP()); for (const m of T.msgs) if (!m.me && dkey(m.at) === '2026-11-06' && /무대 끝나고/.test(m.text || '')) { m.text = m.text.replace(/무대 끝나고/g, '리허설 끝나고'); if (m.zh) m.zh = m.zh.replace(/舞台结束/g, '彩排结束'); }
   for (const u of R.urges || []) u.t = u.t.replace(/舞台结束/g, '彩排结束'); for (const m of R.mem) if (m.k === 'promise' && /舞台/.test(m.t || '') && (m.c || 0) < srTs('2026-11-07', 0)) m.t = m.t.replace(/舞台/g, '彩排');
   srMemAdd({ k: 'event', who: 'him', t: '11/6 是 KGMA 彩排（不是正式演出）；KGMA 颁奖典礼是 11/7 晚上', src: 'sys', imp: 3, at: srTs('2026-11-06', 12 * 60) }, Date.now()); save(); } /* 她记错了：KGMA 是 11/7，11/6 是彩排 */
+function srPlanRedo1110() { const R = SR(); if (R.planRedo1110) return; R.planRedo1110 = 1; const t = dkey(Date.now());
+  for (let i = 1; i <= 3; i++) { const k = addDays(t, i), D = R.day[k]; if (!D || !D.gen) continue; D.segs = D.segs.filter(g => !['gen', 'fb', 'official'].includes(g.src)); delete D.gen; delete D.try; } save(); } /* 之后几天按演唱会 / 舞台准备重新排 */
 function srCallFix1109() { const R = SR(); if (R.callFix1109) return; R.callFix1109 = 1; const re = /没打电话|没打成|电话.*没打|没打.*电话|结果没打|一晚上也一条消息都没发/;
   for (const u of R.urges || []) if (re.test(u.t || '')) u.used = 1;
   for (const m of R.mem) if (m.k === 'promise' && /电话|통화|전화/.test(m.t || '') && ['missed', 'planned'].includes(m.st) && (m.c || 0) < srTs('2026-11-09', 0)) { m.st = 'done'; m.why = ''; m.u = Date.now(); }
@@ -9894,7 +9896,7 @@ function srDayFb(dk) {
   if (sS >= 600) add(sS, 1440, '睡觉', 'sleep');
   return segs;
 }
-function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off' + dk, s: Math.max(0, g[2] - 420), e: Math.min(1440, g[2] + 210), what: g[3], where: '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', share: .6, c: 0 }] : []; }
+function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off' + dk, s: Math.max(0, g[2] - 30), e: Math.min(1440, g[2] + 210), what: `${g[3]}（${hhmm(g[2])} 开始，正式演出 / 典礼本身）`, where: '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', share: .6, c: 0 }] : []; }
 let srGenBusy = 0, srBitBusy = 0;
 /* =========================================================
    💙 世琳秘密恋爱事件：按两个人此刻真实的行程、地点、关系触发（对不上就不触发）；
@@ -10126,6 +10128,18 @@ function srBitsApply(j, when) {
 const SR_BITS_SCHEMA = { told: { type: 'array', items: { type: 'string' } }, bits_add: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['time', 't'], properties: { time: { type: 'string' }, t: { type: 'string' } } } } };
 const SR_BITS_HINT = `told：这次他提到了上面哪些小事（填方括号里的编号），没有就空。
 bits_add：他这次说到了自己今天的一件小事、而上面没有写的，写下来（time HH:MM、t 一句中文）；必须和那个时间他在做的事对得上，不能和时间线、和他说过的话矛盾。没有就空。`;
+/* 接下来三周的大事（公司排的公开行程 + 你在后台记的以后的安排）：安排每天的练习、作息都要往这些靠 */
+function srUpcoming(dk) { const out = [], seen = new Set();
+  for (const g of REAL_GIGS) if (g[0] === 'CRAVITY' && g[1] >= dk && g[1] <= addDays(dk, 21)) { out.push({ dk: g[1], t: `${g[3]}（${hhmm(g[2])}）` }); seen.add(g[1]); }
+  for (let i = 0; i <= 21; i++) { const k = addDays(dk, i), D = SR().day[k]; if (!D) continue; for (const g of D.segs) if (!g.del && g.st !== 'cancel' && ['note', 'plan'].includes(g.src) && g.kind === 'work' && (i > 0 || true) && /演唱会|콘서트|颁奖|시상식|舞台|무대|打歌|음방|音乐节|歌谣|가요|拍摄|촬영|综艺|예능|签售|팬싸|见面会|팬미팅|彩排|리허설|出国|海外|巡演|演出/.test(g.what || '')) out.push({ dk: k, t: `${hhmm(g.s)} ${g.what}（你记的）` }); }
+  return out.sort((a, b) => a.dk.localeCompare(b.dk)).filter((x, i, a) => a.findIndex(y => y.dk === x.dk && y.t === x.t) === i).map(x => { const n = Math.round((parseD(x.dk) - parseD(dk)) / 864e5); return `- ${srMD(x.dk)}（${n === 0 ? '就是今天' : n + ' 天后'}）${x.t}`; }).join('\n'); }
+const SR_PREP_GUIDE = `按这些大事来安排这一天（优先级从高到低，越近的越优先）：
+- 颁奖礼、年末歌谣祭这种舞台通常要改编（特别舞台、新编舞、加段落、和别的团合作），前一周左右要专门排练这个舞台，越近练得越多；同时期还有演唱会的话，练完特别舞台再加班准备演唱会。
+- 演唱会最费心思：提前两三周开始合练（全场曲目、队形、走位、VCR、ment、和舞者 / 乐队合），最后一周几乎每天练到很晚；开演前一两天去场地做彩排（走位、灯光、音响、升降台）。
+- 演唱会当天：中午前后到场地（开演前六七个小时），走位彩排、音响检查（리허설 · 사운드체크），吃点东西，化妆做造型，开演前半小时候场；演出三个小时左右（含安可）；结束后和成员、工作人员简单收尾或一起吃东西，很晚才回宿舍。连着两天演出的，中间一晚早点睡；最后一场结束后才轻松。
+- 颁奖礼当天：上午或中午到场彩排，傍晚走红毯，晚上典礼，常常十点以后才结束。
+- 大事刚结束的第二天：睡得晚、起得晚，以休息、恢复为主（除非马上又有行程）。
+- 拍摄、打歌、签售这类正式行程按常理留出化妆、候场和路上的时间。`;
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (D.gen && D.gen !== 'fb') try { srTailFill(dk); } catch (e) { }
@@ -10138,7 +10152,7 @@ async function srDayEnsure(dk) {
     const promo = socPromo('CRAVITY', dk), prep = gigPrep('CRAVITY', dk), M = SR().mood;
     const j = await srAI(`给 CRAVITY 世琳（朴世琳，1999 年生，男，偶像）安排 ${srMD(dk)} 周${WD[parseD(dk).getDay()]} 这一天的真实生活（模拟器里他的日常，之后的聊天、回复时间都按这个来）。
 他：${c.pers || ''}。喜欢：${c.like || ''}。补充：${c.extra || ''}
-现在是 10 月底，首尔已经转冷。${promo ? 'CRAVITY 这段时间在回归活动期：有打歌、拍摄、练习等行程，工作日会很满。' : 'CRAVITY 现在不在打歌期，日常是练习、录音、健身、私人时间，比活动期自由。'}${prep ? '演唱会（11/14、11/15 首尔，11/21 釜山）快到了，这阵子要合练。' : ''}
+现在是 ${+dk.slice(5, 7)} 月${+dk.slice(8) <= 10 ? '初' : +dk.slice(8) <= 20 ? '中' : '底'}，首尔${[12, 1, 2].includes(+dk.slice(5, 7)) ? '是冬天，很冷' : [11, 3].includes(+dk.slice(5, 7)) ? '已经很冷了' : '天气凉快'}。${promo ? 'CRAVITY 这段时间在回归活动期：有打歌、拍摄、练习等行程，工作日会很满。' : 'CRAVITY 现在不在打歌期，日常是练习、录音、健身、私人时间，比活动期自由。'}${(() => { const u = srUpcoming(dk); return u ? `\n接下来三周的大事：\n${u}\n${SR_PREP_GUIDE}\n` : ''; })()}
 他私下在和 Cyan（同公司 STARSHIP 的 solo 女歌手）秘密交往，刚开始。这不会占据他整天的生活。${herCoTxt(dk) ? `她这天在公司的安排：${herCoTxt(dk)}（同一栋楼，他如果也在公司可能会碰到；不用为了见她专门安排）。` : ''}
 他现在的状态：精力 ${Math.round(M.en)}/100${M.why ? `（起因是之前的事：${M.why}。这件事已经发生过了，不要把它再安排进这一天）` : ''}。
 只写这一天里新发生的普通事情；之前已经发生的事（包括上面提到的起因、前两天的经历）不要换个时间再写一遍。
@@ -10779,7 +10793,7 @@ ${srChatLog(dmThread(srP()), now, 14) || '（无）'}
 今天 ${td}：
 ${tl(td)}${SR().day[yd] ? `\n昨天 ${yd}：\n${tl(yd)}` : ''}
 
-segs：只写这条记录里说到的、有具体时间或能推出时间的他的活动，拆成时间段，不要把上面已有的时间段抄回来。what / where / with 一律用中文写：她的原话常常中韩夹杂，里面的韩语词要换成对应的中文（比如 회사카페 → 公司咖啡厅，아아 → 冰美式，합연습 → 合练，음방 → 打歌），人名用中文名（세림 → 世琳、정모 → 廷谟），专有名词（节目名、店名、歌名）可以保留原文。只是补充感受、状态或细节（比如「今天特别累」「发现了一张小卡，有点吃醋」）、没说什么时候的，不要建时间段，也不要拿现在这个时间去套，写进 mem 和 state 就够了。day 写 YYYY-MM-DD；s / e 写 HH:MM。她常常提前把他今天会发生的事写下来（就算用了「了」，比如早上记「九点多结束练习，回宿舍就洗澡了」），时间比她记下的时刻晚的，就是今天之后要发生的，st=planned；早上记的「八点多」「九点多」，如果前后说的是吃完晚饭、练习、下班，指的是晚上；可以接着她之前记的那条（比如上一条写了晚饭几点吃，这条的「吃完饭后」就是那之后）。只说了「下午」「晚上」就按常理给合理范围；「现在在」就从现在前后算；「今天主要在练习，七点结束」这种就从合理的开始时间一直写到七点。这条让他得从一个地方去另一个地方（比如从宿舍去公司、去拍摄地）而上面没有路上的时间段的话，补一段路上（kind=move，宿舍到公司地铁或打车二三十分钟，紧挨在前面）。上面原来的安排被这条挤掉了（比如早上的健身），能挪到前后空出来的时间就补一段挪过去的，挪不下就算了。st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。
+segs：只写这条记录里说到的、有具体时间或能推出时间的他的活动，拆成时间段，不要把上面已有的时间段抄回来。what / where / with 一律用中文写：她的原话常常中韩夹杂，里面的韩语词要换成对应的中文（比如 회사카페 → 公司咖啡厅，아아 → 冰美式，합연습 → 合练，음방 → 打歌），人名用中文名（세림 → 世琳、정모 → 廷谟），专有名词（节目名、店名、歌名）可以保留原文。只是补充感受、状态或细节（比如「今天特别累」「发现了一张小卡，有点吃醋」）、没说什么时候的，不要建时间段，也不要拿现在这个时间去套，写进 mem 和 state 就够了。day 写 YYYY-MM-DD；s / e 写 HH:MM。她也会提前写以后的安排（「14号有演唱会」「下周三去拍画报」「11/21 釜山演唱会，下午三点彩排」）：day 写那一天（按今天的日期推算，「X号」指最近的那个 X 号），st=planned；没写具体时间的，按这类行程的常理给一个合理的时间段（演唱会：开演前到场、彩排、化妆、演出到晚上；颁奖礼：下午彩排到晚上典礼结束），what 里写清楚是什么。她常常提前把他今天会发生的事写下来（就算用了「了」，比如早上记「九点多结束练习，回宿舍就洗澡了」），时间比她记下的时刻晚的，就是今天之后要发生的，st=planned；早上记的「八点多」「九点多」，如果前后说的是吃完晚饭、练习、下班，指的是晚上；可以接着她之前记的那条（比如上一条写了晚饭几点吃，这条的「吃完饭后」就是那之后）。只说了「下午」「晚上」就按常理给合理范围；「现在在」就从现在前后算；「今天主要在练习，七点结束」这种就从合理的开始时间一直写到七点。这条让他得从一个地方去另一个地方（比如从宿舍去公司、去拍摄地）而上面没有路上的时间段的话，补一段路上（kind=move，宿舍到公司地铁或打车二三十分钟，紧挨在前面）。上面原来的安排被这条挤掉了（比如早上的健身），能挪到前后空出来的时间就补一段挪过去的，挪不下就算了。st：done 已经发生 / now 正在 / planned 还没发生的计划。kind：sleep / work / social / out / free / move。
 drop：上面已有时间段里，和这条记录矛盾、或者和这条记录重复、应该删掉的编号（比如这条说他凌晨去见了恩雪，那段时间原来写的「睡觉」就要删；这条写了他下午在宿舍运动，同一天系统生成的另一场健身就重复了；这条写了几点吃午饭、几点出门，同一天生成的另一顿午饭、另一趟出门也是重复的；被新时间段盖住的部分系统会自动改，不用列）。
 mem：这条里其他值得长期记住的（他的近况、喜好、和谁有关的事；他的感受用 k=feel，比如吃醋），k / who / t / imp，when 可空。
 state：这条对他现在状态的影响。energy：他现在的精力 0~100（说很累就低，没提到填 -1）；mood_val：心情 -2~2（没提到填 0）；mood_to：他现在对 Cyan 的情绪（比如 有点吃醋 / 想她，没有就空）；why：一句原因。
