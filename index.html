@@ -817,7 +817,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261111072905';
+const BUILD = '20261111223744';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -4201,6 +4201,7 @@ function mgrCarFix() {
     m.text = m.text.replace(/\n*■ 활동 경비 \(법인카드\)[\s\S]*?영수증 제출 완료/, ''); if (m.zh) m.zh = m.zh.replace(/\n*■ 活动经费（公司卡）[\s\S]*?收据已提交/, ''); }
   save();
 }
+function mgrRep1110() { const M = mgrChat(); if (M.rep1110) return; M.rep1110 = 1; for (const m of M.chat) if (!m.me && /^\[11\/10\(.\) 일정 보고\]/.test(m.text || '')) { const r = mgrReportText('2026-11-10'); m.text = toKo(r[0]); m.zh = r[1]; } save(); mgrRefresh(); } /* 11/10 的日报写成了「未参加」：按实际（去了）重写 */
 function mgrRep1019() {
   const M = mgrChat(); if (M.rep1019) return; M.rep1019 = 1; const dk = '2026-10-19';
   for (const m of M.chat) if (!m.me && /^\[10\/19\(.\) 일정 보고\]/.test(m.text || '')) { const r = mgrReportText(dk); m.text = toKo(r[0]); m.zh = r[1]; }
@@ -4415,7 +4416,7 @@ function mgrReportText(dk) {
     both('■ 일정 수행', '■ 日程执行');
     IT.forEach(({ r, dk: rk, off }, i) => { const e0 = toMin(r.end) <= toMin(r.start) ? toMin(r.end) + 1440 : toMin(r.end);
       const x = R[rk + '|' + r.id], future = Date.now() < d0.getTime() + (toMin(r.start) + off) * 60e3;
-      const ended = Date.now() >= d0.getTime() + (e0 + off) * 60e3, [sk, sz] = !x ? (future ? ['예정', '待进行'] : ended && !TG_EVENTS[r.cat] ? ['완료', '完成'] : ['진행 중', '进行中']) : ['旷', '缺'].includes(x.grade) ? ['불참', '未参加'] : ['완료', '完成'];
+      const ended = Date.now() >= d0.getTime() + (e0 + off) * 60e3, chk = (S.schedule.done || {})[rk + '|' + r.id], [sk, sz] = !x ? (future ? ['예정', '待进行'] : ended && (chk || !TG_EVENTS[r.cat]) ? ['완료', '完成'] : ['진행 중', '进行中']) : ['旷', '缺'].includes(x.grade) ? ['불참', '未参加'] : ['완료', '完成'];
       both(`${i + 1}. ${r.start}~${r.end} ${toKo(r.title)}${r.loc ? ' / ' + toKo(r.loc) : ''} - ${sk}`, `${i + 1}. ${r.start}~${r.end} ${r.title}${r.loc ? ' / ' + r.loc : ''} - ${sz}`);
     });
   }
@@ -8087,7 +8088,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
