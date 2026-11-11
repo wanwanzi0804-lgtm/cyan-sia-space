@@ -6,7 +6,7 @@ const path = require('path');
   p.on('pageerror', e => errs.push(e.message));
   await p.addInitScript(() => { Object.defineProperty(navigator, 'standalone', { get: () => true }); });
   await p.goto('file://' + path.resolve(__dirname, '../index.html')); await p.waitForTimeout(3000);
-  const step = async (name, fn) => { const e0 = errs.length, t0 = Date.now(); try { await fn(); await p.waitForTimeout(250); const alive = await Promise.race([p.evaluate(() => 1), new Promise(r => setTimeout(() => r(0), 3000))]); res.push([errs.length === e0 && alive ? 'OK ' : 'BAD', name, Date.now() - t0 + 'ms', errs.slice(e0).join(' | ').slice(0, 160)]); } catch (e) { res.push(['BAD', name, '', String(e.message).slice(0, 160)]); } };
+  const step = async (name, fn) => { const e0 = errs.length, t0 = Date.now(); try { await p.evaluate(() => { try { if (UI.socPop) UI.socPop = null; if (UI.chPop) UI.chPop = null; closeModal(); } catch (e) { } }); /* 随机弹出来的事件 / challenge 会挡住点击：每一步前先关掉 */ await fn(); await p.waitForTimeout(250); const alive = await Promise.race([p.evaluate(() => 1), new Promise(r => setTimeout(() => r(0), 3000))]); res.push([errs.length === e0 && alive ? 'OK ' : 'BAD', name, Date.now() - t0 + 'ms', errs.slice(e0).join(' | ').slice(0, 160)]); } catch (e) { res.push(['BAD', name, '', String(e.message).slice(0, 160)]); } };
   const closeAll = () => p.evaluate(() => { try { closeModal(); } catch (e) { } UI.dmOpen = null; });
   await step('关掉启动弹窗', closeAll);
   for (const tab of ['feed', 'bubble', 'sched', 'kkt', 'me']) await step('切到 ' + tab, () => p.tap(`.tab[data-tab="${tab}"]`));
