@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116065429';
+const BUILD = '20261116065611';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -11968,7 +11968,7 @@ document.addEventListener('click', async e => {
     case 'offdel': if (confirm('删掉这条官方号的帖子？')) { const O = offState(); O.posts = O.posts.filter(x => x.id !== t.dataset.id); save(); render(); } break;
     case 'cmpopen': UI.cmpOpen = true; render(); $('#cmp-text')?.focus(); break;
     case 'cmpclose': draft = ($('#cmp-text')?.value || ''); UI.cmpOpen = false; render(); break;
-    case 'feedsub': UI.feedSub = t.dataset.s; UI.postId = null; render(); window.scrollTo(0, 0); break;
+    case 'feedsub': stopPreview(); UI.feedSub = t.dataset.s; UI.tab = 'feed'; UI.postId = null; render(); window.scrollTo(0, 0); break;
     case 'imgtag': { const k = t.dataset.k; draftTags = draftTags.includes(k) ? draftTags.filter(x => x !== k) : [...draftTags, k]; t.classList.toggle('on', draftTags.includes(k)); break; }
     case 'unpend': { const f = pending.splice(+t.dataset.i, 1)[0]; if (f) URL.revokeObjectURL(f._url); renderPending(); break; }
     case 'delpost': {
