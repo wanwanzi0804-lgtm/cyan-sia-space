@@ -11,7 +11,7 @@ const path = require('path');
   await step('关掉启动弹窗', closeAll);
   for (const tab of ['home', 'sched', 'me']) await step('切到 ' + tab, () => p.tap(`.tab[data-tab="${tab}"]`));
   const app = async k => { await p.tap('.tab[data-tab="home"]'); await p.tap(`.hm-app[data-tab="${k}"]`); };
-  for (const k of ['kkt', 'feed', 'bubble', 'yt', 'music', 'plans', 'wallet']) await step('打开应用 ' + k + ' 再返回', async () => { await app(k); await p.tap('.tb-back'); });
+  for (const k of ['kkt', 'feed', 'bubble', 'yt', 'news', 'music', 'plans', 'wallet']) await step('打开应用 ' + k + ' 再返回', async () => { await app(k); await p.tap('.tb-back'); });
   await step('KKT：친구 / 채팅', async () => { await app('kkt'); await p.tap('[data-act="kktab"][data-k="friend"]'); await p.tap('[data-act="kktab"][data-k="chat"]'); });
   await step('YouTube：各个分页', async () => { await app('yt'); for (const k of ['v', 's', 'l', 'h']) await p.tap(`[data-act="ytctab"][data-k="${k}"]`); });
   await step('企划中心：筛选、新企划表单、回归企划', async () => { await app('plans'); await p.tap('[data-act="plf"][data-k="pub"]'); await p.tap('[data-act="plf"][data-k="all"]'); await p.tap('.tb-btn'); await p.evaluate(() => { UI.mPage = ''; UI.ytF = null; render(); }); await p.tap('[data-p="cb"]'); });

@@ -702,6 +702,29 @@ video.bv-glow{pointer-events:none}
 .sr-phpick{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}.sr-phpick button{position:relative;flex:none;width:68px;border:2px solid transparent;border-radius:10px;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.sr-phpick button.on{border-color:var(--accent)}.sr-phpick img{width:64px;height:64px;object-fit:cover;border-radius:8px}.sr-phpick b{position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}.sr-phpick span{font-size:10.5px;color:var(--muted);max-width:64px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #vc-ly{position:fixed;inset:0;z-index:151;background:#0d0f13;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(64px + env(safe-area-inset-top)) 22px calc(36px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;overflow:hidden}.vc-bg{position:absolute;inset:0;z-index:0;overflow:hidden}.vc-bg *{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;border-radius:0!important;margin:0!important}.vc-bg img{object-fit:cover;filter:blur(18px) brightness(.5);transform:scale(1.15)}.vc-on .vc-bg img{filter:none;transform:none}.vc-on .vc-top .call-av{display:none}.vc-on .vc-top{text-shadow:0 1px 6px rgba(0,0,0,.6)}.vc-top{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center}.vc-btns{position:relative;z-index:1}.vc-me{position:absolute;z-index:1;right:18px;top:calc(18px + env(safe-area-inset-top));width:92px;height:130px;border-radius:14px;background:#2a2f38;border:2px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:13px;color:#cfd6df}
 
+
+/* 日程 */
+.sd-h{display:flex;align-items:flex-end;gap:10px;margin:6px 4px 14px}.sd-h>div{flex:1;min-width:0}.sd-h span{display:block;font-size:13.5px;color:var(--muted)}.sd-h span .link{font-size:13px}.sd-h b{display:block;font-size:30px;line-height:1.2;margin-top:2px}
+.sd-btn{position:relative;width:44px;height:44px;border:0;border-radius:22px;background:var(--card);box-shadow:var(--shadow);display:grid;place-items:center;color:var(--text);flex:none}
+.sd-week{display:flex;align-items:center;gap:2px;margin:0 0 12px}.sd-ar{border:0;background:none;color:var(--muted);font-size:18px;padding:0 2px}
+.sd-day{flex:1;border:0;background:none;border-radius:14px;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;color:var(--text)}.sd-day span{font-size:12px;color:var(--muted)}.sd-day b{font-size:17px;font-weight:600;line-height:1.3}
+.sd-day i{display:flex;gap:2px;height:4px;margin-top:3px}.sd-day u{width:4px;height:4px;border-radius:2px;background:var(--muted);opacity:.6}
+.sd-day.today b{color:var(--accent)}.sd-day.on{background:var(--text)}.sd-day.on span,.sd-day.on b{color:var(--bg)}.sd-day.on u{background:var(--bg)}
+.sd-chips{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none}.sd-chips::-webkit-scrollbar{display:none}
+.sd-chip{flex:none;display:flex;align-items:center;gap:8px;border:0;border-radius:18px;padding:8px 14px;background:var(--card);box-shadow:var(--shadow);font-size:13px;color:var(--text);white-space:nowrap}
+.sd-chip.hi{background:var(--accent-soft);color:#0b6d71}.sd-chip i{width:7px;height:7px;border-radius:4px;background:#0e8a8f}
+.sd-list .empty{background:var(--card);border-radius:18px}
+.sd-it{display:flex;gap:10px;margin-bottom:10px}.sd-tm{width:46px;flex:none;padding-top:15px;font-size:14px;color:var(--muted)}.sd-tm span{display:block;font-size:11.5px;opacity:.75}.sd-tm em{display:block;font-style:normal;font-size:10px}
+.sd-card{flex:1;min-width:0;background:var(--card);border-radius:18px;padding:13px 14px;box-shadow:var(--shadow);border:2px solid transparent}
+.sd-row{display:flex;align-items:center;gap:12px}.sd-bar{width:4px;align-self:stretch;min-height:38px;border-radius:2px;flex:none}
+.sd-tx{flex:1;min-width:0}.sd-tx b{display:block;font-size:15.5px;font-weight:600}.sd-tx>span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.sd-wait{font-size:12.5px;color:var(--muted);flex:none}
+.sd-chk{flex:none;position:relative;width:26px;height:26px}.sd-chk input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}.sd-chk i{display:block;width:26px;height:26px;border-radius:13px;border:1.6px solid var(--line);pointer-events:none}
+.sd-chk input:checked+i{border-color:transparent;background:no-repeat center/16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230e8a8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
+.sd-it.done .sd-tx b{text-decoration:line-through;color:var(--muted)}.sd-it.done .sd-bar,.sd-it.over .sd-bar{opacity:.45}
+.sd-it.now .sd-card{border-color:var(--accent)}.sd-it.now .sd-tm{color:var(--text);font-weight:700}
+.sd-go{display:block;width:100%;margin-top:12px;border:0;border-radius:14px;padding:12px 0;background:var(--text);color:var(--bg);font-size:15px;font-weight:600}
+.sd-foot{display:flex;align-items:center;justify-content:space-between;margin:14px 4px 6px;font-size:13px;color:var(--muted)}
 /* ===== 新界面：手机首页 / 应用 / 我的 ===== */
 :root{--wall:radial-gradient(circle at 15% 12%,#ffd9e4 0,rgba(255,217,228,0) 42%),radial-gradient(circle at 90% 30%,#d6ecff 0,rgba(214,236,255,0) 45%),radial-gradient(circle at 30% 78%,#d9f4ef 0,rgba(217,244,239,0) 45%),radial-gradient(circle at 85% 88%,#e8e0ff 0,rgba(232,224,255,0) 45%),#f7f6fb;--glass:rgba(255,255,255,.72);--glass-nav:rgba(255,255,255,.6);--ink:#2a2f45}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--wall:radial-gradient(circle at 15% 12%,#3a2531 0,rgba(58,37,49,0) 42%),radial-gradient(circle at 90% 30%,#1f2f42 0,rgba(31,47,66,0) 45%),radial-gradient(circle at 30% 78%,#1d3533 0,rgba(29,53,51,0) 45%),radial-gradient(circle at 85% 88%,#2a2540 0,rgba(42,37,64,0) 45%),#121418;--glass:rgba(30,34,40,.7);--glass-nav:rgba(24,28,33,.62);--ink:#e8edf1}}
@@ -901,7 +924,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116062032';
+const BUILD = '20261116062422';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6775,6 +6798,7 @@ function render() {
   else if (UI.tab === 'music') h = musicHTML();
   else if (UI.tab === 'plans') h = plansHTML();
   else if (UI.tab === 'wallet') h = walletHTML();
+  else if (UI.tab === 'news') h = newsHTML();
   else h = viewMe();
   } catch (err) { console.error('render', UI.tab, err); h = `<div class="card" style="margin-top:14px"><b>这个页面出错了，打不开</b><div class="muted" style="font-size:12.5px;margin:8px 0;word-break:break-all">页面：${esc(UI.tab)}<br>${esc(String(err && err.message || err))}<br>${esc(String(err && err.stack || '').split('\n').slice(0, 3).join(' / ')).slice(0, 300)}</div><div class="muted" style="font-size:12.5px">把这一屏截图发给我就能修。</div></div>`; } /* 页面出错时不再「点了没反应」：直接把错误显示出来 */
   view.innerHTML = h;
@@ -6809,7 +6833,7 @@ function viewFeed() {
     return hero + feedNav('media') + (offTiles && !L.length ? `<div class="mgrid">${offTiles}</div>` : '') + (L.length ? `<div class="mgrid">${offTiles}${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : (offTiles ? '' : '<div class="empty">还没有发过图片或视频</div>'));
   }
   const open = UI.cmpOpen || pending.length > 0;
-  return `${hero}${feedNav('feed')}${quickHTML()}
+  return `${hero}${feedNav('feed')}
   ${open ? `<div class="card composer">
     <textarea id="cmp-text" placeholder="和粉丝们分享点什么吧…"></textarea>
     <div id="cmp-prev" class="cmp-prev"></div>
@@ -7022,7 +7046,7 @@ function updBadges() {
   const bb = $('#bb-badge'), u = (S.bubble && S.bubble.unread) || 0;
   if (bb) { bb.classList.toggle('dot', !!(u && S.bubble.muted)); bb.textContent = u && !S.bubble.muted ? (u > 99 ? '99+' : String(u)) : ''; }
   const n99 = x => x ? (x > 99 ? '99+' : String(x)) : '', hb = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
-  hb('hb-kkt', n99(ku)); hb('hb-feed', t); hb('hb-plans', n99(plansTodo())); { const el = $('#hb-bubble'); if (el) { el.classList.toggle('dot', !!(u && S.bubble.muted)); el.textContent = u && !S.bubble.muted ? n99(u) : ''; } }
+  hb('hb-kkt', n99(ku)); { const H0 = S.hot && S.hot.cur; hb('hb-news', H0 && H0.choice == null ? '1' : ''); } hb('hb-feed', t); hb('hb-plans', n99(plansTodo())); { const el = $('#hb-bubble'); if (el) { el.classList.toggle('dot', !!(u && S.bubble.muted)); el.textContent = u && !S.bubble.muted ? n99(u) : ''; } }
   appBadge(ku + (S.bubble && !S.bubble.muted ? u : 0));
 }
 /* 桌面图标上的未读角标（KKT + 泡泡）：主屏幕版、iOS 16.4 以上、允许了通知才有；页面在运行时更新，关掉后停在最后的数字 */
@@ -7698,29 +7722,37 @@ function viewSched() {
   const k = UI.schedDate, today = logicalToday();
   const d0 = parseD(k); const mon = addDays(k, -((d0.getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
-  const IT = dayItems(k), items = IT.map(x => x.r); const nowMin = (d => d.getHours() * 60 + d.getMinutes() + (dkey(d) !== today ? 1440 : 0))(new Date()); // 过了零点就是 24:xx、25:xx（按钟面时间算，夏令时那天不会差一小时）
-  return `
-  <div class="s-head"><div class="s-date"><b>${d0.getMonth() + 1}月${d0.getDate()}日</b><span>周${WD[d0.getDay()]}</span>${k === today ? '<em>今天</em>' : `<button class="link" data-act="sdate" data-k="${today}">回到今天</button>`}</div>
-    <button class="btn ghost sm" data-act="tglist" style="position:relative">📋 通告<span class="badge" id="tg-badge">${(tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length) || ''}</span></button>
-    <button class="btn ghost sm" data-act="admin">⚙ 行程后台</button></div>
-  <div class="s-links">${chBackfillList().length ? `<button class="link" data-act="chbfopen">有 ${chBackfillList().length} 个日子可以补 challenge ›</button>` : ''}${(() => { const w = (chal().pop || {}).why; return w && w.k >= addDays(dkey(Date.now()), -1) ? `<span class="muted" style="font-size:12px;margin-left:8px">${+w.k.slice(5, 7)}/${+w.k.slice(8)} 没弹 challenge：${esc(w.t)}</span>` : ''; })()}</div>
-  <div class="card week">
-    <button class="link" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>
-    ${days.map(x => { const n = dayItems(x).length; const xd = parseD(x); return `<button class="day ${x === k ? 'on' : ''} ${x === today ? 'today' : ''}" data-act="sdate" data-k="${x}">${WD[xd.getDay()]}<b>${xd.getDate()}</b><span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span></button>`; }).join('')}
-    <button class="link" data-act="sdate" data-k="${addDays(k, 7)}">›</button>
-  </div>
-  <div class="rest-tg"><span>${isRestWeek(k) ? '🌙 这周是休息周' : '这周正常营业'}</span><label class="sw"><input type="checkbox" data-act="resttg" data-k="${mon}" ${isRestWeek(k) ? 'checked' : ''}><i></i></label></div>
-  <div class="card s-list">${items.length ? IT.map(({ r, dk: rk, off }) => {
-    const dk = rk + '|' + r.id, done = !!S.schedule.done[dk];
-    let st = '', ph = '';
-    if (k === today) { const s = toMin(r.start) + off; let e = toMin(r.end) + off; if (e <= s) e += 1440; const left = s - nowMin; ph = done ? 'done' : nowMin >= e ? 'over' : nowMin >= s ? 'now' : 'soon'; st = done ? '<span class="status ok">已完成</span>' : nowMin >= e ? '<span class="status">已结束</span>' : nowMin >= s ? '<span class="status now">进行中</span>' : `<span class="status">${left <= 60 ? '即将开始 · ' : ''}${left >= 60 ? Math.floor(left / 60) + ' 小时' : ''}${left % 60 ? left % 60 + ' 分钟' : ''}后</span>`; }
-    else if (done) { ph = 'done'; st = '<span class="status ok">已完成</span>'; }
-    const cc = CATS[r.cat] || '#999';
-    return `<div class="sched ${done ? 'done' : ''} ${ph}"><div class="time">${off ? '<em class="s-night">凌晨</em>' : ''}${r.start}<span>${toMin(r.end) <= toMin(r.start) && !off ? '次日 ' : ''}${r.end}</span></div><div class="bar" style="background:${cc}"></div>
-      <div style="flex:1;min-width:0"><div class="stitle">${esc(r.title)}</div>
-      <div class="smeta"><span class="stag" style="color:${cc};background:color-mix(in srgb,${cc} 13%,transparent)">${esc(r.cat)}</span>${r.loc ? `<span class="sloc">${esc(r.loc)}</span>` : ''}${r.note ? `<span class="sloc">${esc(r.note)}</span>` : ''}</div>${st}${(() => { const res = (S.schedule.res || {})[dk]; if (res) return `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>`; const c = k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start; return c && (c.done || tgOpen(c)) ? `<button class="tg-chip ${c.done ? 'ok' : ''}" data-act="tgopen" data-k="${c.key}">📋 ${c.done ? '通告已完成' : '通告未完成'}</button>` : ''; })()}</div>
-      <input type="checkbox" class="chk" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''} title="标记完成"></div>`;
-  }).join('') + workSumHTML(k, IT, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">去行程后台添加</button></div>`}</div>${chDayHTML(k)}`;
+  const IT = dayItems(k); const nowMin = (d => d.getHours() * 60 + d.getMinutes() + (dkey(d) !== today ? 1440 : 0))(new Date()); // 过了零点就是 24:xx、25:xx
+  const tgN = tgToday().filter(c => !c.done && tgOpen(c)).length + mkCards().filter(c => !c.done).length;
+  const big = k === today ? '今天' : k === addDays(today, 1) ? '明天' : k === addDays(today, -1) ? '昨天' : `周${WD[d0.getDay()]}`;
+  // 提醒：世琳 / 经纪人的未读、可以补的 challenge（不弹窗，放在这里）
+  const chips = []; try { const T = dms()[SR_K]; if (T && T.unread) chips.push(`<button class="sd-chip hi" data-act="dmopen" data-k="${esc(SR_K)}"><i></i>세림 发来 ${T.unread} 条消息</button>`); } catch (e) { }
+  try { const M = mgrChat(), last = M.chat[M.chat.length - 1]; if (M.unread && last) chips.push(`<button class="sd-chip" data-act="mgropen">经纪人：${esc((last.text || '').split('\n')[0].slice(0, 18))}</button>`); } catch (e) { }
+  if (chBackfillList().length) chips.push(`<button class="sd-chip" data-act="chbfopen">有 ${chBackfillList().length} 天可以补 challenge</button>`);
+  const why = (chal().pop || {}).why, whyTxt = why && why.k >= addDays(dkey(Date.now()), -1) ? `${+why.k.slice(5, 7)}/${+why.k.slice(8)} 没弹 challenge：${esc(why.t)}` : '';
+  const row = ({ r, dk: rk, off }) => {
+    const dk = rk + '|' + r.id, done = !!S.schedule.done[dk], cc = CATS[r.cat] || '#999', res = (S.schedule.res || {})[dk];
+    const s0 = toMin(r.start) + off; let e0 = toMin(r.end) + off; if (e0 <= s0) e0 += 1440;
+    const ph = done ? 'done' : k !== today ? (k < today ? 'over' : 'soon') : nowMin >= e0 ? 'over' : nowMin >= s0 ? 'now' : 'soon', left = s0 - nowMin;
+    const st = done ? '已完成' : k !== today ? '' : ph === 'over' ? '已结束' : ph === 'now' ? '进行中' : `${left <= 60 ? '即将开始 · ' : ''}${left >= 60 ? Math.floor(left / 60) + ' 小时' : ''}${left % 60 ? left % 60 + ' 分钟' : ''}后`;
+    const c = !res && k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start;
+    const open = c && !c.done && tgOpen(c);
+    const sub = [r.loc, r.cat, r.note, st].filter(Boolean).map(esc).join(' · ');
+    const right = c && !c.done && !open && ph === 'soon' ? '<span class="sd-wait">通告未开</span>' : '';
+    return `<div class="sd-it ${ph}"><div class="sd-tm">${off ? '<em>凌晨</em>' : ''}${r.start}<span>${toMin(r.end) <= toMin(r.start) && !off ? '次日 ' : ''}${r.end}</span></div>
+      <div class="sd-card"><div class="sd-row"><i class="sd-bar" style="background:${cc}"></i><div class="sd-tx"><b>${esc(r.title)}</b><span>${sub}</span>
+        ${res ? `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>` : c && c.done ? `<button class="tg-chip ok" data-act="tgopen" data-k="${c.key}">通告已完成</button>` : ''}</div>${right}
+        <label class="sd-chk"><input type="checkbox" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''}><i></i></label></div>
+        ${open ? `<button class="sd-go" data-act="tgopen" data-k="${c.key}">做通告</button>` : ''}</div></div>`;
+  };
+  return `<div class="sd-h"><div><span>${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}${k !== today ? ` · <button class="link" data-act="sdate" data-k="${today}">回到今天</button>` : ''}</span><b>${big}</b></div>
+      <button class="sd-btn" data-act="tglist" title="通告">${'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>'}<span class="badge" id="tg-badge">${tgN || ''}</span></button>
+      <button class="sd-btn" data-act="admin" title="加行程"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+    <div class="sd-week"><button class="sd-ar" data-act="sdate" data-k="${addDays(k, -7)}">‹</button>${days.map(x => { const xd = parseD(x), n = dayItems(x).length; return `<button class="sd-day${x === k ? ' on' : ''}${x === today ? ' today' : ''}" data-act="sdate" data-k="${x}"><span>${WD[xd.getDay()]}</span><b>${xd.getDate()}</b><i>${'<u></u>'.repeat(Math.min(n, 3))}</i></button>`; }).join('')}<button class="sd-ar" data-act="sdate" data-k="${addDays(k, 7)}">›</button></div>
+    ${chips.length ? `<div class="sd-chips">${chips.join('')}</div>` : ''}
+    <div class="sd-list">${IT.length ? IT.map(row).join('') + workSumHTML(k, IT, today, nowMin) : `<div class="empty">这天还没有行程<br><button class="btn sm" style="margin-top:10px" data-act="admin">加一个行程</button></div>`}</div>${chDayHTML(k)}
+    <div class="sd-foot"><span>${isRestWeek(k) ? '这周是休息周' : '这周正常营业'}</span><label class="sw"><input type="checkbox" data-act="resttg" data-k="${mon}" ${isRestWeek(k) ? 'checked' : ''}><i></i></label></div>
+    ${whyTxt ? `<div class="muted" style="font-size:12px;text-align:center;margin:4px 0 10px">${whyTxt}</div>` : ''}`;
 }
 /* =========================================================
    🎬 Challenge 邀请：有活动的日子可以邀请别的艺人一起拍你的歌的挑战视频
@@ -8178,7 +8210,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9273,6 +9305,10 @@ function srEvRedo1104() { const R = SR(); if (R.evRedo1104) return; R.evRedo1104
 function srEvDrop1104() { const R = SR(); if (R.evDrop1104) return; R.evDrop1104 = 1; const E = R.evNow; if (E && !E.st) { const e = SR_EVS.find(x => x.id === E.id); if (e && /宇彬|一起吃|吃饭/.test(e.d)) { R.evNow = null; if (UI.socPop && UI.socPop.srev) { UI.socPop = null; closeModal(); } } } save(); } /* 那件「宇彬叫去吃午饭」的事和他的行程对不上：直接撤掉，不重来 */
 /* 冻结 11/11 早上 5 点 ~ 11/16 早上 5 点：这五天当作正常生活、没有留下任何记录（收入、罚款、涨掉粉、通告结果、聊天、帖子、热搜、通知都撤掉）；
    这几天经纪人问过的活、答应过的活，挪到之后再问一次；补两条记忆：这几天和世琳在别处聊天打电话见面，周末去看了 CRAVITY 首尔演唱会 */
+/* 冻结的五天不是完全没变化：补上平常没什么事发生时的自然涨粉 / 小幅掉粉 */
+function frzFans1111() { if (S.frzFans) return; S.frzFans = 1; if (!S.frz1111) return; const F = fanState(), base = S.profile.followers || 0; let sum = 0;
+  for (const k of ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15']) { if (F.days[k]) continue; const r = srng('frzf' + k); let n = Math.round(base * .0008 * (.55 + r() * .9)); if (r() < .22) n = -Math.round(base * .0004 * (.3 + r())); if (!n) continue; F.days[k] = { net: n, src: { [n > 0 ? '自然增长' : '自然掉粉']: n } }; sum += n; }
+  S.profile.followers = Math.max(0, base + sum); save(); }
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -11541,11 +11577,12 @@ function hotPanelHTML() {
 }
 
 /* ===== 新界面：手机首页 ===== */
-const APP_BG = { kkt: 'linear-gradient(180deg,#fdf3cf,#f7e3a0)', yt: 'linear-gradient(180deg,#fdfbf8,#f3eee8)', feed: 'linear-gradient(160deg,#d3d7f5,#aab2e4)', bubble: 'linear-gradient(160deg,#fad5df,#eeaec2)', music: 'linear-gradient(160deg,#ddd5f5,#b4a8e0)', plans: 'linear-gradient(160deg,#d6ece5,#a6cfc4)', wallet: 'linear-gradient(160deg,#f3e2d4,#d9bba5)' };
+const APP_BG = { kkt: 'linear-gradient(180deg,#fdf3cf,#f7e3a0)', yt: 'linear-gradient(180deg,#fdfbf8,#f3eee8)', feed: 'linear-gradient(160deg,#d3d7f5,#aab2e4)', bubble: 'linear-gradient(160deg,#fad5df,#eeaec2)', music: 'linear-gradient(160deg,#ddd5f5,#b4a8e0)', plans: 'linear-gradient(160deg,#d6ece5,#a6cfc4)', wallet: 'linear-gradient(160deg,#f3e2d4,#d9bba5)', news: 'linear-gradient(160deg,#fde3d3,#f2b79a)' };
 /* 图标符号：白色半透明的磨砂质感，线条简单；底色是低饱和的粉彩 */
 const APP_G = p => `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 1px 1.5px rgba(80,70,120,.18))">${p}</svg>`;
 const WF = o => `fill="rgba(255,255,255,${o})"`;
 const APP_IC = {
+  news: APP_G(`<rect x="4" y="5" width="16" height="14.5" rx="2.5" ${WF(.7)}/><path d="M7.5 9h9M7.5 12.3h9M7.5 15.6h5.5" stroke-width="1.5"/>`),
   kkt: '<svg width="42" height="42" viewBox="0 0 24 24"><path d="M12 4.2c-5 0-8.8 3.1-8.8 6.9 0 2.4 1.5 4.5 3.9 5.7l-.9 3.6 3.9-2.6c.6.1 1.2.1 1.9.1 5 0 8.8-3.1 8.8-6.8S17 4.2 12 4.2z" fill="#4a3a36"/><text x="12" y="12.9" text-anchor="middle" font-size="4.6" font-weight="800" fill="#fdf3cf" font-family="-apple-system,Arial,sans-serif" letter-spacing=".2">TALK</text></svg>',
   feed: APP_G(`<path d="M11 4.5c.7 4.6 2.9 6.8 7.5 7.5-4.6.7-6.8 2.9-7.5 7.5-.7-4.6-2.9-6.8-7.5-7.5 4.6-.7 6.8-2.9 7.5-7.5z" ${WF(.9)} stroke="none"/><path d="M18.5 3.5c.25 1.4.85 2 2.2 2.2-1.35.25-1.95.85-2.2 2.2-.25-1.35-.85-1.95-2.2-2.2 1.35-.2 1.95-.8 2.2-2.2z" ${WF(.95)} stroke="none"/>`),
   bubble: APP_G(`<path d="M10 4.5a6 6 0 1 1-3.9 10.6L4 16.2l.8-2.5A6 6 0 0 1 10 4.5z" ${WF(.7)}/><path d="M8 7.6a3.2 3.2 0 0 1 2.2-.9" stroke-width="1.2" opacity=".9"/><circle cx="17" cy="16" r="3.3" ${WF(.6)}/><path d="M15.6 14.8a1.6 1.6 0 0 1 1.1-.5" stroke-width="1" opacity=".9"/>`),
@@ -11554,7 +11591,7 @@ const APP_IC = {
   plans: APP_G(`<rect x="4" y="10" width="16" height="10" rx="2.2" ${WF(.7)}/><path d="M4.3 9.2l14.6-3.4.5 2.1L4.8 11.3z" ${WF(.85)} stroke="none"/><path d="M10.6 13l3.9 2-3.9 2z" ${WF(.95)} stroke="none"/>`),
   wallet: APP_G(`<path d="M6.5 8.2l9.6-2.6c.8-.2 1.5.3 1.6 1.1l.2 1.3" ${WF(.45)}/><rect x="3.5" y="8" width="17" height="12" rx="3" ${WF(.85)} stroke="none"/><circle cx="16.6" cy="14" r="1.1" fill="#d9bba5" stroke="none"/><path d="M19.5 2.8c.2 1 .6 1.4 1.6 1.6-1 .2-1.4.6-1.6 1.6-.2-1-.6-1.4-1.6-1.6 1-.2 1.4-.6 1.6-1.6z" ${WF(.95)} stroke="none"/>`),
 };
-const APPS = [['kkt', 'KKT'], ['feed', '社区'], ['bubble', '泡泡'], ['yt', 'YouTube'], ['music', '音乐库'], ['plans', '企划中心'], ['wallet', '钱包']];
+const APPS = [['kkt', 'KKT'], ['feed', '社区'], ['bubble', '泡泡'], ['yt', 'YouTube'], ['news', '新闻'], ['music', '音乐库'], ['plans', '企划中心'], ['wallet', '钱包']];
 // 企划中心角标：要你动手的企划（需要修改 / 可以发布 / 自己拍的拍好了没）
 function plansTodo() { try { return yt().plans.filter(p => p.st === 'fix' || p.st === 'ready' || p.st === 'ask' || (p.st === 'shoot' && ytLight(p))).length; } catch (e) { return 0; } }
 function homeWidgetHTML() {
@@ -11566,7 +11603,7 @@ function homeWidgetHTML() {
     ${V.length ? `<div class="hm-wl">${V.map(x => `<div class="hm-wi${x.done ? ' done' : x.now ? ' now' : ''}"><em>${hm(x.a)}</em><i></i><span>${esc(x.r.title)}</span>${x.now ? '<b>通告</b>' : ''}</div>`).join('')}</div>${L.length > V.length ? `<div class="hm-we" style="margin-top:8px;font-size:12px">共 ${L.length} 项</div>` : ''}` : '<div class="hm-we">今天没有行程</div>'}</button>`;
 }
 function viewHome() {
-  return `<div class="hm">${homeWidgetHTML()}<div class="hm-grid">${APPS.map(([k, t, bg]) => `<button class="hm-app" data-act="tab" data-tab="${k}"><div class="hm-ic" style="background:${bg || APP_BG[k]}">${APP_IC[k]}${['kkt', 'feed', 'bubble', 'plans'].includes(k) ? `<span class="badge" id="hb-${k}"></span>` : ''}</div>${t}</button>`).join('')}</div></div>`;
+  return `<div class="hm">${homeWidgetHTML()}<div class="hm-grid">${APPS.map(([k, t, bg]) => `<button class="hm-app" data-act="tab" data-tab="${k}"><div class="hm-ic" style="background:${bg || APP_BG[k]}">${APP_IC[k]}${['kkt', 'feed', 'bubble', 'plans', 'news'].includes(k) ? `<span class="badge" id="hb-${k}"></span>` : ''}</div>${t}</button>`).join('')}</div></div>`;
 }
 // 顶栏：首页 / 日程 / 我的 不显示（有热搜时只显示热搜条）；应用里是「‹ 应用名」
 function tbSet() {
@@ -11575,11 +11612,17 @@ function tbSet() {
   const T = UI.tab, plain = T === 'home' || T === 'sched' || T === 'me';
   top.classList.toggle('tb-hide', plain);
   if (plain) { L.innerHTML = ''; R.innerHTML = ''; return; }
-  const title = { feed: '社区', live: '社区', notif: '通知', kkt: 'KKT', bubble: '泡泡', music: '音乐库', plans: '企划中心', wallet: '钱包' }[T] || '';
+  const title = { feed: '社区', live: '社区', notif: '通知', kkt: 'KKT', bubble: '泡泡', music: '音乐库', plans: '企划中心', wallet: '钱包', news: '新闻' }[T] || '';
   L.innerHTML = T === 'yt' ? back() + YT_IC + '<b class="tb-t">Cyan Official</b>' : back(T === 'notif' || T === 'live' ? 'feed' : 'home') + `<b class="tb-t">${title}</b>`;
   R.innerHTML = T === 'feed' || T === 'live' ? `<button class="tb-ic" data-act="tab" data-tab="notif" title="通知"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span class="badge" id="bell-badge"></span></button>`
     : T === 'wallet' && !UI.wPage ? `<button class="tb-ic" data-act="wmenu" title="更多"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h9"/></svg></button>`
     : T === 'plans' && !UI.mPage ? '<button class="tb-btn" data-act="mgo" data-p="ytnew">＋ 新企划</button>' : '';
+}
+/* ===== 新闻：热搜 ===== */
+function newsHTML() {
+  const H = hotState(), c = H.cur, n = H.hist.length + (c ? 1 : 0);
+  if (!n) return '<div class="card muted" style="text-align:center;padding:22px 10px">还没有上过热搜</div>';
+  return `<div class="pl-sec" style="margin:2px 2px 10px">${c ? '正在发酵' : '最近没有新的热搜'}</div>${hotPanelHTML()}`;
 }
 /* ===== KKT：친구 / 채팅 ===== */
 function kktHTML() {
@@ -11686,10 +11729,7 @@ function viewMe() {
   const co = (p.company || 'STARSHIP').trim(), coFull = /ENTERTAINMENT|엔터/i.test(co) ? co : co.toUpperCase() + ' ENTERTAINMENT', tab = UI.meTab || 'stats';
   return `
   ${tab === 'stats' ? meRootHTML() : meSubHead(tab)}
-  ${{ stats: () => '', fans: () => `
-  ${fanPanelHTML()}
-  <div class="me-h"><span>热搜</span></div>
-  ${hotPanelHTML()}`, skills: () => `<div class="card">${skillsHTML()}</div>`,
+  ${{ stats: () => '', fans: () => fanPanelHTML(), skills: () => `<div class="card">${skillsHTML()}</div>`,
   wallet: () => walletHTML(),
   music: () => musicHTML(),
   persona: () => `
@@ -11951,7 +11991,7 @@ document.addEventListener('click', async e => {
     case 'callcancel': if (UI.call && UI.call.mode === 'out') { callRec(dms()[UI.call.key], 'me', 'cancel'); callEnd(); } break;
     case 'democlose': { const L = $('#demo-ly'); if (L) { L.querySelector('audio')?.pause(); L.remove(); } break; }
     case 'kkdemo': demoOpen(t.dataset.n, t.dataset.s, UI.dmOpen ? socDisp(dms()[UI.dmOpen].p) : ''); break;
-    case 'qgo': { const to = t.dataset.to; UI.wPage = ''; UI.postId = null; if (to === 'hot') { UI.tab = 'me'; UI.meTab = 'fans'; UI.mPage = ''; } else if (to === 'yt') { UI.tab = 'yt'; UI.mPage = ''; } else { UI.tab = 'music'; UI.mPage = to; if (to.startsWith('alb:')) UI.mFrom = ''; } render(); window.scrollTo(0, 0); break; }
+    case 'qgo': { const to = t.dataset.to; UI.wPage = ''; UI.postId = null; if (to === 'hot') { UI.tab = 'news'; UI.mPage = ''; } else if (to === 'yt') { UI.tab = 'yt'; UI.mPage = ''; } else { UI.tab = 'music'; UI.mPage = to; if (to.startsWith('alb:')) UI.mFrom = ''; } render(); window.scrollTo(0, 0); break; }
     case 'meetopen': { const o = prepOn(); if (!o) break; UI.mgrOpen = false; UI.meet = 1; openModal(meetHTML()); meetStart(o); meetScroll(); break; }
     case 'meetclose': UI.meet = 0; closeModal(); render(); break;
     case 'meetpick': { const o = prepOn(); if (!o) break; const M = meetState(o), x = M.props[+t.dataset.i]; if (!x) break; M.like = +t.dataset.i; meetSay(`我比较喜欢方案 ${+t.dataset.i + 1}「${x.name}」这个方向。`); break; }
