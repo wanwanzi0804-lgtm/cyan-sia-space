@@ -39,7 +39,13 @@ const path = require('path');
     ok('聊天记录里能看到最近一通电话说了什么', /他都记得[\s\S]*她：最近好累/.test(srChatLog({ msgs: [{ at: Date.now() - 1e3, call: { st: 'done', dur: '1:00', sum: 's', log: '她：最近好累\n他：怎么了' } }] }, Date.now())));
     { const R = SR(), q0 = R.quietUntil, n0 = R.jobs.length; R.quietUntil = Date.now() + 3600e3; srReachEval(Date.now()); ok('说了晚安以后不再主动找她', R.jobs.length === n0); R.quietUntil = q0; }
     { const T = { msgs: [{ me: 1, text: 'a', at: 1 }, { me: 1, call: { st: 'done' }, at: 2 }, { me: 1, text: 'b', at: 3 }] }; ok('电话之前她发的不会在电话之后再回', srHer(T, 10).map(m => m.text).join() === 'b'); }
-    ok('说话和记账分开：说话那一下只输出话', SR_SAY_SCHEMA.required.join() === 'inner,act,ko,zh,end' && typeof srBook === 'function');
+    ok('说话和记账分开：说话那一下只输出话', !SR_SAY_SCHEMA.required.some(k => ['mem', 'conv', 'promise', 'plan', 'mood', 'th'].includes(k)) && typeof srBook === 'function');
+    { const now = Date.now(), L0 = srTh().length; const o = srThAdd({ t: '她明天上午有考试', kind: 'her_event', when: dkey(now + 864e5) + ' 10:00', w: 2 }, now);
+      ok('她说的安排会留成一条挂着的事，到时候才浮上来', o && !srThLive(now).filter(x => now >= x.from).includes(o) && srThLive(o.from + 3600e3).includes(o));
+      srThOps({ done: [o.id] }, now); ok('聊过了就放下，不再当成念头', !srThLive(o.from + 3600e3).includes(o)); srTh().splice(L0); }
+    { const n0 = SR().jobs.length, c0 = srCatchN; srCatchN = 1; srReachJob(Date.now() - 3600e3, Date.now(), { why: {} }); ok('重新打开页面：过去的主动消息最多补一次', SR().jobs.length === n0); srCatchN = c0; }
+    { const T = dmThread(srP()), m0 = T.msgs.slice(), now = Date.now(), sn = window.srNow; window.srNow = () => ({ kind: 'free' }); T.msgs.push({ id: 'x1', me: 1, text: 'ㅋㅋ', at: now - 1000 }); const L = T.msgs.length;
+      srMore({ at: now, base: now - 5000, ko: '아 그리고', zh: '对了' }).then(() => {}); ok('他想补一句之前她已经回了：这句不发', T.msgs.length === L && !(T.pend || []).length); T.msgs = m0; window.srNow = sn; }
     { const T = dmThread(srP()), m0 = T.msgs, now = Date.now(), R = SR(), e0 = R.chat.endAt, sn = window.srNow; window.srNow = () => ({ kind: 'free' }); R.chat.endAt = 0;
       T.msgs = [...m0, { id: 'h1', text: 'ㅋㅋ', at: now - 60e3 }, { id: 'm1', me: 1, text: 'ㅋㅋ', at: now - 20e3 }];
       ok('他刚发完你马上回：算正在聊', srEngage(now).lv === 'hot'); ok('正在聊时几十秒内就会看到', srCheckGap(now) < 2);
