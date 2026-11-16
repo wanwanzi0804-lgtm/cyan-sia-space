@@ -732,7 +732,7 @@ body.homemode main{padding:0 22px}
 .hm-we{font-size:13.5px;color:var(--muted);margin-top:12px}
 .hm-grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:22px;margin-top:30px}
 .hm-app{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
-.hm-ic{position:relative;width:62px;height:62px;border-radius:15px;display:grid;place-items:center;box-shadow:0 1px 2px rgba(40,40,80,.08),inset 0 0 0 .5px rgba(0,0,0,.04)}
+.hm-ic{position:relative;width:62px;height:62px;border-radius:16px;display:grid;place-items:center;box-shadow:0 4px 12px rgba(90,80,140,.12),inset 0 1px 0 rgba(255,255,255,.65),inset 0 0 0 .5px rgba(255,255,255,.5)}
 .hm-ic .badge{top:-6px;right:-6px;min-width:22px;height:22px;line-height:22px;border-radius:11px;font-size:12px;padding:0 6px;background:#ff3b30}
 .hm-ic .badge.dot{min-width:12px;width:12px;height:12px;padding:0;top:-3px;right:-3px}
 /* 我的 */
@@ -901,7 +901,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116061658';
+const BUILD = '20261116062032';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -11541,18 +11541,20 @@ function hotPanelHTML() {
 }
 
 /* ===== 新界面：手机首页 ===== */
-const APP_BG = { feed: 'linear-gradient(180deg,#9ad7d3,#6fbfbb)', bubble: 'linear-gradient(180deg,#a9c8ec,#83aade)', music: 'linear-gradient(180deg,#f4b9c9,#e695ac)', plans: 'linear-gradient(180deg,#c3b5ee,#a392e0)', wallet: 'linear-gradient(180deg,#8f9db8,#6c7a97)' };
-const APP_G = p => `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const APP_BG = { kkt: 'linear-gradient(180deg,#fdf3cf,#f7e3a0)', yt: 'linear-gradient(180deg,#fdfbf8,#f3eee8)', feed: 'linear-gradient(160deg,#d3d7f5,#aab2e4)', bubble: 'linear-gradient(160deg,#fad5df,#eeaec2)', music: 'linear-gradient(160deg,#ddd5f5,#b4a8e0)', plans: 'linear-gradient(160deg,#d6ece5,#a6cfc4)', wallet: 'linear-gradient(160deg,#f3e2d4,#d9bba5)' };
+/* 图标符号：白色半透明的磨砂质感，线条简单；底色是低饱和的粉彩 */
+const APP_G = p => `<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="filter:drop-shadow(0 1px 1.5px rgba(80,70,120,.18))">${p}</svg>`;
+const WF = o => `fill="rgba(255,255,255,${o})"`;
 const APP_IC = {
-  kkt: '<svg width="34" height="34" viewBox="0 0 24 24" fill="#3b1e1e"><path d="M12 4.5c-4.9 0-8.5 3-8.5 6.6 0 2.3 1.5 4.3 3.8 5.4L6.6 20l3.8-2.5c.5.1 1 .1 1.6.1 4.9 0 8.5-3 8.5-6.6S16.9 4.5 12 4.5z"/></svg>',
-  feed: APP_G('<path d="M5 18.5c0-4 3.1-7 7-7s7 3 7 7"/><circle cx="12" cy="7" r="2.6"/>'),
-  bubble: APP_G('<circle cx="10" cy="11" r="5"/><circle cx="17" cy="16.5" r="2.6"/><circle cx="17.5" cy="7" r="1.4"/>'),
-  yt: '<svg width="36" height="26" viewBox="0 0 28 20"><rect width="28" height="20" rx="6" fill="#ff0000"/><path d="M11 6l7 4-7 4z" fill="#fff"/></svg>',
-  music: APP_G('<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/>'),
-  plans: APP_G('<rect x="5" y="5.5" width="14" height="14" rx="3"/><path d="M5 10h14M9 3.5v3M15 3.5v3M10 14.5l1.5 1.5 3-3"/>'),
-  wallet: APP_G('<rect x="4" y="6.5" width="16" height="12" rx="3"/><path d="M4 10.5h16M15 15h2"/>'),
+  kkt: '<svg width="42" height="42" viewBox="0 0 24 24"><path d="M12 4.2c-5 0-8.8 3.1-8.8 6.9 0 2.4 1.5 4.5 3.9 5.7l-.9 3.6 3.9-2.6c.6.1 1.2.1 1.9.1 5 0 8.8-3.1 8.8-6.8S17 4.2 12 4.2z" fill="#4a3a36"/><text x="12" y="12.9" text-anchor="middle" font-size="4.6" font-weight="800" fill="#fdf3cf" font-family="-apple-system,Arial,sans-serif" letter-spacing=".2">TALK</text></svg>',
+  feed: APP_G(`<path d="M11 4.5c.7 4.6 2.9 6.8 7.5 7.5-4.6.7-6.8 2.9-7.5 7.5-.7-4.6-2.9-6.8-7.5-7.5 4.6-.7 6.8-2.9 7.5-7.5z" ${WF(.9)} stroke="none"/><path d="M18.5 3.5c.25 1.4.85 2 2.2 2.2-1.35.25-1.95.85-2.2 2.2-.25-1.35-.85-1.95-2.2-2.2 1.35-.2 1.95-.8 2.2-2.2z" ${WF(.95)} stroke="none"/>`),
+  bubble: APP_G(`<path d="M10 4.5a6 6 0 1 1-3.9 10.6L4 16.2l.8-2.5A6 6 0 0 1 10 4.5z" ${WF(.7)}/><path d="M8 7.6a3.2 3.2 0 0 1 2.2-.9" stroke-width="1.2" opacity=".9"/><circle cx="17" cy="16" r="3.3" ${WF(.6)}/><path d="M15.6 14.8a1.6 1.6 0 0 1 1.1-.5" stroke-width="1" opacity=".9"/>`),
+  yt: '<svg width="38" height="27" viewBox="0 0 28 20"><defs><linearGradient id="ytg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2655a"/><stop offset="1" stop-color="#dc3b33"/></linearGradient></defs><rect width="28" height="20" rx="6" fill="url(#ytg)"/><path d="M11.2 6.2l6.6 3.8-6.6 3.8z" fill="#fff"/></svg>',
+  music: APP_G(`<circle cx="10.5" cy="13" r="7" ${WF(.65)}/><circle cx="10.5" cy="13" r="1.7" ${WF(.95)} stroke="none"/><path d="M17.5 3.5v5.2" stroke-width="1.5"/><path d="M17.5 3.5l2.8 1" stroke-width="1.5"/><circle cx="16.4" cy="8.9" r="1.3" ${WF(.95)} stroke="none"/>`),
+  plans: APP_G(`<rect x="4" y="10" width="16" height="10" rx="2.2" ${WF(.7)}/><path d="M4.3 9.2l14.6-3.4.5 2.1L4.8 11.3z" ${WF(.85)} stroke="none"/><path d="M10.6 13l3.9 2-3.9 2z" ${WF(.95)} stroke="none"/>`),
+  wallet: APP_G(`<path d="M6.5 8.2l9.6-2.6c.8-.2 1.5.3 1.6 1.1l.2 1.3" ${WF(.45)}/><rect x="3.5" y="8" width="17" height="12" rx="3" ${WF(.85)} stroke="none"/><circle cx="16.6" cy="14" r="1.1" fill="#d9bba5" stroke="none"/><path d="M19.5 2.8c.2 1 .6 1.4 1.6 1.6-1 .2-1.4.6-1.6 1.6-.2-1-.6-1.4-1.6-1.6 1-.2 1.4-.6 1.6-1.6z" ${WF(.95)} stroke="none"/>`),
 };
-const APPS = [['kkt', 'KKT', '#fee500'], ['feed', '社区'], ['bubble', '泡泡'], ['yt', 'YouTube', '#ffffff'], ['music', '音乐库'], ['plans', '企划中心'], ['wallet', '钱包']];
+const APPS = [['kkt', 'KKT'], ['feed', '社区'], ['bubble', '泡泡'], ['yt', 'YouTube'], ['music', '音乐库'], ['plans', '企划中心'], ['wallet', '钱包']];
 // 企划中心角标：要你动手的企划（需要修改 / 可以发布 / 自己拍的拍好了没）
 function plansTodo() { try { return yt().plans.filter(p => p.st === 'fix' || p.st === 'ready' || p.st === 'ask' || (p.st === 'shoot' && ytLight(p))).length; } catch (e) { return 0; } }
 function homeWidgetHTML() {
