@@ -319,6 +319,7 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 #kk-menu{position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.25);display:flex;align-items:flex-end;justify-content:center}
 #kk-menu .km{width:min(100%,520px);background:var(--card);border-radius:16px 16px 0 0;padding:8px 0 calc(env(safe-area-inset-bottom) + 8px)}
 #kk-menu .km button{display:block;width:100%;border:0;background:none;padding:14px 20px;font-size:16px;text-align:left;color:var(--text)}#kk-menu .km button:disabled{color:var(--muted)}#kk-menu .km small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.kk-room .bb-stkg{max-height:min(290px,40vh)}
 .kk-stkimg{display:block;width:120px;height:120px;object-fit:contain}
 .kk-emo{border:0;background:none;font-size:22px;line-height:1;padding:6px 4px;color:var(--muted);flex:none}.kk-emo.on{color:var(--accent)}
 .kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
@@ -947,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116064004';
+const BUILD = '20261116064301';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -12044,7 +12045,7 @@ document.addEventListener('click', async e => {
     case 'kkmx': $('#kk-menu')?.remove(); break;
     case 'kkvclose': $('#kk-view')?.remove(); break;
     case 'kkvsave': { const b = await idbGet(t.dataset.mid).catch(() => null); if (!b) break; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'kakaotalk_' + Date.now() + '.' + ((b.type || '').split('/')[1] || 'jpg'); a.click(); break; }
-    case 'kkstk': UI.kkStk = !UI.kkStk; openModal(dmHTML(t.dataset.k)); break;
+    case 'kkstk': UI.kkStk = !UI.kkStk; if (UI.kkStk) { const a0 = document.activeElement; if (a0 && a0.blur) a0.blur(); UI.inHold = 0; } openModal(dmHTML(t.dataset.k)); if (UI.kkStk) { const L = $('#dm-log'); if (L) L.scrollTop = L.scrollHeight; } break; /* 表情面板和键盘二选一：打开表情时收起键盘 */
     case 'kkstkset': UI.bbStkSet = t.dataset.s; openModal(dmHTML(t.dataset.k)); break;
     case 'kkstkpick': { const k = t.dataset.k, x = STICKERS[t.dataset.id]; if (!x) break; const T = dms()[k] || dmThread(chFind(...k.split('|')) || { g: k.split('|')[0], n: k.split('|')[1], key: k }); UI.kkStk = false;
       dmPush(T.p, { me: true, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }); dmAnswer(k, `[表情包] ${x.d}`, { t: `发了一个表情包（${x.d}）`, fam: 0, amb: 0, tone: '0', risk: 0, reply: '' }, true); openModal(dmHTML(k)); break; }
@@ -12322,6 +12323,10 @@ async function importSave(f) { if (!f) return; toast('正在读取存档…', f.
     catch (err) { toast('导入失败', err.message); }
 }
 (() => { const inp = document.createElement('input'); inp.type = 'file'; inp.id = 'imp-file-g'; inp.accept = '.json,application/json,text/plain'; inp.style.display = 'none'; inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; importSave(f); }); document.body.appendChild(inp); })();
+/* 点输入框打字：表情面板收起（像 KakaoTalk 一样，键盘和表情面板不同时出现） */
+document.addEventListener('focusin', e => { const id = e.target && e.target.id;
+  if (id === 'dm-in' && UI.kkStk) { UI.kkStk = false; const p = e.target.closest('.kk-room'), pn = p && p.querySelector('.bb-stkp'); if (pn) pn.remove(); const b = p && p.querySelector('.kk-emo'); if (b) b.classList.remove('on'); }
+  if (id === 'bb-in' && UI.bbStk) { UI.bbStk = false; const pn = $('#bb-stk'); if (pn) pn.innerHTML = ''; const b = $('[data-act="bbstk"]'); if (b) b.classList.remove('on'); } });
 document.addEventListener('change', async e => {
   if (e.target.id === 'pf-badge') { const on = e.target.checked; if (on && !('setAppBadge' in navigator)) { e.target.checked = false; toast('这个浏览器不支持桌面角标', '要从主屏幕打开（iOS 16.4 以上）才有'); return; }
     if (on && window.Notification && Notification.permission !== 'granted') { const r = await Notification.requestPermission().catch(() => 'denied'); if (r !== 'granted') { e.target.checked = false; toast('需要允许通知才能显示角标', '可以在 iPhone 设置 → 通知 → SIA SPACE 里打开'); return; } }
