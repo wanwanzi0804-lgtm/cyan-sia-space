@@ -814,6 +814,7 @@ body.homemode main{padding:0 22px}
 .ytc-tabs button.on,.pl-f button.on{background:var(--text);color:var(--bg)}
 .ytc-h{font-size:15px;font-weight:700;margin:16px 2px 8px}
 .ytc-pl{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:8px 0;text-align:left;color:var(--text)}.ytc-pl .yt-th{width:120px;flex:none}.ytc-pl b{display:block;font-size:14px}.ytc-pl span{font-size:12px;color:var(--muted)}
+.ytc-feat{display:block;width:100%;border:0;background:var(--card);border-radius:16px;padding:0;overflow:hidden;text-align:left;box-shadow:var(--shadow);color:var(--text);margin-bottom:6px}.ytc-feat .yt-th{width:100%;border-radius:0}.ytc-feat>div{padding:10px 14px 12px}.ytc-feat em{font-style:normal;font-size:11.5px;color:#cc0000;font-weight:600}.ytc-feat b{display:block;font-size:15.5px;margin-top:3px}.ytc-feat span{font-size:12.5px;color:var(--muted)}
 /* 企划中心 */
 .pl-f{display:flex;gap:8px;padding:2px 0 14px;overflow-x:auto}
 .pl-sec{font-size:12.5px;color:var(--muted);margin:6px 2px 6px}
@@ -948,7 +949,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116145108';
+const BUILD = '20261116145305';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -11877,7 +11878,7 @@ function ytAppHTML() {
   if (tab === 'v') body = vids.length ? `<div class="yt-vl">${vids.map(vrow).join('')}</div>` : none('还没有视频');
   else if (tab === 's') body = shorts.length ? sgrid(shorts) : none('还没有 Shorts');
   else if (tab === 'l') { const G = {}; for (const x of all) (G[x.kind] || (G[x.kind] = [])).push(x); const E = Object.entries(G); body = E.length ? E.map(([k, L]) => `<button class="ytc-pl" data-act="mgo" data-p="ytv:${L[0].id}">${ytThumb(L[0])}<div><b>${esc(k)}</b><span>${L.length} 个视频</span></div></button>`).join('') : none('还没有播放列表'); }
-  else body = all.length ? (vids.length ? `<div class="ytc-h">视频</div><div class="yt-vl">${vids.slice(0, 4).map(vrow).join('')}</div>` : '') + (shorts.length ? `<div class="ytc-h">Shorts</div>${sgrid(shorts.slice(0, 4))}` : '') : none('频道还没有发布内容');
+  else { const feat = all.find(x => String(x.id).startsWith('mv:')), rest = vids.filter(x => x !== feat); body = all.length ? (feat ? `<button class="ytc-feat" data-act="mgo" data-p="ytv:${feat.id}">${ytThumb(feat, 'big')}<div><em>置顶 · 最新 MV</em><b>${esc(feat.title)}</b><span>观看 ${fmtWan(feat.views || 0)} 次 · ${ago(feat.at)}</span></div></button>` : '') + (rest.length ? `<div class="ytc-h">视频</div><div class="yt-vl">${rest.slice(0, 4).map(vrow).join('')}</div>` : '') + (shorts.length ? `<div class="ytc-h">Shorts</div>${sgrid(shorts.slice(0, 4))}` : '') : none('频道还没有发布内容'); }
   return `<div class="ytc-bn">${S.profile.cover ? `<img data-mid="${S.profile.cover}" alt="">` : ''}</div>
     <div class="ytc-me">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span>@${esc(S.profile.name.replace(/\s+/g, '').toUpperCase())}official · 订阅者 ${fmtWan(ytSubs())} · 视频 ${all.length}</span></div></div>
     <div class="ytc-tabs">${[['h', '首页'], ['v', '视频'], ['s', 'Shorts'], ['l', '播放列表']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-act="ytctab" data-k="${k}">${t}</button>`).join('')}</div>${body}`;
