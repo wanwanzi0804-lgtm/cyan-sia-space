@@ -949,7 +949,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116145305';
+const BUILD = '20261116145946';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -7658,7 +7658,7 @@ function endLive() {
 /* =========================================================
    行程
    ========================================================= */
-const CATS = { '打歌': '#ff5c8a', '上课': '#5b8def', '练习': '#6366f1', '综艺': '#f5a623', '电台': '#14b8a6', '物料': '#9b6bff', '签售': '#2bb673', '公演': '#e8590c', '校庆': '#f06595', '活动': '#0ea5e9', '演唱会': '#ff3b30', '其他': '#8e8e93' , '个人': '#94a3b8' };
+const CATS = { '打歌': '#de8aa0', '上课': '#829ad0', '练习': '#928ccf', '综艺': '#dda873', '电台': '#72b2a6', '物料': '#ae95d6', '签售': '#82b593', '公演': '#d9926f', '校庆': '#e09db7', '活动': '#7eaed2', '演唱会': '#d77383', '其他': '#a6a6ae', '个人': '#aab4c2' }; /* 低饱和的柔和色，和首页图标一个色系 */
 // 预设只带「类别 + 标题 + 地点」，时间在后台添加时再填
 const PRESETS = {
   '打歌': [
@@ -7789,10 +7789,10 @@ function viewSched() {
     const sub = [r.loc, r.cat, r.note, st].filter(Boolean).map(esc).join(' · ');
     const right = c && !c.done && !open && ph === 'soon' ? '<span class="sd-wait">通告未开</span>' : '';
     return `<div class="sd-it ${ph}"><div class="sd-tm">${off ? '<em>凌晨</em>' : ''}${r.start}<span>${toMin(r.end) <= toMin(r.start) && !off ? '次日 ' : ''}${r.end}</span></div>
-      <div class="sd-card"><div class="sd-row"><i class="sd-bar" style="background:${cc}"></i><div class="sd-tx"><b>${esc(r.title)}</b><span>${sub}</span>
+      <div class="sd-card"${ph === 'now' ? ` style="border-color:${cc}"` : ''}><div class="sd-row"><i class="sd-bar" style="background:${cc}"></i><div class="sd-tx"><b>${esc(r.title)}</b><span>${sub}</span>
         ${res ? `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>` : c && c.done ? `<button class="tg-chip ok" data-act="tgopen" data-k="${c.key}">通告已完成</button>` : ''}</div>${right}
         <label class="sd-chk"><input type="checkbox" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''}><i></i></label></div>
-        ${open ? `<button class="sd-go" data-act="tgopen" data-k="${c.key}">做通告</button>` : ''}</div></div>`;
+        ${open && !done ? `<button class="sd-go" data-act="tgopen" data-k="${c.key}">做通告</button>` : open ? `<button class="tg-chip" data-act="tgopen" data-k="${c.key}" style="margin-top:8px">通告还没做</button>` : ''}</div></div>`;
   };
   return `<div class="sd-h"><div><span>${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}${k !== today ? ` · <button class="link" data-act="sdate" data-k="${today}">回到今天</button>` : ''}</span><b>${big}</b></div>
       <button class="sd-btn" data-act="tglist" title="通告">${'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>'}<span class="badge" id="tg-badge">${tgN || ''}</span></button>
@@ -11809,7 +11809,7 @@ function homeWidgetHTML() {
   const first = L.findIndex(x => !x.done), st = first < 0 ? Math.max(0, L.length - 3) : Math.max(0, first - 1), V = L.slice(st, st + 4);
   const hm = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   return `<button class="hm-wg" data-act="tab" data-tab="sched"><div class="hm-wh"><i><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16"/></svg></i><b>今天</b><span>${d.getMonth() + 1}/${d.getDate()} 周${WD[d.getDay()]}</span></div>
-    ${V.length ? `<div class="hm-wl">${V.map(x => `<div class="hm-wi${x.done ? ' done' : x.now ? ' now' : ''}"><em>${hm(x.a)}</em><i></i><span>${esc(x.r.title)}</span>${x.now ? '<b>通告</b>' : ''}</div>`).join('')}</div>${L.length > V.length ? `<div class="hm-we" style="margin-top:8px;font-size:12px">共 ${L.length} 项</div>` : ''}` : '<div class="hm-we">今天没有行程</div>'}</button>`;
+    ${V.length ? `<div class="hm-wl">${V.map(x => `<div class="hm-wi${x.done ? ' done' : x.now ? ' now' : ''}"><em>${hm(x.a)}</em><i style="${x.done ? '' : `background:${CATS[x.r.cat] || '#a6a6ae'}`}"></i><span>${esc(x.r.title)}</span>${x.now ? '<b>通告</b>' : ''}</div>`).join('')}</div>${L.length > V.length ? `<div class="hm-we" style="margin-top:8px;font-size:12px">共 ${L.length} 项</div>` : ''}` : '<div class="hm-we">今天没有行程</div>'}</button>`;
 }
 function viewHome() {
   return `<div class="hm">${homeWidgetHTML()}<div class="hm-grid">${APPS.map(([k, t, bg]) => `<button class="hm-app" data-act="tab" data-tab="${k}"><div class="hm-ic" style="background:${bg || APP_BG[k]}">${APP_IC[k]}${['kkt', 'feed', 'bubble', 'plans', 'news'].includes(k) ? `<span class="badge" id="hb-${k}"></span>` : ''}</div>${t}</button>`).join('')}</div></div>`;
