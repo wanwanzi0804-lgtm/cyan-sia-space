@@ -27,7 +27,7 @@ const path = require('path');
       ok('一天的安排会补到 24 点', Math.max(...srSegs(dd).map(g => g.e)) >= 1430);
       ok('补到 24 点不会越补越多', R.day[dd].segs.filter(g => g.tail && !g.del).length <= 2); delete R.day[dd]; }
     ok('安排日常时知道 14 号的演唱会', /CONCERT|演唱会/.test(srUpcoming('2026-11-10')));
-    ok('演唱会当天只固定演出本身，前面的彩排化妆让 AI 排', (srOfficial('2026-11-14')[0] || {}).s >= 17 * 60);
+    { const L = srOfficial('2026-11-21'), sc = L.find(g => /사운드체크/.test(g.what)), sh = L.find(g => g.id === 'off2026-11-21'); ok('演唱会当天：사운드체크结束离开演最多一个半小时，时间不是整点', sc && sh && sh.s - sc.e <= 90 && L.some(g => g.s % 30)); }
     { const st = { ai: {}, social: { dm: { 'A|b': { p: { g: 'A', n: 'b' }, msgs: [] } } } }; keyRepair(st); ok('导入后聊天的 key 能补回来', st.social.dm['A|b'].p.key === 'A|b'); }
     { const st = { ai: {}, social: { dm: { 'C|s': { p: { g: 'C', n: 's', key: 'C|s' }, msgs: [{ id: 1, at: 1 }] }, 'undefined': { p: { g: 'C', n: 's' }, msgs: [{ id: 2, at: 2, call: {} }] } } } }; keyRepair(st); ok('记到错的聊天里的电话记录会并回来', !st.social.dm.undefined && st.social.dm['C|s'].msgs.length === 2); }
     ok('聊天记录里能看到电话聊了什么', /语音通话 1:00：聊了演唱会/.test(srChatLog({ msgs: [{ at: Date.now() - 1e3, call: { st: 'done', dur: '1:00', sum: '聊了演唱会' } }] }, Date.now())));

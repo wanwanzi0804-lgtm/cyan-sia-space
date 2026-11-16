@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116070624';
+const BUILD = '20261116070843';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10179,9 +10179,16 @@ function srDayFb(dk) {
 }
 function srOfficial(dk) {
   const x = REAL_GIGS.find(y => y[0] === 'CRAVITY' && y[1] === dk && gigK(y) !== 'bday'); if (!x) return []; const o = x[4] || {}, k = gigK(x), base = { where: o.abroad || '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', c: 0 };
+  const rr = srng('gig' + dk), jt = (a, b) => Math.round(a + rr() * (b - a)); /* 大概的时间：每段的起止都不是整点整半点 */
+  const seg = (id, s0, e0, what, share, kind) => ({ ...base, id: id + dk, s: Math.max(0, Math.min(1439, s0)), e: Math.max(1, Math.min(1440, e0)), what, share, ...(kind ? { kind } : {}) });
   if (k === 'sign' || k === 'vsign') { const dur = o.dur || 120;
     if (x[2] == null) return [{ ...base, id: 'off' + dk, s: 11 * 60, e: 18 * 60, what: `${x[3]}（具体时间没公布：大概白天，前面有妆发、准备）`, share: .6, tbd: 1 }];
-    const st = x[2]; return [{ ...base, id: 'offp' + dk, s: Math.max(0, st - 180), e: st, what: `${k === 'vsign' ? '视频签售' : '签售'}前准备：妆发、造型、通勤、后台准备`, share: .2 }, { ...base, id: 'off' + dk, s: st, e: Math.min(1440, st + dur), what: `${x[3]}（${hhmm(st)} 开始）`, share: .6 }, { ...base, id: 'offw' + dk, s: Math.min(1440, st + dur), e: Math.min(1440, st + dur + 30), what: '收尾，下班', share: .1 }]; }
+    const st = x[2], en = st + dur + jt(-8, 12), off = en + jt(12, 30);
+    return [seg('offp', st - jt(165, 195), st, `${k === 'vsign' ? '视频签售' : '签售'}前准备：妆发、造型、通勤、后台准备`, .2), seg('off', st, en, `${x[3]}（${hhmm(st)} 开始）`, .6), seg('offw', en, off, '收尾，下班', .1)]; }
+  if (k === 'concert') { const st = x[2]; /* 演唱会当天：上午到场彩排 → 午饭 → 妆发 → 사운드체크（结束离开演最多一个半小时）→ 补妆热身待机 → 演出 → 后台收尾 → 回宿舍 / 酒店 */
+    const a0 = st - jt(525, 555), r0 = st - jt(475, 490), l0 = st - jt(320, 340), m0 = st - jt(262, 278), sc0 = st - jt(118, 132), sc1 = st - jt(75, 92), en = st + jt(152, 182), bk = en + jt(50, 68), home = bk + jt(45, 70);
+    return [seg('offa', a0, r0, '起床出发，到场馆', .1, 'move'), seg('offr', r0, l0, `场馆彩排：舞台走位、音响检查（${x[3]}）`, .2), seg('offl', l0, m0, '午饭、休息', .2), seg('offm', m0, sc0, '妆发、服装、准备', .1), seg('offs', sc0, sc1, 'VIP 사운드체크（有粉丝在场）', .3), seg('offb', sc1, st, '补妆、换装、热身、候场', .1),
+      seg('off', st, en, `${x[3]}（${hhmm(st)} 开演，正式演出）`, .6), seg('offw', en, bk, '后台收尾、卸妆、换衣服', .3), seg('offh', bk, Math.min(1440, home), o.abroad || /釜山|大邱|光州|外地/.test(x[3]) ? '回酒店' : '回宿舍', .2, 'move')]; }
   return [{ ...base, id: 'off' + dk, s: Math.max(0, x[2] - 30), e: Math.min(1440, x[2] + 210), what: `${x[3]}（${hhmm(x[2])} 开始，正式演出 / 典礼本身）`, share: .6 }]; }
 let srGenBusy = 0, srBitBusy = 0;
 /* =========================================================
