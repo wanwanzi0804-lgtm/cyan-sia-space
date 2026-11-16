@@ -947,7 +947,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116063716';
+const BUILD = '20261116064004';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -11090,7 +11090,7 @@ function srTechHTML() {
   const R = SR(), j = R.jobs.find(x => ['reply', 'reach'].includes(x.type) && x.at <= Date.now()); if (!j) return '';
   const st = srAIState(); if (st.ok && !j.tech) return '';
   const wait = j.next && j.next > Date.now() ? Math.ceil((j.next - Date.now()) / 60e3) : 0, gen = st.ok && !wait && srBusy;
-  return `<div class="kk-tech">⚙ ${esc(!st.ok ? st.zh : gen ? '正在生成世琳的回复（要先想一想，可能需要一分钟左右）…' : wait ? `上次生成失败，${wait} 分钟后重试${j.err ? `（原因：${j.err}）` : ''}` : '准备重新生成世琳的回复…')}${!st.ok && st.kind !== 'net' ? '，恢复后世琳会接着回' : ''}${!st.ok || wait ? ` <button class="link" data-act="srretry">现在重试</button>` : ''}</div>`;
+  return `<div class="kk-tech">⚙ ${esc(!st.ok ? st.zh : gen ? '正在生成世琳的回复（要先想一想，可能需要一分钟左右）…' : wait ? `上次生成失败，${wait} 分钟后重试${j.err ? `（原因：${/credit balance is too low/i.test(j.err) ? 'API 账户余额不够了，要去 console.anthropic.com 的 Plans & Billing 充值' : /invalid x-api-key|authentication/i.test(j.err) ? 'API Key 不对或者已经失效，去设置里换一个' : /overloaded|529/i.test(j.err) ? 'Anthropic 那边现在太忙，等一下会自动重试' : j.err}）` : ''}` : '准备重新生成世琳的回复…')}${!st.ok && st.kind !== 'net' ? '，恢复后世琳会接着回' : ''}${!st.ok || wait ? ` <button class="link" data-act="srretry">现在重试</button>` : ''}</div>`;
 }
 
 /* ---------- 你记下的世琳日常：拆成时间段（已发生 / 正在 / 计划），覆盖系统生成的日常 ---------- */
