@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116233655';
+const BUILD = '20261116233849';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6559,17 +6559,18 @@ function bbRelease(n) {
   const B = S.bubble, now = Date.now(); if (!B.aiPoolAt || now - B.aiPoolAt > 20 * 60e3) B.aiPool = []; n = Math.min(n, (B.aiPool || []).length); // 很久以前那批消息的回复（比如昨晚的晚安）不再放出来
   for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + 600 + Math.pow(Math.random(), 1.6) * 9000, user: l.user, line: { ...l, ai: 1 } }); }
 }
+function bbRelease2(n) { const B = S.bubble, now = Date.now(); n = Math.min(n, (B.aiPool || []).length); for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + 1500 + Math.pow(Math.random(), 1.3) * 40000, user: l.user, line: { ...l, ai: 1 } }); } } /* 第二批：接下来几十秒里陆续冒出来 */
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
   const want = ri(4, 8);
   const stale = !B.aiPoolAt || Date.now() - B.aiPoolAt > 20 * 60e3;
-  if (bbAiWorth(m) || stale) { // 她每说一句新的，都马上让粉丝针对这一句回（不再沿用上一句的那批，回复不会慢半拍、对不上）
+  if (m.type !== 'sticker' || stale) { // 她每说一句新的，都马上让粉丝针对这一句回（不再沿用上一句的那批，回复不会慢半拍、对不上）
     B._owed = (B._owed || 0) + want; B.aiPool = [];
     if (B._aiBusy) { B._again = true; return; }
     B._aiScheduled = true; clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 700); return; // 等一下下，连发的几条一起看
   }
   if (B._aiBusy) { B._owed = (B._owed || 0) + want; return; }
-  bbRelease(want); // 这 2 分钟里的那批还有剩就放出来；用完了就全是免费回复
+  B.aiPool = []; /* 发表情包：上一批剩下的回复不再放出来，免得像在回上一句 */
 }
 async function bbAI() {
   const B = S.bubble; B._aiScheduled = false; B._aiBusy = true;
@@ -6592,9 +6593,9 @@ ${lines}
     if (B._again) { B.aiPool = []; } else { B.aiPool = res.r; B.aiPoolAt = Date.now(); }
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
-    if (!B._again) { bbRelease(B._owed || 0); B._owed = 0; }
+    if (!B._again) { bbRelease(Math.max(B._owed || 0, (B.aiPool || []).length)); B._owed = 0; }
     const gen = B._gen = (B._gen || 0) + 1;
-    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (gen === B._gen && B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) B.aiPool = (B.aiPool || []).concat(r2.r); save(); }).catch(() => { });
+    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (gen === B._gen && B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) { B.aiPool = (B.aiPool || []).concat(r2.r); bbRelease2(ri(6, 12)); } save(); }).catch(() => { });
   } catch (e) { aiFail(e); }
   finally { B._aiBusy = false; if (B._again) { B._again = false; B._aiScheduled = true; clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 300); } else B._owed = 0; }
 }
