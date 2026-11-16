@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116065251';
+const BUILD = '20261116065429';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10577,20 +10577,20 @@ function srDrive(at) {
   const val = +M.val || 0; v += val * .08; if (val >= 1) z.push('心情挺好'); else if (val <= -1) z.push('心情不太好');
   if ((M.en ?? 70) < 30) { v -= .25; z.push('很累，懒得多打字'); }
   const hisAt = Math.max(0, ...T.msgs.filter(m => !m.me && !m.sys && m.at <= at).map(m => m.at)); if (hisAt && at - hisAt > 4 * 3600e3) { v += Math.min(.2, (at - hisAt) / 3600e3 / 30); z.push(`${Math.round((at - hisAt) / 3600e3)} 个小时没跟她说话了`); }
-  v = clamp(v, 0, 1); return { v, zh: (z.join('，') || '平常的状态') + (v >= .65 ? '（这会儿挺想说话的）' : v <= .2 ? '（这会儿不太想说话）' : '') };
+  v = clamp(v, 0, 1); return { v, zh: (z.join('，') || '平常的状态') + '（这只是他此刻的状态，不决定他怎么做：开心可能想说一大串，也可能懒得打；累了可能话少，也可能更想黏着她撒娇）' };
 }
 let srCatchN = 0; /* 这次打开页面后，替过去的时间补出来的主动消息：最多一次（关着页面那段时间，不会一打开就收到一堆） */
 function srReachJob(at, runAt, data) { if (Date.now() - at > 20 * 60e3) { if (srCatchN >= 1) return; srCatchN++; } srJob('reach', runAt, data); }
-/* 他回完以后过几分钟自己又想到的一句：不再请求 AI，到时间直接发；这期间她回了就不发 */
+/* 他回完以后心里还挂着想说的：只记下这个念头；过几分钟他再拿起手机时，按那时的情况（她回没回、他在干嘛、聊到哪了）重新决定说不说、说什么 */
 async function srMore(job) {
   const T = dmThread(srP()), now = Date.now(), st = srNow(now) || {};
   if (now - job.at > 30 * 60e3 || st.sleep || srNoPhone(st)) return true;
   if (T.msgs.some(m => m.me && !m.sys && m.at > job.base)) return true;
   if (T.pend && T.pend.length) { job.next = now + 20e3; return 'stale'; }
-  const msgs = srLaughTrim(srTidy(srBubbles(job.ko, job.zh), T, now), ''); if (!msgs.length) return true;
-  srSend(T, msgs, now + Math.min(msgs[0].ko.length / 4.5 * 1e3, 8e3), { gen: now }); const C = SR().chat; C.him = now; C.sess = now + 15 * 60e3; return true;
+  job.why = { kind: 'more', d: `- 几分钟前他刚跟她说完话，心里还挂着：${job.about}（这是他当时的念头。现在要不要接着说、说什么，看他此刻的状态和刚才聊到哪了；觉得算了也可以不发）` };
+  return srReach(job);
 }
-function srMoreAdd(more, base, sendAt) { if (!more || !String(more.ko || '').trim()) return; const m = clamp(+more.min || 3, 1, 25); srJob('more', sendAt + m * 60e3 + rand(0, 40) * 1e3, { ko: String(more.ko).slice(0, 400), zh: String(more.zh || '').slice(0, 400), base }); }
+function srMoreAdd(more, base, sendAt) { if (!more || !more.want || !String(more.about || '').trim()) return; const m = clamp(+more.min || 3, 1, 25); srJob('more', sendAt + m * 60e3 + rand(0, 40) * 1e3, { about: String(more.about).slice(0, 120), base }); }
 /* ---------- 主动联系：只在自然的时刻（一段安排刚结束、长时间空着）想一想；动机够强、离上次找她也够久，才交给 AI，AI 也可以不发 ---------- */
 function srReachEval(at) {
   const thDue = () => { const L = srThLive(at).filter(x => x.k !== 'joke' && at >= x.from && !x.used); return L.length ? '\n' + L.slice(0, 2).map(x => `- 他也记得：${SR_TH_KIND[x.k]}：${x.t}${x.at ? `（${srClock(x.at)}）` : ''}（之前聊天里留下的，想接就接，不想也可以不提）`).join('\n') : ''; }, thRefs = () => srThLive(at).filter(x => x.k !== 'joke' && at >= x.from && !x.used).slice(0, 2).map(x => 'th' + x.id);
@@ -10629,7 +10629,7 @@ function srReachEval(at) {
   Mo.sort((a, b) => b.v - a.v); if (pingWait) return; const urge = Mo[0].v + .3 * Mo.slice(1).reduce((a, x) => a + x.v, 0);
   const today = R.reach.filter(x => dkey(x.at) === dk).length, init = (socCard(srP()) || {}).init || 1;
   const drive = srDrive(at).v;
-  const need = 1 - .35 * (drive - .3) + .4 * today + (R.mood.en < 30 ? .15 : 0) + (st.semi ? .3 : 0) + (working ? .2 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
+  const need = 1 - .15 * (drive - .3) + .4 * today + (R.mood.en < 30 ? .15 : 0) + (st.semi ? .3 : 0) + (working ? .2 : 0) - (init - 1) * .5; // 今天已经找过几次、很累、正和别人在一起、在工作（只有休息时看手机），都会让他少找
   if (urge < need - (serimLove() ? .2 : 0)) return;
   srReachJob(at, at + rand(10, 60) * 1e3, { why: { kind: Mo[0].kind, d: Mo.slice(0, 4).map(x => '- ' + x.d).join('\n'), ref: Mo[0].ref, refs: Mo.slice(0, 4).map(x => x.ref).filter(Boolean) } });
 }
@@ -10735,6 +10735,7 @@ const SR_RULES = `他怎么说话（具体情况）：
 - 答应她具体的事（「舞台结束马上打给你」「几点给你打电话」「回宿舍就找你」）之前，先看【他今天】后面的安排：后面还排着工作、要很晚才收工、或者到时候肯定在忙的，就不要许这种做不到的承诺，最多说「끝나고 연락할게」；说出口的就要能做到。
 事实不能乱：
 - 他说的自己的事必须和【他今天】一致（在做什么、在哪、和谁）；没写的具体经历不要编，不记得的就是不记得。
+- 他在这个模拟器开始之前的过去（练习生时期、小时候、和成员的老梗、以前的习惯）：只能说【他】的资料和【记得的事】里有的、或者公开资料里确实有的；没有依据的具体往事不要编出来当真事说，想不起来就不说。
 - 「还没发生」的计划不能说成已经做了；「猜测」不能当事实。她提到他不知道的过去，就照实反应，不要附和成真的。
 - 记得的事只在正好聊到时自然地用，不为了表现记得而翻旧事。
 - 他今天还没开始的安排（包括「回宿舍」「洗澡」「早点睡」「吃什么」）只是计划，是可以按实际情况改的，不是他做决定的理由：要不要去见她、要不要等她、几点睡，是两样东西在拉扯：他现在有多累（看上面他的精力和状态，以及今天干了什么），和他有多想见她（他刚说过想她、叫过她，就是很想）。很想见、还撑得住 → 改计划去；累到不行但很想见 → 可能还是去待一会儿，也可能说实话今天真的不行，但语气里是舍不得、会约好下次；不怎么想动、也没那么急着见 → 就不去。不管哪种，前后要和他刚说的话对得上（刚说完「想你才叫你来」，下一句不能轻飘飘一句「累了明天见」）。改了就在 sched 里写出来（取消、改时间、加一段）。
@@ -10748,7 +10749,7 @@ const SR_MEM_HINT = `mem：这次对话里值得记住的变化（没有就空�
 - del：某条被证实是错的。问候、普通闲聊不用记。`;
 const SR_SCHED_SCHEMA = { type: 'array', items: { type: 'object', additionalProperties: false, required: ['op', 'day', 's', 'e', 'what', 'where', 'with', 'kind'], properties: { op: { type: 'string', enum: ['add', 'cancel'] }, day: { type: 'string' }, s: { type: 'string' }, e: { type: 'string' }, what: { type: 'string' }, where: { type: 'string' }, with: { type: 'string' }, kind: { type: 'string', enum: ['sleep', 'work', 'social', 'out', 'free', 'move'] } } } };
 /* 说话那一下只管说话：他看到消息、想到什么就打什么，不同时做「记忆 / 约定 / 心情」这些整理工作（那会让他像在处理任务） */
-const SR_MORE_SCHEMA = { type: 'object', additionalProperties: false, required: ['ko', 'zh', 'min'], properties: { ko: { type: 'string' }, zh: { type: 'string' }, min: { type: 'integer' } } };
+const SR_MORE_SCHEMA = { type: 'object', additionalProperties: false, required: ['want', 'about', 'min'], properties: { want: { type: 'boolean' }, about: { type: 'string' }, min: { type: 'integer' } } };
 const SR_SAY_SCHEMA = { type: 'object', additionalProperties: false, required: ['inner', 'act', 'ko', 'zh', 'end', 'more'], properties: { more: SR_MORE_SCHEMA, inner: { type: 'string' }, act: { type: 'string', enum: ['reply', 'react', 'read', 'later'] }, ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } };
 /* 说完之后在后台单独记账：这次对话里有什么值得记、约了什么、心情怎样 */
 async function srBook(ctx, mine, j, when) {
@@ -10885,7 +10886,7 @@ inner：用他自己的口吻、第一人称写一两句：看到这几条时他
 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。later 只用于真的在工作、手上腾不出来的时候；刚结束签售 / 舞台在后台、在车上、回宿舍路上、吃饭这些时候他都会看手机，她有消息在等就回。
 ko：他在输入框里打出来、发出去的东西，就是顺着 inner 那一个反应说出来的话。他打字时会按回车把话拆成几个气泡（一行一个），这只是打字节奏，不是把几件事各回一条；可以只有一个词，也可以是几句连着说的话。zh：对应的中文，行数和 ko 一样。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
-more：发完以后，过几分钟他自己又想到、会再补发的话（顺着刚才说的想起一个细节、补一句吐槽、突然想到相关的事）。大多数时候没有，ko 留空；有的话 min 写过几分钟（1~20）。她要是在那之前回了，这句就不发了。
+more：发完以后他心里是不是还挂着想说的（刚才那件事没说完、还想补点什么）。大多数时候 want=false。want=true 时 about 用一句中文写他还惦记着什么（只写念头，不写台词），min 写大概几分钟后会再拿起手机（1~20）；到时候他会按那时的情况再决定说不说、说什么，她先回了就算了。
 ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（他记得；合适的话会顺手做到，不合适就之后再说）\n` : ''}${SR_RULES}
 `;
   // 回复要先想清楚（看懂她在问什么、前后文），所以用 medium；思考也算在 max_tokens 里，给足
@@ -10932,7 +10933,7 @@ ${recent ? `最近几次他主动找她：${recent}。\n` : ''}
 ${w.kind === 'promise' ? 'promise_done：这次兑现了答应的事就 true。' : 'promise_done：false。'}
 topic：一句中文，记下这次说的是什么（内部记录）。
 th_done：这次说到了上面【你们之间挂着的事】里的哪些（编号），没有就空。
-more：发完以后过几分钟他自己还会补发的话（大多数时候空；min 写几分钟后）。她在那之前回了就不发。
+more：发完以后他心里是不是还挂着想说的（大多数时候 want=false；want=true 时 about 写他还惦记着什么，只写念头不写台词，min 写几分钟后）。
 ${SR_BITS_HINT}
 ${SR_MEM_HINT}
 ${SR_RULES}
@@ -11142,8 +11143,8 @@ function srTick() {
   const PRI = { reply: 0, more: 1, reparse: 1, reach: 2, daily: 3, digest: 4 }; // 先回她、再更新你记的日常，后台整理最后
   const job = R.jobs.filter(j => j.at <= now && (!j.next || j.next <= now)).sort((a, b) => (PRI[a.type] ?? 5) - (PRI[b.type] ?? 5) || a.at - b.at)[0]; if (!job) return;
   const run = { reply: srReply, reach: srReach, more: srMore, daily: srDaily, digest: srDigest, reparse: async jb => { for (const id of jb.ids) { const n = serimNotes().find(x => x.id === id); if (n && !n.parsed) await srNoteParse(n); } return true; } }[job.type]; if (!run) { R.jobs = R.jobs.filter(j => j !== job); return; }
-  if (['reply', 'reach'].includes(job.type)) { const st0 = srNow(now); if (srNoPhone(st0)) { job.next = srTs(dkey(now), st0.seg.e) + rand(3, 10) * 60e3; return; } } // 签售 / 上台中：结束了再回
-  if (!srAIState().ok && job.type !== 'more') { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
+  if (['reply', 'reach', 'more'].includes(job.type)) { const st0 = srNow(now); if (srNoPhone(st0)) { job.next = srTs(dkey(now), st0.seg.e) + rand(3, 10) * 60e3; return; } } // 签售 / 上台中：结束了再回
+  if (!srAIState().ok) { if (['reply', 'reach'].includes(job.type)) job.tech = 1; if (job.type === 'reach' && now - job.at > 3 * 3600e3) R.jobs = R.jobs.filter(j => j !== job); return; } // 技术原因：等恢复，恢复后按当时的时间回，不伪造过去的消息
   srBusy = 1; srBusyAt = Date.now(); const rid = ++srRunId; job.rid = rid;
   run(job).then(ok => { if (rid !== srRunId || ok === 'stale') return; R.jobs = R.jobs.filter(j => j !== job); }).catch(e => { console.warn('sr', job.type, e.message); job.err = String(e && e.message || e).slice(0, 160); job.n++; if (['reply', 'reach'].includes(job.type)) job.tech = 1; job.next = Date.now() + SR_BACK[Math.min(job.n - 1, SR_BACK.length - 1)] * 60e3; if (job.n > 8 && job.type !== 'reply') R.jobs = R.jobs.filter(j => j !== job); })
     .finally(() => { if (rid === srRunId) srBusy = 0; save(); if (UI.dmOpen === SR_K) openModal(dmHTML(SR_K)); else if ($('#serim-in')) openModal(serimCardHTML()); });

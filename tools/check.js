@@ -45,7 +45,7 @@ const path = require('path');
       srThOps({ done: [o.id] }, now); ok('聊过了就放下，不再当成念头', !srThLive(o.from + 3600e3).includes(o)); srTh().splice(L0); }
     { const n0 = SR().jobs.length, c0 = srCatchN; srCatchN = 1; srReachJob(Date.now() - 3600e3, Date.now(), { why: {} }); ok('重新打开页面：过去的主动消息最多补一次', SR().jobs.length === n0); srCatchN = c0; }
     { const T = dmThread(srP()), m0 = T.msgs.slice(), now = Date.now(), sn = window.srNow; window.srNow = () => ({ kind: 'free' }); T.msgs.push({ id: 'x1', me: 1, text: 'ㅋㅋ', at: now - 1000 }); const L = T.msgs.length;
-      srMore({ at: now, base: now - 5000, ko: '아 그리고', zh: '对了' }).then(() => {}); ok('他想补一句之前她已经回了：这句不发', T.msgs.length === L && !(T.pend || []).length); T.msgs = m0; window.srNow = sn; }
+      srMore({ at: now, base: now - 5000, about: '还想说练习的事' }).then(() => {}); ok('他想补一句之前她已经回了：这句不发', T.msgs.length === L && !(T.pend || []).length); T.msgs = m0; window.srNow = sn; }
     { const T = dmThread(srP()), m0 = T.msgs, now = Date.now(), R = SR(), e0 = R.chat.endAt, sn = window.srNow; window.srNow = () => ({ kind: 'free' }); R.chat.endAt = 0;
       T.msgs = [...m0, { id: 'h1', text: 'ㅋㅋ', at: now - 60e3 }, { id: 'm1', me: 1, text: 'ㅋㅋ', at: now - 20e3 }];
       ok('他刚发完你马上回：算正在聊', srEngage(now).lv === 'hot'); ok('正在聊时几十秒内就会看到', srCheckGap(now) < 2);
