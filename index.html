@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116233545';
+const BUILD = '20261116233655';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6631,8 +6631,8 @@ function viewBubble() {
     <div class="bb-comp">
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
       <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
-      <textarea id="bb-in" rows="1" placeholder="${S.prefs.bbKo ? '中文→韩语' : '点 @ 叫粉丝昵称'}">${esc(UI.bbDraft || '')}</textarea>
-      <button class="ko-btn bbko${S.prefs.bbKo ? ' on' : ''}" data-act="bbko" title="打开后：用中文打字，发出去自动变成韩语">${S.prefs.bbKo ? '한 ✓' : '한'}</button>
+      <textarea id="bb-in" rows="1" placeholder="点 @ 叫粉丝昵称">${esc(UI.bbDraft || '')}</textarea>
+      <button class="ko-btn" data-act="toko" data-t="#bb-in" title="把中文译成韩语，可以改了再发">한</button>
       <button class="bb-emo${UI.bbStk ? ' on' : ''}" data-act="bbstk" title="表情包">☺︎</button>
       <button class="bb-send" data-act="bbdraft" title="发送">↑</button>
     </div>
@@ -12177,10 +12177,7 @@ document.addEventListener('click', async e => {
     case 'bbstkset': UI.bbStkSet = t.dataset.s; $('#bb-stk').innerHTML = bbStkHTML(); break;
     case 'bbstkpick': bbDraftAdd('sticker', { sticker: t.dataset.id }); break;
     case 'bbins': { const inp = $('#bb-in'); const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(b); UI.bbDraft = inp.value; inp.focus(); inp.selectionStart = inp.selectionEnd = a + BB_TOK.length; break; }
-    case 'bbko': { S.prefs.bbKo = !S.prefs.bbKo; save(); t.classList.toggle('on', S.prefs.bbKo); t.textContent = S.prefs.bbKo ? '한 ✓' : '한'; const i0 = $('#bb-in'); if (i0) i0.placeholder = S.prefs.bbKo ? '中文→韩语' : '点 @ 叫粉丝昵称'; toast(S.prefs.bbKo ? '韩语模式：开' : '韩语模式：关', S.prefs.bbKo ? '用中文打字，发出去会自动翻成韩语' : '发出去就是你打的原文'); break; }
-    case 'bbdraft': { const inp = $('#bb-in'); let text = inp.value.trim(); if (!text) break; let zh = '';
-      if (S.prefs.bbKo && /[\u4e00-\u9fff]/.test(text)) { t.disabled = true; try { const out = await trText(text.split(BB_TOK).join('{FAN}'), 'ko', '粉丝们（韩国女爱豆在泡泡里给粉丝发消息的口吻，亲切自然，半语；{FAN} 是粉丝昵称占位符，原样保留）'); if (out && /[가-힣]/.test(out)) { zh = text; text = out.split('{FAN}').join(BB_TOK); } else { toast('没翻译出来', '这条先没发，再点一次发送试试'); t.disabled = false; break; } } catch (e) { toast('没翻译出来', '这条先没发，再点一次发送试试'); t.disabled = false; break; } t.disabled = false; }
-      inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbDraftAdd('text', { text, zh }); inp.focus(); break; }
+    case 'bbdraft': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; const zh = UI.koSrc && UI.koSrc.t === '#bb-in' ? UI.koSrc.v : ''; UI.koSrc = null; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbDraftAdd('text', { text, zh }); inp.focus(); break; }
     case 'bbdsendask': bbConfirm('要发送 Bubble 吗？', '确认后，消息将一起发送。', bbDraftSendAll); break;
     case 'bbdmenu': {
       const d = bbDrafts().find(x => x.id === t.dataset.id); if (!d) break;
