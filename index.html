@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116233849';
+const BUILD = '20261116234028';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6673,8 +6673,17 @@ function renderBubbleChat() {
   if (!B.msgs.length && !bbOpen().fans.length) h += `<div class="bb-wait" style="margin-top:30%">发第一条消息，和订阅的粉丝们打个招呼吧 🫧</div>`;
   h += bbPendingHTML();
   box.innerHTML = h; hydrate(box); bbWallpaper();
-  box.scrollTop = box.scrollHeight;
-  $$('img,video', box).forEach(x => x.addEventListener('load', () => { box.scrollTop = box.scrollHeight; }, { once: true }));
+  bbPin(box, true);
+  $$('img,video', box).forEach(x => { x.addEventListener('load', () => bbPin(box), { once: true }); x.addEventListener('loadedmetadata', () => bbPin(box), { once: true }); });
+}
+/* 泡泡聊天：新消息、图片表情包加载完、表情面板 / 键盘弹出时，都自动贴到最底下；你自己往上翻看旧消息时不打扰 */
+function bbPin(box, force) {
+  if (!box) return; if (force) UI.bbPinned = true; if (UI.bbPinned === false) return;
+  const go = () => { if (UI.bbPinned !== false) box.scrollTop = box.scrollHeight; };
+  go(); requestAnimationFrame(go); setTimeout(go, 90); setTimeout(go, 350);
+  if (!box._bbObs) { box._bbObs = 1;
+    box.addEventListener('scroll', () => { UI.bbPinned = box.scrollHeight - box.scrollTop - box.clientHeight < 80; }, { passive: true });
+    try { new ResizeObserver(() => { if (UI.bbPinned !== false) box.scrollTop = box.scrollHeight; }).observe(box); } catch (e) { } }
 }
 async function bbWallpaper(box = $('#bbchat')) {
   if (!box) return;
