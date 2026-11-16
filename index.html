@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116065955';
+const BUILD = '20261116070255';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8950,16 +8950,21 @@ function socPlanTonight(p, todoId) {
 // KKT 回复不保证马上来：按性格 + 时间排队（关掉页面也会接着来）
 // 对方是不是在回归 / 活动期：本周打歌名单里有就是；CRAVITY 按真实回归；其他团按固定的伪随机回归周期（每 ~4 个月活动 4 周左右）
 const REAL_PROMO = { CRAVITY: ['2026-09-30', '2026-10-26'] };
-// 真实公开日程（演唱会等）：[团, 日期, 开演时间(分钟), 中文说明]；前两周算准备期
+// 真实公开日程：[团, 日期, 开始时间(分钟，韩国时间；没公布是 null), 中文说明, { kind: concert 演唱会 / award 颁奖礼 / sign 签售·见面 / vsign 视频通话签售 / bday 成员生日, dur 时长(分钟), tbd 时间没公布, abroad 海外 }]
+// 演唱会 / 颁奖礼前两周算准备期；签售没什么要准备的；生日不是工作
 const REAL_GIGS = [
-  ['CRAVITY', '2026-11-07', 18 * 60, '2026 KGMA（Korea Grand Music Awards）颁奖典礼'],
-  ['CRAVITY', '2026-11-14', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第一场'],
-  ['CRAVITY', '2026-11-15', 16 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第二场（同时线上直播）'],
-  ['CRAVITY', '2026-11-21', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉釜山 KBS Hall']
+  ['CRAVITY', '2026-11-07', 18 * 60, '2026 KGMA（Korea Grand Music Awards）颁奖典礼', { kind: 'award' }],
+  ['CRAVITY', '2026-11-14', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第一场', { kind: 'concert' }],
+  ['CRAVITY', '2026-11-15', 16 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第二场（同时线上直播）', { kind: 'concert' }],
+  ['CRAVITY', '2026-11-19', 19 * 60, 'CRAVITY EP [sonorous] 发售纪念 视频通话签售 EVENT', { kind: 'vsign', dur: 120 }],
+  ['CRAVITY', '2026-11-21', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉釜山 KBS Hall（巡演场次，不是首场）', { kind: 'concert' }],
+  ['CRAVITY', '2026-11-27', null, 'CRAVITY EP [sonorous] 发售纪念 OFFLINE EVENT（香港）', { kind: 'sign', dur: 120, tbd: 1, abroad: '香港' }],
+  ['CRAVITY', '2026-11-29', null, '형준（亨俊）生日', { kind: 'bday' }]
 ];
-const gigOn = (g, dk) => REAL_GIGS.find(x => x[0] === g && x[1] === dk);
-const gigPrep = (g, dk) => REAL_GIGS.some(x => x[0] === g && dk < x[1] && dk >= addDays(x[1], -14));
-function gigCtx(g, dk) { const L = REAL_GIGS.filter(x => x[0] === g && x[1] >= addDays(dk, -3) && x[1] <= addDays(dk, 45)); return L.length ? `${g} 近期公开日程（真实，粉丝都知道）：${L.map(x => `${+x[1].slice(5, 7)}/${+x[1].slice(8)} ${hhmm(x[2])} ${x[3]}`).join('；')}。只在聊到时自然提，不用主动讲。` : ''; }
+const gigK = x => (x[4] || {}).kind || 'concert', gigT = x => x[2] == null ? '时间未公布' : hhmm(x[2]);
+const gigOn = (g, dk) => REAL_GIGS.find(x => x[0] === g && x[1] === dk && gigK(x) !== 'bday' && x[2] != null);
+const gigPrep = (g, dk) => REAL_GIGS.some(x => x[0] === g && ['concert', 'award'].includes(gigK(x)) && dk < x[1] && dk >= addDays(x[1], -14));
+function gigCtx(g, dk) { const L = REAL_GIGS.filter(x => x[0] === g && x[1] >= addDays(dk, -3) && x[1] <= addDays(dk, 45)); return L.length ? `${g} 近期公开日程（真实，粉丝都知道）：${L.map(x => `${+x[1].slice(5, 7)}/${+x[1].slice(8)} ${gigK(x) === 'bday' ? '' : gigT(x) + ' '}${x[3]}`).join('；')}。只在聊到时自然提，不用主动讲。` : ''; }
 function socPromo(g, dk = dkey(Date.now())) {
   const RW = REAL_WEEKS[weekOf(dk)]; if (RW && RW.some(x => x[0] === g)) return true;
   const R0 = REAL_PROMO[g]; if (R0) return dk >= R0[0] && dk <= R0[1];
@@ -8988,6 +8993,7 @@ function socDay(p, dk = dkey(Date.now())) {
   const busyS = Math.max(wake + 30, (promo ? 360 : 600) + r() * 240), busyE = (promo ? 1140 : 1020) + r() * 300;
   if (promo && !light && busyS < 540 && r() < .45) { sleepS = r() * 100; } // 第二天行程很早：今晚早点睡
   const gig = gigOn(p.g, dk);
+  if (gig && ['sign', 'vsign'].includes(gigK(gig))) { const st = gig[2], du = (gig[4] || {}).dur || 120; return { promo, gig, sign: 1, sleepS, wake, light: false, busyS: st - 180, busyE: st + du + 30, check: 60 + r() * 60 }; } // 签售当天：开始前三小时准备，结束后半小时内下班
   if (gig) { const s0 = 60 + r() * 120; return { promo: true, gig, sleepS: s0, wake: Math.min(s0 + sleepLen, 540), light: false, busyS: 600, busyE: gig[2] + 210 + r() * 90, check: 120 + r() * 60 }; } // 演唱会当天：上午彩排到演出结束
   if (gigPrep(p.g, dk)) return { promo: true, prep: 1, sleepS, wake, light: r() < .15, busyS: Math.max(wake + 30, 660 + r() * 120), busyE: 1260 + r() * 180, check: 60 + r() * 90 }; // 演唱会准备期：每天合练到很晚
   return { promo, sleepS, wake, light, busyS, busyE, check: 35 + r() * 90 + srng('chk' + p.key)() * 60 };
@@ -9012,6 +9018,7 @@ function socNow0(p, ts) {
   const d = ts ? new Date(ts) : new Date(), nm = d.getHours() * 60 + d.getMinutes(), dk0 = dkey(d.getTime()), D = socDay(p, dk0), Y = socDay(p, addDays(dk0, -1));
   const asleep = (nm >= D.sleepS && nm < D.wake) || (Y.wake > 1440 && nm < Y.wake - 1440);
   if (asleep) return { sleep: 1, busy: 1, wakeIn: (nm < D.sleepS ? Y.wake - 1440 : D.wake) - nm, zh: D.promo ? '活动期，昨晚很晚才收工，现在在睡觉' : '空白期，作息晚，现在在睡觉' };
+  if (D.gig && D.sign && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: nm < D.gig[2] ? `今天有${D.gig[3]}，现在在做妆发 / 准备` : nm < D.gig[2] + ((D.gig[4] || {}).dur || 120) ? `正在${D.gig[3]}，看不了手机` : '签售刚结束，在收尾' };
   if (D.gig && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: nm < D.gig[2] ? `今天是${D.gig[3]}，现在在场馆彩排 / 准备，几乎没空看手机` : nm < D.gig[2] + 180 ? `正在演唱会（${D.gig[3]}）上，看不了手机` : '演唱会刚结束，在后台 / 庆功，很累但很兴奋' };
   if (D.gig) return { busy: 0, zh: nm < D.busyS ? `今天是${D.gig[3]}，还没出发去场馆` : '今天的演唱会结束了，回到宿舍，累但很满足' };
   if (D.prep && !D.light && nm >= D.busyS && nm < D.busyE) return { busy: 1, zh: '在准备演唱会，正在合练，只能休息时看手机' };
@@ -10170,7 +10177,12 @@ function srDayFb(dk) {
   if (sS >= 600) add(sS, 1440, '睡觉', 'sleep');
   return segs;
 }
-function srOfficial(dk) { const g = gigOn('CRAVITY', dk); return g ? [{ id: 'off' + dk, s: Math.max(0, g[2] - 30), e: Math.min(1440, g[2] + 210), what: `${g[3]}（${hhmm(g[2])} 开始，正式演出 / 典礼本身）`, where: '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', share: .6, c: 0 }] : []; }
+function srOfficial(dk) {
+  const x = REAL_GIGS.find(y => y[0] === 'CRAVITY' && y[1] === dk && gigK(y) !== 'bday'); if (!x) return []; const o = x[4] || {}, k = gigK(x), base = { where: o.abroad || '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', c: 0 };
+  if (k === 'sign' || k === 'vsign') { const dur = o.dur || 120;
+    if (x[2] == null) return [{ ...base, id: 'off' + dk, s: 11 * 60, e: 18 * 60, what: `${x[3]}（具体时间没公布：大概白天，前面有妆发、准备）`, share: .6, tbd: 1 }];
+    const st = x[2]; return [{ ...base, id: 'offp' + dk, s: Math.max(0, st - 180), e: st, what: `${k === 'vsign' ? '视频签售' : '签售'}前准备：妆发、造型、通勤、后台准备`, share: .2 }, { ...base, id: 'off' + dk, s: st, e: Math.min(1440, st + dur), what: `${x[3]}（${hhmm(st)} 开始）`, share: .6 }, { ...base, id: 'offw' + dk, s: Math.min(1440, st + dur), e: Math.min(1440, st + dur + 30), what: '收尾，下班', share: .1 }]; }
+  return [{ ...base, id: 'off' + dk, s: Math.max(0, x[2] - 30), e: Math.min(1440, x[2] + 210), what: `${x[3]}（${hhmm(x[2])} 开始，正式演出 / 典礼本身）`, share: .6 }]; }
 let srGenBusy = 0, srBitBusy = 0;
 /* =========================================================
    💙 世琳秘密恋爱事件：按两个人此刻真实的行程、地点、关系触发（对不上就不触发）；
@@ -10404,7 +10416,7 @@ const SR_BITS_HINT = `told：这次他提到了上面哪些小事（填方括号
 bits_add：他这次说到了自己今天的一件小事、而上面没有写的，写下来（time HH:MM、t 一句中文）；必须和那个时间他在做的事对得上，不能和时间线、和他说过的话矛盾。没有就空。`;
 /* 接下来三周的大事（公司排的公开行程 + 你在后台记的以后的安排）：安排每天的练习、作息都要往这些靠 */
 function srUpcoming(dk) { const out = [], seen = new Set();
-  for (const g of REAL_GIGS) if (g[0] === 'CRAVITY' && g[1] >= dk && g[1] <= addDays(dk, 21)) { out.push({ dk: g[1], t: `${g[3]}（${hhmm(g[2])}）` }); seen.add(g[1]); }
+  for (const g of REAL_GIGS) if (g[0] === 'CRAVITY' && g[1] >= dk && g[1] <= addDays(dk, 21)) { out.push({ dk: g[1], t: gigK(g) === 'bday' ? `${g[3]}（不是工作）` : `${g[3]}（${gigT(g)}）` }); seen.add(g[1]); }
   for (let i = 0; i <= 21; i++) { const k = addDays(dk, i), D = SR().day[k]; if (!D) continue; for (const g of D.segs) if (!g.del && g.st !== 'cancel' && ['note', 'plan'].includes(g.src) && g.kind === 'work' && (i > 0 || true) && /演唱会|콘서트|颁奖|시상식|舞台|무대|打歌|음방|音乐节|歌谣|가요|拍摄|촬영|综艺|예능|签售|팬싸|见面会|팬미팅|彩排|리허설|出国|海外|巡演|演出/.test(g.what || '')) out.push({ dk: k, t: `${hhmm(g.s)} ${g.what}（你记的）` }); }
   return out.sort((a, b) => a.dk.localeCompare(b.dk)).filter((x, i, a) => a.findIndex(y => y.dk === x.dk && y.t === x.t) === i).map(x => { const n = Math.round((parseD(x.dk) - parseD(dk)) / 864e5); return `- ${srMD(x.dk)}（${n === 0 ? '就是今天' : n + ' 天后'}）${x.t}`; }).join('\n'); }
 const SR_PREP_GUIDE = `按这些大事来安排这一天（优先级从高到低，越近的越优先）：
@@ -10413,7 +10425,11 @@ const SR_PREP_GUIDE = `按这些大事来安排这一天（优先级从高到低
 - 演唱会当天：中午前后到场地（开演前六七个小时），走位彩排、音响检查（리허설 · 사운드체크），吃点东西，化妆做造型，开演前半小时候场；演出三个小时左右（含安可）；结束后和成员、工作人员简单收尾或一起吃东西，很晚才回宿舍。连着两天演出的，中间一晚早点睡；最后一场结束后才轻松。
 - 颁奖礼当天：上午或中午到场彩排，傍晚走红毯，晚上典礼，常常十点以后才结束。
 - 大事刚结束的第二天：睡得晚、起得晚，以休息、恢复为主（除非马上又有行程）。
-- 拍摄、打歌、签售这类正式行程按常理留出化妆、候场和路上的时间。`;
+- 拍摄、打歌这类正式行程按常理留出化妆、候场和路上的时间。
+- 巡演不是首场的演唱会（首尔之后的场次）：曲目、走位都已经熟了，前几天的合练强度和压力比首场小得多，主要是复习、针对这个场地调整，不会天天练到很晚；外地场次前一天或当天上午移动（首尔到釜山坐 KTX 两三个小时），当天流程和首场差不多。
+- 签售（包括视频通话签售）：没什么特别要准备的，前几天照常过；当天开始前三个小时左右开始准备（妆发、造型、通勤、后台准备），签售本身两个小时左右，结束后收尾一般不超过半个小时就下班。
+- 海外活动：前一天或当天一早从仁川出发，活动结束后多半第二天回国；时间没公布的不要编具体几点。
+- 成员生日不是工作：零点前后成员之间互相祝福、发消息，可能一起吃饭、切蛋糕，那天照常过。`;
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (D.gen && D.gen !== 'fb') try { srTailFill(dk); } catch (e) { }
