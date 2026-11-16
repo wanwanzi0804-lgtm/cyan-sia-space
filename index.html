@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="SIA SPACE">
 <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1316" media="(prefers-color-scheme: dark)">
-<link rel="apple-touch-icon" href="img/icon-180.png">
-<link rel="icon" type="image/png" href="img/icon-180.png">
+<link rel="apple-touch-icon" href="img/app-180.png">
+<link rel="icon" type="image/png" href="img/app-180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 .rmb{display:none!important}
@@ -726,6 +726,29 @@ video.bv-glow{pointer-events:none}
 .sd-go{display:block;width:100%;margin-top:12px;border:0;border-radius:14px;padding:12px 0;background:var(--text);color:var(--bg);font-size:15px;font-weight:600}
 .sd-foot{display:flex;align-items:center;justify-content:space-between;margin:14px 4px 6px;font-size:13px;color:var(--muted)}
 /* ===== 新界面：手机首页 / 应用 / 我的 ===== */
+/* ===== 子页面统一 ===== */
+body.hassub #view .w-head.w-top{display:none}
+.card{border-radius:18px}
+.btn{background:color-mix(in srgb,var(--text) 7%,transparent);color:var(--text)}
+.btn.primary{background:var(--text);color:var(--bg)}
+.btn.ghost{background:var(--card);border-color:var(--line)}
+.btn.danger{background:var(--danger);color:#fff}
+.seg2 button.on{background:var(--text);color:var(--bg)}
+.me-h{font-size:15px;margin:20px 4px 8px}.me-h .m-en{display:none}
+.sec-title{font-size:15px;margin:20px 4px 8px}
+.card :is(input,textarea,select):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]){background:var(--bg);border-color:transparent;border-radius:12px}
+.card :is(input,textarea,select):focus{border-color:var(--text)}
+.grid2>*{min-width:0}input{min-width:0}
+.field label{font-size:12.5px;margin-bottom:4px}
+.switch{padding:11px 0;border-bottom:1px solid var(--line)}.switch:last-of-type{border-bottom:0}
+.switch input[type=checkbox],.cbsw{appearance:none;-webkit-appearance:none;transform:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative;padding:0;margin:0;border:0;flex:none;transition:background .2s;cursor:pointer}
+.switch input[type=checkbox]::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
+.switch input[type=checkbox]:checked{background:#34c759}.switch input[type=checkbox]:checked::after{left:21px}
+.sw input:checked+i{background:#34c759}
+.w-head b{font-size:17px}
+.pop,.trend,.srcs{border-radius:18px}
+.hp-c.ai b::after{content:'热评';margin-left:6px;font-size:10.5px;font-weight:600;padding:1px 6px;border-radius:6px;background:#fff1e6;color:#c2410c}
+
 :root{--wall:radial-gradient(circle at 15% 12%,#ffd9e4 0,rgba(255,217,228,0) 42%),radial-gradient(circle at 90% 30%,#d6ecff 0,rgba(214,236,255,0) 45%),radial-gradient(circle at 30% 78%,#d9f4ef 0,rgba(217,244,239,0) 45%),radial-gradient(circle at 85% 88%,#e8e0ff 0,rgba(232,224,255,0) 45%),#f7f6fb;--glass:rgba(255,255,255,.72);--glass-nav:rgba(255,255,255,.6);--ink:#2a2f45}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--wall:radial-gradient(circle at 15% 12%,#3a2531 0,rgba(58,37,49,0) 42%),radial-gradient(circle at 90% 30%,#1f2f42 0,rgba(31,47,66,0) 45%),radial-gradient(circle at 30% 78%,#1d3533 0,rgba(29,53,51,0) 45%),radial-gradient(circle at 85% 88%,#2a2540 0,rgba(42,37,64,0) 45%),#121418;--glass:rgba(30,34,40,.7);--glass-nav:rgba(24,28,33,.62);--ink:#e8edf1}}
 :root[data-theme="dark"]{--wall:radial-gradient(circle at 15% 12%,#3a2531 0,rgba(58,37,49,0) 42%),radial-gradient(circle at 90% 30%,#1f2f42 0,rgba(31,47,66,0) 45%),radial-gradient(circle at 30% 78%,#1d3533 0,rgba(29,53,51,0) 45%),radial-gradient(circle at 85% 88%,#2a2540 0,rgba(42,37,64,0) 45%),#121418;--glass:rgba(30,34,40,.7);--glass-nav:rgba(24,28,33,.62);--ink:#e8edf1}
@@ -924,7 +947,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116062422';
+const BUILD = '20261116062740';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1847,7 +1870,8 @@ function hotTick() {
       H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null };
       pushNotif({ type: 'hot', key, text: `📰 #${H.cur.title}#`, sub: `${H.cur.venue} · ${H.posts[key].body.slice(0, 40)}` }, true);
       H.talk = { id: p.id, song: p.song, e: p.e, q: p.q, lt: p.lt, until: now + 2 * 86400e3 };
-      const ks = Object.keys(H.posts); while (ks.length > 12) delete H.posts[ks.shift()];
+      const ks = Object.keys(H.posts); while (ks.length > 40) delete H.posts[ks.shift()];
+      setTimeout(() => hotAiCm(key), 3000);
     }
   }
   const c = H.cur;
@@ -1928,9 +1952,23 @@ function hotBar() {
   layoutVars();
 }
 function hotBarTime() { const c = S.hot && S.hot.cur, el = $('#hot-left'); if (el && c && c.task) el.textContent = '剩 ' + hotLeft(c.task.until - Date.now()); }
+// 热搜帖下面的热评：用最便宜的模型写几条，赞多、排在最上面；每条热搜只请一次
+async function hotAiCm(key) {
+  const H = hotState(), post = key && H.posts[key]; if (!post || post.aiCm || !aiOn()) return; post.aiCm = 1; save();
+  const h = H.cur && H.cur.key === key ? H.cur : H.hist.find(x => x.key === key), title = h ? h.title : '';
+  try {
+    const schema = { type: 'object', additionalProperties: false, required: ['cm'], properties: { cm: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['user', 'text'], properties: { user: { type: 'string' }, text: { type: 'string' } } } } } };
+    const j = await aiRaw([{ type: 'text', text: `微博热搜「#${title}#」，原帖：「${post.body}」。主角是韩国 solo 女爱豆 ${S.profile.name}（粉丝名 ${S.profile.fandom}）。${post.result ? '事情后来：' + post.result + '。' : ''}\n写 4 条这条帖子下面点赞最多、被顶到最上面的评论：路人、粉丝、吃瓜的都可以有，可以有一点调侃或阴阳怪气，但不要人身攻击；口语、像真的网友，各不相同，每条 8~40 字。user 是像真实网友的网名。` }], 700, schema, '你写社交媒体评论，只输出 JSON。', 'claude-haiku-5-5');
+    const f = S.profile.followers, top = Math.max(20, ...post.cm.map(c => c.likes || 0));
+    const L = (j.cm || []).slice(0, 4).filter(c => c && c.text);
+    for (const c of L) post.cm.push({ id: uid(), user: String(c.user || '路人').slice(0, 16), text: String(c.text).slice(0, 80), likes: Math.round(top * rand(1.15, 2.4) + rand(0, f / 300)), at: Date.now(), ai: 1 });
+    post.cc += L.length; save();
+    if ($('#sheet .hp') && $('[data-act="hotlike"][data-k="' + key + '"]')) openModal(hotPostHTML(key));
+  } catch (e) { post.aiCm = 0; }
+}
 function hotPostHTML(key) {
   const H = hotState(), post = H.posts[key], c = H.cur && H.cur.key === key ? H.cur : null, h = H.hist.find(x => x.key === key);
-  if (!post) return `<div class="row"><h3 style="flex:1">📰 热搜</h3><button class="btn ghost sm" data-act="close">关闭</button></div><div class="empty">这条热搜已经过去了</div>`;
+  if (!post) return `<div class="row"><h3 style="flex:1">📰 热搜</h3><button class="btn ghost sm" data-act="close">关闭</button></div>${h ? `<div class="card hp"><div class="hp-body"><span class="hp-tag">#${esc(h.title)}#</span></div><div class="muted" style="font-size:12.5px;margin-top:6px">${new Date(h.at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div><div class="card">你的回应：<b>${esc(h.choice)}</b><div class="muted" style="margin-top:4px">${esc(h.result)}${h.net ? ` · 粉丝 ${h.net > 0 ? '+' : ''}${fmtNum(h.net)}` : ''}</div></div><div class="muted" style="text-align:center;font-size:12.5px;margin:10px 0">原帖太久了，只留下了这些记录</div>` : '<div class="empty">找不到这条热搜</div>'}`;
   const ev = HOT_EVENTS.find(e => e.id === (c ? c.id : h && h.id));
   const title = c ? c.title : h ? h.title : '', venue = c ? c.venue : '';
   const body = esc(post.body).replace(/#([^#]+)#/g, '<span class="hp-tag">#$1#</span>');
@@ -1948,7 +1986,7 @@ function hotPostHTML(key) {
     </div>
     ${act}
     <div class="sec-title" style="margin-top:14px">评论 ${fmtNum(post.cc)}</div>
-    <div class="card" style="padding:4px 12px">${post.cm.slice().sort((a, b) => (b.likes || 0) - (a.likes || 0)).map(x => `<div class="hp-c"><div style="flex:1;min-width:0"><b>${esc(x.user)}</b><div>${esc(x.text)}</div></div><button class="hp-cl ${x.liked ? 'on' : ''}" data-act="hotclike" data-k="${key}" data-id="${x.id}">${x.liked ? '❤️' : '🤍'} ${x.likes || ''}</button></div>`).join('')}</div>`;
+    <div class="card" style="padding:4px 12px">${post.cm.slice().sort((a, b) => (b.likes || 0) - (a.likes || 0)).map(x => `<div class="hp-c${x.ai ? ' ai' : ''}"><div style="flex:1;min-width:0"><b>${esc(x.user)}</b><div>${esc(x.text)}</div></div><button class="hp-cl ${x.liked ? 'on' : ''}" data-act="hotclike" data-k="${key}" data-id="${x.id}">${x.liked ? '❤️' : '🤍'} ${x.likes || ''}</button></div>`).join('')}</div>`;
 }
 
 /* =========================================================
@@ -6810,6 +6848,7 @@ function render() {
   if (UI.tab === 'bubble' && S.bubble.welcome) { S.bubble.unread = 0; renderBubbleChat(); bbReplyBar(); bbDraftsRender(); }
   if (UI.tab === 'feed' && !UI.postId) { const t = $('#cmp-text'); if (t) t.value = draft; renderPending(); }
   if (UI.tab === 'notif') { S.notifs.forEach(n => n.read = true); updBadges(); save(); }
+  tbSub();
   updBadges();
 }
 
@@ -11624,6 +11663,15 @@ function newsHTML() {
   if (!n) return '<div class="card muted" style="text-align:center;padding:22px 10px">还没有上过热搜</div>';
   return `<div class="pl-sec" style="margin:2px 2px 10px">${c ? '正在发酵' : '最近没有新的热搜'}</div>${hotPanelHTML()}`;
 }
+// 子页面（结算单、作品详情、人设…）：顶栏显示「‹ 子页面标题」，返回上一层
+function tbSub() {
+  const wh = $('#view .w-head'), top = $('.topbar'), L = $('#tb-l'), R = $('#tb-r');
+  document.body.classList.toggle('hassub', !!wh); if (!wh || !top || !L) return;
+  wh.classList.add('w-top'); top.classList.remove('tb-hide');
+  const t = ((wh.querySelector('b') || {}).textContent || '').trim();
+  L.innerHTML = `<button class="tb-back" data-act="tbback"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><b class="tb-t">${esc(t)}</b>`;
+  if (R) R.innerHTML = ''; layoutVars();
+}
 /* ===== KKT：친구 / 채팅 ===== */
 function kktHTML() {
   const tab = UI.kkTab === 'friend' ? 'friend' : 'chat';
@@ -11751,7 +11799,7 @@ function viewMe() {
     <div class="row"><span class="sp"></span><button class="btn primary" data-act="psave">保存人设</button></div>
   </div>`,
   set: () => `
-  <div class="sec-title">✨ AI 粉丝（可选）</div>
+  <div class="sec-title">AI 粉丝（可选）</div>
   <div class="card">
     <details class="me-more" style="margin:0 0 8px"><summary>AI 粉丝是什么？</summary><p class="muted" style="margin:6px 0 0">不开启时，粉丝用内置模板根据你帖子里的关键词评论（免费、离线）。开启后会调用 Claude API：粉丝能真正“看懂”你发的图片/视频截帧和直播画面，评论更贴切，外语评论也会附带实时翻译。需要你自己的 Anthropic API Key（按量计费），Key 只保存在这个浏览器里。</p></details>
     <div class="switch"><span>启用 AI 粉丝</span><input type="checkbox" id="ai-on" ${S.ai.enabled ? 'checked' : ''}></div>
@@ -11768,14 +11816,14 @@ function viewMe() {
     ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误${S.ai.lastAt ? '（' + new Date(S.ai.lastAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '）' : ''}：${esc(S.ai.lastError)}</p>` : ''}
     <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
   </div>
-  <div class="sec-title">⚙ 其他设置</div>
+  <div class="sec-title">其他设置</div>
   <div class="card">
     <div class="switch"><span>外语评论自动显示翻译</span><input type="checkbox" id="pf-tr" ${S.prefs.autoTr ? 'checked' : ''}></div>
     <div class="switch"><span>桌面图标显示未读角标（KKT 和泡泡）</span><input type="checkbox" id="pf-badge" ${S.prefs.appBadge ? 'checked' : ''}></div>
     <div class="switch"><span>页面在后台时弹出系统通知</span><input type="checkbox" id="pf-sys" ${S.prefs.sysNotif ? 'checked' : ''}></div>
     <div class="switch"><span>时间流速（测试用，加速后热度衰减更快）</span><select id="pf-speed" style="width:auto">${[1, 5, 20, 60].map(v => `<option value="${v}" ${S.prefs.speed == v ? 'selected' : ''}>${v}×</option>`).join('')}</select></div>
   </div>
-  <div class="sec-title">🗄 数据</div>
+  <div class="sec-title">数据</div>
   <div class="card">
     <p class="muted" style="margin-top:0">所有数据都保存在你这个浏览器里（换浏览器或清除网站数据会丢失）。</p>
     <div class="row wrap"><button class="btn ghost" data-act="export">导出数据（JSON）</button><button class="btn ghost" data-act="impopen">导入数据</button><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
@@ -11820,6 +11868,7 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act;
   switch (a) {
+    case 'tbback': { const b = $('#view .w-head.w-top .w-back'); if (b) b.click(); else { UI.tab = 'home'; render(); } break; }
     case 'kktab': UI.kkTab = t.dataset.k; render(); window.scrollTo(0, 0); break;
     case 'ytctab': UI.ytTab = t.dataset.k; render(); break;
     case 'plf': UI.plF = t.dataset.k; render(); break;
@@ -12186,7 +12235,7 @@ document.addEventListener('click', async e => {
     case 'ppdance': { const o = prepOn(); if (!o) break; o.P.dance = t.checked; if (t.checked && o.t.dance.skip) o.t.dance = { need: o.t.dance.need, prog: 0, done: false }; save(); render(); break; }
     case 'fanday': case 'fanstep': if (!t.dataset.k) break; UI.fanDay = t.dataset.k; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
     case 'fanrange': UI.fanRange = +t.dataset.n; { const y = window.scrollY; render(); window.scrollTo(0, y); } break;
-    case 'hotopen': openModal(hotPostHTML(t.dataset.k || hotState().cur?.key)); break;
+    case 'hotopen': { const hk = t.dataset.k || hotState().cur?.key; openModal(hotPostHTML(hk)); hotAiCm(hk); break; }
     case 'hotpick': { const k = hotState().cur?.key; hotChoose(+t.dataset.i); openModal(hotPostHTML(k)); const c = hotState().cur; toast(c && c.task ? '📌 记下了' : '好的', c && c.task ? c.task.hint : '后续过一会儿就知道了'); break; }
     case 'hotlike': { const post = hotState().posts[t.dataset.k]; if (!post) break; post.liked = !post.liked; post.likes += post.liked ? 1 : -1; save(); t.classList.toggle('on', post.liked); t.textContent = `${post.liked ? '❤️' : '🤍'} ${fmtNum(post.likes)}`; break; }
     case 'hotclike': { const post = hotState().posts[t.dataset.k], x = post && post.cm.find(c => c.id === t.dataset.id); if (!x) break; x.liked = !x.liked; x.likes = (x.likes || 0) + (x.liked ? 1 : -1); save(); t.classList.toggle('on', x.liked); t.textContent = `${x.liked ? '❤️' : '🤍'} ${x.likes || ''}`; break; }

@@ -23,7 +23,7 @@ const path = require('path');
   await step('KKT：在世琳的聊天里打字', async () => { await p.evaluate(() => { UI.dmOpen = SR_K; openModal(dmHTML(SR_K)); }); await p.fill('#dm-in', '测试'); await p.evaluate(() => { $('#dm-in').value = ''; }); await closeAll(); });
   await step('经纪人聊天', async () => { await p.evaluate(() => { const b = document.querySelector('[data-act="mgropen"]'); if (b) b.click(); }); await closeAll(); });
   await step('世琳后台', async () => { await p.evaluate(() => openModal(serimCardHTML())); await closeAll(); });
-  await step('我的：各个分页', async () => { await p.tap('.tab[data-tab="me"]'); for (const k of ['fans', 'persona', 'skills', 'set']) { await p.tap(`.me-row[data-k="${k}"]`); await p.tap('.w-back'); } });
+  await step('我的：各个分页', async () => { await p.tap('.tab[data-tab="me"]'); for (const k of ['fans', 'persona', 'skills', 'set']) { await p.tap(`.me-row[data-k="${k}"]`); await p.tap('.tb-back'); } });
   await step('打电话界面打开再关', async () => { await p.evaluate(() => { const T = dmThread(srP()); UI.call = { key: SR_K, mode: 'in', by: 'them' }; callShow(); UI.call = null; callShow(); }); });
   await step('整体还在动（tick 正常）', () => p.waitForTimeout(3500));
   for (const r of res) console.log(r.filter(Boolean).join('  '));
