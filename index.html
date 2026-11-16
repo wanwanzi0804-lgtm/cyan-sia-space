@@ -724,6 +724,7 @@ video.bv-glow{pointer-events:none}
 .sd-chk input:checked+i{border-color:transparent;background:no-repeat center/16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230e8a8f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
 .sd-it.done .sd-tx b{text-decoration:line-through;color:var(--muted)}.sd-it.done .sd-bar,.sd-it.over .sd-bar{opacity:.45}
 .sd-it.now .sd-card{border-color:var(--accent)}.sd-it.now .sd-tm{color:var(--text);font-weight:700}
+.sd-pill{flex:none;border:0;border-radius:15px;padding:6px 13px;background:var(--text);color:var(--bg);font-size:13px;font-weight:600}.sd-ok{flex:none;border:0;background:none;padding:4px 2px;font-size:12.5px;color:#4f9a6c;font-weight:600}
 .sd-go{display:block;width:100%;margin-top:12px;border:0;border-radius:14px;padding:12px 0;background:var(--text);color:var(--bg);font-size:15px;font-weight:600}
 .sd-foot{display:flex;align-items:center;justify-content:space-between;margin:14px 4px 6px;font-size:13px;color:var(--muted)}
 /* ===== 新界面：手机首页 / 应用 / 我的 ===== */
@@ -949,7 +950,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116150504';
+const BUILD = '20261116160809';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -7787,12 +7788,12 @@ function viewSched() {
     const c = !res && k === today && (TG_EVENTS[r.cat] || isMusicRule(r)) ? tgCard(k, r) : null; if (c) c._start = r.start;
     const open = c && !c.done && tgOpen(c);
     const sub = [r.loc, r.cat, r.note, st].filter(Boolean).map(esc).join(' · ');
-    const right = c && !c.done && !open && ph === 'soon' ? '<span class="sd-wait">通告未开</span>' : '';
+    const right = c && c.done && !res ? `<button class="sd-ok" data-act="tgopen" data-k="${c.key}">✓ 通告已完成</button>` : open ? `<button class="sd-pill" data-act="tgopen" data-k="${c.key}">做通告</button>` : c && !c.done && ph === 'soon' ? '<span class="sd-wait">通告未开</span>' : '';
     return `<div class="sd-it ${ph}"><div class="sd-tm">${off ? '<em>凌晨</em>' : ''}${r.start}<span>${toMin(r.end) <= toMin(r.start) && !off ? '次日 ' : ''}${r.end}</span></div>
       <div class="sd-card"${ph === 'now' ? ` style="border-color:${cc}"` : ''}><div class="sd-row"><i class="sd-bar" style="background:${cc}"></i><div class="sd-tx"><b>${esc(r.title)}</b><span>${sub}</span>
-        ${res ? `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>` : c && c.done ? `<button class="tg-chip ok" data-act="tgopen" data-k="${c.key}">通告已完成</button>` : ''}</div>${right}
+        ${res ? `<div class="tg-res g${res.grade}">${res.grade} · ${esc(res.note)}${res.fans ? ` · ${res.fans > 0 ? '+' : ''}${res.fans} 粉` : ''}</div>` : ''}</div>${right}
         <label class="sd-chk"><input type="checkbox" data-act="sdone" data-dk="${dk}" ${done ? 'checked' : ''}><i></i></label></div>
-        ${open && !done ? `<button class="sd-go" data-act="tgopen" data-k="${c.key}">做通告</button>` : open ? `<button class="tg-chip" data-act="tgopen" data-k="${c.key}" style="margin-top:8px">通告还没做</button>` : ''}</div></div>`;
+        </div></div>`;
   };
   return `<div class="sd-h"><div><span>${d0.getMonth() + 1}月${d0.getDate()}日 周${WD[d0.getDay()]}${k !== today ? ` · <button class="link" data-act="sdate" data-k="${today}">回到今天</button>` : ''}</span><b>${big}</b></div>
       <button class="sd-btn" data-act="tglist" title="通告">${'<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 9h6M9 13h6M9 17h3"/></svg>'}<span class="badge" id="tg-badge">${tgN || ''}</span></button>
