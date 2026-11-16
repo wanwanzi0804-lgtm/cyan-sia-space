@@ -701,23 +701,107 @@ video.bv-glow{pointer-events:none}
 .s-night{display:block;font-style:normal;font-size:10px;color:var(--muted)}
 .sr-phpick{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px}.sr-phpick button{position:relative;flex:none;width:68px;border:2px solid transparent;border-radius:10px;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.sr-phpick button.on{border-color:var(--accent)}.sr-phpick img{width:64px;height:64px;object-fit:cover;border-radius:8px}.sr-phpick b{position:absolute;top:2px;right:2px;background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}.sr-phpick span{font-size:10.5px;color:var(--muted);max-width:64px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #vc-ly{position:fixed;inset:0;z-index:151;background:#0d0f13;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(64px + env(safe-area-inset-top)) 22px calc(36px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;overflow:hidden}.vc-bg{position:absolute;inset:0;z-index:0;overflow:hidden}.vc-bg *{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;border-radius:0!important;margin:0!important}.vc-bg img{object-fit:cover;filter:blur(18px) brightness(.5);transform:scale(1.15)}.vc-on .vc-bg img{filter:none;transform:none}.vc-on .vc-top .call-av{display:none}.vc-on .vc-top{text-shadow:0 1px 6px rgba(0,0,0,.6)}.vc-top{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center}.vc-btns{position:relative;z-index:1}.vc-me{position:absolute;z-index:1;right:18px;top:calc(18px + env(safe-area-inset-top));width:92px;height:130px;border-radius:14px;background:#2a2f38;border:2px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:13px;color:#cfd6df}
+
+/* ===== 新界面：手机首页 / 应用 / 我的 ===== */
+:root{--wall:radial-gradient(circle at 15% 12%,#ffd9e4 0,rgba(255,217,228,0) 42%),radial-gradient(circle at 90% 30%,#d6ecff 0,rgba(214,236,255,0) 45%),radial-gradient(circle at 30% 78%,#d9f4ef 0,rgba(217,244,239,0) 45%),radial-gradient(circle at 85% 88%,#e8e0ff 0,rgba(232,224,255,0) 45%),#f7f6fb;--glass:rgba(255,255,255,.72);--glass-nav:rgba(255,255,255,.6);--ink:#2a2f45}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--wall:radial-gradient(circle at 15% 12%,#3a2531 0,rgba(58,37,49,0) 42%),radial-gradient(circle at 90% 30%,#1f2f42 0,rgba(31,47,66,0) 45%),radial-gradient(circle at 30% 78%,#1d3533 0,rgba(29,53,51,0) 45%),radial-gradient(circle at 85% 88%,#2a2540 0,rgba(42,37,64,0) 45%),#121418;--glass:rgba(30,34,40,.7);--glass-nav:rgba(24,28,33,.62);--ink:#e8edf1}}
+:root[data-theme="dark"]{--wall:radial-gradient(circle at 15% 12%,#3a2531 0,rgba(58,37,49,0) 42%),radial-gradient(circle at 90% 30%,#1f2f42 0,rgba(31,47,66,0) 45%),radial-gradient(circle at 30% 78%,#1d3533 0,rgba(29,53,51,0) 45%),radial-gradient(circle at 85% 88%,#2a2540 0,rgba(42,37,64,0) 45%),#121418;--glass:rgba(30,34,40,.7);--glass-nav:rgba(24,28,33,.62);--ink:#e8edf1}
+.tab .ic{display:grid;place-items:center;height:26px}.tab.on{color:var(--text)}
+#tb-l{display:flex;align-items:center;gap:6px;min-width:0}#tb-r{display:flex;align-items:center;gap:6px}
+.tb-back{border:0;background:none;padding:2px 4px 2px 0;display:grid;place-items:center;color:var(--text)}
+.tb-t{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-btn{border:0;background:var(--text);color:var(--bg);border-radius:16px;padding:6px 13px;font-size:13px;font-weight:600}
+.tb-ic{position:relative;border:0;background:none;padding:4px;display:grid;place-items:center;color:var(--text)}
+.topbar.tb-hide{background:transparent;backdrop-filter:none;padding-top:max(8px,env(safe-area-inset-top))}
+.topbar.tb-hide:has(#hot-bar[hidden]){display:none}
+body.homemode{background:var(--wall) fixed;background-size:cover}
+body.homemode #app{background:transparent}
+body.homemode .tabbar{background:var(--glass-nav);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top-color:rgba(255,255,255,.35)}
+body.homemode main{padding:0 22px}
+.hm{padding:22px 0 24px}
+.topbar.tb-hide:has(#hot-bar[hidden]) ~ main:not(.flush){padding-top:12px}
+.me-tr .seg2 button.on{background:var(--text);color:var(--bg)}
+.hm-wg{display:block;width:100%;text-align:left;border:0;border-radius:24px;background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);padding:16px 18px;box-shadow:0 6px 24px rgba(60,60,110,.08);color:var(--text)}
+.hm-wh{display:flex;align-items:center;gap:8px}.hm-wh i{width:22px;height:22px;border-radius:6px;background:var(--text);color:var(--bg);display:grid;place-items:center}.hm-wh b{flex:1;font-size:12.5px}.hm-wh span{font-size:12.5px;color:var(--muted)}
+.hm-wl{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.hm-wi{display:flex;align-items:center;gap:10px}.hm-wi>em{width:42px;flex:none;font-style:normal;font-size:13px;color:var(--muted)}.hm-wi>i{width:3px;height:22px;border-radius:2px;flex:none;background:#9b6bff}
+.hm-wi>span{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-wi.done>span{color:var(--muted);text-decoration:line-through}.hm-wi.done>i{background:#c9ced4}
+.hm-wi.now>em{color:var(--text);font-weight:700}.hm-wi.now>span{font-weight:700}.hm-wi.now>i{background:#ff5c8a}
+.hm-wi>b{flex:none;font-size:11.5px;padding:2px 8px;border-radius:9px;background:var(--text);color:var(--bg);font-weight:500}
+.hm-we{font-size:13.5px;color:var(--muted);margin-top:12px}
+.hm-grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:22px;margin-top:30px}
+.hm-app{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
+.hm-ic{position:relative;width:62px;height:62px;border-radius:15px;display:grid;place-items:center;box-shadow:0 1px 2px rgba(40,40,80,.08),inset 0 0 0 .5px rgba(0,0,0,.04)}
+.hm-ic .badge{top:-6px;right:-6px;min-width:22px;height:22px;line-height:22px;border-radius:11px;font-size:12px;padding:0 6px;background:#ff3b30}
+.hm-ic .badge.dot{min-width:12px;width:12px;height:12px;padding:0;top:-3px;right:-3px}
+/* 我的 */
+.me-hd{padding:20px;border-radius:22px;margin-top:6px}
+.me-hr{display:flex;align-items:center;gap:16px}
+.me-av{cursor:pointer;flex:none}.me-av .av{width:84px;height:84px;border-radius:22px;font-size:30px}.me-av .av img{border-radius:22px}
+.me-nm{font-size:26px;font-weight:700;line-height:1.2;word-break:break-all}.me-co{font-size:12.5px;color:var(--muted);letter-spacing:.6px;margin-top:4px}
+.me-st{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);text-align:center}
+.me-st>div+div{border-left:1px solid var(--line)}.me-st span{display:block;font-size:12.5px;color:var(--muted)}.me-st b{display:block;font-size:24px;margin:4px 0 2px}
+.me-tr{padding:16px}.me-trh{display:flex;align-items:center}.me-trh b{flex:1;font-size:15px}
+.me-bars{display:flex;align-items:center;gap:6px;height:72px;margin-top:14px}.me-bars.r30{gap:2px}
+.me-bars>div{flex:1;height:100%;display:flex;flex-direction:column}.me-bars .u,.me-bars .d{flex:1;display:flex}.me-bars .u{align-items:flex-end}.me-bars .d{align-items:flex-start;flex:.35}
+.me-bars i{display:block;width:100%;border-radius:5px;background:#cfeff0}.me-bars .d i{background:#ffd3dc}.me-bars .on .u i{background:var(--accent)}.me-bars .on .d i{background:var(--danger)}
+.me-row{display:flex;align-items:center;width:100%;border:0;background:none;text-align:left;padding:14px 16px;color:var(--text);font-size:15px}.me-row+.me-row{border-top:1px solid var(--line)}
+.me-row>div{flex:1;min-width:0}.me-row span{display:block;font-size:12px;color:var(--muted)}.me-row>i{font-style:normal;color:var(--muted)}
+.me-tr .me-row{padding:12px 0 0;margin-top:12px;border-top:1px solid var(--line);font-size:14px}
+.me-list{padding:0;overflow:hidden;margin-top:12px}
+/* 钱包 */
+.wb-top{padding:14px 8px 0}.wb-top>span{font-size:13px;color:var(--muted)}.wb-bal{font-size:36px;font-weight:700;letter-spacing:-.5px;margin-top:6px}
+.wb-debt{font-size:12.5px;color:var(--muted);margin-top:4px}
+.wb-btns{display:flex;gap:10px;margin-top:18px}.wb-btns button{flex:1;border:0;padding:12px 0;border-radius:14px;background:var(--card);font-size:14px;font-weight:700;color:var(--text);box-shadow:var(--shadow)}
+.wb-card{display:block;width:100%;text-align:left;border:0;margin:20px 0 0;padding:16px;border-radius:18px;background:#0f1e3d;color:#fff}
+.wb-card span{display:block;font-size:12px;opacity:.75}.wb-card b{display:block;font-size:22px;margin:6px 0}
+.wb-alert{display:flex;align-items:center;width:100%;border:0;margin-top:10px;padding:12px 14px;border-radius:14px;background:#fff4e5;color:#8a5200;font-size:13.5px;text-align:left}.wb-alert span{flex:1}
+.wb-h{display:flex;align-items:center;margin:22px 4px 4px}.wb-h b{flex:1;font-size:15px}
+.wb-menu button{display:flex;align-items:center;width:100%;border:0;background:none;padding:14px 4px;font-size:15px;color:var(--text);text-align:left}.wb-menu button+button{border-top:1px solid var(--line)}.wb-menu button span{flex:1}.wb-menu em{font-style:normal;font-size:12px;color:#b35c00;margin-right:6px}
+/* YouTube 频道 */
+.ytc-bn{height:92px;border-radius:14px;background:linear-gradient(120deg,#cfeff0,#e3e0f6);overflow:hidden}.ytc-bn img{width:100%;height:100%;object-fit:cover}
+.ytc-me{display:flex;align-items:center;gap:12px;padding:14px 2px 6px}.ytc-me .av{width:56px;height:56px;border-radius:28px}.ytc-me b{display:block;font-size:18px}.ytc-me span{font-size:12.5px;color:var(--muted)}
+.ytc-tabs{display:flex;gap:8px;padding:10px 0 12px;border-bottom:1px solid var(--line);margin-bottom:12px;overflow-x:auto}
+.ytc-tabs button,.pl-f button{flex:none;border:0;padding:6px 14px;border-radius:16px;background:var(--card);font-size:13px;color:var(--text);box-shadow:var(--shadow)}
+.ytc-tabs button.on,.pl-f button.on{background:var(--text);color:var(--bg)}
+.ytc-h{font-size:15px;font-weight:700;margin:16px 2px 8px}
+.ytc-pl{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;padding:8px 0;text-align:left;color:var(--text)}.ytc-pl .yt-th{width:120px;flex:none}.ytc-pl b{display:block;font-size:14px}.ytc-pl span{font-size:12px;color:var(--muted)}
+/* 企划中心 */
+.pl-f{display:flex;gap:8px;padding:2px 0 14px;overflow-x:auto}
+.pl-sec{font-size:12.5px;color:var(--muted);margin:6px 2px 6px}
+.pl-c{display:flex;align-items:center;gap:12px;width:100%;border:0;text-align:left;padding:14px;margin-bottom:10px;color:var(--text)}.pl-c>div{flex:1;min-width:0}.pl-c>i{font-style:normal;color:var(--muted)}
+.pl-tag{font-size:11.5px;padding:2px 8px;border-radius:8px;background:#e6f7f8;color:#0b5f63}.pl-tag.cb{background:#ffe6ec;color:#b3264a}.pl-tag.v{background:#ede9fb;color:#4b4380}.pl-tag.s{background:#fff1dd;color:#8a5200}
+.pl-c b{display:block;font-size:15px;margin-top:6px}.pl-c .pl-s{font-size:12px;color:var(--muted);margin-top:2px}
+.pl-bar{height:6px;border-radius:3px;background:var(--line);margin-top:10px;overflow:hidden}.pl-bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+/* KKT 列表 */
+.kt-seg{display:flex;gap:18px;padding:2px 4px 12px}.kt-seg button{border:0;background:none;padding:0 0 4px;font-size:21px;font-weight:700;color:var(--muted)}.kt-seg button.on{color:var(--text)}
+.kt-pin{font-style:normal;font-size:11px;color:var(--muted);margin-left:4px}
+.kt-me{display:flex;align-items:center;gap:12px;padding:6px 4px 14px;border-bottom:1px solid var(--line);margin-bottom:8px}.kt-me .av{width:56px;height:56px;border-radius:20px}.kt-me b{font-size:16px}
+.kt-sec{font-size:12px;color:var(--muted);margin:8px 4px 2px}
+/* 社区 */
+.cm-me{display:flex;align-items:center;gap:8px;padding:2px 4px 10px;font-size:13px;color:var(--muted)}.cm-me b{color:var(--text);font-size:14.5px}.cm-me em{font-style:normal}
+.cm-chips{display:flex;gap:8px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none}.cm-chips::-webkit-scrollbar{display:none}
+.cm-chips button{flex:none;display:flex;align-items:center;gap:6px;max-width:220px;border:0;border-radius:18px;padding:7px 12px;background:var(--card);box-shadow:var(--shadow);font-size:13px;color:var(--text)}
+.cm-chips button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cm-chips button.hot{background:#fff4e5;color:#b35c00}
+.cm-chips svg{flex:none}
+.fab{position:fixed;z-index:25;right:max(16px,calc(50vw - 264px));bottom:calc(var(--tabH,60px) + 16px);width:54px;height:54px;border:0;border-radius:27px;background:var(--text);color:var(--bg);font-size:28px;line-height:1;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+body.typing .fab{display:none}
 </style>
 </head>
 <body>
 <div id="app">
   <header class="topbar">
-    <span class="logo">SIA SPACE</span>
+    <span id="tb-l"></span>
     <span class="sp"></span>
-    <button class="iconbtn" data-act="tab" data-tab="notif" title="通知">🔔<span class="badge" id="bell-badge"></span></button>
+    <span id="tb-r"></span>
     <div id="hot-bar" data-act="hotopen" hidden></div>
   </header>
   <main id="view"></main>
   <nav class="tabbar"><div class="inner">
-    <button class="tab" data-act="tab" data-tab="feed"><span class="ic">🏠</span>社区</button>
-    <button class="tab" data-act="tab" data-tab="bubble"><span class="ic">🫧</span>Bubble<span class="badge" id="bb-badge"></span></button>
-    <button class="tab" data-act="tab" data-tab="sched"><span class="ic">🗓</span>行程</button>
-    <button class="tab" data-act="tab" data-tab="kkt"><span class="ic">💬</span>KKT<span class="badge" id="kkt-badge"></span></button>
-    <button class="tab" data-act="tab" data-tab="me"><span class="ic">🐱</span>我的</button>
+    <button class="tab" data-act="tab" data-tab="home"><span class="ic"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></span>手机</button>
+    <button class="tab" data-act="tab" data-tab="sched"><span class="ic"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span>日程</button>
+    <button class="tab" data-act="tab" data-tab="me"><span class="ic"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1-3.6 3.8-5.5 7-5.5s6 1.9 7 5.5"/></svg></span>我的</button>
   </div></nav>
 </div>
 <div id="toasts"></div>
@@ -817,7 +901,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116060512';
+const BUILD = '20261116061658';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -3444,6 +3528,7 @@ function walletHTML() {
   if (pg.startsWith('stmt:')) return walletStmtPage(pg.slice(5));
   if (pg === 'tx') return walletTxPage();
   if (pg === 'contract') return walletContractPage();
+  if (UI.tab === 'wallet') return walletBankHTML();
   const W = wallet(), mon = dkey(Date.now()).slice(0, 7), mtx = W.tx.filter(x => dkey(x.at).slice(0, 7) === mon);
   const inc = mtx.filter(x => x.amt > 0).reduce((s, x) => s + x.amt - (x.repay || 0), 0), out = -mtx.filter(x => x.amt < 0).reduce((s, x) => s + x.amt, 0);
   const pct = W.debt0 ? Math.round((W.debt0 - W.debt) / W.debt0 * 100) : 100;
@@ -3786,9 +3871,10 @@ function musicHTML() {
   if (pg === 'demos') return mHead('个人作品库', '', 'MY DEMOS') + `<div class="card">${worksHTML()}</div>`;
   if (pg === 'cb') return mHead('回归企划', '') + `<div class="card">${cbHTML()}</div>`;
   if (pg.startsWith('yt')) return typeof ytPageHTML === 'function' ? ytPageHTML(pg) : '';
+  if (pg) { UI.mPage = ''; }
   const L = released(), a = L[L.length - 1], SS = salesState(), today = dkey(Date.now());
   // 1 最新发行
-  let h = (typeof ytEntryHTML === 'function' ? ytEntryHTML() : '') + mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
+  let h = mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
   // 2 音乐成绩（只看最新作品）
   if (a) {
     const k = a.id + '|' + albTitle(a), rk = trkRanks(k), main = rk[0], rest = rk.slice(1, 4), al = SS.alb[a.id], mv = SS.mv && SS.mv[a.id];
@@ -3809,9 +3895,6 @@ function musicHTML() {
   const W = mz().works, cnt = st => W.filter(w => st.includes(w.status)).length, lastW = W.slice().sort((x, y) => ((y.sessions.slice(-1)[0] || {}).date || '').localeCompare((x.sessions.slice(-1)[0] || {}).date || '') || y.no - x.no)[0];
   const pct = w => w.status === 'revising' && w.rev ? Math.round(w.rev.prog / w.rev.need * 100) : Math.round((w.prog || 0) / (w.need || 1) * 100);
   h += mSec('个人作品库', 'MY DEMOS') + `<div class="card m-demo"><div class="m-three"><div><b>${cnt(['writing', 'revising'])}</b><span>创作中</span></div><div><b>${cnt(['demo'])}</b><span>已完成</span></div><div><b>${cnt(['submitted'])}</b><span>审核中</span></div></div>${lastW ? `<div class="m-hl">${esc(mzTitle(lastW))} · ${MZ_ST[lastW.status] || ''}${mzOpen(lastW) ? ` · ${pct(lastW)}%` : ''}</div>` : ''}${mGo('demos', '进入作品库')}</div>`;
-  // 7 回归企划
-  const c = S.cb, ca = cbAlbum(), live = c && !c.over && ca;
-  h += mSec('回归企划') + `<button class="card w-ct" data-act="mgo" data-p="cb"><div><b>${live ? `《${esc(ca.name)}》` : '准备下一次发行'}</b><span>${live ? (c.tbd ? '企划中 · 日期待定' : cbDay() > 0 ? `${c.date.replace(/-/g, '.')} 回归 · D-${cbDay()}` : '活动中') : '开始新的音乐企划'}</span></div><i>›</i></button>`;
   // 8 官方 YouTube
   return h;
 }
@@ -4393,7 +4476,7 @@ function mgrChatter() {
   if (win) once('win' + win.at, () => mgrSay(['1위 축하해요 🎉', '恭喜一位 🎉']));
   const W = wallet(); if (W.debt <= 0 && W.debt0 > 0) once('debtfree', () => mgrSay(['연습생 비용 정산 끝났어요.', '练习生费用结清了。']));
 }
-function viewKkt() { return `<div class="sec-title" style="display:flex;align-items:center"><span style="flex:1">💬 KKT</span><button class="link muted" data-act="serimopen" title="" style="font-size:13px;opacity:.35;padding:0 4px">···</button></div><div class="kk-list">${dmListHTML(true)}</div>${socHistHTML()}`; }
+function viewKkt() { return kktHTML(); }
 // 每晚 21:00~次日 03:00 之间某个时间，经纪人发当天的日程报告（只报行程执行和经费，收入由财务按月结算）
 function mgrReportAt(dk) { const r = srng('rep3' + dk), last = Math.max(0, ...dayItems(dk).filter(({ r }) => !isPrivRule(r)).map(({ r: x, off }) => (toMin(x.end) <= toMin(x.start) ? toMin(x.end) + 1440 : toMin(x.end)) + off)), from = Math.max(21 * 60, last + 20), to = Math.max(28 * 60, from + 40); return parseD(dk).getTime() + (from + Math.floor(r() * (to - from))) * 60e3 + Math.floor(r() * 59) * 1e3; } // 当晚 21:00 到次日凌晨 4:00 之间随机（行程没结束不会先发）
 // 一整天都在宿舍（或没有行程）就不发日报
@@ -6642,7 +6725,7 @@ setInterval(() => {
 /* =========================================================
    UI 状态 & 渲染
    ========================================================= */
-const UI = { tab: 'feed', postId: null, sort: 'new', schedDate: dkey(Date.now() - 300 * 60e3), replyTo: null, newHot: 0 };
+const UI = { tab: 'home', postId: null, sort: 'new', schedDate: dkey(Date.now() - 300 * 60e3), replyTo: null, newHot: 0 };
 let draft = '', pending = [], draftTags = [], draftDesc = '';
 const view = $('#view');
 
@@ -6678,7 +6761,7 @@ if (window.visualViewport) { visualViewport.addEventListener('resize', vvFit); v
 document.addEventListener('focusin', () => setTimeout(vvFit, 80)); document.addEventListener('focusout', () => setTimeout(vvFit, 200));
 function render() {
   if (UI.ptrView) { UI._pendRender = 1; return; }
-  $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === (UI.tab === 'live' ? 'feed' : UI.tab)));
+  const navT = UI.tab === 'sched' || UI.tab === 'me' ? UI.tab : 'home'; $$('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === navT)); tbSet();
   let h = '';
   try {
   if (UI.tab === 'feed') h = UI.postId ? viewPost() : viewFeed();
@@ -6687,11 +6770,16 @@ function render() {
   else if (UI.tab === 'bubble') h = viewBubble();
   else if (UI.tab === 'notif') h = viewNotif();
   else if (UI.tab === 'kkt') h = viewKkt();
+  else if (UI.tab === 'home') h = viewHome();
+  else if (UI.tab === 'yt') h = ytAppHTML();
+  else if (UI.tab === 'music') h = musicHTML();
+  else if (UI.tab === 'plans') h = plansHTML();
+  else if (UI.tab === 'wallet') h = walletHTML();
   else h = viewMe();
   } catch (err) { console.error('render', UI.tab, err); h = `<div class="card" style="margin-top:14px"><b>这个页面出错了，打不开</b><div class="muted" style="font-size:12.5px;margin:8px 0;word-break:break-all">页面：${esc(UI.tab)}<br>${esc(String(err && err.message || err))}<br>${esc(String(err && err.stack || '').split('\n').slice(0, 3).join(' / ')).slice(0, 300)}</div><div class="muted" style="font-size:12.5px">把这一屏截图发给我就能修。</div></div>`; } /* 页面出错时不再「点了没反应」：直接把错误显示出来 */
   view.innerHTML = h;
   view.classList.toggle('flush', UI.tab === 'bubble' && !!S.bubble.welcome);
-  document.body.classList.toggle('bbmode', UI.tab === 'bubble' && !!S.bubble.welcome);
+  document.body.classList.toggle('bbmode', UI.tab === 'bubble' && !!S.bubble.welcome); document.body.classList.toggle('homemode', UI.tab === 'home');
   if (document.body.classList.contains('bbmode')) window.scrollTo(0, 0);
   layoutVars();
   hydrate(view);
@@ -6714,15 +6802,14 @@ function feedListHTML() {
 }
 function viewFeed() {
   const p = S.profile, sub = UI.feedSub === 'media' ? 'media' : 'feed', n = (fanState().days[dkey(Date.now())] || { net: 0 }).net;
-  const hero = `<div class="card hero">${avatarHTML('md')}<div style="flex:1;min-width:0"><div class="hero-nm">${esc(p.name)}<span class="artist">ARTIST</span></div>${p.bio ? `<div class="muted hero-bio">${esc(p.bio)}</div>` : ''}</div>
-    <div class="hero-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)}</b><span>今日</span></div></div></div>`;
+  const hero = `<div class="cm-me">${avatarHTML('sm')}<b>${esc(p.name)}</b><span class="artist">ARTIST</span><span class="sp"></span><em>粉丝 <b data-fol>${fmtNum(p.followers)}</b> · 今日 <b style="color:${n >= 0 ? 'var(--accent)' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)}</b></em></div>`;
   if (sub === 'media') {
     const L = S.posts.filter(x => x.media.length), OF = ((S.off || { posts: [] }).posts || []).filter(x => x.media.length).sort((a, b) => b.at - a.at);
     const offTiles = OF.flatMap(x => x.media.filter(m => m.type !== 'video').map(m => m.id || m).map(id => `<div class="mg"><img data-mid="${id}" alt=""><i class="mg-n" style="font-size:9.5px">OFFICIAL</i></div>`)).join('');
-    return feedNav('media') + hero + (offTiles && !L.length ? `<div class="mgrid">${offTiles}</div>` : '') + (L.length ? `<div class="mgrid">${offTiles}${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : (offTiles ? '' : '<div class="empty">还没有发过图片或视频</div>'));
+    return hero + feedNav('media') + (offTiles && !L.length ? `<div class="mgrid">${offTiles}</div>` : '') + (L.length ? `<div class="mgrid">${offTiles}${L.flatMap(x => x.media.map(m => `<div class="mg" data-act="open" data-id="${x.id}">${m.type === 'video' ? `<video data-mid="${m.id}" muted playsinline preload="metadata"></video><i class="mg-ic">▶</i>` : `<img data-mid="${m.id}" alt="">`}</div>`)).join('')}</div>` : (offTiles ? '' : '<div class="empty">还没有发过图片或视频</div>'));
   }
   const open = UI.cmpOpen || pending.length > 0;
-  return `${feedNav('feed')}${hero}${quickHTML()}
+  return `${hero}${feedNav('feed')}${quickHTML()}
   ${open ? `<div class="card composer">
     <textarea id="cmp-text" placeholder="和粉丝们分享点什么吧…"></textarea>
     <div id="cmp-prev" class="cmp-prev"></div>
@@ -6734,15 +6821,15 @@ function viewFeed() {
       <button class="link" data-act="cmpclose" style="font-size:13.5px;margin-right:6px">收起</button>
       <button class="btn primary sm" data-act="publish">发布</button>
     </div>
-  </div>` : `<button class="card cmp-bar" data-act="cmpopen">${avatarHTML('sm')}<span${draft.trim() ? ' class="has"' : ''}>${draft.trim() ? esc(draft.trim().split('\n')[0]) : '和粉丝们分享点什么吧…'}</span><i>🖼</i></button>`}
+  </div>` : `<button class="fab" data-act="cmpopen" title="发帖">${draft.trim() ? '✎' : '＋'}</button>`}
   ${feedListHTML()}`;
 }
 // 社区顶部的快捷入口：最新发行 / 热搜 / 官方 YouTube
 function quickHTML() {
-  const a = released().slice(-1)[0], H = hotState(), hc = H.cur, hl = !hc && H.hist.length ? H.hist[H.hist.length - 1] : null, n = ytAll().length;
-  return `<div class="qk"><button class="card qk-c big" ${a ? `data-act="qgo" data-to="alb:${a.id}"` : 'data-act="qgo" data-to="works"'}>${a ? albCover(a, 'sm') : '<span class="qk-i">💿</span>'}<div><span>最新发行</span><b>${a ? esc(a.name) : '暂无'}</b>${a ? `<em>${a.date.slice(5).replace('-', '/')}</em>` : ''}</div></button>
-    <button class="card qk-c${hc ? ' hot' : ''}" ${hc ? 'data-act="hotopen"' : hl ? `data-act="hotopen" data-k="${hl.key || ''}"` : 'data-act="qgo" data-to="hot"'}><span class="qk-i">🔥</span><div><span>${hc ? '热搜 · 发酵中' : '热搜'}</span><b>${hc ? '#' + esc(hc.title) + '#' : hl ? '#' + esc(hl.title) + '#' : '最近没有'}</b></div></button>
-    <button class="card qk-c" data-act="qgo" data-to="yt"><span class="qk-i">${YT_IC}</span><div><span>官方 YouTube</span><b>视频 ${n}</b></div></button></div>`;
+  const a = released().slice(-1)[0], H = hotState(), hc = H.cur, hl = !hc && H.hist.length ? H.hist[H.hist.length - 1] : null;
+  return `<div class="cm-chips"><button ${a ? `data-act="qgo" data-to="alb:${a.id}"` : 'data-act="qgo" data-to="works"'}>💿<span>${a ? '最新 · ' + esc(a.name) : '作品'}</span></button>
+    <button class="${hc ? 'hot' : ''}" ${hc ? 'data-act="hotopen"' : hl ? `data-act="hotopen" data-k="${hl.key || ''}"` : 'data-act="qgo" data-to="hot"'}>🔥<span>${hc ? '#' + esc(hc.title) + '#' : hl ? '#' + esc(hl.title) + '#' : '热搜'}</span></button>
+    <button data-act="qgo" data-to="yt">${YT_IC.replace('width="26" height="18"', 'width="20" height="14"')}<span>YouTube</span></button></div>`;
 }
 function mediaHTML(post, full) {
   if (!post.media.length) return '';
@@ -6927,13 +7014,15 @@ function openNotif(n) {
   } else if (n.type === 'sched') { UI.tab = 'sched'; render(); }
   else if (n.type === 'live') { UI.tab = 'live'; render(); }
   else if (n.type === 'hot') openModal(hotPostHTML(n.key || hotState().cur?.key));
-  else if (n.type === 'cb') { UI.tab = 'me'; render(); }
+  else if (n.type === 'cb') { UI.tab = 'plans'; UI.mPage = 'cb'; render(); window.scrollTo(0, 0); }
 }
 function updBadges() {
   const n = S.notifs.filter(x => !x.read).length; const t = n ? (n > 99 ? '99+' : String(n)) : '';
-  $('#bell-badge').textContent = t; const kb = $('#kkt-badge'), ku = ((S.mgr && S.mgr.unread) || 0) + Object.values((S.social && S.social.dm) || {}).reduce((a, T) => a + (T.unread || 0), 0); if (kb) kb.textContent = ku ? (ku > 99 ? '99+' : String(ku)) : '';
+  const bl = $('#bell-badge'); if (bl) bl.textContent = t; const kb = $('#kkt-badge'), ku = ((S.mgr && S.mgr.unread) || 0) + Object.values((S.social && S.social.dm) || {}).reduce((a, T) => a + (T.unread || 0), 0); if (kb) kb.textContent = ku ? (ku > 99 ? '99+' : String(ku)) : '';
   const bb = $('#bb-badge'), u = (S.bubble && S.bubble.unread) || 0;
   if (bb) { bb.classList.toggle('dot', !!(u && S.bubble.muted)); bb.textContent = u && !S.bubble.muted ? (u > 99 ? '99+' : String(u)) : ''; }
+  const n99 = x => x ? (x > 99 ? '99+' : String(x)) : '', hb = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
+  hb('hb-kkt', n99(ku)); hb('hb-feed', t); hb('hb-plans', n99(plansTodo())); { const el = $('#hb-bubble'); if (el) { el.classList.toggle('dot', !!(u && S.bubble.muted)); el.textContent = u && !S.bubble.muted ? n99(u) : ''; } }
   appBadge(ku + (S.bubble && !S.bubble.muted ? u : 0));
 }
 /* 桌面图标上的未读角标（KKT + 泡泡）：主屏幕版、iOS 16.4 以上、允许了通知才有；页面在运行时更新，关掉后停在最后的数字 */
@@ -9612,7 +9701,7 @@ function dmHTML(key) {
     ${T.call && !T.call.done ? `<div class="kk-opts"><button class="hot-opt" data-act="dmcall" data-k="${esc(key)}">📞 보이스톡</button></div>` : ''}
     <div class="kk-bar"><button class="kk-emo${UI.kkStk ? ' on' : ''}" data-act="kkstk" data-k="${esc(key)}" title="이모티콘">☺︎</button><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
     ${UI.kkStk ? kkStkHTML(key) : ''}
-    <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div></aside></div>`;
+    <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div>${key === SR_K ? `<div class="kk-dr-sec">관리</div><div class="kk-dr-it" data-act="serimopen"><span style="padding-left:4px">세림 관리</span></div>` : ''}</aside></div>`;
 }
 // 📞 约好的电话：聊天里出现「보이스톡」，打过去后电话里说的事会记进你们的记忆，之后有后续
 function dmCallSet(T, topic, soon) { if (T.call && !T.call.done) { if (soon && T.call.ringAt && T.call.ringAt > Date.now() + 3 * 60e3) { T.call.ringAt = Date.now() + rand(.5, 2) * 60e3; T.call.soon = 1; } return; } const td = socTodo(T.p, 'call', '说好打个电话', 'both'); T.call = { at: Date.now(), td: td.id, ringAt: Date.now() + (soon ? rand(.5, 2) * 60e3 : rand(.3, 3) * 3600e3), soon: soon ? 1 : 0, tries: 0, ...(topic != null ? { topic: topic || '刚才聊的事' } : {}) }; }
@@ -11450,31 +11539,158 @@ function hotPanelHTML() {
     .concat(H.hist.slice(-5).reverse().map(x => `<button class="hot-card" data-act="hotopen" data-k="${x.key || ''}"><div class="hc-t">#${esc(x.title)}#</div><div class="hc-d">${esc(x.choice)} · ${esc(x.result)}</div><div class="hc-m"><em>已平息</em>${x.at ? `<span>${when(x.at)}</span>` : ''}${x.net ? `<b class="${x.net > 0 ? 'pos' : 'neg'}">${x.net > 0 ? '+' : ''}${fmtNum(x.net)}</b>` : ''}</div></button>`));
   return cards.length ? `<div class="hots">${cards.join('')}</div>` : '<div class="card muted" style="text-align:center;padding:22px 10px">最近没有热搜</div>';
 }
+
+/* ===== 新界面：手机首页 ===== */
+const APP_BG = { feed: 'linear-gradient(180deg,#9ad7d3,#6fbfbb)', bubble: 'linear-gradient(180deg,#a9c8ec,#83aade)', music: 'linear-gradient(180deg,#f4b9c9,#e695ac)', plans: 'linear-gradient(180deg,#c3b5ee,#a392e0)', wallet: 'linear-gradient(180deg,#8f9db8,#6c7a97)' };
+const APP_G = p => `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const APP_IC = {
+  kkt: '<svg width="34" height="34" viewBox="0 0 24 24" fill="#3b1e1e"><path d="M12 4.5c-4.9 0-8.5 3-8.5 6.6 0 2.3 1.5 4.3 3.8 5.4L6.6 20l3.8-2.5c.5.1 1 .1 1.6.1 4.9 0 8.5-3 8.5-6.6S16.9 4.5 12 4.5z"/></svg>',
+  feed: APP_G('<path d="M5 18.5c0-4 3.1-7 7-7s7 3 7 7"/><circle cx="12" cy="7" r="2.6"/>'),
+  bubble: APP_G('<circle cx="10" cy="11" r="5"/><circle cx="17" cy="16.5" r="2.6"/><circle cx="17.5" cy="7" r="1.4"/>'),
+  yt: '<svg width="36" height="26" viewBox="0 0 28 20"><rect width="28" height="20" rx="6" fill="#ff0000"/><path d="M11 6l7 4-7 4z" fill="#fff"/></svg>',
+  music: APP_G('<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/>'),
+  plans: APP_G('<rect x="5" y="5.5" width="14" height="14" rx="3"/><path d="M5 10h14M9 3.5v3M15 3.5v3M10 14.5l1.5 1.5 3-3"/>'),
+  wallet: APP_G('<rect x="4" y="6.5" width="16" height="12" rx="3"/><path d="M4 10.5h16M15 15h2"/>'),
+};
+const APPS = [['kkt', 'KKT', '#fee500'], ['feed', '社区'], ['bubble', '泡泡'], ['yt', 'YouTube', '#ffffff'], ['music', '音乐库'], ['plans', '企划中心'], ['wallet', '钱包']];
+// 企划中心角标：要你动手的企划（需要修改 / 可以发布 / 自己拍的拍好了没）
+function plansTodo() { try { return yt().plans.filter(p => p.st === 'fix' || p.st === 'ready' || p.st === 'ask' || (p.st === 'shoot' && ytLight(p))).length; } catch (e) { return 0; } }
+function homeWidgetHTML() {
+  const dk = logicalToday(), d = parseD(dk), now = new Date(), nm = now.getHours() * 60 + now.getMinutes() + (dkey(now) !== dk ? 1440 : 0), SC = S.schedule;
+  const L = dayItems(dk).map(({ r, dk: rk, off }) => { const a = toMin(r.start) + off; let b = toMin(r.end) + off; if (b <= a) b += 1440; const done = !!(SC.done || {})[rk + '|' + r.id] || b <= nm; return { r, a, b, done, now: !done && a <= nm && nm < b }; }).sort((x, y) => x.a - y.a);
+  const first = L.findIndex(x => !x.done), st = first < 0 ? Math.max(0, L.length - 3) : Math.max(0, first - 1), V = L.slice(st, st + 4);
+  const hm = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  return `<button class="hm-wg" data-act="tab" data-tab="sched"><div class="hm-wh"><i><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16"/></svg></i><b>今天</b><span>${d.getMonth() + 1}/${d.getDate()} 周${WD[d.getDay()]}</span></div>
+    ${V.length ? `<div class="hm-wl">${V.map(x => `<div class="hm-wi${x.done ? ' done' : x.now ? ' now' : ''}"><em>${hm(x.a)}</em><i></i><span>${esc(x.r.title)}</span>${x.now ? '<b>通告</b>' : ''}</div>`).join('')}</div>${L.length > V.length ? `<div class="hm-we" style="margin-top:8px;font-size:12px">共 ${L.length} 项</div>` : ''}` : '<div class="hm-we">今天没有行程</div>'}</button>`;
+}
+function viewHome() {
+  return `<div class="hm">${homeWidgetHTML()}<div class="hm-grid">${APPS.map(([k, t, bg]) => `<button class="hm-app" data-act="tab" data-tab="${k}"><div class="hm-ic" style="background:${bg || APP_BG[k]}">${APP_IC[k]}${['kkt', 'feed', 'bubble', 'plans'].includes(k) ? `<span class="badge" id="hb-${k}"></span>` : ''}</div>${t}</button>`).join('')}</div></div>`;
+}
+// 顶栏：首页 / 日程 / 我的 不显示（有热搜时只显示热搜条）；应用里是「‹ 应用名」
+function tbSet() {
+  const top = $('.topbar'), L = $('#tb-l'), R = $('#tb-r'); if (!top || !L || !R) return;
+  const back = (to = 'home') => `<button class="tb-back" data-act="tab" data-tab="${to}"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>`;
+  const T = UI.tab, plain = T === 'home' || T === 'sched' || T === 'me';
+  top.classList.toggle('tb-hide', plain);
+  if (plain) { L.innerHTML = ''; R.innerHTML = ''; return; }
+  const title = { feed: '社区', live: '社区', notif: '通知', kkt: 'KKT', bubble: '泡泡', music: '音乐库', plans: '企划中心', wallet: '钱包' }[T] || '';
+  L.innerHTML = T === 'yt' ? back() + YT_IC + '<b class="tb-t">Cyan Official</b>' : back(T === 'notif' || T === 'live' ? 'feed' : 'home') + `<b class="tb-t">${title}</b>`;
+  R.innerHTML = T === 'feed' || T === 'live' ? `<button class="tb-ic" data-act="tab" data-tab="notif" title="通知"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span class="badge" id="bell-badge"></span></button>`
+    : T === 'wallet' && !UI.wPage ? `<button class="tb-ic" data-act="wmenu" title="更多"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h9"/></svg></button>`
+    : T === 'plans' && !UI.mPage ? '<button class="tb-btn" data-act="mgo" data-p="ytnew">＋ 新企划</button>' : '';
+}
+/* ===== KKT：친구 / 채팅 ===== */
+function kktHTML() {
+  const tab = UI.kkTab === 'friend' ? 'friend' : 'chat';
+  const seg = `<div class="kt-seg"><button class="${tab === 'friend' ? 'on' : ''}" data-act="kktab" data-k="friend">친구</button><button class="${tab === 'chat' ? 'on' : ''}" data-act="kktab" data-k="chat">채팅</button></div>`;
+  const D = Object.values(dms()).filter(T => T.msgs.length && T.p && T.p.key), row = T => { const m = T.msgs[T.msgs.length - 1], pin = T.p.key === SR_K; return `<div class="card mgr-card" data-act="dmopen" data-k="${esc(T.p.key)}">${kAv(T.p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(T.p))}</b>${pin ? '<em class="kt-pin">📌</em>' : ''}<div class="muted" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.sys || (m.me ? '我：' : '') + (m.stk ? '이모티콘' : m.ph ? '사진' : m.call ? '보이스톡' : (m.text || '')))}</div></div>${T.unread ? `<span class="mgr-u">${T.unread > 99 ? '99+' : T.unread}</span>` : `<span class="muted" style="font-size:12px">${ago(m.at)}</span>`}</div>`; };
+  if (tab === 'chat') {
+    const mc = mgrChat().chat, mAt = mc.length ? mc[mc.length - 1].at : 0;
+    const L = D.map(T => [T.p.key === SR_K ? Infinity : T.msgs[T.msgs.length - 1].at, row(T)]);
+    if (mc.length) L.push([mAt, mgrCardHTML()]);
+    L.sort((a, b) => b[0] - a[0]);
+    return seg + (L.length ? `<div class="kk-list">${L.map(x => x[1]).join('')}</div>` : '<div class="empty">还没有聊天</div>');
+  }
+  const has = new Set(), ppl = [];
+  const add = p => { if (!p || !p.key || has.has(p.key)) return; has.add(p.key); ppl.push(p); };
+  try { add(srP()); } catch (e) { }
+  const rank = { best: 0, close: 1, friend: 2, acq: 3 };
+  chal().friends.filter(f => f.g).sort((a, b) => (rank[a.lv] ?? 4) - (rank[b.lv] ?? 4)).map(friendP).forEach(add);
+  D.forEach(T => add(T.p));
+  return seg + `<div class="kt-me">${avatarHTML()}<b>${esc(S.profile.name)}</b></div>
+    <div class="kt-sec">친구 ${ppl.length + 1}</div><div class="kk-list">${mgrCardHTML().replace(/<div class="muted"[\s\S]*?<\/div>(<\/div>)<span[\s\S]*?<\/span><\/div>$/, '$1</div>').replace('id="mgr-card" ', '')}${ppl.map(p => `<div class="card mgr-card" data-act="dmopen" data-k="${esc(p.key)}">${kAv(p.key, 'mgr-av')}<div style="flex:1;min-width:0"><b>${esc(socDisp(p))}</b>${p.g ? `<div class="muted" style="font-size:12.5px">${esc(p.g)}</div>` : ''}</div></div>`).join('')}</div>${socHistHTML()}`;
+}
+/* ===== YouTube：只有频道页 ===== */
+function ytSubs() { const all = ytAll(), v = all.reduce((a, x) => a + (x.views || 0), 0); return Math.round((S.profile.followers || 0) * .42 + v * .004); }
+const fmtWan = n => n >= 1e4 ? (n / 1e4).toFixed(n >= 1e5 ? 0 : 1).replace(/\.0$/, '') + '万' : fmtNum(n);
+function ytAppHTML() {
+  const pg = UI.mPage || '';
+  if (pg.startsWith('ytv:')) return ytVideoHTML(pg.slice(4));
+  if (pg && pg !== 'yt') return ytPageHTML(pg);
+  const all = ytAll(), vids = all.filter(x => !x.short), shorts = all.filter(x => x.short), tab = ['h', 'v', 's', 'l'].includes(UI.ytTab) ? UI.ytTab : 'h';
+  const vrow = x => `<button class="yt-v" data-act="mgo" data-p="ytv:${x.id}">${ytThumb(x)}<div><b>${esc(x.title)}</b><span>观看 ${fmtWan(x.views || 0)} 次 · ${ago(x.at)}</span></div></button>`;
+  const sgrid = L => `<div class="yt-sg">${L.map(x => `<button class="yt-s" data-act="mgo" data-p="ytv:${x.id}">${ytThumb(x, 's')}<b>${esc(x.title)}</b><span>${fmtWan(x.views || 0)} 次观看</span></button>`).join('')}</div>`;
+  const none = t => `<div class="card muted" style="text-align:center">${t}</div>`;
+  let body;
+  if (tab === 'v') body = vids.length ? `<div class="yt-vl">${vids.map(vrow).join('')}</div>` : none('还没有视频');
+  else if (tab === 's') body = shorts.length ? sgrid(shorts) : none('还没有 Shorts');
+  else if (tab === 'l') { const G = {}; for (const x of all) (G[x.kind] || (G[x.kind] = [])).push(x); const E = Object.entries(G); body = E.length ? E.map(([k, L]) => `<button class="ytc-pl" data-act="mgo" data-p="ytv:${L[0].id}">${ytThumb(L[0])}<div><b>${esc(k)}</b><span>${L.length} 个视频</span></div></button>`).join('') : none('还没有播放列表'); }
+  else body = all.length ? (vids.length ? `<div class="ytc-h">视频</div><div class="yt-vl">${vids.slice(0, 4).map(vrow).join('')}</div>` : '') + (shorts.length ? `<div class="ytc-h">Shorts</div>${sgrid(shorts.slice(0, 4))}` : '') : none('频道还没有发布内容');
+  return `<div class="ytc-bn">${S.profile.cover ? `<img data-mid="${S.profile.cover}" alt="">` : ''}</div>
+    <div class="ytc-me">${avatarHTML()}<div><b>${esc(S.profile.name)}</b><span>@${esc(S.profile.name.replace(/\s+/g, '').toUpperCase())}official · 订阅者 ${fmtWan(ytSubs())} · 视频 ${all.length}</span></div></div>
+    <div class="ytc-tabs">${[['h', '首页'], ['v', '视频'], ['s', 'Shorts'], ['l', '播放列表']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-act="ytctab" data-k="${k}">${t}</button>`).join('')}</div>${body}`;
+}
+/* ===== 企划中心：回归企划 + YouTube 企划 ===== */
+function plansHTML() {
+  const pg = UI.mPage || '';
+  if (pg === 'cb') return mHead('回归企划', '') + `<div class="card">${cbHTML()}</div>`;
+  if (pg.startsWith('yt') && pg !== 'yt') return ytPageHTML(pg);
+  const Y = yt(), F = { rev: ['ask', 'sub', 'rev', 'coord', 'fix'], ing: ['ok', 'sched', 'booked', 'shoot', 'post'], ready: ['ready'], pub: ['pub'], off: ['no', 'hold', 'cancel'] };
+  const f = Object.keys(F).includes(UI.plF) ? UI.plF : 'all', cnt = k => Y.plans.filter(p => F[k].includes(p.st)).length;
+  const chips = [['all', '全部', 0], ['ing', '进行中', cnt('ing')], ['rev', '审核中', cnt('rev')], ['ready', '待发布', cnt('ready')], ['pub', '已发布', 0], ['off', '未通过', 0]].filter(([k, , n]) => k === 'all' || k === 'pub' || n || k === f || (k === 'off' && cnt('off')));
+  let h = `<div class="pl-f">${chips.map(([k, t, n]) => `<button class="${f === k ? 'on' : ''}" data-act="plf" data-k="${k}">${t}${n ? ' ' + n : ''}</button>`).join('')}</div>`;
+  if (f === 'all' || f === 'ing') {
+    const c = S.cb, a = cbAlbum(), live = c && !c.over && a, o = prepOn();
+    const steps = o ? PREP_T.filter(([k]) => o.t[k]) : [], done = steps.filter(([k]) => o.t[k].done), nx = steps.find(([k]) => !o.t[k].done);
+    h += `<div class="pl-sec">回归</div>` + (live ? `<button class="card pl-c" data-act="mgo" data-p="cb"><div><div class="row" style="gap:8px"><span class="pl-tag cb">回归企划</span><span class="sp"></span><span class="muted" style="font-size:12px">${c.tbd ? '日期待定' : cbDay() > 0 ? 'D-' + cbDay() : '活动中'}</span></div><b>《${esc(a.name)}》</b>${o && steps.length ? `<div class="pl-bar"><i style="width:${Math.round(done.length / steps.length * 100)}%"></i></div><div class="pl-s" style="margin-top:6px">${nx ? `已完成 ${done.length}/${steps.length} · 下一步：${esc(nx[1])}` : '准备都完成了'}</div>` : `<div class="pl-s">${c.tbd ? '企划中' : c.date.replace(/-/g, '.') + ' 回归'}</div>`}</div><i>›</i></button>`
+      : `<button class="card pl-c" data-act="mgo" data-p="cb"><div><span class="pl-tag cb">回归企划</span><b>准备下一次发行</b><div class="pl-s">开始新的音乐企划</div></div><i>›</i></button>`);
+  }
+  const tg = p => p.cat === 'vlog' || p.cat === 'special' ? 'v' : p.cat === 'shorts' ? 's' : '';
+  const L = Y.plans.filter(p => f === 'all' ? !F.off.includes(p.st) && p.st !== 'pub' : F[f].includes(p.st)).slice().reverse();
+  const card = p => { const sl = S.schedule.rules.find(x => x.id === p.rule); return `<button class="card pl-c" data-act="mgo" data-p="ytp:${p.id}"><div><div class="row" style="gap:6px"><span class="pl-tag ${tg(p)}">${YT_CAT[p.cat][0]}</span><span class="muted" style="font-size:12px">${YT_ST[p.st]}</span></div><b>${esc(p.title)}${p.collab ? ` <span class="muted" style="font-size:12px;font-weight:400">with ${esc(socName(p.collab))}</span>` : ''}</b><div class="pl-s">${sl && sl.date ? `拍摄 ${+sl.date.slice(5, 7)}/${+sl.date.slice(8)} ${sl.start}` : p.by === 'co' ? '公司安排' : ytFmt(p)[1]}</div></div><i>›</i></button>`; };
+  h += `<div class="pl-sec" style="margin-top:8px">YouTube</div>` + (L.length ? L.map(card).join('') : `<div class="card muted" style="text-align:center">${f === 'all' ? '现在没有进行中的 YouTube 企划' : '没有'}</div>`);
+  return h;
+}
+/* ===== 钱包：像银行 app ===== */
+function walletMenuHTML() {
+  const W = wallet(), mon = dkey(Date.now()).slice(0, 7), mtx = W.tx.filter(x => dkey(x.at).slice(0, 7) === mon);
+  const inc = mtx.filter(x => x.amt > 0).reduce((s, x) => s + x.amt - (x.repay || 0), 0), out = -mtx.filter(x => x.amt < 0).reduce((s, x) => s + x.amt, 0);
+  return `<div class="row"><h3 style="flex:1;margin:0">钱包</h3><button class="link" data-act="close">关闭</button></div>
+    <div class="muted" style="font-size:13px;margin:8px 0 4px">本月收入 <b class="pos">+${won(inc)}</b> · 支出 <b>−${won(out)}</b></div>
+    <div class="wb-menu"><button data-act="wmgo" data-p="tx"><span>全部流水</span>›</button><button data-act="wmgo" data-p="settle"><span>结算明细 · 历史结算单</span>›</button><button data-act="wmgo" data-p="contract"><span>专属合同</span>${W.contract.offer ? '<em>续约提议</em>' : ''}›</button></div>`;
+}
+function walletBankHTML() {
+  const W = wallet(), R = W.recv || [], today = dkey(Date.now()), mon = today.slice(0, 7), sum = (a, k) => a.reduce((t, x) => t + (x[k] || 0), 0);
+  const pend = R.filter(x => x.st === 'pend' && x.gross > 0), paid = R.filter(x => x.st === 'paid'), ded = sum(R.filter(x => x.gross > 0 || FINE_SRC.includes(x.src)), 'cost');
+  const next = setDk(W.setMon === mon || +today.slice(8) >= SETTLE_DAY ? addMonths(mon, 1) : mon), pct = W.debt0 ? Math.round((W.debt0 - W.debt) / W.debt0 * 100) : 100;
+  const L = W.tx.slice(0, 6), row = x => { const d = new Date(x.at), amt = x.amt - (x.repay || 0); return `<div class="w-tx"><div class="w-tx-l"><div class="w-tx-t">${esc(x.note || x.cat)}</div><div class="w-tx-s">${d.getMonth() + 1}月${d.getDate()}日 · ${esc(x.cat)}</div></div>${x.owe ? `<b class="neg">欠款 +${won(x.owe)}</b>` : `<b class="${amt > 0 ? 'pos' : 'zero'}" style="${amt < 0 ? 'color:var(--text)' : ''}">${amt > 0 ? '+' : amt < 0 ? '−' : ''}${won(Math.abs(amt))}</b>`}</div>`; };
+  return `<div class="wb-top"><span>我的账户 · ${esc((S.profile.company || 'STARSHIP').trim().toUpperCase())} 结算</span><div class="wb-bal">${won(W.bal)}</div>${W.debt0 > 0 && W.debt > 0 ? `<div class="wb-debt">练习生欠款 ${won(W.debt)} · 已还 ${pct}%</div>` : ''}
+      <div class="wb-btns"><button data-act="wsheet">记一笔</button><button data-act="wgo" data-p="settle">结算单</button></div></div>
+    <button class="wb-card" data-act="wgo" data-p="settle"><span>下次结算 · ${+next.slice(5, 7)}月${+next.slice(8)}日</span><b>已到账待结算 ${won(sum(paid, 'gross'))}</b><span>待付款 ${pend.length} 笔${pend.length ? ' · ' + won(sum(pend, 'gross')) : ''}${ded ? ` · 待扣费用 −${won(ded)}` : ''}</span></button>
+    ${W.contract.offer ? `<button class="wb-alert" data-act="wgo" data-p="contract"><span>公司发来一份续约提议</span>›</button>` : ''}
+    <div class="wb-h"><b>最近</b>${W.tx.length > 6 ? '<button class="link" data-act="wgo" data-p="tx">全部 ›</button>' : ''}</div>
+    <div class="card w-list">${L.length ? L.map(row).join('') : '<div class="muted" style="padding:8px 0">还没有记录</div>'}</div>`;
+}
+/* ===== 我的 ===== */
+function meTrendHTML() {
+  const F = fanState(), today = dkey(Date.now()), net = k => (F.days[k] || { net: 0 }).net, rng = UI.fanRange === 30 ? 30 : 7, first = Object.keys(F.days).sort()[0] || today;
+  const days = Array.from({ length: rng }, (_, i) => addDays(today, i - rng + 1)).filter(k => k >= first), mx = Math.max(1, ...days.map(k => Math.abs(net(k))));
+  return `<div class="card me-tr"><div class="me-trh"><b>粉丝趋势</b><div class="seg2">${[7, 30].map(n => `<button class="${rng === n ? 'on' : ''}" data-act="fanrange" data-n="${n}">${n} 天</button>`).join('')}</div></div>
+    <div class="me-bars${rng === 30 ? ' r30' : ''}">${days.map(k => { const n = net(k), h = Math.max(n ? 6 : 0, Math.round(Math.abs(n) / mx * 100)); return `<div class="${k === today ? 'on' : ''}"><div class="u">${n > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="d">${n < 0 ? `<i style="height:${h}%"></i>` : ''}</div></div>`; }).join('')}</div>
+    <button class="me-row" data-act="metab" data-k="fans"><div>粉丝变化来源</div><i>›</i></button></div>`;
+}
+function meRootHTML() {
+  const p = S.profile, n = (fanState().days[dkey(Date.now())] || { net: 0 }).net, L = released(), a = L[L.length - 1];
+  return `<div class="card me-hd"><div class="me-hr"><label class="me-av" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label><div style="flex:1;min-width:0"><div class="me-nm">${esc(p.name)}</div><div class="me-co">${esc(coName())}</div></div></div>
+    <div class="me-st"><div><span>粉丝</span><b data-fol>${fmtNum(p.followers)}</b><span style="color:${n >= 0 ? '#1f9d55' : 'var(--danger)'}">${n >= 0 ? '+' : ''}${fmtNum(n)} 今日</span></div><div><span>已发行</span><b>${L.length} 张</b><span>${a ? '最新 ' + esc(a.name) : '还没有'}</span></div></div></div>
+    <div style="margin-top:12px">${meTrendHTML()}</div>
+    <div class="card me-list">${[['persona', '人设', '档案、性格、背景'], ['skills', '能力', '声乐 · 舞蹈 · Rap · 作曲制作'], ['set', '设置', '']].map(([k, t, d]) => `<button class="me-row" data-act="metab" data-k="${k}"><div>${t}${d ? `<span>${d}</span>` : ''}</div><i>›</i></button>`).join('')}</div>`;
+}
+const meSubHead = k => `<div class="w-head" style="margin-top:10px"><button class="w-back" data-act="metab" data-k="stats">‹</button><div><b>${{ fans: '粉丝数据', persona: '人设', skills: '能力', set: '设置' }[k] || ''}</b></div></div>`;
 // 子页面打开时：导航吸顶，页面标题紧贴在导航下面。吸顶状态下 offsetTop 会取到吸顶后的位置（Safari），所以先回到顶部再量
 function meSubTop() { window.scrollTo(0, 0); const nb = $('.me-tabs'); if (!nb) return; const tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52; window.scrollTo(0, Math.max(0, nb.getBoundingClientRect().top + window.scrollY - tH)); }
 function viewMe() {
   const p = S.profile; const totalL = S.posts.reduce((s, x) => s + x.likes, 0), totalC = S.posts.reduce((s, x) => s + x.commentCount, 0);
   const co = (p.company || 'STARSHIP').trim(), coFull = /ENTERTAINMENT|엔터/i.test(co) ? co : co.toUpperCase() + ' ENTERTAINMENT', tab = UI.meTab || 'stats';
   return `
-  ${tab === 'stats' ? `<div class="card prof">
-    <div class="prof-cv"${p.cover ? '' : ' data-empty'}>${p.cover ? `<img data-mid="${p.cover}" alt="">` : ''}<label class="prof-cvb" title="更换封面"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><input type="file" id="cv-file" accept="image/*" hidden></label></div>
-    <label class="prof-av" title="更换头像">${avatarHTML('lg')}<input type="file" id="av-file" accept="image/*" hidden></label>
-    <div class="prof-nm">${esc(p.name)}<span class="artist">ARTIST</span></div>
-    <div class="prof-co">${esc(coFull)}</div>
-    <div class="prof-fd">粉丝名 <b>${esc(p.fandom)}</b></div>
-    <div class="prof-st"><div><b data-fol>${fmtNum(p.followers)}</b><span>粉丝</span></div><div><b>${S.posts.length}</b><span>帖子</span></div><div><b>${fmtNum(totalL)}</b><span>获赞</span></div><div><b>${fmtNum(totalC)}</b><span>评论</span></div></div>
-  </div>` : ''}
-  <div class="me-tabs">${[['stats', '动态'], ['wallet', '钱包'], ['music', '音乐'], ['persona', '人设'], ['set', '设置']].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" data-act="metab" data-k="${k}">${v}</button>`).join('')}</div>
-  ${{ stats: () => `
+  ${tab === 'stats' ? meRootHTML() : meSubHead(tab)}
+  ${{ stats: () => '', fans: () => `
   ${fanPanelHTML()}
   <div class="me-h"><span>热搜</span></div>
-  ${hotPanelHTML()}`,
+  ${hotPanelHTML()}`, skills: () => `<div class="card">${skillsHTML()}</div>`,
   wallet: () => walletHTML(),
   music: () => musicHTML(),
   persona: () => `
-  <div class="sec-title">💪 能力</div>
-  <div class="card">${skillsHTML()}</div>
-  <div class="sec-title">🐱 人设</div>
   <div class="card">
     <div class="grid2">
       <div class="field"><label>艺名</label><input id="p-name" value="${esc(p.name)}"></div>
@@ -11562,8 +11778,13 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act;
   switch (a) {
+    case 'kktab': UI.kkTab = t.dataset.k; render(); window.scrollTo(0, 0); break;
+    case 'ytctab': UI.ytTab = t.dataset.k; render(); break;
+    case 'plf': UI.plF = t.dataset.k; render(); break;
+    case 'wmenu': openModal(walletMenuHTML()); break;
+    case 'wmgo': closeModal(); UI.wPage = t.dataset.p || ''; render(); window.scrollTo(0, 0); break;
     case 'metab': { UI.wPage = ''; UI.mPage = ''; const bar = $('.me-tabs'), tH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topH')) || 52, stuck = bar && bar.getBoundingClientRect().top <= tH + 1; UI.meTab = t.dataset.k; render(); if (stuck) meSubTop(); else window.scrollTo(0, 0); break; } // 吸顶时切换：导航留在原位，不跳
-    case 'tab': stopPreview(); UI.wPage = ''; UI.mPage = ''; UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
+    case 'tab': stopPreview(); UI.wPage = ''; UI.mPage = ''; if (t.closest('.tabbar') && t.dataset.tab === 'me') UI.meTab = 'stats'; UI.tab = t.dataset.tab; if (UI.tab !== 'feed') UI.postId = null; else if (t.closest('.tabbar')) UI.postId = null; render(); window.scrollTo(0, 0); break;
     case 'open': UI.feedY = UI.postId ? UI.feedY : window.scrollY; UI.postId = t.dataset.id; UI.sort = 'new'; render(); window.scrollTo(0, 0); break;
     case 'back': UI.postId = null; render(); window.scrollTo(0, UI.feedY || 0); break; // 回到列表原来看到的位置
     case 'publish': publish(); break;
@@ -11728,7 +11949,7 @@ document.addEventListener('click', async e => {
     case 'callcancel': if (UI.call && UI.call.mode === 'out') { callRec(dms()[UI.call.key], 'me', 'cancel'); callEnd(); } break;
     case 'democlose': { const L = $('#demo-ly'); if (L) { L.querySelector('audio')?.pause(); L.remove(); } break; }
     case 'kkdemo': demoOpen(t.dataset.n, t.dataset.s, UI.dmOpen ? socDisp(dms()[UI.dmOpen].p) : ''); break;
-    case 'qgo': { const to = t.dataset.to; UI.tab = 'me'; UI.wPage = ''; UI.postId = null; if (to === 'hot') { UI.meTab = 'stats'; UI.mPage = ''; } else { UI.meTab = 'music'; UI.mPage = to; if (to.startsWith('alb:')) UI.mFrom = ''; } render(); meSubTop(); break; }
+    case 'qgo': { const to = t.dataset.to; UI.wPage = ''; UI.postId = null; if (to === 'hot') { UI.tab = 'me'; UI.meTab = 'fans'; UI.mPage = ''; } else if (to === 'yt') { UI.tab = 'yt'; UI.mPage = ''; } else { UI.tab = 'music'; UI.mPage = to; if (to.startsWith('alb:')) UI.mFrom = ''; } render(); window.scrollTo(0, 0); break; }
     case 'meetopen': { const o = prepOn(); if (!o) break; UI.mgrOpen = false; UI.meet = 1; openModal(meetHTML()); meetStart(o); meetScroll(); break; }
     case 'meetclose': UI.meet = 0; closeModal(); render(); break;
     case 'meetpick': { const o = prepOn(); if (!o) break; const M = meetState(o), x = M.props[+t.dataset.i]; if (!x) break; M.like = +t.dataset.i; meetSay(`我比较喜欢方案 ${+t.dataset.i + 1}「${x.name}」这个方向。`); break; }
@@ -12167,7 +12388,7 @@ setInterval(tick, 1500);
 setTimeout(() => { const app = navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); if (!FRESH_SAVE || !app || $('#modal').classList.contains('on')) return; openModal(`<div class="row"><h3 style="flex:1">📱 主屏幕版</h3></div><div style="line-height:1.7">从主屏幕打开的 SIA SPACE 和浏览器里的存档是分开的，这里现在是一个新存档。<br>要接着玩原来的进度：先在 <b>Safari</b> 里打开网站，到「我的 → 设置」点<b>导出数据</b>；再回到这里，同一个地方点<b>导入数据</b>，选刚才导出的文件。</div><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn primary" data-act="close">知道了</button></div>`); }, 2500); /* 从主屏幕第一次打开：提示把浏览器里的存档导过来 */
 setTimeout(() => { if (S.chBF) return; const l = chBackfillList(); if (!l.length || $('#modal').classList.contains('on')) return; chBfNext(0); }, 6000); // 补 challenge 只弹一次
 setInterval(flushAgg, 6000);
-setInterval(() => { if (UI.tab === 'sched' && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
+setInterval(() => { if ((UI.tab === 'sched' || UI.tab === 'home') && !$('#modal').classList.contains('on') && !document.activeElement?.closest('#view input')) render(); }, 60000);
 window.addEventListener('beforeunload', () => { S.sim.lastTick = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } });
 </script>
 </body>
