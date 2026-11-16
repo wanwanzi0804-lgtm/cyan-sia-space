@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116233410';
+const BUILD = '20261116233545';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1285,7 +1285,15 @@ async function aiClient() {
   return new Anthropic({ apiKey: S.ai.key, dangerouslyAllowBrowser: true, maxRetries: 1 });
 }
 function aiNews() {
-  const out = [], t = S.hot && S.hot.talk, c = S.cb, ph = c && cbPhase();
+  const out = [], t = S.hot && S.hot.talk, c = S.cb, ph = c && cbPhase(), now = Date.now(), td = logicalToday(), md = k => `${+k.slice(5, 7)}/${+k.slice(8)}`;
+  out.push(`今天是 ${md(td)}（周${WD[parseD(td).getDay()]}），现在 ${new Date(now).getHours()} 点左右`);
+  try { const R0 = S.schedule.res || {}, past = [], next = [];
+    for (let i = -3; i <= 4; i++) { const k = addDays(td, i); for (const r of rulesFor(k)) { if (!PUB_CATS.includes(r.cat) || isPrivRule(r)) continue; const x = R0[k + '|' + r.id]; if (i < 0 || (i === 0 && x)) past.push(`${md(k)}「${r.title}」${x && x.grade && !['旷', '缺', '休'].includes(x.grade) ? '（去了' + (x.note ? '，' + String(x.note).slice(0, 20) : '') + '）' : x && x.grade === '旷' ? '（没去成）' : ''}`); else next.push(`${i === 0 ? '今天' : md(k)} ${r.start}「${r.title}」`); } }
+    if (past.length) out.push('她最近的公开行程：' + past.slice(-4).join('、')); if (next.length) out.push('接下来的公开行程（粉丝知道）：' + next.slice(0, 4).join('、')); } catch (e) { }
+  try { const a0 = released().slice(-1)[0]; if (a0) out.push(`最新作品《${a0.name}》（${a0.date.slice(5).replace('-', '/')} 发行，主打《${albTitle(a0)}》）`); } catch (e) { }
+  try { const v = ytAll().filter(x => now - x.at < 7 * 864e5).slice(0, 2); if (v.length) out.push('官方 YouTube 最近上传：' + v.map(x => `「${x.title}」`).join('、')); } catch (e) { }
+  try { const ps = (S.posts || []).filter(x => now - x.createdAt < 3 * 864e5).slice(0, 2); if (ps.length) out.push('她最近在社区发过：' + ps.map(x => `${ago(x.createdAt)}「${String(x.text || '（照片）').slice(0, 30)}」`).join('；')); } catch (e) { }
+  try { const op = ((S.off || {}).posts || []).filter(x => now - x.at < 3 * 864e5).slice(-1)[0]; if (op && op.txt) out.push(`官方号最近发布：「${String(op.txt).slice(0, 40)}」`); } catch (e) { }
   if (t && Date.now() < t.until) { const h = (S.hot.hist || []).slice().reverse().find(x => x.id === t.id) || S.hot.cur; if (h) out.push(`最近热搜：#${h.title}#${h.result ? '（' + h.result + '）' : ''}，粉丝偶尔会聊到`); }
   const a = c && cbAlbum();
   if (a && ph === 'tease') out.push(`她的${ALB_TYPE[a.type] || '新歌'}《${a.name}》（主打《${albTitle(a)}》）${c.date} 回归，正在预热`);
@@ -1293,7 +1301,7 @@ function aiNews() {
   if (a && ph === 'promo') out.push(`她正在${ALB_TYPE[a.type] || ''}《${a.name}》主打曲《${albTitle(a)}》的打歌期`);
   if (a && ph === 'rest') out.push(`她刚结束《${albTitle(a)}》的主打活动，这周休息`);
   if (a && ph === 'follow') out.push(`她正在后续打歌收录曲《${c.follow}》`);
-  return out.length ? '近期动态：' + out.join('；') + '。\n' : '';
+  return out.length ? '近期动态（粉丝知道的，聊到相关的才自然提，不用每条都提）：' + out.join('；') + '。\n' : '';
 }
 function aiSystem() {
   const p = S.profile;
@@ -6493,7 +6501,7 @@ function bbUniq(make) {
 }
 function bbAddFan(line, user) {
   const B = S.bubble, g = bbOpen();
-  const m = { id: uid(), user: user || line.user || makeFan(line.lang).user, st: pick(BB_STICKERS), lang: line.lang || 'zh', text: line.text, zh: line.zh || null, at: Date.now(), ai: line.ai ? 1 : undefined };
+  const m = { id: uid(), user: user || line.user || makeFan(line.lang).user, st: pick(BB_STICKERS), lang: line.lang || 'zh', text: line.text, zh: line.zh || null, at: Date.now(), ai: line.ai ? 1 : undefined }; if (!m.ai && !user && !line.user) koPick(m); /* 模板粉丝：大多显示成韩国粉丝的韩语 */
   g.fans.push(m); g.count = (g.count || 0) + 1;
   if (g.fans.length > 400) g.fans.splice(0, g.fans.length - 400);
   if (UI.tab !== 'bubble') B.unread = (B.unread || 0) + 1; else bbTickQ.push(m);
@@ -6577,7 +6585,7 @@ async function bbAI() {
 ${lines}
 每个粉丝都以为这是偶像单独发给自己的私聊。
 请写 ${N} 条粉丝回复放进 r（${N} 个不同的粉丝，语气、长短、关注点各不相同，有人激动有人淡定有人碎碎念）：每条 4~15 个字；如果她在提问，大部分回答她；如果她在开话题，大部分是接话、附和、表达开心或心疼等情绪、分享自己的相关经历，最多 2 条是提问。不要写「被回复了」「叫我名字了」这类反应。
-格式：中文回复直接写文字；少量外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
+语言：她是在韩国活动的 K-pop solo（中国国籍），订阅的大多是韩国粉丝：大约一半多写韩语，四分之一写中文，其余英语、日语（英语略多）。格式：中文回复直接写文字；外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
 回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。`;
     // 先要一小批（快），马上放出来；剩下的再在后台补一批，不让粉丝慢半拍
     const res = await aiCompact([...content, { type: 'text', text: prompt(8) }], 900, 'claude-haiku-5-5'); // 第一批用快的模型，几秒内就有粉丝回
