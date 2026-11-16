@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116065820';
+const BUILD = '20261116065955';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2742,7 +2742,7 @@ function libPool(alb) {
   for (const w of mz().works) if (['cbcand', 'cand', 'hold', 'demo', 'submitted'].includes(w.status) || (w.status === 'adopted' && w.adopted && w.adopted.for === 'company' && !w.adopted.album)) out.push({ id: w.id, name: mzName(w), genre: w.genre || '', tags: '', writer: S.profile.name, desc: (w.note || w.memo || '').slice(0, 80), src: '你的作品', mine: 1 });
   return out;
 }
-function libHTML() {
+function libHTML(flat) {
   const L = cbLib(), F = UI.libF;
   const row = x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${[x.genre, x.tags, x.writer].filter(Boolean).map(esc).join(' · ')}${x.used ? ` · 已用于《${esc((disco().find(a => a.id === x.used) || {}).name || '')}》` : ''}</div>${x.desc ? `<div style="font-size:12.5px;margin-top:2px">${esc(x.desc)}</div>` : ''}</div><button class="link" data-act="libedit" data-id="${x.id}">编辑</button></div>`;
   const form = F ? `<div class="card" style="margin:8px 0">
@@ -2752,6 +2752,7 @@ function libHTML() {
       <div class="field"><label>风格关键词</label><input id="lib-t" value="${esc(F.tags || '')}" placeholder="比如：冬天、失恋、清冷、合成器"></div>
       <div class="field"><label>简介</label><textarea id="lib-d" style="min-height:70px">${esc(F.desc || '')}</textarea></div>
       <div class="row">${F.id ? `<button class="link" data-act="libdel" data-id="${F.id}" style="color:var(--danger)">删除</button>` : ''}<span class="sp"></span><button class="btn ghost sm" data-act="libcancel">取消</button><button class="btn primary sm" data-act="libsave">保存</button></div></div>` : '';
+  if (flat) return `<div class="muted" style="font-size:12.5px;margin:0 4px 10px">公司准备的 demo。回归选曲时，公司只会从这里和你投给公司的 demo 里挑歌。</div><div class="card">${form}${L.map(row).join('') || '<div class="muted" style="font-size:13px;padding:6px 0">还没有 demo</div>'}${F ? '' : '<button class="link" data-act="libadd" style="margin-top:8px">＋ 添加 demo</button>'}</div>`;
   return `<details class="me-more" ${UI.libOpen ? 'open' : ''} data-libdet><summary>STARSHIP 曲库（${L.length}）</summary>${form}${L.map(row).join('') || '<div class="muted" style="font-size:13px;padding:6px 0">还没有 demo</div>'}${F ? '' : '<button class="link" data-act="libadd" style="margin-top:6px">＋ 添加 demo</button>'}</details>`;
 }
 function libSave() {
@@ -3938,9 +3939,15 @@ function musicHTML() {
   if (pg === 'cb') return mHead('回归企划', '') + `<div class="card">${cbHTML()}</div>`;
   if (pg.startsWith('yt')) return typeof ytPageHTML === 'function' ? ytPageHTML(pg) : '';
   if (pg) { UI.mPage = ''; }
+  const tab = ['home', 'rel', 'demo', 'lib'].includes(UI.musTab) ? UI.musTab : 'home';
+  const chips = `<div class="ytc-tabs">${[['home', '首页'], ['rel', '已发行'], ['demo', '我的 Demo'], ['lib', '公司曲库']].map(([k, t]) => `<button class="${tab === k ? 'on' : ''}" data-act="mustab" data-k="${k}">${t}</button>`).join('')}</div>`;
+  if (tab === 'rel') { UI.mPage = 'works'; const x = musicHTML(); UI.mPage = ''; return chips + x.replace(/^<div class="w-head">[\s\S]*?<\/div><\/div>/, ''); }
+  if (tab === 'demo') return chips + `<div class="card">${worksHTML()}</div>`;
+  if (tab === 'lib') return chips + libHTML(true);
   const L = released(), a = L[L.length - 1], SS = salesState(), today = dkey(Date.now());
+  if (!a) return chips + `<div class="card" style="text-align:center;padding:28px 16px"><div style="font-size:15px;font-weight:600">还没有正式发行的作品</div><div class="muted" style="font-size:13px;margin:6px 0 14px">在企划中心计划一次回归，发行以后这里会显示成绩和打歌</div><button class="btn primary sm" data-act="tab" data-tab="plans">去企划中心</button></div>`;
   // 1 最新发行
-  let h = mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
+  let h = chips + mSec('最新发行', 'LATEST RELEASE') + (a ? `<button class="card m-latest" data-act="mgo" data-p="alb:${a.id}">${albCover(a, 'lg')}<div class="m-lt"><b>${esc(a.name)}</b><span>${esc(S.profile.name)}</span><span>${ALB_TYPE[a.type] || ''} · ${a.date.replace(/-/g, '.')}</span>${albTitle(a) && a.type !== 'single' ? `<span>主打《${esc(albTitle(a))}》</span>` : ''}<em>查看作品详情 ›</em></div></button>` : '<div class="card muted">还没有正式发行的作品</div>');
   // 2 音乐成绩（只看最新作品）
   if (a) {
     const k = a.id + '|' + albTitle(a), rk = trkRanks(k), main = rk[0], rest = rk.slice(1, 4), al = SS.alb[a.id], mv = SS.mv && SS.mv[a.id];
@@ -3950,17 +3957,11 @@ function musicHTML() {
       ${PLATS.length > 4 ? mGo('charts', '查看完整榜单') : ''}</div>
       <div class="m-two"><div class="card"><span>累计销量</span><b>${al && al.total >= 1 ? fmtNum(Math.round(al.total)) + ' 张' : a.type === 'single' ? '数字单曲' : '暂无数据'}</b></div><div class="card"><span>MV 播放</span><b>${mv && mv.total >= 1 ? fmtNum(Math.round(mv.total)) : '暂无 MV'}</b></div></div>`;
   }
-  // 3 本周打歌
-  h += mSec('本周打歌', 'MUSIC SHOW') + showsWeekHTML();
+  // 3 本周打歌（打歌期才显示）
+  if (['tease', 'promo', 'rest', 'follow'].includes(cbPhase())) h += mSec('本周打歌', 'MUSIC SHOW') + showsWeekHTML();
   // 4 荣誉
   const HL = honorList(), wins = HL.filter(x => x.kind === 'win').length, aws = HL.filter(x => x.kind === 'award').length;
   h += mSec('荣誉记录') + `<div class="card m-hon"><div class="m-two2"><div><b>${wins}</b><span>打歌一位</span></div><div><b>${aws}</b><span>颁奖礼获奖</span></div></div>${HL[0] ? `<div class="m-hl">最近：${HL[0].dk.slice(5).replace('-', '/')} ${esc(HL[0].ev)} ${esc(HL[0].what)}${HL[0].song ? ` ·《${esc(HL[0].song)}》` : ''}</div>` : ''}${mGo('honors', '查看全部荣誉')}</div>`;
-  // 5 我的作品
-  h += mSec('我的作品') + `<div class="card w-list">${L.length ? L.slice(-3).reverse().map(x => `<button class="m-alb" data-act="mgo" data-p="alb:${x.id}">${albCover(x, 'sm')}<div class="w-tx-l"><div class="w-tx-t">${esc(x.name)}</div><div class="w-tx-s">${ALB_TYPE[x.type] || ''} · ${x.date.replace(/-/g, '.')}</div></div><i>›</i></button>`).join('') : '<div class="muted" style="padding:10px 0">还没有正式发行的作品</div>'}${mGo('works', '查看全部作品')}</div>`;
-  // 6 个人作品库（Demo）
-  const W = mz().works, cnt = st => W.filter(w => st.includes(w.status)).length, lastW = W.slice().sort((x, y) => ((y.sessions.slice(-1)[0] || {}).date || '').localeCompare((x.sessions.slice(-1)[0] || {}).date || '') || y.no - x.no)[0];
-  const pct = w => w.status === 'revising' && w.rev ? Math.round(w.rev.prog / w.rev.need * 100) : Math.round((w.prog || 0) / (w.need || 1) * 100);
-  h += mSec('个人作品库', 'MY DEMOS') + `<div class="card m-demo"><div class="m-three"><div><b>${cnt(['writing', 'revising'])}</b><span>创作中</span></div><div><b>${cnt(['demo'])}</b><span>已完成</span></div><div><b>${cnt(['submitted'])}</b><span>审核中</span></div></div>${lastW ? `<div class="m-hl">${esc(mzTitle(lastW))} · ${MZ_ST[lastW.status] || ''}${mzOpen(lastW) ? ` · ${pct(lastW)}%` : ''}</div>` : ''}${mGo('demos', '进入作品库')}</div>`;
   // 8 官方 YouTube
   return h;
 }
@@ -11958,6 +11959,7 @@ document.addEventListener('click', async e => {
   const a = t.dataset.act;
   switch (a) {
     case 'tbback': { const b = $('#view .w-head.w-top .w-back'); if (b) b.click(); else { UI.tab = 'home'; render(); } break; }
+    case 'mustab': UI.musTab = t.dataset.k; UI.libF = null; render(); window.scrollTo(0, 0); break;
     case 'kktab': UI.kkTab = t.dataset.k; render(); window.scrollTo(0, 0); break;
     case 'ytctab': UI.ytTab = t.dataset.k; render(); break;
     case 'plf': UI.plF = t.dataset.k; render(); break;

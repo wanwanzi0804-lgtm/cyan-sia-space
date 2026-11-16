@@ -13,6 +13,7 @@ const path = require('path');
   const app = async k => { await p.tap('.tab[data-tab="home"]'); await p.tap(`.hm-app[data-tab="${k}"]`); };
   for (const k of ['kkt', 'feed', 'bubble', 'yt', 'news', 'music', 'plans', 'wallet']) await step('打开应用 ' + k + ' 再返回', async () => { await app(k); await p.tap('.tb-back'); });
   await step('KKT：친구 / 채팅', async () => { await app('kkt'); await p.tap('[data-act="kktab"][data-k="friend"]'); await p.tap('[data-act="kktab"][data-k="chat"]'); });
+  await step('音乐库：各个分页', async () => { await app('music'); for (const k of ['rel', 'demo', 'lib', 'home']) await p.tap(`[data-act="mustab"][data-k="${k}"]`); });
   await step('YouTube：各个分页', async () => { await app('yt'); for (const k of ['v', 's', 'l', 'h']) await p.tap(`[data-act="ytctab"][data-k="${k}"]`); });
   await step('企划中心：筛选、新企划表单、回归企划', async () => { await app('plans'); await p.tap('[data-act="plf"][data-k="pub"]'); await p.tap('[data-act="plf"][data-k="all"]'); await p.tap('.tb-btn'); await p.evaluate(() => { UI.mPage = ''; UI.ytF = null; render(); }); await p.tap('[data-p="cb"]'); });
   await step('钱包：菜单、结算单、流水、合同', async () => { await app('wallet'); await p.tap('[data-act="wmenu"]'); await p.tap('[data-act="wmgo"][data-p="tx"]'); await p.evaluate(() => { UI.wPage = ''; render(); }); await p.tap('.wb-btns [data-p="settle"]'); await p.evaluate(() => { UI.wPage = 'contract'; render(); UI.wPage = ''; render(); }); });
