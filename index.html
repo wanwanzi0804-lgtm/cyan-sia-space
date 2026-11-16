@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116070255';
+const BUILD = '20261116070624';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8958,7 +8958,7 @@ const REAL_GIGS = [
   ['CRAVITY', '2026-11-15', 16 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第二场（同时线上直播）', { kind: 'concert' }],
   ['CRAVITY', '2026-11-19', 19 * 60, 'CRAVITY EP [sonorous] 发售纪念 视频通话签售 EVENT', { kind: 'vsign', dur: 120 }],
   ['CRAVITY', '2026-11-21', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉釜山 KBS Hall（巡演场次，不是首场）', { kind: 'concert' }],
-  ['CRAVITY', '2026-11-27', null, 'CRAVITY EP [sonorous] 发售纪念 OFFLINE EVENT（香港）', { kind: 'sign', dur: 120, tbd: 1, abroad: '香港' }],
+  ['CRAVITY', '2026-11-28', null, 'CRAVITY EP [sonorous] 发售纪念 OFFLINE EVENT（香港）：线下对面签售（团签 30 人 + 每人个签 10 人，另有 50 名观览）、签售和观览的人都有 Hi-Bye，还有 1:1 拍立得合影会（每个成员 7 人，不能有身体接触，姿势事先定好）', { kind: 'sign', dur: 210, tbd: 1, abroad: '香港' }],
   ['CRAVITY', '2026-11-29', null, '형준（亨俊）生日', { kind: 'bday' }]
 ];
 const gigK = x => (x[4] || {}).kind || 'concert', gigT = x => x[2] == null ? '时间未公布' : hhmm(x[2]);
