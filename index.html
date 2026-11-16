@@ -727,6 +727,15 @@ video.bv-glow{pointer-events:none}
 .sd-pill{flex:none;border:0;border-radius:15px;padding:6px 13px;background:var(--text);color:var(--bg);font-size:13px;font-weight:600}.sd-ok{flex:none;border:0;background:none;padding:4px 2px;font-size:12.5px;color:#4f9a6c;font-weight:600}
 .sd-go{display:block;width:100%;margin-top:12px;border:0;border-radius:14px;padding:12px 0;background:var(--text);color:var(--bg);font-size:15px;font-weight:600}
 .sd-foot{display:flex;align-items:center;justify-content:space-between;margin:14px 4px 6px;font-size:13px;color:var(--muted)}
+
+/* KakaoTalk 风格的提醒 */
+.toast.kk{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:18px;background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(20px)}
+.kkn-av{flex:none}.kkn-img{width:38px;height:38px;border-radius:14px;object-fit:cover;display:grid;place-items:center;background:#fee500;font-size:20px}
+.kkn-b{flex:1;min-width:0}.kkn-h{display:flex;font-size:11.5px;color:var(--muted)}.kkn-h span{flex:1}.kkn-h em{font-style:normal}
+.kkn-b b{display:block;font-size:14.5px;margin-top:1px}.kkn-m{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 中文写好一键译成韩语 */
+.ko-btn{flex:none;border:0;border-radius:14px;padding:5px 10px;font-size:12.5px;font-weight:600;background:color-mix(in srgb,var(--text) 8%,transparent);color:var(--text)}
+.ko-btn[disabled]{opacity:.5}
 /* ===== 新界面：手机首页 / 应用 / 我的 ===== */
 /* ===== 子页面统一 ===== */
 body.hassub #view .w-head.w-top{display:none}
@@ -950,7 +959,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116181726';
+const BUILD = '20261116182237';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1296,7 +1305,7 @@ function aiSystem() {
 ${aiNews()}写作要求：
 - 像 Weverse / 微博超话里的真实粉丝：口语化、短句为主（多数 4~30 字），偶尔长一点；可以用表情、网络用语、「啊啊啊」「呜呜呜」、玩梗。语气多样：激动、温柔、搞笑、关心、提问。
 - 必须紧扣偶像发的具体内容（文字里的细节、图片/画面里看得到的东西：衣服颜色、背景、表情、物品、动作等），不要泛泛而谈，不要彼此重复。
-- 大约 80% 用中文（lang=zh），其余用韩语(ko)/日语(ja)/英语(en)。外语评论在 zh 字段给出自然的中文翻译；中文评论的 zh 字段填空字符串。
+- 她是在韩国活动的 K-pop solo 女歌手（中国国籍，在加拿大、新加坡生活过，母语中文、英语也很好），所以粉丝大多是韩国人：大约 55% 用韩语（lang=ko，韩国粉丝在 Weverse 留言的口吻），25% 用中文（lang=zh，中国粉丝），其余英语(en)略多于日语(ja)。外语评论在 zh 字段给出自然的中文翻译；中文评论的 zh 字段填空字符串。
 - user 是粉丝昵称，中文粉丝用中文/拼音风格昵称，外语粉丝用对应语言风格昵称，可以带数字或 emoji。
 - 帖子或直播涉及恋爱、约会、对象时，按「粉丝群体设定」里的比例来反应。
 - 内容友善健康，不涉及恶评、低俗或真实名人。`;
@@ -1305,7 +1314,7 @@ async function aiComments(content, maxTokens = 6000) {
   const j = await aiRaw(content, maxTokens, AI_SCHEMA);
   return (j.comments || []).filter(x => x && x.text).map(x => {
     const lang = ['zh', 'ko', 'ja', 'en'].includes(x.lang) ? x.lang : 'zh';
-    return { user: String(x.user || '').slice(0, 24) || makeFan(lang).user, lang, text: String(x.text).slice(0, 300), zh: lang === 'zh' ? null : String(x.zh || '') || null };
+    return { ai: 1, user: String(x.user || '').slice(0, 24) || makeFan(lang).user, lang, text: String(x.text).slice(0, 300), zh: lang === 'zh' ? null : String(x.zh || '') || null };
   });
 }
 // 省字版：AI 只写回复内容（中文直接写；外语写成「ko|原文|中文」），名字由程序生成；顺便给几个话题关键词
@@ -1416,6 +1425,18 @@ const cumFrac = age => PHASES.reduce((s, [w, tau]) => s + w * (1 - Math.exp(-age
 function makeComment(base, fan) {
   return { id: uid(), user: base.user || fan.user, color: fan.color, lang: base.lang, text: base.text, zh: base.zh || null, at: Date.now(), likes: 0, replies: [] };
 }
+
+/* 模板粉丝评论原本大多是中文：其中约七成显示成韩国粉丝的韩语（中文原句留作翻译）。译文用免费机翻慢慢攒进缓存，不花 AI 的钱 */
+const KOC = () => S.koc || (S.koc = {});
+let koQ = [], koBusy = 0;
+function koEnq(t) { t = String(t || '').trim(); if (!t || t.length > 120 || KOC()[t] || koQ.includes(t) || !/[一-鿿]/.test(t)) return; if (koQ.length < 300) koQ.push(t); }
+async function koTick() { if (koBusy || !koQ.length) return; koBusy = 1; const t = koQ.shift();
+  try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=ko&dt=t&q=${encodeURIComponent(t)}`); const j = await r.json(); const out = trPunct(t, (j[0] || []).map(x => x[0]).join('').trim(), 'ko'); if (out && /[가-힣]/.test(out)) { const C = KOC(); C[t] = out; const ks = Object.keys(C); if (ks.length > 2500) for (const k of ks.slice(0, ks.length - 2500)) delete C[k]; } } catch (e) { }
+  koBusy = 0; }
+function koApply(c) { if (!c || c.kz !== 1 || c.lang !== 'zh') return c; const k = KOC()[c.text]; if (k) { c.zh = c.text; c.text = k; c.lang = 'ko'; } else koEnq(c.text); return c; }
+function koPick(c) { if (!c || c.me || c.ai || (c.lang && c.lang !== 'zh') || c.kz != null) return c; c.lang = 'zh'; c.kz = Math.random() < .68 ? 1 : 0; return koApply(c); }
+setInterval(koTick, 1300);
+setTimeout(() => { try { for (const p of (S.posts || []).slice(0, 10)) for (const c of p.comments.slice(0, 40)) if (!c.me && c.lang === 'zh') koEnq(c.text); if (typeof TPL !== 'undefined' && TPL.generic && TPL.generic.zh) for (const t of pickN(TPL.generic.zh, Math.min(60, TPL.generic.zh.length))) koEnq(fill(t)); } catch (e) { } }, 6000);
 function nextComment(post) {
   // AI 评论和免费模板评论混着出现
   if (post.aiPool && post.aiPool.length && Math.random() < .25) { const b = post.aiPool.shift(); const c = makeComment(b, makeFan(b.lang)); c.ai = true; c.likes = ri(80, 250); return c; }
@@ -1440,7 +1461,7 @@ function simPost(post, dtSim, silent) {
   if (nl) { const a = aggFor(post.id); a.likes += nl; if (a.likers.length < 3) a.likers.push(makeFan().user); }
   const make = silent ? Math.min(nc, 30) : Math.min(nc, 8);
   for (let i = 0; i < make; i++) {
-    const c = nextComment(post);
+    const c = koPick(nextComment(post));
     if (silent) c.at = post.createdAt + (a0 + Math.random() * dtSim) * ((Date.now() - post.createdAt) / Math.max(1, a1));
     const parent = !silent && post.comments.length > 3 && Math.random() < .08 ? pick(post.comments.slice(0, 15)) : null;
     if (parent && c.lang === 'zh') {
@@ -4365,7 +4386,7 @@ function mgrSay(t, card, silent) {
   const [ko0, zh] = Array.isArray(t) ? t : [t, ''], ko = toKo(ko0), M = mgrChat(); // 经纪人的韩语里不夹中文
   M.chat.push({ id: uid(), at: Date.now(), text: ko, zh, card: card || null });
   if (M.chat.length > 200) M.chat.splice(0, M.chat.length - 200);
-  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; updBadges(); if (!silent) { const s = zh || ko; pushNotif({ type: 'sched', text: '💬 经纪人', sub: s.length > 40 ? s.slice(0, 40) + '…' : s }, true); } }
+  if (!UI.mgrOpen) { M.unread = (M.unread || 0) + 1; updBadges(); if (!silent) { const s = zh || ko; pushNotif({ type: 'sched', text: '💬 经纪人', sub: s.length > 40 ? s.slice(0, 40) + '…' : s, kkt: { name: '매니저', ko: String(ko || zh).slice(0, 90) } }, true); } }
   mgrRefresh();
 }
 let mgrQ = 0; // 回复排队，按顺序一条条发
@@ -6192,7 +6213,7 @@ function pushNotif(n, toastIt) {
   updBadges();
   if (UI.tab === 'notif') render();
   const viewingPost = UI.tab === 'feed' && UI.postId && UI.postId === n.postId;
-  if (toastIt && !viewingPost && (!LIVE || n.type === 'sched') && Date.now() - lastToast > 3500) { lastToast = Date.now(); toast(n.text, n.sub, () => openNotif(n)); }
+  if (toastIt && !viewingPost && (!LIVE || n.type === 'sched') && Date.now() - lastToast > 3500) { lastToast = Date.now(); if (n.kkt) toast('', '', () => openNotif(n), `<div class="kkn-av">${n.kkt.key ? kAv(n.kkt.key, 'kkn-img') : '<div class="kkn-img">🧑‍💼</div>'}</div><div class="kkn-b"><div class="kkn-h"><span>KakaoTalk</span><em>지금</em></div><b>${esc(n.kkt.name)}</b><div class="kkn-m">${esc(n.kkt.ko)}</div></div>`); else toast(n.text, n.sub, () => openNotif(n)); }
   sysNotify(n);
 }
 let lastSys = 0;
@@ -6200,7 +6221,7 @@ function sysNotify(n) {
   if (!S.prefs.sysNotif || !document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
   if (Date.now() - lastSys < 15000 && n.type !== 'sched') return;
   lastSys = Date.now();
-  try { new Notification('SIA SPACE · ' + n.text, { body: n.sub || '' }); } catch (e) { }
+  try { if (n.kkt) new Notification(n.kkt.name, { body: n.kkt.ko, tag: 'kkt-' + (n.kkt.key || 'mgr') }); else new Notification(n.text, { body: n.sub || '' }); } catch (e) { }
 }
 
 /* 离线补算：关掉页面再打开，帖子也在继续涨 */
@@ -6218,7 +6239,7 @@ function catchUp() {
 /* ---------- 回复粉丝 → 粉丝反应 ---------- */
 function later(ms, fn) { setTimeout(fn, ms / (S.prefs.speed || 1)); }
 function addReply(post, parent, r) {
-  r.id = r.id || uid(); r.at = Date.now(); r.likes = r.likes || 0;
+  if (!r.me) koPick(r); r.id = r.id || uid(); r.at = Date.now(); r.likes = r.likes || 0;
   parent.replies.push(r); post.commentCount++;
   onNewReply(post, parent);
 }
@@ -6602,6 +6623,7 @@ function viewBubble() {
       <button class="bb-plus" data-act="bbplus" title="照片 / 视频 / 语音">＋</button>
       <button class="bb-at" data-act="bbins" title="插入粉丝称呼（每个粉丝看到的都是自己的名字）">@</button>
       <textarea id="bb-in" rows="1" placeholder="点 @ 叫粉丝昵称">${esc(UI.bbDraft || '')}</textarea>
+      <button class="ko-btn" data-act="toko" data-t="#bb-in" title="把中文译成韩语，可以改了再发">한</button>
       <button class="bb-emo${UI.bbStk ? ' on' : ''}" data-act="bbstk" title="表情包">☺︎</button>
       <button class="bb-send" data-act="bbdraft" title="发送">↑</button>
     </div>
@@ -6902,6 +6924,7 @@ function viewFeed() {
     <div class="row">
       <label class="btn ghost sm">🖼 图片/视频<input type="file" id="cmp-file" accept="image/*,video/*" multiple hidden></label>
       <button class="btn ${UI.cmpOff ? 'primary' : 'ghost'} sm" data-act="cmpas" title="用哪个账号发">${UI.cmpOff ? '🏢 官方号' : '👤 我自己'}</button>
+      <button class="ko-btn" data-act="toko" data-t="#cmp-text" title="把中文译成韩语，可以改了再发">한국어로</button>
       <span class="sp"></span>
       <button class="link" data-act="cmpclose" style="font-size:13.5px;margin-right:6px">收起</button>
       <button class="btn primary sm" data-act="publish">发布</button>
@@ -6994,7 +7017,7 @@ function viewPost() {
     <div id="clist">${sortedComments(p).slice(0, 200).map(c => commentHTML(c, false)).join('') || '<div class="empty" id="noc">还没有评论，粉丝们在路上了…</div>'}</div>
     ${p.commentCount > p.comments.length ? `<div class="muted center" style="margin-top:8px">共 ${fmtNum(p.commentCount)} 条，显示最新 ${Math.min(200, p.comments.length)} 条</div>` : ''}
   </div>
-  <div class="cbar"><input id="my-cmt" placeholder="以 ${esc(S.profile.name)} 的身份评论…" maxlength="300"><button class="btn primary sm" data-act="mycmt">发送</button></div>`;
+  <div class="cbar"><input id="my-cmt" placeholder="以 ${esc(S.profile.name)} 的身份评论…" maxlength="300"><button class="ko-btn" data-act="toko" data-t="#my-cmt" title="把中文译成韩语，可以改了再发">한국어로</button><button class="btn primary sm" data-act="mycmt">发送</button></div>`;
 }
 function sortedComments(p) { return UI.sort === 'hot' ? [...p.comments].sort((a, b) => b.likes - a.likes) : p.comments; }
 function trHTML(c) {
@@ -7002,6 +7025,7 @@ function trHTML(c) {
   return `<div class="tr" ${S.prefs.autoTr ? '' : 'hidden'}>译：${esc(c.zh)}</div><button class="link" data-act="tr">${S.prefs.autoTr ? '隐藏翻译' : '查看翻译'}</button>`;
 }
 function commentHTML(c, isNew) {
+  koApply(c);
   return `<div class="cmt ${c.me ? 'me' : ''} ${isNew ? 'new' : ''}" data-cid="${c.id}">
     ${fanAv(c)}
     <div class="cb">
@@ -7015,6 +7039,7 @@ function commentHTML(c, isNew) {
     </div></div>`;
 }
 function replyHTML(r, parent) {
+  koApply(r);
   return `<div class="rep ${r.me ? 'me' : ''}" data-rid="${r.id}">${fanAv(r, 'sm')}<div class="cb">
     <div class="cn">${esc(r.user)}${r.me ? '<span class="artist">ARTIST</span>' : ''}${LANG_TAG[r.lang] ? `<span class="lang">${LANG_TAG[r.lang]}</span>` : ''}</div>
     <div class="ct">${r.to ? `<span class="at">@${esc(r.to)}</span> ` : ''}${esc(r.text)}</div>${trHTML(r)}
@@ -7058,7 +7083,7 @@ function openReplyBox(cid, rid) {
   $$('.rbox').forEach(b => b.innerHTML = '');
   UI.replyTo = { cid, rid: rid || null };
   const box = $(`[data-rbox="${cid}"]`);
-  box.innerHTML = `<div class="row"><input id="rep-in" placeholder="回复 @${esc(target.user)}" maxlength="300"><button class="btn primary sm" data-act="sendrep">发送</button></div>`;
+  box.innerHTML = `<div class="row"><input id="rep-in" placeholder="回复 @${esc(target.user)}" maxlength="300"><button class="ko-btn" data-act="toko" data-t="#rep-in" title="把中文译成韩语，可以改了再发">한국어로</button><button class="btn primary sm" data-act="sendrep">发送</button></div>`;
   $('#rep-in').focus();
 }
 function sendReply() {
@@ -7074,7 +7099,7 @@ function myComment() {
   const post = S.posts.find(x => x.id === UI.postId); const inp = $('#my-cmt');
   if (!post || !inp) return; const text = inp.value.trim(); if (!text) return;
   inp.value = '';
-  const c = { id: uid(), user: S.profile.name, me: true, lang: 'zh', text, zh: null, at: Date.now(), likes: 0, replies: [] };
+  const c = { id: uid(), user: S.profile.name, me: true, lang: /[가-힣]/.test(text) ? 'ko' : 'zh', text, zh: UI.koSrc && UI.koSrc.t === '#my-cmt' ? UI.koSrc.v : null, at: Date.now(), likes: 0, replies: [] }; UI.koSrc = null;
   post.comments.unshift(c); post.commentCount++; logAct('reply');
   if (UI.sort === 'new') onNewComment(post, c); else render();
   updCounters(); save();
@@ -7113,9 +7138,9 @@ function updBadges() {
 }
 /* 桌面图标上的未读角标（KKT + 泡泡）：主屏幕版、iOS 16.4 以上、允许了通知才有；页面在运行时更新，关掉后停在最后的数字 */
 function appBadge(n) { if (!S.prefs.appBadge || !('setAppBadge' in navigator)) return; if (UI._badgeN === n) return; UI._badgeN = n; try { (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => { }); } catch (e) { } }
-function toast(text, sub = '', onClick) {
-  const el = document.createElement('div'); el.className = 'toast';
-  el.innerHTML = `<div style="font-size:20px">🔔</div><div style="min-width:0;flex:1"><div>${esc(text)}</div>${sub ? `<div class="ns">${esc(sub)}</div>` : ''}</div>`;
+function toast(text, sub = '', onClick, html) {
+  const el = document.createElement('div'); el.className = 'toast' + (html ? ' kk' : '');
+  el.innerHTML = html || `<div style="font-size:20px">🔔</div><div style="min-width:0;flex:1"><div>${esc(text)}</div>${sub ? `<div class="ns">${esc(sub)}</div>` : ''}</div>`;
   // 像手机通知一样：往上划（或左右划）就收起；轻点才打开
   let sx = 0, sy = 0, dx = 0, dy = 0, dragging = false, moved = false, timer;
   const dismiss = (toX, toY) => { el.style.transition = 'transform .2s ease-in, opacity .2s'; el.style.transform = `translate(${toX}px,${toY}px)`; el.style.opacity = '0'; setTimeout(() => el.remove(), 200); };
@@ -7431,7 +7456,7 @@ function emitLiveComment(elapsed) {
   while (L.queue.length) {
     const c = L.queue.shift();
     if (L.seen.includes(baseText(c.text))) continue;
-    const fan = makeFan(c.lang || 'zh');
+    koPick(c); const fan = makeFan(c.lang || 'zh');
     markSeen(c.text); pushChat({ user: c.user || fan.user, color: fan.color, text: c.text, zh: c.zh, lang: c.lang });
     return;
   }
@@ -9811,7 +9836,7 @@ function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g:
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
 async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const ctx = T.msgs.filter(x => x !== m && !x.sys && x.text && x.at <= m.at).slice(-6).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh && x.zh !== x.text ? x.zh : x.text}`).join('\n'); const who = `${socName(p)}（${p.key === SR_K && serimLove() ? '她的男朋友' : socBan(p) ? '很熟的朋友' : '还不太熟的人'}：${socBan(p) ? '必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语；她说的「世琳 / 세림」就是在对他说话，译成「너」或者直接叫名字' : '用敬语'}）`; let out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', who, ctx); if (out && hasHan(m.text) && socBan(p) && /(요|니다|세요|에요|예요)[.!?~…ㅠㅜㅋㅎ\s]*$/m.test(out)) { const o2 = await trText(m.text, 'ko', who, (ctx ? ctx + '\n' : '') + `（上次译成了「${out}」，用了敬语。这次一定是半语，句尾不带 -요）`); if (o2) out = o2; } /* 对很熟的人不会冒出敬语 */ if (out && hasHan(m.text) && /哥/.test(m.text)) out = out.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠'); /* 她是女生：哥哥＝오빠 */ delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { if (!m.me && !m.sys && typeof m.text === 'string') { const g = m.text.trim().match(/^\[(?:이모티콘|表情包|表情)\s*[:：]\s*(\w+)\]$/); if (g) { const x = STICKERS[g[1]]; if (!x) return; m = { ...m, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }; } } // 对方发的表情包；编号对不上的就不发
-  const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', dk: p.key, text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40) }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
+  const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', dk: p.key, text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40), kkt: { name: socDisp(p), key: p.key, ko: (m.stk ? '이모티콘을 보냈습니다.' : m.ph ? '사진을 보냈습니다.' : m.text || m.sys || '').slice(0, 90) } }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
   const rd = T.readTo || 0;
@@ -12054,6 +12079,9 @@ document.addEventListener('click', async e => {
   switch (a) {
     case 'tbback': { const b = $('#view .w-head.w-top .w-back'); if (b) b.click(); else { UI.tab = 'home'; render(); } break; }
     case 'mustab': UI.musTab = t.dataset.k; UI.libF = null; render(); window.scrollTo(0, 0); break;
+    case 'toko': { const inp = $(t.dataset.t), v = inp && inp.value.trim(); if (!v) break; if (!/[一-鿿]/.test(v)) { toast('里面没有中文', '已经是韩语 / 英语就直接发吧'); break; } t.disabled = true; const o = t.textContent; t.textContent = '…';
+      try { const out = await trText(v, 'ko', t.dataset.t === '#bb-in' ? '粉丝们（韩国女爱豆在泡泡里给粉丝发消息的口吻，亲切自然，半语）' : '粉丝们（韩国女爱豆在粉丝社区发帖、回粉丝评论的口吻，亲切自然，半语为主）'); if (out && out !== v) { UI.koSrc = { t: t.dataset.t, v }; inp.value = out; inp.dispatchEvent(new Event('input', { bubbles: true })); if (t.dataset.t === '#cmp-text') draft = out; toast('译好了，可以改一下再发'); } else toast('没译出来', '过一会儿再试试'); } catch (e) { toast('没译出来', String(e.message || e).slice(0, 60)); }
+      t.disabled = false; t.textContent = o; break; }
     case 'kktab': UI.kkTab = t.dataset.k; render(); window.scrollTo(0, 0); break;
     case 'ytctab': UI.ytTab = t.dataset.k; render(); break;
     case 'plf': UI.plF = t.dataset.k; render(); break;
