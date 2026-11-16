@@ -947,7 +947,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116062740';
+const BUILD = '20261116063143';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1483,7 +1483,7 @@ function heat() {
   return clamp(.7 + s * .07 - Math.max(0, idle - 3) * .04 + hotBoost() + cbBoost() + musicHeat(), .6, 1.8);
 }
 function heatLabel(h = heat()) { return h < .75 ? '🥶 低迷' : h < .95 ? '🙂 平稳' : h < 1.2 ? '📈 上升中' : '🔥 火热'; }
-function lastActive() { const F = fanState(); return F.act.length ? Math.max(...F.act.map(a => a.t)) : (S.posts[0]?.createdAt || F.since || (F.since = Date.now())); }
+function lastActive() { const F = fanState(), frz = S.frz1111 ? parseD('2026-11-16').getTime() + 300 * 60e3 : 0; return Math.max(frz, F.act.length ? Math.max(...F.act.map(a => a.t)) : (S.posts[0]?.createdAt || F.since || (F.since = Date.now()))); }
 function folRatio() { const p = S.profile; return clamp(p.followers / (p.folBase || p.followers || 1), .3, 5); }
 function addFans(delta, reason) {
   const F = fanState(); F.acc += delta;
@@ -1535,6 +1535,7 @@ function schedFans() {
   for (const k of [addDays(today, -2), addDays(today, -1), today]) for (const r of rulesFor(k)) {
     const g = EVENT_GAIN[r.cat]; if (!g && !TG_EVENTS[r.cat]) continue;
     const key = k + '|' + r.id; if (F.credited[key]) continue;
+    if (S.frz1111 && FRZ_DAYS.includes(k)) { F.credited[key] = 1; continue; } /* 冻结的五天：当作正常过完了，不结算也不算旷工 */
     if (k === today && toMin(r.end) > nowMin) continue;
     const endAt = parseD(k).getTime() + toMin(r.end) * 60e3;
     if (r.createdAt && endAt < r.createdAt) { const c0 = tgState().cards[key]; if (!(c0 && c0.done)) { F.credited[key] = 1; continue; } } // 事后补录的行程：做了通告就照常结算，没做就不算（也不罚）
@@ -8249,7 +8250,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9345,6 +9346,16 @@ function srEvDrop1104() { const R = SR(); if (R.evDrop1104) return; R.evDrop1104
 /* 冻结 11/11 早上 5 点 ~ 11/16 早上 5 点：这五天当作正常生活、没有留下任何记录（收入、罚款、涨掉粉、通告结果、聊天、帖子、热搜、通知都撤掉）；
    这几天经纪人问过的活、答应过的活，挪到之后再问一次；补两条记忆：这几天和世琳在别处聊天打电话见面，周末去看了 CRAVITY 首尔演唱会 */
 /* 冻结的五天不是完全没变化：补上平常没什么事发生时的自然涨粉 / 小幅掉粉 */
+const FRZ_DAYS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
+/* 冻结之后又被算了一次的东西撤回：那几天行程的旷工（掉粉、罚款、通知）、因为那几天没留记录被算成「太久没营业」的掉粉 */
+function frzFix2() { if (S.frzFix2) return; S.frzFix2 = 1; if (!S.frz1111) return; const R = S.schedule.res || {}, F = fanState(), W = wallet(), T = tgState(); let back = 0;
+  const unsrc = (name, from) => { for (const [dk, d] of Object.entries(F.days || {})) { if (from && dk < from) continue; if (d.src && d.src[name]) { back -= d.src[name]; d.net -= d.src[name]; delete d.src[name]; } } };
+  for (const [key, x] of Object.entries(R)) { if (!FRZ_DAYS.includes(key.slice(0, 10))) continue; const r = S.schedule.rules.find(y => y.id === key.slice(11));
+    if (x && x.grade === '旷' && r) { unsrc('旷工：' + r.title, '2026-11-16'); W.recv = (W.recv || []).filter(y => !(y.src === '旷工罚款' && y.title === r.title && y.st !== 'done')); S.notifs = (S.notifs || []).filter(n => !((n.text || '').includes('「' + r.title + '」旷工了'))); }
+    delete R[key]; S.schedule.done[key] = 1; F.credited[key] = 1; delete T.cards[key]; }
+  for (const k of FRZ_DAYS) for (const r of rulesFor(k)) { const key = k + '|' + r.id; S.schedule.done[key] = 1; F.credited[key] = 1; }
+  unsrc('太久没营业', '2026-11-16'); S.notifs = (S.notifs || []).filter(n => !/天没营业了/.test(n.text || '') || (n.at || 0) < parseD('2026-11-16').getTime());
+  S.profile.followers = Math.max(0, S.profile.followers + back); save(); if (typeof updBadges === 'function') updBadges(); }
 function frzFans1111() { if (S.frzFans) return; S.frzFans = 1; if (!S.frz1111) return; const F = fanState(), base = S.profile.followers || 0; let sum = 0;
   for (const k of ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15']) { if (F.days[k]) continue; const r = srng('frzf' + k); let n = Math.round(base * .0008 * (.55 + r() * .9)); if (r() < .22) n = -Math.round(base * .0004 * (.3 + r())); if (!n) continue; F.days[k] = { net: n, src: { [n > 0 ? '自然增长' : '自然掉粉']: n } }; sum += n; }
   S.profile.followers = Math.max(0, base + sum); save(); }
