@@ -948,7 +948,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116070843';
+const BUILD = '20261116071057';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8958,6 +8958,7 @@ const REAL_GIGS = [
   ['CRAVITY', '2026-11-15', 16 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉首尔 奥林匹克大厅 第二场（同时线上直播）', { kind: 'concert' }],
   ['CRAVITY', '2026-11-19', 19 * 60, 'CRAVITY EP [sonorous] 发售纪念 视频通话签售 EVENT', { kind: 'vsign', dur: 120 }],
   ['CRAVITY', '2026-11-21', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉釜山 KBS Hall（巡演场次，不是首场）', { kind: 'concert' }],
+  ['CRAVITY', '2026-11-22', 14 * 60, 'CRAVITY EP [sonorous] 发售纪念 釜山公开签售（乐天百货釜山本店 9F L-Arena 广场，抽 50 人；中签的粉丝可以拿未公开「鲨鱼 ver.」小卡找세림、형준签名。前一天釜山演唱会后住酒店，签售完回首尔）', { kind: 'sign', dur: 120, place: '乐天百货釜山本店' }],
   ['CRAVITY', '2026-11-28', null, 'CRAVITY EP [sonorous] 发售纪念 OFFLINE EVENT（香港）：线下对面签售（团签 30 人 + 每人个签 10 人，另有 50 名观览）、签售和观览的人都有 Hi-Bye，还有 1:1 拍立得合影会（每个成员 7 人，不能有身体接触，姿势事先定好）', { kind: 'sign', dur: 210, tbd: 1, abroad: '香港' }],
   ['CRAVITY', '2026-11-29', null, '형준（亨俊）生日', { kind: 'bday' }]
 ];
@@ -10178,7 +10179,7 @@ function srDayFb(dk) {
   return segs;
 }
 function srOfficial(dk) {
-  const x = REAL_GIGS.find(y => y[0] === 'CRAVITY' && y[1] === dk && gigK(y) !== 'bday'); if (!x) return []; const o = x[4] || {}, k = gigK(x), base = { where: o.abroad || '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', c: 0 };
+  const x = REAL_GIGS.find(y => y[0] === 'CRAVITY' && y[1] === dk && gigK(y) !== 'bday'); if (!x) return []; const o = x[4] || {}, k = gigK(x), base = { where: o.abroad || o.place || '', with: 'CRAVITY 成员', kind: 'work', src: 'official', st: '', c: 0 };
   const rr = srng('gig' + dk), jt = (a, b) => Math.round(a + rr() * (b - a)); /* 大概的时间：每段的起止都不是整点整半点 */
   const seg = (id, s0, e0, what, share, kind) => ({ ...base, id: id + dk, s: Math.max(0, Math.min(1439, s0)), e: Math.max(1, Math.min(1440, e0)), what, share, ...(kind ? { kind } : {}) });
   if (k === 'sign' || k === 'vsign') { const dur = o.dur || 120;
