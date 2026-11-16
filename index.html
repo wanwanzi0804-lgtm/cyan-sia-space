@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116234028';
+const BUILD = '20261116234426';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6560,8 +6560,19 @@ function bbRelease(n) {
   for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + 600 + Math.pow(Math.random(), 1.6) * 9000, user: l.user, line: { ...l, ai: 1 } }); }
 }
 function bbRelease2(n) { const B = S.bubble, now = Date.now(); n = Math.min(n, (B.aiPool || []).length); for (let i = 0; i < n; i++) { const l = B.aiPool.shift(); B.pending.push({ at: now + 1500 + Math.pow(Math.random(), 1.3) * 40000, user: l.user, line: { ...l, ai: 1 } }); } } /* 第二批：接下来几十秒里陆续冒出来 */
+/* 这条消息值不值得请 AI 粉丝认真回：打招呼、报个行踪、问在干嘛这种就让普通粉丝回；分享生活、讲心情、发照片视频语音才请 AI，内容越多回得越多 */
+const BB_LOW = /^(啊|嗯|哈+|呜+|嘿+)?[，, ]*(我?下班了?|下班啦|收工了?|在干嘛呢?|你们?在干嘛|干嘛呢|吃了吗|吃饭了吗|晚安+|早安+|早上好|午安|在吗|有人吗|我来了|来了|回宿舍了?|到家了?|到了|出门了|起床了|好困|困了|hi+|hello+|안녕+|뭐해+|뭐하니|잘자+|굿밤|굿모닝|좋은 아침|퇴근(했어|함|!)?|출근|도착|밥 먹었어\??|ㅎㅇ)[~～!！?？.。…\s]*$/i;
+const BB_RICH = /开心|高兴|难过|伤心|累|哭|感动|紧张|害怕|担心|委屈|幸福|激动|后悔|想你们|其实|告诉你们|跟你们说|刚刚|今天.{4,}|发生|结果|没想到|居然|心情|觉得|因为|所以|练习|舞台|演唱会|上台|录音|拍摄|拍了|做了|学了|看了|去了|买了|吃了.{2,}|기분|행복|슬퍼|힘들|울었|감동|떨려|보고 ?싶|사실|방금|오늘.{4,}|왜냐|그래서|연습|무대|콘서트|녹음|촬영|먹었는데|갔는데|했는데/;
+function bbScore(m) {
+  if (!m) return 0; if (['image', 'video', 'voice'].includes(m.type)) return 3; if (m.type === 'sticker') return 0;
+  const t = String(m.text || '').split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️/gu, '').trim(), n = t.replace(/[\sㅋㅎㅠㅜ~～!！?？.。,，…]/g, '').length;
+  if (!n || BB_LOW.test(t)) return 0;
+  let sc = n >= 30 ? 2 : n >= 14 ? 1 : 0; sc += Math.min(2, (t.match(new RegExp(BB_RICH.source, 'g')) || []).length);
+  if (m.replyTo) sc += 1; return sc;
+}
 function bbAiOnSend(m) {
   const B = S.bubble; if (!aiOn()) return;
+  B._sc = Math.max(B._sc == null ? -1 : B._sc, bbScore(m));
   const want = ri(4, 8);
   const stale = !B.aiPoolAt || Date.now() - B.aiPoolAt > 20 * 60e3;
   if (m.type !== 'sticker' || stale) { // 她每说一句新的，都马上让粉丝针对这一句回（不再沿用上一句的那批，回复不会慢半拍、对不上）
@@ -6573,7 +6584,9 @@ function bbAiOnSend(m) {
   B.aiPool = []; /* 发表情包：上一批剩下的回复不再放出来，免得像在回上一句 */
 }
 async function bbAI() {
-  const B = S.bubble; B._aiScheduled = false; B._aiBusy = true;
+  const B = S.bubble; B._aiScheduled = false; const sc = B._sc == null ? 1 : B._sc; B._sc = null;
+  if (sc <= 0 && Math.random() > .12) { B._owed = 0; B.aiPool = []; return; } /* 没什么内容的消息：普通粉丝回就够了，不请 AI */
+  B._aiBusy = true;
   const since = B._lastAiAt || 0; B._lastAi = Date.now();
   const newest = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now(), batch = B.msgs.filter(x => x.at > since && x.at > newest - 30 * 60e3).slice(-6); // 只看最近这一阵发的，隔天前的不算 B._lastAiAt = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now();
   try {
@@ -6595,7 +6608,7 @@ ${lines}
     save();
     if (!B._again) { bbRelease(Math.max(B._owed || 0, (B.aiPool || []).length)); B._owed = 0; }
     const gen = B._gen = (B._gen || 0) + 1;
-    aiCompact([...content, { type: 'text', text: prompt(22) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (gen === B._gen && B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) { B.aiPool = (B.aiPool || []).concat(r2.r); bbRelease2(ri(6, 12)); } save(); }).catch(() => { });
+    if (sc >= 2) aiCompact([...content, { type: 'text', text: prompt(sc >= 3 ? 26 : 18) + '\n（这是同一批消息的第二轮回复，换一批不同的粉丝和说法）' }], 3200).then(r2 => { if (gen === B._gen && B.aiPoolAt && Date.now() - B.aiPoolAt < 20 * 60e3) { B.aiPool = (B.aiPool || []).concat(r2.r); bbRelease2(ri(6, 12)); } save(); }).catch(() => { });
   } catch (e) { aiFail(e); }
   finally { B._aiBusy = false; if (B._again) { B._again = false; B._aiScheduled = true; clearTimeout(bbAiTimer); bbAiTimer = setTimeout(bbAI, 300); } else B._owed = 0; }
 }
