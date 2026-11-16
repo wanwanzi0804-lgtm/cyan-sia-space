@@ -947,7 +947,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261116063324';
+const BUILD = '20261116063558';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -11837,7 +11837,8 @@ function viewMe() {
   <div class="sec-title">数据</div>
   <div class="card">
     <p class="muted" style="margin-top:0">所有数据都保存在你这个浏览器里（换浏览器或清除网站数据会丢失）。</p>
-    <div class="row wrap"><button class="btn ghost" data-act="export">导出数据（JSON）</button><button class="btn ghost" data-act="impopen">导入数据</button><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
+    <div class="switch"><span>导出时一起导出 API Key<span class="muted" style="display:block;font-size:12px">导入后不用再填 Key。文件里有 Key，别发给别人</span></span><input type="checkbox" id="pf-expkey" ${S.prefs.expKey ? 'checked' : ''}></div>
+    <div class="row wrap" style="margin-top:10px"><button class="btn ghost" data-act="export">导出数据（JSON）</button><button class="btn ghost" data-act="impopen">导入数据</button><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
   </div>
   `}[UI.meTab || 'stats']()}
   `;
@@ -12287,7 +12288,7 @@ document.addEventListener('click', async e => {
     case 'impopen': $('#imp-file-g').click(); break;
     case 'export': {
       toast('正在打包存档…', '照片、视频也会一起导出，可能要几秒'); let media = []; try { media = await Promise.all((await idbAll()).filter(([, b]) => b instanceof Blob).map(async ([id, b]) => [id, await blobUrl(b)])); } catch (e) { }
-      const base = JSON.stringify(S, function (k, v) { return k.startsWith('_') || (k === 'key' && this === S.ai) ? undefined : v; }), blob = new Blob([base.slice(0, -1) + ',"siaMedia":' + JSON.stringify(media) + '}'], { type: 'application/json' }); /* 存档 + 所有照片视频（IndexedDB 里的）一起导出，换浏览器 / 主屏幕版也不会丢图 */
+      const base = JSON.stringify(S, function (k, v) { return k.startsWith('_') || (k === 'key' && this === S.ai && !S.prefs.expKey) ? undefined : v; }), blob = new Blob([base.slice(0, -1) + ',"siaMedia":' + JSON.stringify(media) + '}'], { type: 'application/json' }); /* 存档 + 所有照片视频（IndexedDB 里的）一起导出，换浏览器 / 主屏幕版也不会丢图 */
       const filename = `sia-space-${dkey(Date.now())}.json`;
       // 在 claude.ai 链接里打开时走平台的下载确认；直接打开本地文件时用普通下载
       const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
@@ -12309,7 +12310,7 @@ function keyRepair(st) { let n = 0; const seen = new Set(); const walk = (o, dep
     if (T.p.key !== k) { T.p.key = k; n++; } }
   return n; }
 async function importSave(f) { if (!f) return; toast('正在读取存档…', f.name);
-    try { const j = JSON.parse(await f.text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; keyRepair(j); if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
+    try { const j = JSON.parse(await f.text()); if (!j.profile || !j.posts) throw new Error('格式不对'); const media = j.siaMedia || []; delete j.siaMedia; keyRepair(j); if (media.length) { toast('正在导入照片和视频…', `${media.length} 个`); for (const [id, u] of media) { try { await idbPut(id, await (await fetch(u)).blob()); } catch (e) { } } } j.ai = Object.assign({}, S.ai, j.ai, { key: (j.ai && j.ai.key) || S.ai.key }); S = j; clearTimeout(saveT); localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); toast('导入成功', '马上重新载入'); setTimeout(() => location.reload(), 600); } /* 立刻写进去再刷新：主屏幕版 / iOS 不一定触发 beforeunload，延迟保存会丢 */
     catch (err) { toast('导入失败', err.message); }
 }
 (() => { const inp = document.createElement('input'); inp.type = 'file'; inp.id = 'imp-file-g'; inp.accept = '.json,application/json,text/plain'; inp.style.display = 'none'; inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; importSave(f); }); document.body.appendChild(inp); })();
@@ -12322,6 +12323,7 @@ document.addEventListener('change', async e => {
   if (e.target.id === 'yt-thumb-in') { const f = e.target.files && e.target.files[0], id = e.target.dataset.id; if (f && id) { await ytThumbSet(id, f); toast('封面换好了'); render(); } return; }
   if (e.target.id === 'serim-ph') { const f = e.target.files && e.target.files[0]; if (f) { SRPH = { file: f, url: URL.createObjectURL(f) }; openModal(serimCardHTML()); } return; }
   if (e.target.id === 'shfile-in') { const f = e.target.files && e.target.files[0]; if (f) { if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; } render(); return; }
+  if (e.target.id === 'pf-expkey') { S.prefs.expKey = e.target.checked; save(); toast(S.prefs.expKey ? '导出时会带上 API Key' : '导出时不带 API Key'); return; }
   if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
   if (e.target.id === 'r-work') syncWorkField();
