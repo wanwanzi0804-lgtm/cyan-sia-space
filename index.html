@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117032419';
+const BUILD = '20261117130443';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -4676,9 +4676,10 @@ const KK_RC_MIN = 5;
 function kkAI(m, who) { if (!m.rc) return m.text; const o = m.orig || {}; return m.rcSeen ? `（${who || '她'}撤回了一条消息，撤回前对方已经看到了：「${o.zh && o.zh !== o.text ? o.zh : o.text || '一个表情 / 照片'}」）` : `（${who || '她'}撤回了一条消息，对方没看到内容）`; }
 const kkHidden = m => m.rc && !m.rcSeen; // 撤回了、对方也没看到：对他来说等于没发过
 function kkThreadMsgs() { return UI.mgrOpen ? mgrChat().chat : UI.dmOpen && dms()[UI.dmOpen] ? dms()[UI.dmOpen].msgs : null; }
-function kkMenu(id) { const L = kkThreadMsgs(); const m = L && L.find(x => x.id === id); if (!m || !m.me || m.rc || m.sys || m.call) return;
+function kkMenu(id) { const L = kkThreadMsgs(); const m = L && L.find(x => x.id === id); if (!m || m.rc || m.sys || m.call) return;
   const left = KK_RC_MIN * 60e3 - (Date.now() - m.at), v = document.createElement('div'); v.id = 'kk-menu';
-  v.innerHTML = `<div class="km"><button data-act="kkrc" data-id="${esc(id)}" ${left > 0 ? '' : 'disabled'}>撤回${left > 0 ? '' : `<small>超过 ${KK_RC_MIN} 分钟就不能撤回了</small>`}</button>${m.text && !m.stk && !m.ph ? `<button data-act="kkcopy" data-id="${esc(id)}">复制</button>` : ''}<button data-act="kkmx">取消</button></div>`;
+  const trB = m.zh && !koSimple(m.text) && !m.stk && !m.ph ? `<button data-act="kknotr" data-id="${esc(id)}">${m.noTr ? '显示这条的翻译' : '隐藏这条的翻译'}</button>` : '';
+  v.innerHTML = `<div class="km">${m.me ? `<button data-act="kkrc" data-id="${esc(id)}" ${left > 0 ? '' : 'disabled'}>撤回${left > 0 ? '' : `<small>超过 ${KK_RC_MIN} 分钟就不能撤回了</small>`}</button>` : ''}${trB}${m.text && !m.stk && !m.ph ? `<button data-act="kkcopy" data-id="${esc(id)}">复制</button>` : ''}<button data-act="kkmx">取消</button></div>`;
   v.addEventListener('click', e => { if (e.target === v) v.remove(); }); $('#kk-menu')?.remove(); document.body.appendChild(v); }
 function kkRecall(id) { const L = kkThreadMsgs(); const m = L && L.find(x => x.id === id); if (!m || m.rc) return; if (Date.now() - m.at > KK_RC_MIN * 60e3) { toast(`超过 ${KK_RC_MIN} 分钟就不能撤回了`); return; }
   const seen = UI.mgrOpen ? (mgr().readAt || 0) >= m.at : (dms()[UI.dmOpen].readTo || 0) >= m.at;
@@ -4786,9 +4787,9 @@ function kkLogHTML(msgs, o) {
     const d = new Date(m.at), dk = dkey(m.at), sep = dk !== lastDay ? `<div class="kk-day">${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${WDK[d.getDay()]}요일</div>` : ''; lastDay = dk;
     if (m.sys) return sep + `<div class="kk-sep">${esc(m.sys)}</div>`;
     const p = msgs[i - 1], n = msgs[i + 1], cont = !sep && p && who(p) === who(m) && minute(p) === minute(m), last = !n || who(n) !== who(m) || minute(n) !== minute(m) || dkey(n.at) !== dk;
-    const body = m.rc ? `<span class="kk-rc">ⓘ 삭제된 메시지입니다.</span>` : m.att ? kkAttHTML(m) : m.call ? `<div class="kk-call"><i>${CALL_SVG}</i><div><b>${callLbl(m.call)}</b>${m.call.dur ? `<span>${m.call.dur}</span>` : ''}</div></div>` : `${esc(m.text)}${o.tr && m.zh && !koSimple(m.text) ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
+    const body = m.rc ? `<span class="kk-rc">ⓘ 삭제된 메시지입니다.</span>` : m.att ? kkAttHTML(m) : m.call ? `<div class="kk-call"><i>${CALL_SVG}</i><div><b>${callLbl(m.call)}</b>${m.call.dur ? `<span>${m.call.dur}</span>` : ''}</div></div>` : `${esc(m.text)}${o.tr && m.zh && !m.noTr && !koSimple(m.text) ? `<div class="kk-zh">${esc(m.zh)}</div>` : ''}${o.extra ? o.extra(m) : ''}`, tm = last ? kkTime(m.at) : '';
     if (m.me) return sep + `<div class="kk-row me${cont ? ' cont' : ''}"><span class="kk-t">${o.unread(m) && !m.call ? '<b class="kk-1">1</b>' : ''}${tm}</span><div class="kk-b me${cont ? ' cont' : ''}${m.att ? ' att' : ''}"${m.rc || m.sys || m.call ? '' : ` data-rcid="${esc(String(m.id).replace(/_c$/, ''))}"`} style="-webkit-touch-callout:none">${body}</div></div>`;
-    return sep + `<div class="kk-row${cont ? ' cont' : ''}">${cont ? '<div class="kk-avsp"></div>' : o.av}<div>${cont ? '' : `<div class="kk-n">${esc(o.name)}</div>`}<div class="kk-b${cont ? ' cont' : ''}${m.att ? ' att' : ''}">${body}</div></div><span class="kk-t">${tm}</span></div>`;
+    return sep + `<div class="kk-row${cont ? ' cont' : ''}">${cont ? '<div class="kk-avsp"></div>' : o.av}<div>${cont ? '' : `<div class="kk-n">${esc(o.name)}</div>`}<div class="kk-b${cont ? ' cont' : ''}${m.att ? ' att' : ''}"${m.rc || m.call || m.att ? '' : ` data-rcid="${esc(String(m.id))}"`} style="-webkit-touch-callout:none">${body}</div></div><span class="kk-t">${tm}</span></div>`;
   }).join('');
 }
 function mgrLogHTML() {
@@ -12344,6 +12345,7 @@ document.addEventListener('click', async e => {
         dmAnswer(k, v, o, false); } break; }
     case 'kkview': kkView(t); break;
     case 'kkrc': $('#kk-menu')?.remove(); kkRecall(t.dataset.id); break;
+    case 'kknotr': { $('#kk-menu')?.remove(); const L = kkThreadMsgs(), m = L && L.find(x => x.id === t.dataset.id); if (m) { if (m.noTr) delete m.noTr; else m.noTr = 1; save(); if (UI.mgrOpen) mgrRefresh(); else openModal(dmHTML(UI.dmOpen)); } break; }
     case 'kkcopy': { $('#kk-menu')?.remove(); const L = kkThreadMsgs(), m = L && L.find(x => x.id === t.dataset.id); if (m) try { await navigator.clipboard.writeText(m.text); toast('已复制'); } catch (e) { } break; }
     case 'kkmx': $('#kk-menu')?.remove(); break;
     case 'kkvclose': $('#kk-view')?.remove(); break;
