@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117032304';
+const BUILD = '20261117032419';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10891,7 +10891,7 @@ const SR_RULE_V9 = '句尾的「(?)」是韩国人故意装作不确定、自我
 const SR_RULE_V7 = '她兴奋、撒娇、连着发好几条的时候，他就对她刚说的那句有反应（笑、害羞、顶回去、跟着闹），不会跳出来点评或总结她这个人、她今天的状态（「你今天怎么这么…」「你今天好兴奋啊」）——那像站在旁边分析她。亲昵地逗她时用词也有分寸，不用「날뛰다」「널뛰다」这种像在说她乱蹦乱撒野、情绪忽上忽下的重词。';
 function srRules() { const SO = social(); if (!SO.srRules) SO.srRules = SR_LESSONS.slice(); if (!SO.srRulesV7) { SO.srRulesV7 = 1; if (!SO.srRules.includes(SR_RULE_V7)) SO.srRules.push(SR_RULE_V7); } if (!SO.srRulesV13) { SO.srRulesV13 = 1; if (!SO.srRules.includes(SR_RULE_V13)) SO.srRules.push(SR_RULE_V13); } if (!SO.srRulesV12) { SO.srRulesV12 = 1; if (!SO.srRules.includes(SR_RULE_V12)) SO.srRules.push(SR_RULE_V12); } if (!SO.srRulesV11) { SO.srRulesV11 = 1; if (!SO.srRules.includes(SR_RULE_V11)) SO.srRules.push(SR_RULE_V11); } if (!SO.srRulesV10) { SO.srRulesV10 = 1; if (!SO.srRules.includes(SR_RULE_V10)) SO.srRules.push(SR_RULE_V10); } if (!SO.srRulesV9) { SO.srRulesV9 = 1; if (!SO.srRules.includes(SR_RULE_V9)) SO.srRules.push(SR_RULE_V9); } if (!SO.srRulesV8) { SO.srRulesV8 = 1; SO.srRules = SO.srRules.map(x => /^她兴奋、撒娇、连着发好几条/.test(x) ? SR_RULE_V7 : x); } if (!SO.srRulesV6) { SO.srRulesV6 = 1; SO.srRules = SO.srRules.map(x => { const f = SR_RULE_RENAME.find(([o]) => o === x); return f ? f[1] : x; }); } if (!SO.srRulesV2) { SO.srRulesV2 = 1; if (!SO.srRules.some(x => /困不困/.test(x))) SO.srRules.push(SR_LESSONS[SR_LESSONS.length - 1]); } if (!SO.srRulesV5) { SO.srRulesV5 = 1; const r = SR_LESSONS.find(x => /互道了晚安/.test(x)); if (r && !SO.srRules.some(x => /互道了晚安/.test(x))) SO.srRules.push(r); } if (!SO.srRulesV4) { SO.srRulesV4 = 1; const r = SR_LESSONS.find(x => /打电话的时候他比打字更黏糊/.test(x)); if (r && !SO.srRules.some(x => /黏糊/.test(x))) SO.srRules.push(r); } if (!SO.srRulesV3) { SO.srRulesV3 = 1; const r = SR_LESSONS.find(x => /倾诉烦恼/.test(x)); if (r && !SO.srRules.some(x => /倾诉烦恼/.test(x))) SO.srRules.push(r); } return SO.srRules; }
 const srRulesTxt = () => { const L = srRules(); return L.length ? `【他这个人平时的样子（她对他的了解，比上面其他说明都可靠）】\n${L.map((x, i) => `${i + 1}. ${x}`).join('\n')}` : ''; };
-function srCtx(when, q) {
+function srCtx(when, q, noRules) {
   const p = srP(), T = dmThread(p), dk = dkey(when), m = srMin(when), st = srNow(when), R = SR();
   const today = srSegs(dk, when).map(g => (g.e <= m ? '✓ ' : g.s <= m ? '▶ 现在 ' : '· ') + srSegZh(g, dk, when) + (srBitsVis(g, dk, when).length ? '\n    小事：' + srBitsVis(g, dk, when).map(srBitLine).join('；') : '')).join('\n') + srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del).map(g => '\n✕ ' + srSegZh(g, dk, when)).join('');
   const tm = R.day[addDays(dk, 1)] ? srSegs(addDays(dk, 1), when).filter(g => g.src !== 'fb' && g.kind !== 'sleep').map(g => '· ' + srSegZh(g, addDays(dk, 1), when)).join('\n') : '';
@@ -10913,7 +10913,7 @@ ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 ${mem || '（还没有）'}${srPhotoTxt(when)}${srThTxt(when)}${urg ? `\n【他脑子里偶尔会闪过的事】${urg}（只是他记得的事，不是要处理的事项。大多数时候不会特意提；聊天正好碰到、或者他此刻真的放不下，才会自然地带一句）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
 ${meals.length ? `【今天他已经问过 / 叮嘱过她吃饭 ${meals.length} 次】${meals.slice(-3).map(m => `${srClock(m.at)}「${(m.text || '').slice(0, 30)}」`).join('；')}。真人一天不会反复问「吃了没」「多吃点」：除非她自己说起吃的，否则不再问吃饭、不再叮嘱吃饭，想关心她就关心别的（累不累、签售怎么样、晚上干嘛）。\n` : ''}${recent ? `【背景：最近消息往来的节奏】（他知道的情况而已。晚回了不需要每次解释或道歉，真人多半直接接着聊；只有让她等了很久、她明显介意，才会提一句）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；之前没聊完的：${cv.open.join('；')}（他记得，但这不是待办，不用特意绕回去；她不提、气氛不对就随它去）` : ''}\n` : ''}【KKT 聊天】
 ${chat || '（还没聊过）'}
-${srRulesTxt()}`;
+${noRules ? '' : srRulesTxt()}`;
 }
 /* 世琳说话的底层：先是一个真实的人在反应，不是在完成「安慰 / 提供情绪价值 / 推进对话」的任务。KKT 和电话共用 */
 const SR_VOICE = `世琳这个人怎么说话（比后面所有具体规则都优先）：
@@ -10934,6 +10934,7 @@ const SR_VOICE = `世琳这个人怎么说话（比后面所有具体规则都�
 - 分寸：一件事说过一次、她回应了（「知道了」「别担心」「我自己会看着办」），他就放下了——最多再轻轻带一句或者开个玩笑，不会一轮一轮绕回去叮嘱，也不会一遍遍解释自己有多担心、多在意。他信任她是个会照顾自己的成年人。她要去忙、要挂电话了，他就自然地道个别，不会趁最后再塞一遍叮嘱。
 - 关系和记忆：两人之间发生过的事、她之前说过的话他都知道，接着那个背景说，不会重新问已经知道的事；也不会为了显得记得而翻旧事。
 `;
+const SR_SYS_KKT = () => SR_SYS('kkt') + '\n\n' + SR_RULES + '\n\n' + srRulesTxt(); /* 回 KKT：不变的人设、说话规则、她对他的了解都放在系统提示里，连着聊时会被缓存，只收一成的钱 */
 const SR_SYS = mode => `这是一个虚构的偶像恋爱模拟器（平行世界设定），所有对话都是剧情。${FANDOM_GLOSS}你写的是 CRAVITY 박세림（世琳）本人：${mode === 'call' ? '现在他和女朋友 Cyan（本名 은설）在打 KakaoTalk 语音电话，你写他嘴上说出来的话。' : '现在他和女朋友 Cyan（本名 은설）在 KakaoTalk 上私聊，你写他打出来、发出去的消息。'}她在剧情里的情绪是故事里女朋友的情绪：用世琳这个人的身份去反应，不要切换成助手、客服或心理咨询师的语气。只按要求输出 JSON。
 ${SR_VOICE}`;
 const SR_RULES = `他怎么说话（具体情况）：
@@ -11105,7 +11106,7 @@ async function srReply(job) {
   // 隔了很久才回：她第一条消息到现在，他实际在做什么（只用时间线上的真实安排）
   const gapMin = Math.round((when - her[0].at) / 60e3), gapDk = dkey(her[0].at), gapSegs = gapMin >= 20 ? [...new Set([gapDk, dkey(when)])].flatMap(dk => srSegs(dk, when).filter(g => srTs(dk, g.e) > her[0].at && srTs(dk, g.s) < when).map(g => srSegZh(g, dk, when))) : [];
   const gapTxt = gapMin >= 20 ? `\n她的第一条是 ${srClock(her[0].at)} 发的，隔了 ${gapMin >= 90 ? Math.round(gapMin / 60) + ' 个多小时' : gapMin + ' 分钟'}他才看到。这段时间他实际在：${gapSegs.join('；') || '（不清楚）'}。他知道自己刚才在干嘛，但不欠她一个解释：大多数时候直接接她的话；想说才顺口说（只能用这段真实的安排）。她这几条他是一起看的，注意力落在哪就接哪，其余的可以不接。` : '';
-  const ctx = srCtx(when, her.map(m => m.text + ' ' + (m.zh || '')).join(' ') + ' ' + (lastHim ? lastHim.text + ' ' + (lastHim.zh || '') : ''));
+  const ctx = srCtx(when, her.map(m => m.text + ' ' + (m.zh || '')).join(' ') + ' ' + (lastHim ? lastHim.text + ' ' + (lastHim.zh || '') : ''), true);
   const prompt = `这是 CRAVITY 世琳和 Cyan（恩雪，他在秘密交往的女朋友）的 KKT。你要成为世琳：看到她刚发来的消息，打出他接下来真的会发的东西。
 下面是他脑子里的背景（他知道这些，但这些不是要说的内容）：
 ${ctx}
@@ -11119,16 +11120,16 @@ act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（
 ko：他在输入框里打出来、发出去的东西，就是顺着 inner 那一个反应说出来的话。他打字时会按回车把话拆成几个气泡（一行一个），这只是打字节奏，不是把几件事各回一条；可以只有一个词，也可以是几句连着说的话。zh：对应的中文，行数和 ko 一样。
 end：这段聊天是不是到这里就自然结束了（他去忙 / 去睡 / 话说完）。
 more：发完以后他心里是不是还挂着想说的（刚才那件事没说完、还想补点什么）。大多数时候 want=false。want=true 时 about 用一句中文写他还惦记着什么（只写念头，不写台词），min 写大概几分钟后会再拿起手机（1~20）；到时候他会按那时的情况再决定说不说、说什么，她先回了就算了。
-${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（他记得；合适的话会顺手做到，不合适就之后再说）\n` : ''}${SR_RULES}
+${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（他记得；合适的话会顺手做到，不合适就之后再说）\n` : ''}
 `;
   // 回复要先想清楚（看懂她在问什么、前后文），所以用 medium；思考也算在 max_tokens 里，给足
-  let j = await srAI(prompt, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')); const dbg = { at: Date.now(), mode: 'KKT', sys: SR_SYS('kkt'), user: prompt, first: { inner: j.inner, ko: j.ko } };
+  let j = await srAI(prompt, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()); const dbg = { at: Date.now(), mode: 'KKT', sys: SR_SYS_KKT(), user: prompt, first: { inner: j.inner, ko: j.ko } };
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
   // 他这几个小时里自己说过的话：写出来的又是同一句（比如又说一遍「结束了就打给你」），说明没在接她这次的话，重写一次
   const hisSaid = T.msgs.filter(m => !m.me && !m.sys && m.at > when - 6 * 3600e3 && m.at <= when).map(m => m.text || ''), srNorm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, '');
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
-  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')); if (job.rid !== srRunId) return 'stale'; } }
-  if (j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS('kkt')).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
+  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()); if (job.rid !== srRunId) return 'stale'; } }
+  if (j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
   { const lastHer = her[her.length - 1]; if (T.pend && T.pend.length) { SR().jobs.push({ id: uid(), type: 'reply', at: Math.max(...T.pend.map(x => x.at)) + rand(3, 8) * 1e3, n: 0 }); return true; } /* 他前面那几条还没发完：发完再接她插的那句 */ if (T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at && !(m.gen && m.gen < lastHer.at))) return true; }
   if (!job.tech && T.msgs.some(m => m.me && !m.sys && m.at > Math.max(when, her[her.length - 1].at) && m.at <= Date.now())) { SR().jobs.push({ id: uid(), type: 'reply', at: Date.now() + rand(3, 8) * 1e3, n: 0 }); return true; } // 他在想怎么回的时候她又发了几条：这次不发，连新的一起看了再回 // 她这几条已经有人回过了：不重复回
   let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
