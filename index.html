@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117030138';
+const BUILD = '20261117030304';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -4420,6 +4420,7 @@ function trPunct(src, out, to) {
     return body + t; };
   return S0.length === O.length ? O.map((b, i) => one(S0[i], b)).join('\n') : one(String(src), String(out));
 }
+async function mtFree(text, to) { try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); return trPunct(text, (j[0] || []).map(x => x[0]).join('').trim(), to); } catch (e) { return ''; } }
 async function trText(text, to, who, ctx) { return trPunct(text, await trText0(text, to, who, ctx), to); }
 async function trText0(text, to, who, ctx, _again) {
   if (aiOn() && !_again) { const out = await trText0(text, to, who, ctx, 1); const eng = (out.match(/[A-Za-z]{3,}/g) || []).filter(w => !new RegExp(w, 'i').test(text) && !/^(OK|ok|Cyan|CRAVITY|MV|KKT|vlog|Vlog)$/.test(w)); if (out && eng.length) { const o2 = await trText0(text, to, who, (ctx ? ctx + '\n' : '') + `（上一次译成了「${out}」，里面混进了英文「${eng.join(' ')}」，这次全部用${to === 'ko' ? '韩语' : '中文'}说）`, 1); if (o2 && !(o2.match(/[A-Za-z]{3,}/g) || []).some(w => !new RegExp(w, 'i').test(text))) return o2; } return out; }
@@ -9884,7 +9885,7 @@ function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
-async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const ctx = T.msgs.filter(x => x !== m && !x.sys && x.text && x.at <= m.at).slice(-6).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh && x.zh !== x.text ? x.zh : x.text}`).join('\n'); const who = `${socName(p)}（${p.key === SR_K && serimLove() ? '她的男朋友' : socBan(p) ? '很熟的朋友' : '还不太熟的人'}：${socBan(p) ? '必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语；她说的「世琳 / 세림」就是在对他说话，译成「너」或者直接叫名字' : '用敬语'}）`; let out = await trText(m.text, hasHan(m.text) ? 'ko' : 'zh', who, ctx); if (out && hasHan(m.text) && socBan(p) && /(요|니다|세요|에요|예요)[.!?~…ㅠㅜㅋㅎ\s]*$/m.test(out)) { const o2 = await trText(m.text, 'ko', who, (ctx ? ctx + '\n' : '') + `（上次译成了「${out}」，用了敬语。这次一定是半语，句尾不带 -요）`); if (o2) out = o2; } /* 对很熟的人不会冒出敬语 */ if (out && hasHan(m.text) && /哥/.test(m.text)) out = out.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠'); /* 她是女生：哥哥＝오빠 */ delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const ctx = T.msgs.filter(x => x !== m && !x.sys && x.text && x.at <= m.at).slice(-6).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh && x.zh !== x.text ? x.zh : x.text}`).join('\n'); const who = `${socName(p)}（${p.key === SR_K && serimLove() ? '她的男朋友' : socBan(p) ? '很熟的朋友' : '还不太熟的人'}：${socBan(p) ? '必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语；她说的「世琳 / 세림」就是在对他说话，译成「너」或者直接叫名字' : '用敬语'}）`; let out = hasHan(m.text) ? await trText(m.text, 'ko', who, ctx) : await mtFree(m.text, 'zh'); /* 她直接打韩语：只是给她看的中文，用免费翻译 */ if (out && hasHan(m.text) && socBan(p) && /(요|니다|세요|에요|예요)[.!?~…ㅠㅜㅋㅎ\s]*$/m.test(out)) { const o2 = await trText(m.text, 'ko', who, (ctx ? ctx + '\n' : '') + `（上次译成了「${out}」，用了敬语。这次一定是半语，句尾不带 -요）`); if (o2) out = o2; } /* 对很熟的人不会冒出敬语 */ if (out && hasHan(m.text) && /哥/.test(m.text)) out = out.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠'); /* 她是女生：哥哥＝오빠 */ delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { if (!m.me && !m.sys && typeof m.text === 'string') { const g = m.text.trim().match(/^\[(?:이모티콘|表情包|表情)\s*[:：]\s*(\w+)\]$/); if (g) { const x = STICKERS[g[1]]; if (!x) return; m = { ...m, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }; } } // 对方发的表情包；编号对不上的就不发
   const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', dk: p.key, text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40), kkt: { name: socDisp(p), key: p.key, ko: (m.stk ? '이모티콘을 보냈습니다.' : m.ph ? '사진을 보냈습니다.' : m.text || m.sys || '').slice(0, 90) } }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
@@ -10485,7 +10486,7 @@ function srPhotoLink() { const R = SR(), T = dmThread(srP()); for (const m of T.
 const srBitsVis = (g, dk, when) => (g.bits || []).filter(b => srTs(dk, b.m) <= when);
 function srBitLine(b) { return `[${b.id}] ${hhmm(b.m)} ${b.t}${b.told ? '（跟她说过）' : ''}`; }
 async function srBitsEnsure(dk) {
-  const D = SR().day[dk]; if (!D || D.gen === 'fb' || srBitBusy && Date.now() - srBitBusy < 120e3 || !srAIState().ok || (D.bTry && Date.now() - D.bTry < 30 * 60e3)) return;
+  const D = SR().day[dk]; if (srBgOff() || !D || D.gen === 'fb' || srBitBusy && Date.now() - srBitBusy < 120e3 || !srAIState().ok || (D.bTry && Date.now() - D.bTry < 30 * 60e3)) return;
   const todo = srSegs(dk).filter(g => !g.bitsDone && g.kind !== 'sleep' && g.st !== 'cancel' && g.e - g.s >= 40); if (!todo.length) return;
   srBitBusy = Date.now(); D.bTry = Date.now();
   try { const c = socCard(srP()) || {}, all = srSegs(dk).map(g => `- [${g.id}] ${srSegZh(g, dk)}`).join('\n'), said = srLive().filter(m => m.who === 'him' && ['event', 'fact'].includes(m.k)).slice(-8).map(m => '- ' + m.t).join('\n');
@@ -10532,10 +10533,12 @@ const SR_PREP_GUIDE = `按这些大事来安排这一天（优先级从高到低
 - 签售（包括视频通话签售）：没什么特别要准备的，前几天照常过；当天开始前三个小时左右开始准备（妆发、造型、通勤、后台准备），签售本身两个小时左右，结束后收尾一般不超过半个小时就下班。
 - 海外活动：前一天或当天一早从仁川出发，活动结束后多半第二天回国；时间没公布的不要编具体几点。
 - 成员生日不是工作：零点前后成员之间互相祝福、发消息，可能一起吃饭、切蛋糕，那天照常过。`;
+const srBgOff = () => S.ai.srBgOff !== false; /* 默认关：世琳的日常不再用后台模型自动生成（省钱） */
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (D.gen && D.gen !== 'fb') try { srTailFill(dk); } catch (e) { }
   if (!D.gen) { D.segs.push(...srDayFb(dk)); D.gen = 'fb'; save(); }
+  if (srBgOff()) return;
   if (D.gen !== 'fb' || (srGenBusy && Date.now() - srGenBusy < 120e3) || !srAIState().ok || (D.try && Date.now() - D.try < 20 * 60e3)) return;
   srGenBusy = Date.now(); D.try = Date.now();
   try {
@@ -12077,6 +12080,7 @@ function viewMe() {
       ${[['', '跟上面的模型一样'], ['claude-opus-5-5', 'Claude Opus 5.5（最聪明）'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5（更快、更便宜）'], ['claude-haiku-5-5', 'Claude Haiku 5.5（最便宜）']].map(([v, t]) => `<option value="${v}" ${(S.ai.srModel || '') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
     <div class="field"><label>后台任务模型（世琳每天的日常安排等，不用于聊天和记忆整理）</label><select id="ai-bgmodel">
       ${[['claude-sonnet-5-5', 'Claude Sonnet 5.5（默认）'], ['claude-haiku-5-5', 'Claude Haiku 5.5（最便宜）'], ['claude-opus-5-5', 'Claude Opus 5.5']].map(([v, t]) => `<option value="${v}" ${(S.ai.bgModel || 'claude-sonnet-5-5') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    <div class="switch"><span>世琳的日常让 AI 自动安排<span class="muted" style="display:block;font-size:12px">关着时不花这部分钱；他的行程照你告诉 Claude 的来</span></span><input type="checkbox" id="ai-srbg" ${S.ai.srBgOff === false ? 'checked' : ''}></div>
     <details class="me-more" style="margin:0 0 8px"><summary>大概要花多少钱？</summary><p class="muted" style="margin:6px 0 0">省钱模式：每条帖子只请一次 AI（约 15 条评论，和免费评论混着出现）；直播在你说话后请 AI（最多 30 秒一次），不说话时每 3 分钟少量请一次。<br>大概费用（Haiku 5.5）：每条帖子约 ¥0.01，直播每小时约 ¥0.1～0.5。Sonnet 约贵 20 倍，Opus 约贵 40 倍。</p></details>
     <div class="row" style="margin-bottom:8px"><span style="font-size:14px;flex:1">本月 AI 花费（估算）：<b>¥${(aiUsage().usd * USD_CNY).toFixed(2)}</b> · ${aiUsage().calls} 次${Object.keys(aiUsage().by || {}).length ? `<span class="muted" style="display:block;font-size:12px">${Object.entries(aiUsage().by).sort((x, y) => y[1] - x[1]).map(([k, v]) => `${k} ¥${(v * USD_CNY).toFixed(2)}`).join(' · ')}（从这次更新开始分开记）</span>` : ''}${aiOverCap() ? ' · <b style="color:var(--danger)">已到上限，已暂停</b>' : ''}</span></div>
     <div class="field"><label>每月上限（人民币，到了自动暂停 AI；0 = 不限制）</label><input type="number" id="ai-cap" min="0" step="1" value="${S.ai.capCny ?? 10}"></div>
@@ -12588,6 +12592,7 @@ document.addEventListener('change', async e => {
   if (e.target.id === 'yt-thumb-in') { const f = e.target.files && e.target.files[0], id = e.target.dataset.id; if (f && id) { await ytThumbSet(id, f); toast('封面换好了'); render(); } return; }
   if (e.target.id === 'serim-ph') { const f = e.target.files && e.target.files[0]; if (f) { SRPH = { file: f, url: URL.createObjectURL(f) }; openModal(serimCardHTML()); } return; }
   if (e.target.id === 'shfile-in') { const f = e.target.files && e.target.files[0]; if (f) { if (SHFILE) URL.revokeObjectURL(SHFILE.url); SHFILE = { url: URL.createObjectURL(f), kind: /^video/.test(f.type) ? 'video' : 'image', name: f.name }; } render(); return; }
+  if (e.target.id === 'ai-srbg') { S.ai.srBgOff = !e.target.checked; save(); toast(e.target.checked ? '世琳的日常：AI 自动安排' : '世琳的日常：不自动安排', e.target.checked ? '会用后台模型，额外花钱' : '不再花这部分的钱'); return; }
   if (e.target.id === 'pf-expkey') { S.prefs.expKey = e.target.checked; save(); toast(S.prefs.expKey ? '导出时会带上 API Key' : '导出时不带 API Key'); return; }
   if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
