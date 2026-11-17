@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117025636';
+const BUILD = '20261117025935';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1338,17 +1338,19 @@ async function aiCompact(content, maxTokens, model) {
   const k = (j.k || []).map(x => String(x || '').trim()).filter(x => x.length >= 1 && x.length <= 8).slice(0, 6);
   return { r, k };
 }
+function aiCount(model, us) { if (!us) return; const [pi, po] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(), usd = ((us.input_tokens || 0) * pi + (us.cache_creation_input_tokens || 0) * pi * 1.25 + (us.cache_read_input_tokens || 0) * pi * .1 + (us.output_tokens || 0) * po) / 1e6;
+  u.calls++; u.usd += usd; const k = /opus/.test(model) ? 'Opus' : /sonnet/.test(model) ? 'Sonnet' : /haiku/.test(model) ? 'Haiku' : model; (u.by || (u.by = {}))[k] = (u.by[k] || 0) + usd; }
+const aiSys = t => t && t.length > 3000 ? [{ type: 'text', text: t, cache_control: { type: 'ephemeral' } }] : t; /* 长的系统提示（世琳的人设、说话方式）缓存起来：几分钟内的下一次请求只收一成的钱 */
 async function aiRaw(content, maxTokens, schema, sys, model, effort, stream) {
   const client = await aiClient(); model = model || S.ai.model;
   const req = {
-    model, max_tokens: maxTokens, system: sys || aiSystem(),
+    model, max_tokens: maxTokens, system: aiSys(sys || aiSystem()),
     messages: [{ role: 'user', content }],
     output_config: { effort: effort || 'low', format: { type: 'json_schema', schema } }
   };
   if (FALLBACK_MODELS.includes(model)) { req.betas = ['server-side-fallback-2026-07-01']; req.fallbacks = 'default'; }
   const r = stream ? await client.beta.messages.stream(req).finalMessage() : await client.beta.messages.create(req); // 要想比较久的请求用流式：一直有数据回来，手机网络不会中途断开
-  const [pi, po] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'], u = aiUsage();
-  u.calls++; u.usd += ((r.usage?.input_tokens || 0) * pi + (r.usage?.output_tokens || 0) * po) / 1e6;
+  aiCount(model, r.usage);
   if (aiOverCap()) pushNotif({ type: 'system', text: '本月 AI 花费已到你设的上限，AI 粉丝已自动暂停', sub: '下个月会自动恢复，也可以在「我的 → AI 粉丝」里调高上限' }, true);
   save();
   if (r.stop_reason === 'refusal') throw new Error('模型拒绝了这次请求');
@@ -4421,7 +4423,7 @@ function trPunct(src, out, to) {
 async function trText(text, to, who, ctx) { return trPunct(text, await trText0(text, to, who, ctx), to); }
 async function trText0(text, to, who, ctx, _again) {
   if (aiOn() && !_again) { const out = await trText0(text, to, who, ctx, 1); const eng = (out.match(/[A-Za-z]{3,}/g) || []).filter(w => !new RegExp(w, 'i').test(text) && !/^(OK|ok|Cyan|CRAVITY|MV|KKT|vlog|Vlog)$/.test(w)); if (out && eng.length) { const o2 = await trText0(text, to, who, (ctx ? ctx + '\n' : '') + `（上一次译成了「${out}」，里面混进了英文「${eng.join(' ')}」，这次全部用${to === 'ko' ? '韩语' : '中文'}说）`, 1); if (o2 && !(o2.match(/[A-Za-z]{3,}/g) || []).some(w => !new RegExp(w, 'i').test(text))) return o2; } return out; }
-  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: S.ai.model, max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（中国年轻人私下聊天的口语，语气、长短跟原文一致；ㅋㅋ / ㅎㅎ / ㅠㅠ / ~ / !! 这些原样保留；오빠 译「哥哥」，자기야 / 애기야 译「宝贝」，半语就译得随意，敬语就译得客气一点）'}。${to === 'ko' && who ? '说话的人是女生（恩雪）：她叫的「哥哥 / 哥」一律译成「오빠」，不能译成「형」。' : ''}哪怕只有一两个字也照译，不要解释、不要评论。标点和符号照原文：原文的 ~ !! ?! … .. 和表情原样保留，原文句尾没有句号就不要加句号，原文不是问句就不要加问号。韩语缩写、初声（ㅅㄹㅎ、ㄱㅅ、ㅇㅋ、ㅈㅅ 这类）直接译成对应的口语（爱你、谢谢、OK、对不起），保留后面的 ~ ! 等符号；输出只有译文本身，绝不写「是…的缩写」「意思是…」；译文里不要夹英文单词（原文本来就有的英文除外），不要直译出生硬的书面语。时间词照原意：刚才 / 刚刚＝아까 / 방금（不是 지금），等一下＝이따，现在＝지금。人名：세림＝世琳、은설＝恩雪、정모＝廷谟、앨런＝Allen、우빈＝宇彬、원진＝元进、민희＝敏熙、형준＝亨俊、태영＝太煐、성민＝成民。${FANDOM_GLOSS}${ctx ? `\n前面的聊天（只用来理解这句话在说什么、指的是什么，不要翻译它们）：\n${ctx}\n按上下文译出她真正的意思，用韩国人会这么说的自然说法，不要逐字硬译。` : ''}`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (/缩写|意思是|的意思|翻译为|译为/.test(out)) { const q = out.match(/意思是[「“"]([^」”"]+)[」”"]/) || out.match(/[「“"]([^」”"]+)[」”"][^「“"]*$/); out = q ? q[1] + ((text.match(/[~～!！?？]+$/) || [''])[0]) : ''; } /* 译成了一段解释：只留真正的意思 */ if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
+  if (aiOn()) { try { const client = await aiClient(); const r = await client.beta.messages.create({ model: 'claude-haiku-5-5', max_tokens: 400, system: `你是翻译器。把 <t> 里的话翻译成自然的${to === 'ko' ? (who ? `韩语（对${who}说话的口吻，自然口语）` : '韩语（对经纪人说话的口吻，礼貌但亲近）') : '简体中文（中国年轻人私下聊天的口语，语气、长短跟原文一致；ㅋㅋ / ㅎㅎ / ㅠㅠ / ~ / !! 这些原样保留；오빠 译「哥哥」，자기야 / 애기야 译「宝贝」，半语就译得随意，敬语就译得客气一点）'}。${to === 'ko' && who ? '说话的人是女生（恩雪）：她叫的「哥哥 / 哥」一律译成「오빠」，不能译成「형」。' : ''}哪怕只有一两个字也照译，不要解释、不要评论。标点和符号照原文：原文的 ~ !! ?! … .. 和表情原样保留，原文句尾没有句号就不要加句号，原文不是问句就不要加问号。韩语缩写、初声（ㅅㄹㅎ、ㄱㅅ、ㅇㅋ、ㅈㅅ 这类）直接译成对应的口语（爱你、谢谢、OK、对不起），保留后面的 ~ ! 等符号；输出只有译文本身，绝不写「是…的缩写」「意思是…」；译文里不要夹英文单词（原文本来就有的英文除外），不要直译出生硬的书面语。时间词照原意：刚才 / 刚刚＝아까 / 방금（不是 지금），等一下＝이따，现在＝지금。人名：세림＝世琳、은설＝恩雪、정모＝廷谟、앨런＝Allen、우빈＝宇彬、원진＝元进、민희＝敏熙、형준＝亨俊、태영＝太煐、성민＝成民。${FANDOM_GLOSS}${ctx ? `\n前面的聊天（只用来理解这句话在说什么、指的是什么，不要翻译它们）：\n${ctx}\n按上下文译出她真正的意思，用韩国人会这么说的自然说法，不要逐字硬译。` : ''}`, messages: [{ role: 'user', content: `<t>${text}</t>` }], output_config: { format: { type: 'json_schema', schema: { type: 'object', additionalProperties: false, required: ['t'], properties: { t: { type: 'string' } } } } } }); aiCount('claude-haiku-5-5', r.usage); const raw = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); let out = ''; try { out = (JSON.parse(raw).t || '').trim(); } catch (e) { } if (/缩写|意思是|的意思|翻译为|译为/.test(out)) { const q = out.match(/意思是[「“"]([^」”"]+)[」”"]/) || out.match(/[「“"]([^」”"]+)[」”"][^「“"]*$/); out = q ? q[1] + ((text.match(/[~～!！?？]+$/) || [''])[0]) : ''; } /* 译成了一段解释：只留真正的意思 */ if (out && out.length < text.length * 6 + 40) return out; } catch (e) { } }
   try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${to === 'ko' ? 'ko' : 'zh-CN'}&dt=t&q=${encodeURIComponent(text)}`); const j = await r.json(); const out = (j[0] || []).map(x => x[0]).join('').trim(); if (out) return out; } catch (e) { }
   try { const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${hasHan(text) ? 'zh-CN|ko' : 'ko|zh-CN'}`); const j = await r.json(); const out = j && j.responseData && j.responseData.translatedText; if (out) return out.trim(); } catch (e) { }
   return '';
@@ -4898,7 +4900,7 @@ const hasHan = t => /[一-鿿]/.test(t || '');
 // 还剩中文的话（自定义的行程名等），开了 AI 就请 AI 翻成韩语
 async function koFix(text) {
   if (!hasHan(text) || !aiOn()) return text;
-  try { const client = await aiClient(); const r = await client.messages.create({ model: S.ai.model, max_tokens: 1200, system: '把下面这条韩语消息里残留的中文全部翻译成自然的韩语，保持原有格式、换行、数字和符号不变。只输出翻译后的完整消息。', messages: [{ role: 'user', content: text }] }); const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); return out || text; } catch (e) { return text; }
+  try { const client = await aiClient(); const r = await client.messages.create({ model: 'claude-haiku-5-5', max_tokens: 1200, system: '把下面这条韩语消息里残留的中文全部翻译成自然的韩语，保持原有格式、换行、数字和符号不变。只输出翻译后的完整消息。', messages: [{ role: 'user', content: text }] }); aiCount('claude-haiku-5-5', r.usage); const out = r.content.filter(b => b.type === 'text').map(b => b.text).join('').trim(); return out || text; } catch (e) { return text; }
 }
 // 取消的原因：从你说的话里判断
 function cancelReason(t) {
@@ -12073,7 +12075,7 @@ function viewMe() {
     <div class="field"><label>后台任务模型（世琳每天的日常安排等，不用于聊天和记忆整理）</label><select id="ai-bgmodel">
       ${[['claude-sonnet-5-5', 'Claude Sonnet 5.5（默认）'], ['claude-haiku-5-5', 'Claude Haiku 5.5（最便宜）'], ['claude-opus-5-5', 'Claude Opus 5.5']].map(([v, t]) => `<option value="${v}" ${(S.ai.bgModel || 'claude-sonnet-5-5') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
     <details class="me-more" style="margin:0 0 8px"><summary>大概要花多少钱？</summary><p class="muted" style="margin:6px 0 0">省钱模式：每条帖子只请一次 AI（约 15 条评论，和免费评论混着出现）；直播在你说话后请 AI（最多 30 秒一次），不说话时每 3 分钟少量请一次。<br>大概费用（Haiku 5.5）：每条帖子约 ¥0.01，直播每小时约 ¥0.1～0.5。Sonnet 约贵 20 倍，Opus 约贵 40 倍。</p></details>
-    <div class="row" style="margin-bottom:8px"><span style="font-size:14px;flex:1">本月 AI 花费（估算）：<b>¥${(aiUsage().usd * USD_CNY).toFixed(2)}</b> · ${aiUsage().calls} 次${aiOverCap() ? ' · <b style="color:var(--danger)">已到上限，已暂停</b>' : ''}</span></div>
+    <div class="row" style="margin-bottom:8px"><span style="font-size:14px;flex:1">本月 AI 花费（估算）：<b>¥${(aiUsage().usd * USD_CNY).toFixed(2)}</b> · ${aiUsage().calls} 次${Object.keys(aiUsage().by || {}).length ? `<span class="muted" style="display:block;font-size:12px">${Object.entries(aiUsage().by).sort((x, y) => y[1] - x[1]).map(([k, v]) => `${k} ¥${(v * USD_CNY).toFixed(2)}`).join(' · ')}（从这次更新开始分开记）</span>` : ''}${aiOverCap() ? ' · <b style="color:var(--danger)">已到上限，已暂停</b>' : ''}</span></div>
     <div class="field"><label>每月上限（人民币，到了自动暂停 AI；0 = 不限制）</label><input type="number" id="ai-cap" min="0" step="1" value="${S.ai.capCny ?? 10}"></div>
     ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误${S.ai.lastAt ? '（' + new Date(S.ai.lastAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '）' : ''}：${esc(S.ai.lastError)}</p>` : ''}
     <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
