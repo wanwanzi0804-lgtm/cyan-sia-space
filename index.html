@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117031011';
+const BUILD = '20261117031058';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -4778,7 +4778,7 @@ function kkAttHTML(m) {
 }
 /* 简单的语气词、短词（네 / 고마워요 / 미안해 / 맞아요 / 사랑해 / 보고 싶어 …）不用翻译 */
 const KO_SIMPLE = /^(네|넹|넵|예|응|웅|엉|어|아|오|우와|와|헐|헉|엥|ㅇㅇ|ㅇㅋ|ㅇㅇㅇ|오케이|okay|ok|그래|그래요|그치|고마워|고마워요|고맙습니다|감사해요|감사합니다|땡큐|미안|미안해|미안해요|죄송해요|죄송합니다|맞아|맞아요|맞지|사랑해|사랑해요|사랑합니다|보고싶어|보고싶어요|보고 싶어|보고 싶어요|보고싶다|좋아|좋아요|좋다|알겠어|알겠어요|알았어|알았어요|잘자|잘자요|굿밤|진짜|진짜로|대박|최고|짱|나도|나두|저도|아니|아니야|아냐|싫어|ㅋ+|ㅎ+|ㅠ+|ㅜ+|ㄱㅅ|ㅅㄹㅎ|ㅈㅅ)$/i;
-function koSimple(t) { t = String(t || '').trim(); if (!t || /[一-鿿]/.test(t) || t.length > 24) return false; const w = t.replace(/보고 싶/g, '보고싶').replace(/[~～!！?？.。,，…♥♡❤️💕💙🥺😭😂🤣ㅋㅎㅠㅜ]+$/gu, '').trim().split(/\s+/).filter(Boolean); return w.length > 0 && w.length <= 3 && w.every(x => KO_SIMPLE.test(x.replace(/[~～!！?？.。,，…♥♡❤️💕💙🥺😭😂🤣]+/gu, ''))); }
+function koSimple(t) { t = String(t || '').trim(); if (!t || /[一-鿿]/.test(t) || t.length > 24) return false; if (/^[ㅋㅎㅠㅜ~!?.…\s♥♡💕💙🥺😭😂🤣👍]+$/u.test(t)) return true; const w = t.replace(/보고 싶/g, '보고싶').replace(/[~～!！?？.。,，…♥♡❤️💕💙🥺😭😂🤣ㅋㅎㅠㅜ]+$/gu, '').trim().split(/\s+/).filter(Boolean); return w.length > 0 && w.length <= 3 && w.every(x => KO_SIMPLE.test(x.replace(/[~～!！?？.。,，…♥♡❤️💕💙🥺😭😂🤣]+/gu, ''))); }
 function kkLogHTML(msgs, o) {
   msgs = msgs.flatMap(kkAttSplit);
   let lastDay = ''; const minute = m => Math.floor(m.at / 60000), who = m => m.sys ? 's' : m.me ? 'me' : 'o';
