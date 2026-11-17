@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117031616';
+const BUILD = '20261117032304';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10185,11 +10185,11 @@ ${convo}
 另外，下面是她对他这个人的了解，明显不像这样的也判 ok=false（why 写哪里不像）：
 ${srRules().map((x, i) => `${i + 1}. ${x}`).join('\n')}
 不算 AI 腔的：她为你们的感情委屈、不安时，他认真地心疼、解释自己、让她安心、把她想听的话说出来（这时说得多、照顾得全是对的）；他自己经历了什么、兴奋或者委屈地顺着联想一口气说一串自己的事（一件带出另一件、自嘲、说一半）——那是他想说话，不是在照顾她的各个方面；没什么意义的废话、只有一个词、只接了她话里的一个小细节、突然说自己的事、没接她的某个话题——这些都是真人聊天的样子；她认真倾诉烦恼时，他既心疼她又认真给建议（心态上的、现实的），说得长一些；温柔地说愿意听她说，如果在这个时刻、用他自己的方式说出来，是正常的；普通的短回应、随口一句、没有情绪价值的接话，都正常；认真聊的时候说得长也正常。只有明显不像真人在这个时刻会说的才判 ok=false。
-ok：这句是否自然、像他本人；why：不自然的话，一句中文说清楚问题在哪（ok=true 时空）。` }], 700, { type: 'object', additionalProperties: false, required: ['ok', 'why'], properties: { ok: { type: 'boolean' }, why: { type: 'string' } } }, null, S.ai.bgModel || 'claude-sonnet-5-5', 'low'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 25e3))]); }
+ok：这句是否自然、像他本人；why：不自然的话，一句中文说清楚问题在哪（ok=true 时空）。` }], 700, { type: 'object', additionalProperties: false, required: ['ok', 'why'], properties: { ok: { type: 'boolean' }, why: { type: 'string' } } }, null, 'claude-haiku-5-5', 'low'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 25e3))]); }
   catch (e) { return null; } }
-async function srAI(text, max, schema, bg, effort, sys) {
+async function srAI(text, max, schema, bg, effort, sys, model) {
   const st = srAIState(); if (!st.ok) { const e = new Error(st.zh); e.sr = st.kind; throw e; }
-  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, sys || KKT_SYS(), bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : (S.ai.srModel || S.ai.model), effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
+  try { const j = await Promise.race([aiRaw([{ type: 'text', text }], max, schema, sys || KKT_SYS(), model || (bg ? (S.ai.bgModel || 'claude-sonnet-5-5') : (S.ai.srModel || S.ai.model)), effort), new Promise((_, rej) => setTimeout(() => rej(new Error('请求超时')), (bg ? 90 : 180) * 1e3))]); /* 手机切到后台时请求可能一直挂着：聊天最多等 3 分钟（要先想一想），后台任务 90 秒 */ const A = SR().ai; A.n = 0; A.next = 0; A.err = ''; A.since = 0; return j; }
   catch (e) { if (!e.sr && /connection|network|fetch|load failed|timeout|超时|401|403|429|529|overload|rate|api.?key|authentication/i.test(String(e && e.message || e))) { const A = SR().ai; /* 只有连不上 / 没权限 / 太忙这类才让所有任务一起等；某个任务自己出错只影响它自己 */ A.n = (A.n || 0) + 1; A.next = Date.now() + SR_BACK[Math.min(A.n - 1, SR_BACK.length - 1)] * 60e3; A.err = String(e && e.message || e).slice(0, 60); A.since = A.since || Date.now(); save(); } throw e; }
 }
 
@@ -10988,7 +10988,7 @@ ${mine}
 他当时心里想的：${j.inner || ''}
 
 按下面的说明填（这些只是记录，没有就空）：
-${BOOK_TXT}`, 4000, schema, true, 'low'); }
+${BOOK_TXT}`, 4000, schema, true, 'low', undefined, 'claude-haiku-5-5'); } /* 记账（记忆、约定、心情）用最便宜的模型 */
 const BOOK_TXT = `conv：回完之后这段对话的状态（一句话：在聊什么、有没有还没说完的事），open 只列客观上还没解决的事（比如「她问的周末安排他还没答复」「她因为他很晚才回在生气，还没说开」），普通闲聊没有就空，解决了就别列。
 promise：如果他这次说了「忙完 / 待会儿 / 结束后找你」这类会晚点再联系或去做某事，t 写一句中文（他之后要做什么、说什么），cond=segEnd 表示他现在这段安排结束后，cond=time 表示 min 分钟后，imp 这件事对她有多重要（1~5）；没有就 t 空、cond 空。
 sched：他在这次聊天里说到自己的安排有变（临时有事、改时间、取消、现在在做的事和上面不一样）才填，时间写 HH:MM、day 写 YYYY-MM-DD；没有就空数组。
