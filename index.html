@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117170803';
+const BUILD = '20261117205844';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8336,7 +8336,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9492,6 +9492,19 @@ function srVc1116b() { const R = SR(); if (R.vc1116b) return; R.vc1116b = 1; con
   srMemAdd({ k: 'event', who: 'us', t: `昨晚十点四十多她说想视频，就打了十七分钟左右的视频（${dur}）；她说要睡觉了，互相说了晚安就挂了`, at: end, src: 'sys', imp: 4 });
   const hl = Math.max(0, ...T.msgs.filter(m => m.me && !m.sys && !m.call).map(m => m.at)); if (hl < srTs('2026-11-17', 8 * 60 + 10)) { const n = T.msgs.length; T.msgs = T.msgs.filter(m => !(!m.me && !m.sys && !m.call && m.at > hl)); if (T.msgs.length !== n) { T.readTo = Math.min(T.readTo || 0, Date.now() - 60e3); T.rd = null; T.quiet = null; R.chat.handled = null; R.chat.next = Date.now() + 20e3; R.jobs = R.jobs.filter(j => !['more', 'reply'].includes(j.type)); } }
   save(); } /* 昨晚的视频改成打了十七分钟、她说要睡觉就挂了；他早上照旧版回的那几条撤掉重回 */
+function srUndoHim(a, b) { const R = SR(), T = dmThread(srP()); T.msgs = T.msgs.filter(m => !(!m.me && !m.sys && !m.call && m.at >= a && m.at <= b)); T.pend = (T.pend || []).filter(x => !(x.at >= a && x.at <= b));
+  R.mem = R.mem.filter(m => !((m.c || 0) >= a - 60e3 && (m.c || 0) <= b + 120e3 && m.src !== 'sys' && m.src !== 'note')); if (R.th) R.th = R.th.filter(x => !((x.c || 0) >= a - 60e3 && (x.c || 0) <= b + 120e3));
+  if (R.conv && R.conv.at >= a - 60e3) R.conv = null; R.reach = (R.reach || []).filter(x => !(x.at >= a && x.at <= b)); R.jobs = R.jobs.filter(j => !['more', 'reply', 'reach'].includes(j.type)); } /* 悄悄撤掉他一段时间里的消息：那几次记下的念头、记忆一起撤 */
+function srFix1117d() { const R = SR(); if (R.fix1117d) return; R.fix1117d = 1; try { srBackup('fix1117d'); } catch (e) { } const T = dmThread(srP()), d0 = srTs('2026-11-17', 0);
+  const badV = x => /视频|영통|페이스톡/.test(x.t || '') && /没接|没打成|睡着|补|心上|今晚|晚上|过意不去|못 받|잠들/.test(x.t || ''); /* 早上那版「昨晚睡着没打成视频」留下的念头 */
+  R.mem = R.mem.filter(m => !(m.src !== 'sys' && m.src !== 'note' && (m.c || 0) >= d0 && badV(m))); if (R.th) R.th = R.th.filter(x => !((x.c || 0) >= d0 && badV(x)));
+  { const a = srTs('2026-11-17', 11 * 60 + 25), b = srTs('2026-11-17', 11 * 60 + 55); R.mem = R.mem.filter(m => !((m.c || 0) >= a && (m.c || 0) <= b && m.src !== 'sys' && m.src !== 'note')); if (R.th) R.th = R.th.filter(x => !((x.c || 0) >= a && (x.c || 0) <= b)); }
+  const i = T.msgs.findIndex(m => !m.me && m.at >= d0 && /^나도 샤워하고 와서/.test(m.text || '')); if (i < 0) { save(); return; } const t1 = T.msgs[i].at;
+  srUndoHim(t1 - 2e3, Date.now() + 3600e3);
+  T.msgs.push({ id: uid(), at: t1, text: '나도 사랑해 은설아', zh: '我也爱你恩雪啊', ping: 1 }, { id: uid(), at: t1 + 4e3, text: '많이 많이', zh: '很多很多', ping: 1 }); T.msgs.sort((a, b) => a.at - b.at);
+  const her = T.msgs.filter(m => m.me && !m.sys && m.at > t1), lh = her[her.length - 1], C = R.chat; T.rd = null;
+  if (lh && lh.stk && her.every(m => m.stk)) { C.handled = lh.id; T.quiet = lh.id; T.readTo = Math.max(T.readTo || 0, lh.at); } else { C.handled = null; T.quiet = null; T.readTo = Math.min(T.readTo || 0, t1 + 5e3); }
+  C.him = t1 + 4e3; C.sess = 0; C.next = Date.now() + 20e3; save(); } /* 12:10 他没接她的「사랑해」：改成「나도 사랑해」；之后他 3 点多那几条（睡着没接视频、刚看手机、吃完肉）撤掉 */
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -11112,10 +11125,13 @@ function srSend(T, list, at, extra) { const L = list.filter(m => m.ko && m.ko.tr
 // 他这会儿正和她在一起（或者马上就要见到）：时间线上和她见面的那一段
 const SR_HER_RE = /Cyan|恩雪|은설|씨안|女朋友|여자친구/;
 function srWithHer(at, ahead = 0) { const dk = dkey(at), m = srMin(at); return srSegs(dk, at).find(g => g.st !== 'cancel' && (SR_HER_RE.test(`${g.with || ''} ${g.what || ''}`) || (g.src === 'plan' && g.rule)) && g.s <= m + ahead && g.e > m) || null; }
+const SR_LOVE_RE = /사랑해|사랑한다|보고 ?싶어|보고 ?싶다|좋아해|爱你|想你|喜欢你|love you|miss you/i;
 async function srReply(job) {
-  const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, her = srHer(T, when);
+  const T0 = dmThread(srP()), late = job.next && job.next > job.at ? Math.min(Date.now(), job.next) : 0, mineLater = T0.msgs.some(m => !m.me && !m.sys && !m.call && m.at > job.at && m.at <= Date.now());
+  const T = T0, when = job.tech || mineLater ? Date.now() : late || job.at, her = srHer(T, when); /* 拖了很久才回 / 他中间自己又发过消息：按他现在拿起手机的时间看，前面自己说过的都看得到 */
   if (!her.length) return true;
   SR().chat.handled = her[her.length - 1].id;
+  { const lh0 = T.msgs.filter(m => !m.me && !m.sys && !m.call && m.at < her[0].at).pop(); if (her.every(m => m.stk) && lh0 && her[0].at - lh0.at < 30 * 60e3) { T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; save(); return true; } } /* 他回完话她只发了个表情包：这段聊完了，不用回 */
   if (T.msgs.some(m => m.call && m.call.st === 'done' && m.at > her[her.length - 1].at && m.at <= Date.now())) { T.readTo = Math.max(T.readTo || 0, Date.now()); T.quiet = her[her.length - 1].id; save(); return true; } /* 她发完这几条后你们已经通过电话了：电话里都聊过了，不再回这几条 */
   // 正在见面 / 几分钟后就见到了：KKT 看了就不用回了（人都在眼前）
   if (srWithHer(when, 0)) { /* 人已经在她面前了才不用回；还在路上的话照样回（「곧 도착」也是回） */ T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; SR().chat.sess = 0; save(); return true; }
@@ -11131,7 +11147,7 @@ ${ctx}
 
 他这会儿：${srDrive(when).zh}
 现在是 ${srClock(when)}，他${job.late ? '之前看过这些消息没回，现在想起来了' : '刚看到'}她发来的这几条（聊天里最后几条）：
-${mine}${gapTxt}
+${mine}${gapTxt}${SR_LOVE_RE.test(her.map(m => m.text + ' ' + (m.zh || '')).join(' ')) ? '\n【她刚说了爱他 / 想他：这次一定要正面、热情地回应（나도 사랑해、나도 보고 싶어 之类，用他自己的话），不能略过不接】' : ''}
 
 inner：用他自己的口吻、第一人称写一两句：看到这几条时他脑子里先冒出来的是什么。可以有明显的情绪，也可以只是普通地想接一句、想到自己的事、或者没什么特别的感觉；不用有目的，也不用在 ko 里说出来。真人看消息时注意力只会落在一两个点上，其余的带过或不接；她真在等他答复的事（要不要、几点、怎么了）他会接（答应、拒绝、商量都行），她在生他的气他也会接住；顺带的问句、感叹、已经聊过的事不用逐条回应。（inner 不会发出去）
 act：reply 正常回 / react 只回一个很短的反应 / read 看了不回（话说完了、不想回、在忙分心了都可以，按他的性格和状态）/ later 现在不方便打字，晚点再回（ko 留空）。later 只用于真的在工作、手上腾不出来的时候；刚结束签售 / 舞台在后台、在车上、回宿舍路上、吃饭这些时候他都会看手机，她有消息在等就回。
@@ -11202,6 +11218,7 @@ ${w.force ? '这次他一定会发点什么（send=true）：哪怕很短、一�
   if (srHer(T, Date.now()).filter(m => m.at > when).length && !job.tech) return true; // 生成期间她发了消息
   srSend(T, j.msgs, when + Math.min((j.msgs[0].ko.length / 4.5) * 1e3, 15e3), { ping: 1, gen: Date.now() }); srThOps({ done: j.th_done || [] }, when); srMoreAdd(j.more, Date.now(), Math.max(Date.now(), when) + j.msgs.length * 4e3); if (pm) { pm.st = 'done'; pm.u = when; const call = /电话|打给|打电话|통화|전화/.test(pm.t); for (const o of R.mem) if (o !== pm && o.k === 'promise' && o.st === 'planned' && (srSim(o.t, pm.t) >= .35 || (call && /电话|打给|打电话|통화|전화/.test(o.t)))) { o.st = 'done'; o.u = when; } } // 同一件事答应了好几次：兑现一次就都算了
   R.reach.push({ at: when, kind: w.kind || 'quiet', topic: String(j.topic || '').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
+  { const hr = srHer(T, Date.now()), lh = hr[hr.length - 1]; if (lh) { R.chat.handled = lh.id; T.quiet = lh.id; T.readTo = Math.max(T.readTo || 0, when); } R.jobs = R.jobs.filter(x => x.type !== 'reply'); } /* 他已经主动开了新话题：前面拖着没回的不再回一遍 */
   R.chat.him = when; R.chat.sess = when + 15 * 60e3; return true;
 }
 /* ---------- 每天的总结：把前一天的聊天压成几句，顺便补记漏掉的事（用主模型，记忆要准） ---------- */
