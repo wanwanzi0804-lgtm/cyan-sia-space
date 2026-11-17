@@ -960,7 +960,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261117030417';
+const BUILD = '20261117030809';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10533,11 +10533,48 @@ const SR_PREP_GUIDE = `按这些大事来安排这一天（优先级从高到低
 - 签售（包括视频通话签售）：没什么特别要准备的，前几天照常过；当天开始前三个小时左右开始准备（妆发、造型、通勤、后台准备），签售本身两个小时左右，结束后收尾一般不超过半个小时就下班。
 - 海外活动：前一天或当天一早从仁川出发，活动结束后多半第二天回国；时间没公布的不要编具体几点。
 - 成员生日不是工作：零点前后成员之间互相祝福、发消息，可能一起吃饭、切蛋糕，那天照常过。`;
+
+/* 不用 AI 也能排出世琳的一天：按 CRAVITY 的官方行程往前往后推（演唱会前合练、前一天场地彩排、连演之后休息、外地 / 海外移动、生日）。
+   只是大概的安排（src 'gen'），官方行程和你记的会盖过它；时间都带一点随机，不是整点 */
+const SR_RP_V = () => 'rp2|' + REAL_GIGS.map(x => x[1] + (x[2] == null ? 'n' : x[2])).join(',');
+function srRulePlan(dk) {
+  const G = REAL_GIGS.filter(x => x[0] === 'CRAVITY'), work = G.filter(x => gigK(x) !== 'bday'), con = work.filter(x => gigK(x) === 'concert');
+  const on = k => work.find(x => x[1] === k), conOn = k => con.find(x => x[1] === k), bd = G.find(x => x[1] === dk && gigK(x) === 'bday');
+  const rr = srng('rp' + dk), jt = (a, b) => Math.round(a + rr() * (b - a)), out = [];
+  const add = (s, e, what, kind, x) => { s = clamp(Math.round(s), 0, 1440); e = clamp(Math.round(e), 0, 1440); if (e - s >= 15) out.push({ id: 'rp' + uid().slice(-6), s, e, what, where: '', with: '', kind, src: 'gen', st: '', share: kind === 'work' ? .3 : .2, c: 0, rp: 1, ...(x || {}) }); };
+  const today = on(dk), next = con.find(x => x[1] > dk), daysTo = next ? Math.round((parseD(next[1]) - parseD(dk)) / 864e5) : 99;
+  const away = x => x && ((x[4] || {}).abroad || /釜山|大邱|光州|大田|仁川/.test(x[3]));
+  const firstOfTour = x => x && !con.some(y => y[1] < x[1] && y[1] >= addDays(x[1], -25));
+  const lastRun = on(addDays(dk, -1)) && !today; /* 昨天有行程、今天没有 */
+  const ab = work.find(x => (x[4] || {}).abroad && x[1] === addDays(dk, 1)), abBack = work.find(x => (x[4] || {}).abroad && x[1] === addDays(dk, -1));
+  if (bd) { add(0, jt(16, 25), `零点一过给${bd[3].replace(/生日.*/, '')}发生日祝福`, 'social', { with: '成员' }); }
+  if (today && conOn(dk)) return out; /* 演唱会当天：官方时间线已经排满 */
+  if (abBack) { add(bd ? 26 : 0, jt(560, 600), '睡觉', 'sleep'); add(jt(610, 640), jt(860, 900), `从${(abBack[4] || {}).abroad}回国（机场、航班）`, 'move', { with: 'CRAVITY 成员' }); add(jt(905, 930), jt(1020, 1060), '回宿舍休息、收拾行李', 'free'); if (bd) add(jt(1110, 1140), jt(1270, 1310), `和成员们一起给${bd[3].replace(/生日.*/, '')}过生日（吃饭、切蛋糕）`, 'social', { with: 'CRAVITY 成员' }); return out; }
+  if (lastRun && (on(addDays(dk, -2)) || (conOn(addDays(dk, -1)) && daysTo >= 2))) { /* 连演之后（或者演完离下一场还早）：休息日 */
+    add(0, jt(640, 700), '睡觉（演唱会后补觉）', 'sleep'); add(jt(700, 720), jt(1050, 1090), '休息日：在宿舍休息、整理状态', 'free', { where: '宿舍' });
+    add(jt(1100, 1120), jt(1210, 1250), '和成员一起吃饭（点外卖或者出去吃）', 'social', { with: 'CRAVITY 成员' }); return out; }
+  if (ab) { add(jt(300, 420), jt(530, 560), '在宿舍收拾行李', 'free'); add(jt(780, 800), jt(1040, 1080), `出发去${(ab[4] || {}).abroad}（仁川机场、航班）`, 'move', { with: 'CRAVITY 成员' }); add(jt(1090, 1110), jt(1230, 1290), `到${(ab[4] || {}).abroad}，进酒店休息`, 'free'); return out; }
+  const ev = today && today[2] != null ? today[2] - 200 : 1440; /* 今天有签售：练习排在准备之前 */
+  if (next && daysTo === 1) { /* 演唱会前一天：去场地彩排 */
+    if (away(next)) { add(jt(470, 500), jt(650, 690), `坐 KTX 去${(next[3].match(/釜山|大邱|光州|大田|仁川/) || ['外地'])[0]}`, 'move', { with: 'CRAVITY 成员' }); add(jt(780, 810), Math.min(ev, jt(1230, 1270)), `${next[3].replace(/（.*$/, '')} 场地彩排（走位、灯光、音响）`, 'work', { with: 'CRAVITY 成员' }); add(jt(1280, 1300), jt(1340, 1380), '回酒店', 'free'); }
+    else add(jt(760, 790), Math.min(ev, jt(1230, 1270)), `${next[3].replace(/（.*$/, '')} 场地彩排（走位、灯光、音响）`, 'work', { with: 'CRAVITY 成员' });
+    return out; }
+  if (next && daysTo >= 2 && daysTo <= (firstOfTour(next) ? 14 : 5)) { /* 演唱会准备期：首场合练又长又累；巡演后面的场次轻很多 */
+    if (firstOfTour(next)) add(jt(640, 680), Math.min(ev, jt(1290, 1350) - (daysTo > 7 ? 90 : 0)), '演唱会合练（全场曲目、队形走位、和舞者 / 乐队合）', 'work', { where: '公司练习室', with: 'CRAVITY 成员' });
+    else add(jt(770, 800), Math.min(ev, jt(1110, 1160)), `为${(next[3].match(/釜山|大邱|光州|首尔|香港|日本|东京|大阪/) || [''])[0]}场复习练习（针对场地调整，强度不大）`, 'work', { where: '公司练习室', with: 'CRAVITY 成员' });
+    if (bd) add(jt(1310, 1330), jt(1400, 1430), `和成员们给${bd[3].replace(/生日.*/, '')}庆生`, 'social', { with: 'CRAVITY 成员' });
+    return out; }
+  if (today) { if (ev - 30 > 700) add(jt(700, 760), ev - 30, '在宿舍 / 公司，等晚点的行程', 'free'); const city = (today[3].match(/釜山|大邱|光州|大田/) || [])[0]; if (city && today[2] != null) { const en = today[2] + ((today[4] || {}).dur || 120) + 40; add(en + jt(10, 30), en + jt(190, 220), `坐 KTX 从${city}回首尔`, 'move', { with: 'CRAVITY 成员' }); } return out; }
+  add(jt(810, 850), jt(1040, 1090), '公司练习 / 个人作业', 'work', { where: '公司' });
+  if (bd) add(jt(1110, 1140), jt(1270, 1310), `和成员们一起给${bd[3].replace(/生日.*/, '')}过生日`, 'social', { with: 'CRAVITY 成员' });
+  return out;
+}
 const srBgOff = () => S.ai.srBgOff !== false; /* 默认关：世琳的日常不再用后台模型自动生成（省钱） */
 async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (D.gen && D.gen !== 'fb') try { srTailFill(dk); } catch (e) { }
   if (!D.gen) { D.segs.push(...srDayFb(dk)); D.gen = 'fb'; save(); }
+  if (D.gen === 'fb' && D.rp !== SR_RP_V() && (!D.rp || dk >= logicalToday())) { D.segs = D.segs.filter(g => !g.rp); D.segs.push(...srRulePlan(dk)); D.rp = SR_RP_V(); save(); } /* 官方行程有更新：今天以后的安排按新的重排 */
   if (srBgOff()) return;
   if (D.gen !== 'fb' || (srGenBusy && Date.now() - srGenBusy < 120e3) || !srAIState().ok || (D.try && Date.now() - D.try < 20 * 60e3)) return;
   srGenBusy = Date.now(); D.try = Date.now();
