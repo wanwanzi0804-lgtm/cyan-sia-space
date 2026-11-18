@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118175703';
+const BUILD = '20261118175808';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6634,7 +6634,7 @@ ${lines}
 语言：她是在韩国活动的 K-pop solo（中国国籍），订阅的大多是韩国粉丝：大约一半多写韩语，四分之一写中文，其余英语、日语（英语略多）。格式：中文回复直接写文字；外语回复写成「ko|원문|中文翻译」「ja|原文|中文翻译」「en|text|中文翻译」。不要写粉丝名字。
 回复前先读懂她的意思和心情（比如她说饿了要回宿舍吃东西，就让她快去吃、问想吃什么、叮嘱路上小心），不要只抓她话里的词来夸，不要已读乱回。k 填空数组。`;
     // 先要一小批（快），马上放出来；剩下的再在后台补一批，不让粉丝慢半拍
-    const res = await aiCompact([...content, { type: 'text', text: prompt(8) }], 900, 'claude-haiku-5-5'); // 第一批用快的模型，几秒内就有粉丝回
+    const res = await aiCompact([...content, { type: 'text', text: prompt(8) }], 2000, 'claude-haiku-5-5'); // 第一批用快的模型，几秒内就有粉丝回
     if (B._again) { B.aiPool = []; } else { B.aiPool = res.r; B.aiPoolAt = Date.now(); }
     if (res.k.length) batch.forEach(x => x.kw = res.k);
     save();
