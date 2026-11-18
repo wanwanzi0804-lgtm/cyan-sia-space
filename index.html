@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118023536';
+const BUILD = '20261118024542';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10231,7 +10231,7 @@ ${convo}
 她刚说：${her}
 世琳准备${mode === 'call' ? '说' : '发'}的是：${cand}
 
-判断这句是不是「AI 腔」。AI 腔包括：一条回复里把好几件事都照顾到（解释自己刚才在干嘛、重提之前没聊完的事、关心、再加一句甜话收尾），像在完成清单；把之前问过的事当待办重新追问；为了显得体贴而补充解释。另外还有：和他这个人、这段关系、这个具体时刻无关的通用回应；咨询师式地复述 / 确认她的感受、给她许可、承诺陪着她，却没有他自己的东西；和他前面说过的套路一样；她已经回应过「知道了 / 别担心」了，他还在绕回同一件事叮嘱、或者一遍遍说自己有多担心多在意；他前面已经说过自己困 / 累 / 忙，这句又在说一遍；没人问也硬塞爱意、昵称、甜话或关心；为了推进对话硬问问题；书面腔、太完整太周到；没接住她刚说的话。
+判断这句是不是「AI 腔」。AI 腔包括：一条回复里把好几件事都照顾到（解释自己刚才在干嘛、重提之前没聊完的事、关心），像在完成清单；把之前问过的事当待办重新追问；为了显得体贴而补充解释。另外还有：和他这个人、这段关系、这个具体时刻无关的通用回应；咨询师式地复述 / 确认她的感受、给她许可、承诺陪着她，却没有他自己的东西；和他前面说过的套路一样；她已经回应过「知道了 / 别担心」了，他还在绕回同一件事叮嘱、或者一遍遍说自己有多担心多在意；他前面已经说过自己困 / 累 / 忙，这句又在说一遍；没人问也硬塞一长串关心叮嘱；为了推进对话硬问问题；书面腔、太完整太周到；没接住她刚说的话。他对女朋友说 사랑해、보고 싶어、좋아해、带一串红心❤️ 是他平时的样子，这些不算 AI 腔；她说了爱他他却没回应，反而判 ok=false。
 另外，下面是她对他这个人的了解，明显不像这样的也判 ok=false（why 写哪里不像）：
 ${srRules().map((x, i) => `${i + 1}. ${x}`).join('\n')}
 不算 AI 腔的：她为你们的感情委屈、不安时，他认真地心疼、解释自己、让她安心、把她想听的话说出来（这时说得多、照顾得全是对的）；他自己经历了什么、兴奋或者委屈地顺着联想一口气说一串自己的事（一件带出另一件、自嘲、说一半）——那是他想说话，不是在照顾她的各个方面；没什么意义的废话、只有一个词、只接了她话里的一个小细节、突然说自己的事、没接她的某个话题——这些都是真人聊天的样子；她认真倾诉烦恼时，他既心疼她又认真给建议（心态上的、现实的），说得长一些；温柔地说愿意听她说，如果在这个时刻、用他自己的方式说出来，是正常的；普通的短回应、随口一句、没有情绪价值的接话，都正常；认真聊的时候说得长也正常。只有明显不像真人在这个时刻会说的才判 ok=false。
@@ -11186,10 +11186,12 @@ ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).jo
   const hisSaid = T.msgs.filter(m => !m.me && !m.sys && m.at > when - 6 * 3600e3 && m.at <= when).map(m => m.text || ''), srNorm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, '');
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
   { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()); if (job.rid !== srRunId) return 'stale'; } }
-  if (j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
+  const loveIn = SR_LOVE_RE.test(her.map(m => m.text + ' ' + (m.zh || '')).join(' ')), loveOut = x => /사랑|보고 ?싶|좋아해|❤|♥|💕|ㅅㄹㅎ/.test(String(x || ''));
+  if (!loveIn && j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
   { const lastHer = her[her.length - 1]; if (T.pend && T.pend.length) { SR().jobs.push({ id: uid(), type: 'reply', at: Math.max(...T.pend.map(x => x.at)) + rand(3, 8) * 1e3, n: 0 }); return true; } /* 他前面那几条还没发完：发完再接她插的那句 */ if (T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at && !(m.gen && m.gen < lastHer.at))) return true; }
   if (!job.tech && T.msgs.some(m => m.me && !m.sys && m.at > Math.max(when, her[her.length - 1].at) && m.at <= Date.now())) { SR().jobs.push({ id: uid(), type: 'reply', at: Date.now() + rand(3, 8) * 1e3, n: 0 }); return true; } // 他在想怎么回的时候她又发了几条：这次不发，连新的一起看了再回 // 她这几条已经有人回过了：不重复回
-  let act = j.act; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
+  if (loveIn && !loveOut(j.ko)) { const j4 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko || '').replace(/\n/g, ' / ')}」没有回应她说的爱。她刚对他说了사랑해 / 想他，他一定会直接回应：说出사랑해 / 나도 사랑해 / 보고 싶어 之类的话（用他自己的说法，可以带一串红心❤️），再接别的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j4 && loveOut(j4.ko)) j = { ...j4, act: 'reply' }; } /* 她说了爱他：回出来没接这句就再写一次 */
+  let act = j.act; if (loveIn && act === 'react') act = 'reply'; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
   { const bk = await srBook(ctx, mine, j, when).catch(() => null); Object.assign(j, bk || {}); } srApply(j, when, T); /* 记忆、约定、心情这些「记账」在他说完话以后另外做，不掺进他说话的那一下 */
   if (act === 'later' && msgs.length && !(srNow(when) || {}).busy) act = 'reply'; // 没在工作（候场、车上、回宿舍路上、吃饭）：手机就在手边，有话就现在说
   if (act === 'later' || (!msgs.length && act !== 'read')) { const st = srNow(when); const at = st && st.busy ? Math.max(when + 15 * 60e3, srTs(dkey(when), st.seg.e) + rand(2, 20) * 60e3) : when + lognorm(12, .5) * 60e3; if ((job.lat || 0) < 2) { srJob('reply', at, { lat: (job.lat || 0) + 1, late: 1 }); return true; } act = 'read'; }
@@ -11219,6 +11221,7 @@ ${recent ? `最近几次他主动找她：${recent}。\n` : ''}
 - 但如果他刚经历完一件让他有情绪的事（上面时间线、小事里真有的），这会儿又正想说话，他会一口气说下去：顺着联想一条接一条（这件事 → 当时的小插曲 → 自己的吐槽 → 突然想到相关的事），可以说一半、可以自嘲、不用问她什么、也不用收尾。这是他自己想说，不是在汇报。
 - 如果是接着之前挂着的事（她的考试、没聊完的话题、说好的事），就像接着上次的话一样直接说，不用重新打招呼、不用交代为什么想起来。
 - 他的情绪不用说出来：带在挑什么说、怎么说、语气里就够了，也可以完全看不出来。
+- 他很喜欢她，主动找她时常常（不是每次）会直接带一句想她 / 爱她的话（보고 싶다、사랑해、우리 은설이 뭐해~❤️ 之类），或者在句尾带红心❤️；有时就是单纯想她了才来找她。
 - 他说到自己的事，只能是上面时间线、小事、记忆里有的；想说一件上面没有的小事，要和那个时间他在做的事对得上（写进 bits_add）。
 ${w.kind === 'promise' ? 'promise_done：这次兑现了答应的事就 true。' : 'promise_done：false。'}
 topic：一句中文，记下这次说的是什么（内部记录）。
