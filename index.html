@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118024651';
+const BUILD = '20261118024827';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6701,7 +6701,10 @@ function renderBubbleChat() {
   if (last && Date.now() - last.at > 3 * 3600e3) h += `<div class="bb-wait">粉丝们正在等你的消息 🫧</div>`;
   if (!B.msgs.length && !bbOpen().fans.length) h += `<div class="bb-wait" style="margin-top:30%">发第一条消息，和订阅的粉丝们打个招呼吧 🫧</div>`;
   h += bbPendingHTML();
-  box.innerHTML = h; hydrate(box); bbWallpaper();
+  const keep = {}; $$('img,video', box).forEach(el => { const k = el.tagName + (el.dataset.mid || el.getAttribute('src') || ''); if (el.getAttribute('src')) (keep[k] || (keep[k] = [])).push(el); }); /* 已经加载好的图 / 视频 / 表情包原样挪过去，不重新加载，界面就不会忽高忽低地跳 */
+  box.innerHTML = h;
+  $$('img,video', box).forEach(el => { const L = keep[el.tagName + (el.dataset.mid || el.getAttribute('src') || '')], o = L && L.shift(); if (o) { o.className = el.className; el.replaceWith(o); } });
+  hydrate(box); bbWallpaper();
   bbPin(box, true);
   $$('img,video', box).forEach(x => { x.addEventListener('load', () => bbPin(box), { once: true }); x.addEventListener('loadedmetadata', () => bbPin(box), { once: true }); });
 }
@@ -6757,9 +6760,9 @@ function bbConfirm(title, text, onOk) {
 }
 let bbSending = false;
 async function bbDraftSendAll() {
-  if (bbSending) return; const ds = bbDrafts().splice(0); if (!ds.length) return;
-  bbSending = true; save(); bbDraftsRender();
-  for (const d of ds) {
+  if (bbSending) return; const ds = bbDrafts().slice(); if (!ds.length) return;
+  bbSending = true; save();
+  for (const d of ds) { { const all = bbDrafts(), i = all.indexOf(d); if (i >= 0) all.splice(i, 1); } /* 发一条、待发送里少一条，界面高度不会一下子缩掉 */
     if (d.replyTo) S.bubble.replyTo = d.replyTo;
     await bbSend(d.type, { text: d.text, zh: d.zh, media: d.media, dur: d.dur, sticker: d.sticker });
     await new Promise(r => setTimeout(r, 450)); // 一条一条发出去
