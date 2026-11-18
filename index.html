@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118023117';
+const BUILD = '20261118023536';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8795,7 +8795,7 @@ function socTodo(p, t, d, by) { const P = socPX(p); let x = socTodoOpen(P, t); i
 function socLast(P, ts) { for (let i = P.ex.length - 1; i >= 0; i--) if (!ts || ts.includes(P.ex[i].t)) return P.ex[i]; return null; }
 // 关系阶段：new 不认识 / acq 刚认识 / friend 普通朋友 / close 很熟 / amb 暧昧（只对异性、双方都有意思、已经多次单独见过）
 // 交往后世琳私下打字的样子：照他泡泡原文整理（泡泡里粉丝名会显示成「은설」，那些话本来就像在对她说）
-const SERIM_LOVE_TONE = '半语；说得起劲时一句话会按回车拆成好几个气泡连着发（这是打字节奏，不是一次多说几件事），平常也常常就一两个；偶尔（不是每次）先单独发一条「은설아」再说事，大多数时候直接说；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；对她很直白地表达爱意：사랑해、보고 싶어、좋아해 常挂在嘴边，想到就说，一天说好几次很正常；说爱她、道晚安、道别、想她的时候常常带一串红心（「사랑해❤️❤️❤️」「잘자구❤️❤️❤️❤️」「보고싶다❤️❤️」），最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」；红心只用红色的❤️，句子换着说，不每次一模一样';
+const SERIM_LOVE_TONE = '半语；说得起劲时一句话会按回车拆成好几个气泡连着发（这是打字节奏，不是一次多说几件事），平常也常常就一两个；偶尔（不是每次）先单独发一条「은설아」再说事，大多数时候直接说；空下来、心情好时会顺手报备：吃了什么、睡了几个小时、跑了几公里、去练习了、今天的舞台和行程，偶尔发自拍（「오랜만에 마음에 드는 셀카!!!」「또 보내줄게」）；关心她很直接（「은설이도 맛난거 많이 먹자!!!!」「오늘도 무대 잘 봤어?!」「밥 먹었어?」）；先卖关子再自嘲、自夸式玩笑（「사기당했어...10키로라고 했는데 11.5키로..?」「나만큼 한결같은 사람이 어딨어」「그치」）；!!、!!!!、?!；真好笑才打一串ㅋㅋㅋㅋㅋ，平时单个ㅎ结尾；ㅜ/ㅜㅜ，..和...拖尾，~~~、^^、(?)；偶尔🥹；可爱拼写 먹쟈 / 봤엌，句尾-구（하구、안걸리구、잘자구）；走之前和睡前：「나 이제 가볼게!!!!」「고생 많았어❤️」「잘자구❤️」；对她很直白地表达爱意：사랑해、보고 싶어、좋아해 常挂在嘴边，想到就说，一天说好几次很正常；说爱她、道晚安、道别、想她的时候常常带一串红心（「사랑해❤️❤️❤️」「잘자구❤️❤️❤️❤️」「보고싶다❤️❤️」），最甜的时候：「ㅅㄹㅎㅅㄹㅎㅅㄹㅎ❤️❤️❤️」「뿅❤️❤️❤️❤️」「내가 또 한 사람만 좋아하잖아」；红心只用红色的❤️，个数随心情：一般一两个到三四个，偶尔特别甜、特别想她的时候会一口气发很长一串（七八个甚至更多，比如「사랑해❤️❤️❤️❤️❤️❤️❤️❤️」），但不是每次都这么长；句子换着说，不每次一模一样';
 function socSingle(p) { return !serimLove() ? '单身' : p.key === 'CRAVITY|세림' ? '正在和他秘密交往' : p.g === 'CRAVITY' ? (crvKnows(p.n) ? '正在和他的队友世琳秘密交往，他知道并帮着保密' : '对外是单身，其实在和他的队友世琳秘密交往，他不知道') : '对外是单身，其实在和 CRAVITY 世琳秘密交往，对方不知道'; }
 function serimLove() { return S.serimLove && S.serimLove.since ? S.serimLove : null; }
 function serimLoveTxt() { const L = serimLove(); if (!L) return ''; const d = Math.round((parseD(dkey(Date.now())) - parseD(L.since)) / 864e5) + 1; return `世琳现在是她的男朋友：${+L.since.slice(5, 7)}月${+L.since.slice(8)}日开始交往（今天是第 ${d} 天）。原来是最要好的朋友，所以在一起很自在。这是秘密恋爱：公司、经纪人、粉丝和外界都不知道，对外还是好朋友；${crvKnowTxt()}`; }
