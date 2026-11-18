@@ -321,6 +321,7 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 #kk-menu .km button{display:block;width:100%;border:0;background:none;padding:14px 20px;font-size:16px;text-align:left;color:var(--text)}#kk-menu .km button:disabled{color:var(--muted)}#kk-menu .km small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 .kk-room .bb-stkg{max-height:min(290px,40vh)}
 .kk-stkimg{display:block;width:120px;height:120px;object-fit:contain}
+.kk-plus{font-size:24px;font-weight:300;cursor:pointer;padding:6px 2px 6px 4px}.kk-ph.img video{width:100%;height:100%;object-fit:cover}.kk-ph.img .kk-play{position:absolute}.kv-wrap video{max-width:100%;max-height:80vh}
 .kk-emo{border:0;background:none;font-size:22px;line-height:1;padding:6px 4px;color:var(--muted);flex:none}.kk-emo.on{color:var(--accent)}
 .kk-file{display:flex;align-items:center;gap:12px;background:#fff;color:#191919;border-radius:14px;padding:12px 14px;width:236px;max-width:68vw;white-space:normal}.kk-file>div{flex:1;min-width:0}.kk-file b{display:block;font-size:14.5px;font-weight:600;word-break:break-all;margin-bottom:4px}.kk-file span{display:block;font-size:11.5px;color:#8a8a8a;line-height:1.5}.kk-file i{width:42px;height:42px;border-radius:50%;background:#f2f2f2;display:grid;place-items:center;font-style:normal;font-size:19px;flex:none}
 .kk-ph.img{background:#000;overflow:hidden}.kk-ph.img img{width:100%;height:100%;object-fit:cover}
@@ -960,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118015825';
+const BUILD = '20261118020904';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -4759,9 +4760,15 @@ function demoOpen(name, seed, who) {
   if (DEMO_URL[seed]) return put(DEMO_URL[seed]);
   setTimeout(() => demoRender(seed, n => { const b = $('#demo-box'); if (b) b.textContent = `불러오는 중… ${n}%`; }).then(url => { DEMO_URL[seed] = url; put(url); }).catch(() => { const b = $('#demo-box'); if (b) b.textContent = '这个文件打不开'; }), 50);
 }
+/* 她在 KKT 发的照片 / 视频：用便宜的模型看一眼，把里面是什么写进消息（对方回的时候「看得到」）；界面上只显示图 */
+async function kkMediaDesc(T, id, blob, v) { const fin = d => { const m = T.msgs.find(x => x.ph === id && x.me); if (!m) return; if (d) m.text = `[${v ? '동영상' : '사진'}: ${d}]`; delete m.descing; save(); };
+  if (!aiOn()) { fin(''); return; }
+  try { const data = v ? await videoB64(blob) : await imageB64(blob); if (!data) { fin(''); return; }
+    const j = await aiRaw([{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } }, { type: 'text', text: `这是女生在 KKT 上发给对方的${v ? '一段视频（这是其中一帧）' : '一张照片'}。用一两句中文客观写出画面里有什么：人 / 动物 / 东西 / 地点 / 在做什么 / 画面上的文字，不评价、不猜测她的心情。` }], 200, { type: 'object', additionalProperties: false, required: ['d'], properties: { d: { type: 'string' } } }, '你只负责客观描述图片内容。', 'claude-haiku-5-5');
+    fin(j && j.d ? String(j.d).replace(/[\[\]]/g, '').slice(0, 140) : ''); } catch (e) { fin(''); } }
 function kkView(el) {
   const k = el.dataset.k, mid = el.dataset.mid, d = el.dataset.d || '', v = document.createElement('div'); v.id = 'kk-view';
-  v.innerHTML = `<button class="kv-x" data-act="kkvclose">✕</button>${mid ? `<div class="kv-wrap"><img data-mid="${esc(mid)}" alt=""></div><button class="kv-sv" data-act="kkvsave" data-mid="${esc(mid)}">저장</button>`
+  v.innerHTML = `<button class="kv-x" data-act="kkvclose">✕</button>${mid ? `<div class="kv-wrap">${k === 'video' ? `<video data-mid="${esc(mid)}" controls autoplay playsinline></video>` : `<img data-mid="${esc(mid)}" alt="">`}</div><button class="kv-sv" data-act="kkvsave" data-mid="${esc(mid)}">저장</button>`
     : `<div class="kv-ph${k === 'video' ? ' v' : ''}"><span style="font-size:40px;opacity:.8">${k === 'video' ? '▶' : '🖼'}</span><div>${esc(d || (k === 'video' ? '一段视频' : '一张照片'))}</div>${k === 'video' ? `<div class="kv-bar"><span>0:00</span><i><b></b></i><span>${esc(el.dataset.t || '0:15')}</span></div>` : ''}</div>`}`;
   v.addEventListener('click', e => { if (e.target === v || e.target.classList.contains('kv-wrap')) v.remove(); });
   $('#kk-view')?.remove(); document.body.appendChild(v); hydrate(v); bodyLock(true); const rm = v.remove.bind(v); v.remove = () => { rm(); bodyLockSync(); };
@@ -4774,6 +4781,7 @@ function kkAttHTML(m) {
     return `<div class="kk-file"${au ? ` data-act="kkdemo" data-n="${esc(A.name)}" data-s="${esc(seed)}" style="cursor:pointer"` : ''}><div><b>${esc(A.name)}</b><span>유효기간: ~${ex.getFullYear()}. ${ex.getMonth() + 1}. ${ex.getDate()}.</span><span>용량: ${sz} MB</span></div><i>${ic}</i></div>`; }
   if (A.k === 'photo' && m.ph) return `<div class="kk-ph img" data-act="kkview" data-mid="${esc(m.ph)}" data-k="photo"><img data-mid="${esc(m.ph)}" alt=""></div>`;
   if (A.k === 'photo') return `<div class="kk-ph" data-act="kkview" data-k="photo" data-d="${esc(A.desc || '')}"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg></div>`;
+  if (A.k === 'video' && m.ph) return `<div class="kk-ph img v" data-act="kkview" data-mid="${esc(m.ph)}" data-k="video"><video data-mid="${esc(m.ph)}" muted playsinline preload="metadata"></video><span class="kk-play">▶</span>${m.dur ? `<em>${esc(m.dur)}</em>` : ''}</div>`;
   if (A.k === 'video') { const dur = '0:' + String(8 + Math.floor(r() * 50)).padStart(2, '0'); return `<div class="kk-ph v" data-act="kkview" data-k="video" data-t="${dur}" data-d="${esc(A.desc || '')}"><span class="kk-play">▶</span><em>${dur}</em></div>`; }
   return `<div class="kk-voice"><span class="kk-play sm">▶</span><span class="kk-wave"></span><em>0:${String(3 + Math.floor(r() * 40)).padStart(2, '0')}</em></div>`;
 }
@@ -9920,7 +9928,7 @@ function dms() { const SO = social(); return SO.dm || (SO.dm = {}); }
 function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g: p.g, n: p.n, z: p.z, key: p.key, f: p.f }, msgs: [], unread: 0 }); }
 // 你发的消息也显示翻译（中文→韩语，韩语→中文）
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
-async function dmTrMe(T, m) { if (m.call) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const ctx = T.msgs.filter(x => x !== m && !x.sys && x.text && x.at <= m.at).slice(-6).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh && x.zh !== x.text ? x.zh : x.text}`).join('\n'); const who = `${socName(p)}（${p.key === SR_K && serimLove() ? '她的男朋友' : socBan(p) ? '很熟的朋友' : '还不太熟的人'}：${socBan(p) ? '必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语；她说的「世琳 / 세림」就是在对他说话，译成「너」或者直接叫名字' : '用敬语'}）`; if (!hasHan(m.text) && koSimple(m.text)) { delete m._tr; return; } /* 简单的韩语词：不翻译 */ let out = hasHan(m.text) ? await trText(m.text, 'ko', who, ctx) : String(m.text).length > 25 ? await trText(m.text, 'zh', '', `${ctx}\n（这是她（女生）写给男朋友世琳的话，「세림이」指的是他，用「你」或「世琳」翻；她自己用「我」）`) : await mtFree(m.text, 'zh'); /* 她直接打韩语：只是给她看的中文，用免费翻译 */ if (out && hasHan(m.text) && socBan(p) && /(요|니다|세요|에요|예요)[.!?~…ㅠㅜㅋㅎ\s]*$/m.test(out)) { const o2 = await trText(m.text, 'ko', who, (ctx ? ctx + '\n' : '') + `（上次译成了「${out}」，用了敬语。这次一定是半语，句尾不带 -요）`); if (o2) out = o2; } /* 对很熟的人不会冒出敬语 */ if (out && hasHan(m.text) && /哥/.test(m.text)) out = out.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠'); /* 她是女生：哥哥＝오빠 */ delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
+async function dmTrMe(T, m) { if (m.call || m.ph || m.stk) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const ctx = T.msgs.filter(x => x !== m && !x.sys && x.text && x.at <= m.at).slice(-6).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh && x.zh !== x.text ? x.zh : x.text}`).join('\n'); const who = `${socName(p)}（${p.key === SR_K && serimLove() ? '她的男朋友' : socBan(p) ? '很熟的朋友' : '还不太熟的人'}：${socBan(p) ? '必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语；她说的「世琳 / 세림」就是在对他说话，译成「너」或者直接叫名字' : '用敬语'}）`; if (!hasHan(m.text) && koSimple(m.text)) { delete m._tr; return; } /* 简单的韩语词：不翻译 */ let out = hasHan(m.text) ? await trText(m.text, 'ko', who, ctx) : String(m.text).length > 25 ? await trText(m.text, 'zh', '', `${ctx}\n（这是她（女生）写给男朋友世琳的话，「세림이」指的是他，用「你」或「世琳」翻；她自己用「我」）`) : await mtFree(m.text, 'zh'); /* 她直接打韩语：只是给她看的中文，用免费翻译 */ if (out && hasHan(m.text) && socBan(p) && /(요|니다|세요|에요|예요)[.!?~…ㅠㅜㅋㅎ\s]*$/m.test(out)) { const o2 = await trText(m.text, 'ko', who, (ctx ? ctx + '\n' : '') + `（上次译成了「${out}」，用了敬语。这次一定是半语，句尾不带 -요）`); if (o2) out = o2; } /* 对很熟的人不会冒出敬语 */ if (out && hasHan(m.text) && /哥/.test(m.text)) out = out.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠'); /* 她是女生：哥哥＝오빠 */ delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { if (!m.me && !m.sys && typeof m.text === 'string') { const g = m.text.trim().match(/^\[(?:이모티콘|表情包|表情)\s*[:：]\s*(\w+)\]$/); if (g) { const x = STICKERS[g[1]]; if (!x) return; m = { ...m, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }; } } // 对方发的表情包；编号对不上的就不发
   const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', dk: p.key, text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40), kkt: { name: socDisp(p), key: p.key, ko: (m.stk ? '이모티콘을 보냈습니다.' : m.ph ? '사진을 보냈습니다.' : m.text || m.sys || '').slice(0, 90) } }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
@@ -9937,7 +9945,7 @@ function dmHTML(key) {
     ${e ? `<div class="kk-opts">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
     ${key === SR_K ? srTechHTML() : ''}
     ${T.call && !T.call.done ? `<div class="kk-opts"><button class="hot-opt" data-act="dmcall" data-k="${esc(key)}">📞 보이스톡</button></div>` : ''}
-    <div class="kk-bar"><button class="kk-emo${UI.kkStk ? ' on' : ''}" data-act="kkstk" data-k="${esc(key)}" title="이모티콘">☺︎</button><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
+    <div class="kk-bar"><label class="kk-emo kk-plus" title="사진·동영상">＋<input type="file" id="kk-file" data-k="${esc(key)}" accept="image/*,video/*" multiple hidden></label><button class="kk-emo${UI.kkStk ? ' on' : ''}" data-act="kkstk" data-k="${esc(key)}" title="이모티콘">☺︎</button><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
     ${UI.kkStk ? kkStkHTML(key) : ''}
     <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div>${key === SR_K ? `<div class="kk-dr-sec">관리</div><div class="kk-dr-it" data-act="serimopen"><span style="padding-left:4px">세림 관리</span></div>` : ''}</aside></div>`;
 }
@@ -11137,6 +11145,7 @@ async function srReply(job) {
   const T0 = dmThread(srP()), late = job.next && job.next > job.at ? Math.min(Date.now(), job.next) : 0, mineLater = T0.msgs.some(m => !m.me && !m.sys && !m.call && m.at > job.at && m.at <= Date.now());
   const T = T0, when = job.tech || mineLater ? Date.now() : late || job.at, her = srHer(T, when); /* 拖了很久才回 / 他中间自己又发过消息：按他现在拿起手机的时间看，前面自己说过的都看得到 */
   if (!her.length) return true;
+  if (her.some(m => m.descing && Date.now() - m.descing < 60e3)) { job.next = Date.now() + 4e3; return 'stale'; } /* 她刚发的照片还没看清是什么：等几秒 */
   SR().chat.handled = her[her.length - 1].id;
   { const lh0 = T.msgs.filter(m => !m.me && !m.sys && !m.call && m.at < her[0].at).pop(); if (her.every(m => m.stk) && lh0 && her[0].at - lh0.at < 30 * 60e3) { T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; save(); return true; } } /* 他回完话她只发了个表情包：这段聊完了，不用回 */
   if (T.msgs.some(m => m.call && m.call.st === 'done' && m.at > her[her.length - 1].at && m.at <= Date.now())) { T.readTo = Math.max(T.readTo || 0, Date.now()); T.quiet = her[her.length - 1].id; save(); return true; } /* 她发完这几条后你们已经通过电话了：电话里都聊过了，不再回这几条 */
@@ -12724,6 +12733,12 @@ document.addEventListener('change', async e => {
     urlCache[id] = URL.createObjectURL(f);
     if (S.profile.avatar) idbDel(S.profile.avatar);
     S.profile.avatar = id; save(); render(); toast('头像已更新');
+  } else if (t.id === 'kk-file' && t.files.length) {
+    const k = t.dataset.k, fs = [...t.files].slice(0, 10); t.value = ''; const T = dms()[k] || dmThread(chFind(...k.split('|')) || { g: k.split('|')[0], n: k.split('|')[1], key: k }); UI.kkStk = false;
+    for (const f of fs) { const id = uid(), v = f.type.startsWith('video'); try { await idbPut(id, f); } catch (err) { toast('存不下这个文件', '手机空间可能不够'); continue; } urlCache[id] = URL.createObjectURL(f);
+      let dur = ''; if (v) try { const el = document.createElement('video'); el.preload = 'metadata'; el.src = urlCache[id]; await new Promise((r, j) => { el.onloadedmetadata = r; el.onerror = j; setTimeout(r, 3000); }); if (isFinite(el.duration)) dur = mmss(el.duration); } catch (err) { }
+      dmPush(T.p, { me: true, text: v ? '[동영상]' : '[사진]', zh: v ? '[视频]' : '[照片]', ph: id, ...(v ? { dur } : {}), descing: Date.now() }); kkMediaDesc(T, id, f, v); }
+    dmAnswer(k, '[照片]', { t: '发了照片 / 视频', fam: 0, amb: 0, tone: '0', risk: 0, reply: '' }, true); openModal(dmHTML(k)); { const el = $('#dm-log'); if (el) el.scrollTop = el.scrollHeight; }
   } else if (t.id === 'bb-file' && t.files[0]) {
     const f = t.files[0]; t.value = ''; bbDraftAdd(f.type.startsWith('video') ? 'video' : 'image', { blob: f });
   } else if ((t.id === 'bb-av-file' || t.id === 'bb-wall-file') && t.files[0]) {
