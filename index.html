@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118024938';
+const BUILD = '20261118025230';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6583,7 +6583,7 @@ function bbScore(m) {
   if (!m) return 0; if (['image', 'video', 'voice'].includes(m.type)) return 3; if (m.type === 'sticker') return 0;
   const t = String(m.text || '').split(BB_TOK).join('').replace(/\p{Extended_Pictographic}|️/gu, '').trim(), n = t.replace(/[\sㅋㅎㅠㅜ~～!！?？.。,，…]/g, '').length;
   if (!n || BB_LOW.test(t)) return 0;
-  let sc = n >= 30 ? 2 : n >= 14 ? 1 : 0; sc += Math.min(2, (t.match(new RegExp(BB_RICH.source, 'g')) || []).length);
+  const n2 = n + (t.match(/[가-힣]/g) || []).length * .5; let sc = n2 >= 26 ? 2 : n2 >= 10 ? 1 : 0; sc += Math.min(2, (t.match(new RegExp(BB_RICH.source, 'g')) || []).length);
   if (m.replyTo) sc += 1; return sc;
 }
 function bbAiOnSend(m) {
@@ -6601,7 +6601,7 @@ function bbAiOnSend(m) {
 }
 async function bbAI() {
   const B = S.bubble; B._aiScheduled = false; const sc = B._sc == null ? 1 : B._sc; B._sc = null;
-  if (sc <= 0 && Math.random() > .12) { B._owed = 0; B.aiPool = []; return; } /* 没什么内容的消息：普通粉丝回就够了，不请 AI */
+  if (sc <= 0 && Math.random() > .45) { B._owed = 0; B.aiPool = []; return; } if (sc <= 0) B._owed = Math.min(B._owed || 0, ri(2, 4)); /* 没什么内容的消息：普通粉丝回就够了，不请 AI */
   B._aiBusy = true;
   const since = B._lastAiAt || 0; B._lastAi = Date.now();
   const newest = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now(), batch = B.msgs.filter(x => x.at > since && x.at > newest - 30 * 60e3).slice(-6); // 只看最近这一阵发的，隔天前的不算 B._lastAiAt = B.msgs.length ? B.msgs[B.msgs.length - 1].at : Date.now();
