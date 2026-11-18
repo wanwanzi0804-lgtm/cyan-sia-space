@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118155102';
+const BUILD = '20261118155530';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -9972,7 +9972,7 @@ function dmThread(p) { const D = dms(); return D[p.key] || (D[p.key] = { p: { g:
 const trBad = (src, zh) => !zh || zh.length > src.length * 6 + 40 || /translation|translate|the user|sentence|means\b/i.test(zh);
 async function dmTrMe(T, m) { if (m.call || m.ph || m.stk) return; if (m.zh && trBad(m.text, m.zh)) delete m.zh; if (m.zh || m._tr || !m.text) return; m._tr = 1; const p = T.p; const ctx = T.msgs.filter(x => x !== m && !x.sys && x.text && x.at <= m.at).slice(-6).map(x => `${x.me ? '她' : '他'}：${x.me && x.zh && x.zh !== x.text ? x.zh : x.text}`).join('\n'); const who = `${socName(p)}（${p.key === SR_K && serimLove() ? '她的男朋友' : socBan(p) ? '很熟的朋友' : '还不太熟的人'}：${socBan(p) ? '必须用半语（반말），句尾不要带 -요，也不要用 -시- 这类敬语；她说的「世琳 / 세림」就是在对他说话，译成「너」或者直接叫名字' : '用敬语'}）`; if (!hasHan(m.text) && koSimple(m.text)) { delete m._tr; return; } /* 简单的韩语词：不翻译 */ let out = hasHan(m.text) ? await trText(m.text, 'ko', who, ctx) : String(m.text).length > 25 ? await trText(m.text, 'zh', '', `${ctx}\n（这是她（女生）写给男朋友世琳的话，「세림이」指的是他，用「你」或「世琳」翻；她自己用「我」）`) : await mtFree(m.text, 'zh'); /* 她直接打韩语：只是给她看的中文，用免费翻译 */ if (out && hasHan(m.text) && socBan(p) && /(요|니다|세요|에요|예요)[.!?~…ㅠㅜㅋㅎ\s]*$/m.test(out)) { const o2 = await trText(m.text, 'ko', who, (ctx ? ctx + '\n' : '') + `（上次译成了「${out}」，用了敬语。这次一定是半语，句尾不带 -요）`); if (o2) out = o2; } /* 对很熟的人不会冒出敬语 */ if (out && hasHan(m.text) && /哥/.test(m.text)) out = out.replace(/형(?=[이의은는을를도한께님아야]|\b|$)/g, '오빠'); /* 她是女生：哥哥＝오빠 */ delete m._tr; if (out && out !== m.text) { if (hasHan(m.text) && !hasHan(out)) { m.zh = m.text; m.text = out; } else m.zh = out; /* 你发出去的默认是韩语，中文放下面 */ save(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); } }
 function dmPush(p, m) { if (!m.me && !m.sys && typeof m.text === 'string') { const g = m.text.trim().match(/^\[(?:이모티콘|表情包|表情)\s*[:：]\s*(\w+)\]$/); if (g) { const x = STICKERS[g[1]]; if (!x) return; m = { ...m, stk: x.id, text: `[이모티콘] ${x.n}`, zh: `[表情包] ${x.d}` }; } } // 对方发的表情包；编号对不上的就不发
-  const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; pushNotif({ type: 'sched', dk: p.key, text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40), kkt: { name: socDisp(p), key: p.key, ko: (m.stk ? '이모티콘을 보냈습니다.' : m.ph ? '사진을 보냈습니다.' : m.text || m.sys || '').slice(0, 90) } }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
+  const T = dmThread(p); const nm = { id: uid(), at: Date.now(), ...m }; if (m.me) setTimeout(() => dmTrMe(T, nm), 0); T.msgs.push(nm); if (!m.me && !m.sys) { T.readTo = Date.now(); if (T.rd && T.rd.upto <= T.readTo) T.rd = null; } if (T.msgs.length > 120) T.msgs.splice(0, T.msgs.length - 120); if (!m.me) { if (UI.dmOpen !== p.key) T.unread++; if (!(m.at && Date.now() - m.at > 60e3)) pushNotif({ type: 'sched', dk: p.key, text: `💬 ${socDisp(p)}`, sub: (m.zh || m.text || m.sys || '').slice(0, 40), kkt: { name: socDisp(p), key: p.key, ko: (m.stk ? '이모티콘을 보냈습니다.' : m.ph ? '사진을 보냈습니다.' : m.text || m.sys || '').slice(0, 90) } }, true); } updBadges(); if (UI.tab === 'kkt') render(); if (UI.dmOpen === p.key) openModal(dmHTML(p.key)); }
 function dmEvent(x) { const e0 = socEv(x.ev); if (e0 && e0.th) { dmPush(x.via || x.p, { text: x.ko, zh: x.zh, ev: x.id }); if (!(x.o || []).length) x.ans = 1; x.dm = 1; save(); return; } if (!SOC_DM[x.ev]) { dmPush(x.p, { sys: socText(socEv(x.ev), x.p), ev: x.id }); x.dm = 1; save(); return; } const L = SOC_DM[x.ev].map(t => t && socG(t, x.p)); if (L[2] && !L[0]) dmPush(x.p, { sys: L[2], ev: x.id }); else dmPush(x.p, { text: L[0], zh: L[1], ev: x.id }); if (L[0] && L[2]) dmPush(x.p, { sys: L[2] }); x.dm = 1; save(); }
 function dmLogHTML(T, key, tr) {
   const rd = T.readTo || 0;
@@ -10558,11 +10558,12 @@ function srScriptTick(now) {
   const R = SR(), T = dmThread(srP()); for (const x of R.script || []) {
     if (x.st !== 'wait') continue; if (x.mode === 'seg') { const a = srScriptAt(x); if (a) x.at = a; } if (now < x.at) continue; const st = srNow(now) || {};
     if (x.mode === 'next' && st.sleep) continue; // 「他下次拿起手机时」：睡着就等醒了
-    x.st = 'sent'; x.sentAt = now; let t = now;
-    (T.pend || (T.pend = [])).push({ at: now, list: x.list.map(m => ({ text: m.ko, zh: m.zh, ping: 1, ...(m.ph ? { ph: m.ph } : {}) })) });
-    for (const m of x.list) if (m.pid) { const p = (R.photos || []).find(y => y.id === m.pid); if (p) p.sent = now; }
-    R.reach.push({ at: now, kind: 'script', topic: x.list.filter(m => !m.ph).map(m => m.zh || m.ko).join(' / ').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
-    R.chat.him = now; R.chat.sess = now + 15 * 60e3; save();
+    const ta = now - x.at > 60e3 ? x.at : now; /* 到点时 app 没开着：按原定的时间补上，不弹横幅 */
+    x.st = 'sent'; x.sentAt = ta; let t = ta;
+    (T.pend || (T.pend = [])).push({ at: ta, list: x.list.map(m => ({ text: m.ko, zh: m.zh, ping: 1, ...(m.ph ? { ph: m.ph } : {}) })) });
+    for (const m of x.list) if (m.pid) { const p = (R.photos || []).find(y => y.id === m.pid); if (p) p.sent = ta; }
+    R.reach.push({ at: ta, kind: 'script', topic: x.list.filter(m => !m.ph).map(m => m.zh || m.ko).join(' / ').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
+    R.chat.him = ta; R.chat.sess = ta + 15 * 60e3; save();
   }
   if (R.script && R.script.length > 20) R.script = R.script.slice(-20);
 }
