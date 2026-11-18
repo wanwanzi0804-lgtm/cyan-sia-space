@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118175808';
+const BUILD = '20261118180008';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10100,7 +10100,7 @@ ${sr ? `${mine ? `她刚说：${mine}` : `电话刚接通，${C.by === 'me' ? '�
 - inner：他听到这句时脑子里的第一反应（一句，第一人称）；可以没有明显的情绪或目的，只是普通地接话。ko 是他这时候自然会说出口的话，不必把 inner 说出来。
 ` : `${mine ? `她刚说：${mine}\n电话里是一来一回的口语：一次只说一两句短的，说完等她接，不会一口气讲一大段。` : `电话刚接通，${C.by === 'me' ? '他接起来' : '她接起来了，他先开口'}。第一句只是一声招呼，几个字，等她回了再往下聊。`}
 ${hisL.length ? `他在这通电话里已经说过：\n${hisL.map(t => '- ' + t).join('\n')}\n不要再用同样的开头、不要把说过的话换个说法再说一遍；接她这句，往下聊。\n` : ''}这是说出口的话，不是打字：口语、自然，可以有停顿和语气词；笑就写成 하하 / ㅋㅋ，不写「(웃음)」；按他的性格和此刻的状态，不用每句都问问题；聊到自然该挂的时候可以说要挂了，end=true。inner 写他第一反应（一句），ko 顺着它说。
-`}${sr && hisL.length ? `他在这通电话里已经说过：\n${hisL.map(t => '- ' + t).join('\n')}\n` : ''}ko 是他说的韩语，zh 是中文意思（也是口语）。${extra || ''}` }], 6000, { type: 'object', additionalProperties: false, required: ['inner', 'ko', 'zh', 'end'], properties: { inner: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } }, sr ? SR_SYS('call') : KKT_SYS(), undefined, sr ? 'medium' : undefined);
+`}${sr && hisL.length ? `他在这通电话里已经说过：\n${hisL.map(t => '- ' + t).join('\n')}\n` : ''}ko 是他说的韩语，zh 是中文意思（也是口语）。${extra || ''}` }], 6000, { type: 'object', additionalProperties: false, required: ['inner', 'ko', 'zh', 'end'], properties: { inner: { type: 'string' }, ko: { type: 'string' }, zh: { type: 'string' }, end: { type: 'boolean' } } }, sr ? SR_SYS('call') : KKT_SYS(), undefined, sr ? 'low' : undefined);
   try {
     let j = await ask();
     // 和他刚才说过的话太像（同样的意思、同样的开头）：重写一次
@@ -11247,17 +11247,17 @@ more：发完以后他心里是不是还挂着想说的（刚才那件事没说�
 ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).join('；')}（他记得；合适的话会顺手做到，不合适就之后再说）\n` : ''}
 `;
   // 回复要先想清楚（看懂她在问什么、前后文），所以用 medium；思考也算在 max_tokens 里，给足
-  let j = await srAI(prompt, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()); const dbg = { at: Date.now(), mode: 'KKT', sys: SR_SYS_KKT(), user: prompt, first: { inner: j.inner, ko: j.ko } };
+  let j = await srAI(prompt, 12000, SR_SAY_SCHEMA, false, 'low', SR_SYS_KKT()); const dbg = { at: Date.now(), mode: 'KKT', sys: SR_SYS_KKT(), user: prompt, first: { inner: j.inner, ko: j.ko } };
   if (job.rid !== srRunId) return 'stale'; // 这次请求已经被放弃（卡太久重来过），结果丢掉
   // 他这几个小时里自己说过的话：写出来的又是同一句（比如又说一遍「结束了就打给你」），说明没在接她这次的话，重写一次
   const hisSaid = T.msgs.filter(m => !m.me && !m.sys && m.at > when - 6 * 3600e3 && m.at <= when).map(m => m.text || ''), srNorm = x => String(x).replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, '');
   const srDup = k => srNorm(k).length >= 3 && hisSaid.some(h => srNorm(h) === srNorm(k) || srSim(h, k) >= .6);
-  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()); if (job.rid !== srRunId) return 'stale'; } }
+  { const d = srBubbles(j.ko, j.zh).map(b => b.ko).filter(srDup); if (d.length && j.act !== 'read' && j.act !== 'later') { j = await srAI(prompt + `\n\n（刚才写出来的「${d.join(' / ')}」是他在上面已经说过的话，他不会再说一遍。重新看她这几条——她在问什么、在等他回什么——写他这次真正会回的。）`, 12000, SR_SAY_SCHEMA, false, 'low', SR_SYS_KKT()); if (job.rid !== srRunId) return 'stale'; } }
   const loveIn = SR_LOVE_RE.test(her.map(m => m.text + ' ' + (m.zh || '')).join(' ')), loveOut = x => /사랑|보고 ?싶|좋아해|ㅅㄹㅎ/.test(String(x || ''));
-  if (!loveIn && j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
+  if (!loveIn && j.act !== 'read' && j.act !== 'later' && j.ko) { const v = await srNatCheck('kkt', T.msgs.filter(m => !m.sys && m.at <= when).slice(-12).map(m => `${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), j.ko, mine); if (job.rid !== srRunId) return 'stale'; dbg.judge = v; if (v && !v.ok) { const j3 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko).replace(/\n/g, ' / ')}」读起来不像他这个人发的：${v.why}。按他自己的性格、状态和这段对话重新写。）`, 12000, SR_SAY_SCHEMA, false, 'low', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j3 && (j3.ko || j3.act === 'read')) j = j3; } } dbg.final = { inner: j.inner, ko: j.ko, act: j.act }; srDbgSave(dbg);
   { const lastHer = her[her.length - 1]; if (T.pend && T.pend.length) { SR().jobs.push({ id: uid(), type: 'reply', at: Math.max(...T.pend.map(x => x.at)) + rand(3, 8) * 1e3, n: 0 }); return true; } /* 他前面那几条还没发完：发完再接她插的那句 */ if (T.msgs.some(m => !m.me && !m.sys && m.at > lastHer.at && !(m.gen && m.gen < lastHer.at))) return true; }
   if (!job.tech && T.msgs.some(m => m.me && !m.sys && m.at > Math.max(when, her[her.length - 1].at) && m.at <= Date.now())) { SR().jobs.push({ id: uid(), type: 'reply', at: Date.now() + rand(3, 8) * 1e3, n: 0 }); return true; } // 他在想怎么回的时候她又发了几条：这次不发，连新的一起看了再回 // 她这几条已经有人回过了：不重复回
-  if (loveIn && !loveOut(j.ko)) { const j4 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko || '').replace(/\n/g, ' / ')}」没有回应她说的爱。她刚对他说了사랑해 / 想他，他一定会直接回应：说出사랑해 / 나도 사랑해 / 보고 싶어 之类的话（用他自己的说法，可以带一串红心❤️），再接别的。）`, 12000, SR_SAY_SCHEMA, false, 'medium', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j4 && loveOut(j4.ko)) j = { ...j4, act: 'reply' }; } /* 她说了爱他：回出来没接这句就再写一次 */
+  if (loveIn && !loveOut(j.ko)) { const j4 = await srAI(prompt + `\n\n（刚才写的「${String(j.ko || '').replace(/\n/g, ' / ')}」没有回应她说的爱。她刚对他说了사랑해 / 想他，他一定会直接回应：说出사랑해 / 나도 사랑해 / 보고 싶어 之类的话（用他自己的说法，可以带一串红心❤️），再接别的。）`, 12000, SR_SAY_SCHEMA, false, 'low', SR_SYS_KKT()).catch(() => null); if (job.rid !== srRunId) return 'stale'; if (j4 && loveOut(j4.ko)) j = { ...j4, act: 'reply' }; } /* 她说了爱他：回出来没接这句就再写一次 */
   let act = j.act; if (loveIn && act === 'react') act = 'reply'; let msgs = srBubbles(j.ko, j.zh); { const keep = srTidy(msgs, T, when); if (keep.length) msgs = keep; } msgs = srLaughTrim(msgs, j.inner);
   { const bk = await srBook(ctx, mine, j, when).catch(() => null); Object.assign(j, bk || {}); } srApply(j, when, T); /* 记忆、约定、心情这些「记账」在他说完话以后另外做，不掺进他说话的那一下 */
   if (act === 'later' && msgs.length && !(srNow(when) || {}).busy) act = 'reply'; // 没在工作（候场、车上、回宿舍路上、吃饭）：手机就在手边，有话就现在说
