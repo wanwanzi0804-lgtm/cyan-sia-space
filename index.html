@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118180008';
+const BUILD = '20261118180301';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10337,9 +10337,9 @@ const srMemLine = m => `- (${m.id}) [${SR_KZ[m.k]}·${SR_WZ[m.who]}·${SR_RZ[m.s
 // 按当前话题挑记忆：核心（相处习惯、关系大事）一直在；没完成的约定、今明两天的安排带上；其余只取跟话题真正相关的几条
 function srRecall(q, when) {
   const L = srLive(when).filter(m => m.k !== 'sum'), td = dkey(when), tm = addDays(td, 1);
-  const core = L.filter(m => m.k === 'habit' || m.imp >= 5).slice(-10);
-  const open = L.filter(m => !core.includes(m) && ((['plan', 'promise'].includes(m.k) && m.st === 'planned') || (m.st === 'missed' && when - m.u < 3 * 864e5) || (m.at && m.k !== 'event' && [td, tm].includes(dkey(m.at))))).slice(-10);
-  const rel = L.filter(m => !core.includes(m) && !open.includes(m)).map(m => [srSim(q, m.t) + (m.imp - 3) * .05, m]).filter(([x]) => x >= .3).sort((a, b) => b[0] - a[0]).slice(0, 8).map(x => x[1]);
+  const core = L.filter(m => m.k === 'habit' || m.imp >= 5).slice(-8);
+  const open = L.filter(m => !core.includes(m) && ((['plan', 'promise'].includes(m.k) && m.st === 'planned') || (m.st === 'missed' && when - m.u < 3 * 864e5) || (m.at && m.k !== 'event' && [td, tm].includes(dkey(m.at))))).slice(-7);
+  const rel = L.filter(m => !core.includes(m) && !open.includes(m)).map(m => [srSim(q, m.t) + (m.imp - 3) * .05, m]).filter(([x]) => x >= .3).sort((a, b) => b[0] - a[0]).slice(0, 6).map(x => x[1]);
   const out = [...core, ...open, ...rel]; for (const m of out) m.used = when; return out.sort((a, b) => (a.at || a.c) - (b.at || b.c));
 }
 
@@ -10967,7 +10967,7 @@ function srReachEval(at) {
 /* ---------- 给 AI 的上下文：只用 when 之前的信息（补算时不会看到之后的事） ---------- */
 const srGap = ms => { const m = Math.round(ms / 60e3); return m >= 90 ? `${Math.floor(m / 60)} 小时${m % 60 >= 10 ? ' ' + (m % 60) + ' 分' : ''}` : `${m} 分钟`; };
 // 聊天记录：带时间、她打的原话（她的消息会被翻成韩语发出去，原话才是她真正的语气）、中间隔了多久
-function srChatLog(T, when, n = 40) {
+function srChatLog(T, when, n = 26) {
   const L = T.msgs.filter(x => x.at <= when).slice(-n), out = []; let lastD = '', prev = null;
   for (const x of L) {
     const d = dkey(x.at); if (d !== lastD) { out.push(`〔${srMD(d)} 周${WD[new Date(x.at).getDay()]}〕`); lastD = d; }
@@ -11013,7 +11013,7 @@ function srCtx(when, q, noRules) {
   const p = srP(), T = dmThread(p), dk = dkey(when), m = srMin(when), st = srNow(when), R = SR();
   const today = srSegs(dk, when).map(g => (g.e <= m ? '✓ ' : g.s <= m ? '▶ 现在 ' : '· ') + srSegZh(g, dk, when) + (srBitsVis(g, dk, when).length ? '\n    小事：' + srBitsVis(g, dk, when).map(srBitLine).join('；') : '')).join('\n') + srDay(dk).segs.filter(g => g.st === 'cancel' && !g.del).map(g => '\n✕ ' + srSegZh(g, dk, when)).join('');
   const tm = R.day[addDays(dk, 1)] ? srSegs(addDays(dk, 1), when).filter(g => g.src !== 'fb' && g.kind !== 'sleep').map(g => '· ' + srSegZh(g, addDays(dk, 1), when)).join('\n') : '';
-  const sums = srLive(when).filter(x => x.k === 'sum').sort((a, b) => a.at - b.at).slice(-4).map(x => `- ${srMD(dkey(x.at))}：${x.t}`).join('\n');
+  const sums = srLive(when).filter(x => x.k === 'sum').sort((a, b) => a.at - b.at).slice(-2).map(x => `- ${srMD(dkey(x.at))}：${x.t}`).join('\n');
   const mem = srRecall(q, when).map(srMemLine).join('\n');
   const herPub = [dk, addDays(dk, 1), addDays(dk, 2)].flatMap(k => rulesFor(k).filter(r => PUB_CATS.includes(r.cat)).map(r => `${srMD(k)} ${r.start} ${r.title}`)).join('；');
   const met = srLive(when).filter(x => x.k === 'plan' && x.who === 'us' && x.st === 'planned' && x.at).map(x => srClock(x.at) + ' ' + x.t).join('；');
@@ -11270,11 +11270,22 @@ ${due.length ? `他答应过、现在可以做了的事：${due.map(m => m.t).jo
   return true;
 }
 /* ---------- 主动找她 ---------- */
+async function srReachGate(when, w, T, recent) {
+  try { const st = srNow(when) || {}, last = T.msgs.filter(m => !m.sys && m.at <= when).slice(-8).map(m => `${srClock(m.at)} ${m.me ? '她' : '他'}：${m.me && m.zh && m.zh !== m.text ? m.zh : m.text}`).join('\n'), lastHim = T.msgs.filter(m => !m.me && !m.sys && m.at <= when).pop();
+    const j = await aiRaw([{ type: 'text', text: `${srClock(when)}，CRAVITY 世琳（Cyan 的男朋友，刚开始交往，很喜欢她）拿起了手机，不是在回她的消息。
+他这会儿：${st.zh || '不清楚'}
+他手边 / 脑子里有的：${w.d || '没什么特别的'}
+${recent ? `最近几次他主动找她：${recent}\n` : ''}离他上次给她发消息：${lastHim ? srGap(when - lastHim.at) : '很久'}
+最近的聊天：
+${last || '（还没聊过）'}
+判断他这会儿会不会主动给她发 KKT（发什么不用写）。恋人之间想到就发很正常；刚聊完没多久、她那边已经道过晚安在睡、他正忙得没空、或者刚找过她没回音时，一般不会发。拿不准就 send=true。` }], 120, { type: 'object', additionalProperties: false, required: ['send'], properties: { send: { type: 'boolean' } } }, '你只判断一个人此刻会不会发消息。', 'claude-haiku-5-5', 'low');
+    return !j || j.send !== false; } catch (e) { return true; } }
 async function srReach(job) {
   const T = dmThread(srP()), when = job.tech ? Date.now() : job.at, R = SR(), w = job.why || {};
   { const hr = srHer(T, when).filter(m => m.at > (R.chat.him || 0)), lh = hr[hr.length - 1]; if (lh && w.kind !== 'promise' && T.quiet !== lh.id && when - lh.at < 3 * 3600e3) return true; } // 她刚发了消息还在等他回：交给回复（对话已经自然结束、或者过了好几个小时的不算）
   const recent = R.reach.slice(-6).map(x => `${srClock(x.at)} ${x.topic || x.kind}`).join('；');
   const open = R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? R.conv.open.join('；') : '';
+  if (!w.force && w.kind !== 'promise') { const go = await srReachGate(when, w, T, recent); if (job.rid !== srRunId) return 'stale'; if (!go) { if (w.kind === 'urge') { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; } } return true; } } /* 便宜模型先判断：这会儿不会发就不用请 Sonnet */
   const j = await srAI(`${srClock(when)}，CRAVITY 世琳拿起了手机。不是在回 Cyan 的消息。
 ${srCtx(when, w.d || '')}
 他这会儿：${srDrive(when).zh}
