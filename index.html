@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118024542';
+const BUILD = '20261118024651';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -9483,7 +9483,8 @@ function srDel1116n() { const R = SR(); if (R.del1116n) return; R.del1116n = 1; 
 function srDel1116n2() { const R = SR(); if (R.del1116n2) return; R.del1116n2 = 1; for (const T of Object.values(dms())) { const bad = m => !m.me && /날뛰/.test(String(m.text || '').normalize('NFC')); if (T.msgs) T.msgs = T.msgs.filter(m => !bad(m)); if (T.pend) T.pend = T.pend.filter(m => !bad(m)); } save(); } /* 那句「…날뛰어~」再删一次（上次在你手机上没删掉） */
 /* 点「한국어로 / 한」按钮时不让输入框失焦：键盘不会收起 */
 document.addEventListener('mousedown', e => { if (e.target.closest && e.target.closest('.ko-btn')) e.preventDefault(); });
-document.addEventListener('touchend', e => { const b = e.target.closest && e.target.closest('.ko-btn'); if (!b) return; e.preventDefault(); b.click(); }, { passive: false });
+document.addEventListener('mousedown', e => { if (e.target.closest && e.target.closest('[data-act=bbdraft]')) e.preventDefault(); });
+document.addEventListener('touchend', e => { const b = e.target.closest && e.target.closest('.ko-btn,[data-act=bbdraft]'); if (!b) return; e.preventDefault(); b.click(); }, { passive: false });
 function srDel1116n3() { const R = SR(); if (R.del1116n3) return; R.del1116n3 = 1; const bad = m => !m.me && /은설이 오늘 왜 이렇게 (널|날)뛰/.test(String(m.text || '').normalize('NFC')); for (const T of Object.values(dms())) { if (T.msgs) T.msgs = T.msgs.filter(m => !bad(m)); if (T.pend) T.pend = T.pend.filter(m => !bad(m)); } save(); } /* 那句其实是「널뛰어」，之前按「날뛰어」找没找到 */
 function srQFix1117b() { const R = SR(); if (R.qfix1117b) return; R.qfix1117b = 1; const T = dmThread(srP()); for (const m of T.msgs) if (!m.me && /\(\?\)/.test(m.text || '')) { const b = srQMark({ ko: m.text, zh: m.zh }); m.text = b.ko; if (m.zh != null) m.zh = b.zh; } save(); }
 function srQFix1117c() { const R = SR(); if (R.qfix1117c) return; R.qfix1117c = 1; const T = dmThread(srP()); for (const m of T.msgs) if (!m.me && /\(\?\)/.test(m.text || '')) { const b = srQMark({ ko: m.text, zh: m.zh }); m.text = b.ko; if (m.zh != null) m.zh = b.zh; } save(); }
@@ -12332,7 +12333,7 @@ document.addEventListener('click', async e => {
     case 'bbstkset': UI.bbStkSet = t.dataset.s; $('#bb-stk').innerHTML = bbStkHTML(); break;
     case 'bbstkpick': bbDraftAdd('sticker', { sticker: t.dataset.id }); break;
     case 'bbins': { const inp = $('#bb-in'); const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a; inp.value = inp.value.slice(0, a) + BB_TOK + inp.value.slice(b); UI.bbDraft = inp.value; inp.focus(); inp.selectionStart = inp.selectionEnd = a + BB_TOK.length; break; }
-    case 'bbdraft': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; const zh = UI.koSrc && UI.koSrc.t === '#bb-in' ? UI.koSrc.v : ''; UI.koSrc = null; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbDraftAdd('text', { text, zh }); inp.focus(); break; }
+    case 'bbdraft': { const inp = $('#bb-in'); const text = inp.value.trim(); if (!text) break; const zh = UI.koSrc && UI.koSrc.t === '#bb-in' ? UI.koSrc.v : ''; UI.koSrc = null; inp.value = ''; inp.style.height = ''; UI.bbDraft = ''; bbDraftAdd('text', { text, zh }); if (document.activeElement !== inp) inp.focus({ preventScroll: true }); break; } /* 发送时键盘不收起、界面不跳 */
     case 'bbdsendask': bbConfirm('要发送 Bubble 吗？', '确认后，消息将一起发送。', bbDraftSendAll); break;
     case 'bbdmenu': {
       const d = bbDrafts().find(x => x.id === t.dataset.id); if (!d) break;
