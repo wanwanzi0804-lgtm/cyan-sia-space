@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118155530';
+const BUILD = '20261118161722';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1735,10 +1735,10 @@ const HOT_EVENTS = [
     opts: [{ t: '发完整版', task: { where: 'any', need: 'sound', hint: '在泡泡或社区发一段唱歌的语音或视频' }, r: [[.6, .015, .035, '完整版被很多人收藏'], [.4, .003, .01, '老粉都很满足']] },
       { t: '开直播再唱一次', task: { where: 'live', need: 'any', hint: '开一次直播', h: 24 }, r: [[.55, .01, .025, '直播切片又传开了'], [.45, .002, .008, '直播热度一般']] },
       { t: '不回应', r: [[.6, .004, .012, '片段自己继续传着'], [.4, 0, .004, '热度过去了']] }] },
-  { id: 'challenge', min: 0, w: 1, big: 1, au: ['挑战榜单', '舞蹈博主'], title: '{name} 舞蹈挑战', body: '好多人在跳 {name} 的舞蹈挑战，结果本人还没跳过？？',
+  { id: 'challenge', min: 0, w: 1, big: 1, needSong: true, au: ['挑战榜单', '舞蹈博主'], title: '{name}《{song}》舞蹈挑战', body: '好多人在跳 {name}《{song}》的舞蹈挑战，结果本人还没跳过？？',
     talk: ['本人快来跳！', '我也跳了，好难', '挑战视频刷了一晚上', '想看本人和世琳一起跳'],
-    opts: [{ t: '发一段挑战视频', task: { where: 'post', need: 'video', hint: '在社区发一段你自己跳这个舞蹈挑战的视频' }, r: [[.6, .015, .035, '本人挑战被转疯了'], [.4, .004, .012, '粉丝跟着跳了一大波']] },
-      { t: '问粉丝想看谁一起跳', task: { where: 'bubble', need: 'any', hint: '在泡泡里问粉丝想看你和谁一起跳这个挑战' }, r: [[.5, .005, .015, '粉丝讨论得很热烈'], [.5, 0, .005, '没什么后续']] },
+    opts: [{ t: '发一段挑战视频', task: { where: 'post', need: 'video', hint: '在社区发一段你自己跳《{song}》舞蹈挑战的视频' }, r: [[.6, .015, .035, '本人挑战被转疯了'], [.4, .004, .012, '粉丝跟着跳了一大波']] },
+      { t: '问粉丝想看谁一起跳', task: { where: 'bubble', need: 'any', hint: '在泡泡里问粉丝想看你和谁一起跳《{song}》的挑战' }, r: [[.5, .005, .015, '粉丝讨论得很热烈'], [.5, 0, .005, '没什么后续']] },
       { t: '不回应', r: [[.5, .002, .01, '挑战自己慢慢火'], [.5, 0, .004, '热度过去了']] }] },
   { id: 'fanart', min: 0, w: 1, au: ['画画的小鱼', '画手'], title: '{name} 同人图', body: '画了猫猫 {name}！！尾巴是按她的动物塑画的 [图片]',
     talk: ['画得好可爱', '太太好会画', '猫猫安安', '求高清原图'],
@@ -1864,7 +1864,7 @@ function hotPick() {
   if (!pool.length) return null;
   let x = Math.random() * pool.reduce((a, e) => a + e.w, 0), ev = pool[0];
   for (const e of pool) { x -= e.w; if (x <= 0) { ev = e; break; } }
-  const out = { id: ev.id, song: ev.phase ? cbSong() : songs.length ? pick(songs) : '', e: sched ? sched.title : '', ...(ctx[ev.id] || {}) };
+  const out = { id: ev.id, song: ev.id === 'challenge' ? chalSong() : ev.phase ? cbSong() : songs.length ? pick(songs) : '', e: sched ? sched.title : '', ...(ctx[ev.id] || {}) };
   if (HOT_Q[ev.id] && !out.q) out.q = pick(HOT_Q[ev.id](out.e));
   return out;
 }
@@ -2052,6 +2052,11 @@ function cbPhase() {
   return s < P.promoEnd ? 'promo' : s < P.followStart ? 'rest' : s < P.followEnd ? 'follow' : 'end';
 }
 function cbBoost() { return { tease: .08, promo: .25, rest: .05, follow: .12 }[cbPhase()] || 0; }
+function chalSong() { try { if (S.cb && ['promo', 'follow', 'pre'].includes(cbPhase())) { const c = cbSong(); if (c) return c; } } catch (e) { } const A = disco().filter(a => a.tracks && a.tracks.length && (!a.date || a.date <= dkey(Date.now()))).sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))); return albTitle(A[0]) || (S.profile.songs || [])[0] || ''; }
+/* 一次性：已经出来的「舞蹈挑战」热搜没写是哪首歌，补上 */
+function chalFix1118() { const H = hotState(); if (H.chalFix) return; H.chalFix = 1; const song = chalSong(); if (!song) return;
+  for (const post of Object.values(H.posts || {})) if (post.eid === 'challenge' && !(post.p && post.p.song)) { post.p = { ...(post.p || {}), song }; post.body = String(post.body || '').replace(/在跳 (.+?) 的舞蹈挑战/, `在跳 $1《${song}》的舞蹈挑战`); }
+  for (const x of [H.cur, ...(H.hist || [])]) if (x && x.id === 'challenge') { if (!x.song) x.song = song; if (x.title && !/《/.test(x.title)) x.title = x.title.replace(/\s*舞蹈挑战/, `《${song}》舞蹈挑战`); } save(); }
 function cbSong() { return cbPhase() === 'follow' ? S.cb.follow : albTitle(cbAlbum()); }
 const CB_TALK = {
   tease: ['回归倒计时！', '《{song}》什么时候发啊啊啊', '预告看了二十遍', '已经开始期待《{song}》了', '预告里的造型好绝', '回归要准备应援了', '{type}！！好期待', '曲目表什么时候公开呀'],
@@ -8348,7 +8353,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
