@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261118021031';
+const BUILD = '20261118021220';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -4693,6 +4693,7 @@ for (const ev of ['touchend', 'touchmove', 'touchcancel']) document.addEventList
 function kkAttSplit(m) {
   if (m.rc) return [m];
   if (m.stk && STICKERS[m.stk]) return [{ ...m, att: { k: 'stk', name: '' } }];
+  if (m.me && m.ph) return [{ ...m, att: { k: 'dur' in m || /^\[동영상/.test(m.text || '') ? 'video' : 'photo', name: '' } }]; /* 她发的照片 / 视频：消息里写着给 AI 看的画面内容，界面上只显示图 */
   if (m.sys || m.call || m.card || typeof m.text !== 'string') return [m];
   const g = m.text.match(/^\[([^\]]{1,80})\]\s*([\s\S]*)$/); if (!g) return [m];
   const [h0, ...dd] = g[1].split(/[:：|]/), desc = dd.join('：').trim(); // [사진: 照片里是什么]：冒号后面是点开时看到的内容
@@ -7754,7 +7755,7 @@ const PRESETS = {
   ],
   '上课': [
     ['声乐课', '公司 声乐室'], ['舞蹈课', '公司 练习室'], ['表演课', '公司 表演教室'], ['Rap 课', '公司 练习室'],
-    ['韩语课', '公司 会议室'], ['中文课', '公司 会议室']
+    ['韩语课', '公司 会议室']
   ],
   '练习': [
     ['Vocal 练习', '公司 声乐室'], ['舞蹈练习', '公司 练习室'], ['Rap 练习', '公司 练习室'], ['表情管理练习', '公司 练习室'], ['体能训练', '公司 健身房']
@@ -9519,7 +9520,7 @@ function srFix1118a() { const R = SR(); if (R.fix1118a) return; R.fix1118a = 1; 
   const fx = t => String(t || '').replace(/\bmen\b/gi, '멘트（台词）'); for (const x of R.mem) if (/\bmen\b/i.test(x.t || '')) x.t = fx(x.t); for (const x of R.th || []) if (/\bmen\b/i.test(x.t || '')) x.t = fx(x.t);
   for (const D of Object.values(R.day)) for (const g of D.segs || []) { if (/\bmen\b/i.test(g.what || '')) g.what = fx(g.what); for (const b of g.bits || []) if (/\bmen\b/i.test(b.t || '')) b.t = fx(b.t); }
   save(); } /* 「men」其实是멘트（台词）；评论她表情包的那句撤掉 */
-function engDel1118() { const SO = social(); if (SO.engDel1118) return; SO.engDel1118 = 1; const td = logicalToday(); S.schedule.rules = S.schedule.rules.filter(r => !(/英语课|영어 수업/.test(r.title || '') && (r.repeat !== 'once' || (r.date || '') >= td))); save(); } /* 她英语本来就很好：不排英语课，已经排上的（今天以后）删掉 */
+function engDel1118() { const SO = social(); if (SO.engDel1118b) return; SO.engDel1118 = SO.engDel1118b = 1; const td = logicalToday(); S.schedule.rules = S.schedule.rules.filter(r => !(/英语课|영어 수업|中文课|중국어 수업/.test(r.title || '') && (r.repeat !== 'once' || (r.date || '') >= td))); save(); } /* 她英语本来就很好：不排英语课，已经排上的（今天以后）删掉 */
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
