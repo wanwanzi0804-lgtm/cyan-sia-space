@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119135823';
+const BUILD = '20261119135914';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10464,7 +10464,7 @@ const srMemLine = m => `- (${m.id}) [${SR_KZ[m.k]}·${SR_WZ[m.who]}·${SR_RZ[m.s
 // 按当前话题挑记忆：核心（相处习惯、关系大事）一直在；没完成的约定、今明两天的安排带上；其余只取跟话题真正相关的几条
 function srRecall(q, when) {
   const L = srLive(when).filter(m => m.k !== 'sum'), td = dkey(when), tm = addDays(td, 1);
-  const core = L.filter(m => m.k === 'habit' || m.imp >= 5).slice(-8);
+  const core = [...L.filter(m => m.k === 'habit' || m.imp >= 5).slice(-8), ...L.filter(m => m.k === 'plan' && m.who === 'us' && m.st === 'planned' && when - (m.c || 0) < 4 * 864e5 && !(m.k === 'habit' || m.imp >= 5))]; /* 你们最近说好的事一直在他脑子里 */
   const open = L.filter(m => !core.includes(m) && ((['plan', 'promise'].includes(m.k) && m.st === 'planned') || (m.st === 'missed' && when - m.u < 3 * 864e5) || (m.at && m.k !== 'event' && [td, tm].includes(dkey(m.at))))).slice(-7);
   const rel = L.filter(m => !core.includes(m) && !open.includes(m)).map(m => [srSim(q, m.t) + (m.imp - 3) * .05, m]).filter(([x]) => x >= .3).sort((a, b) => b[0] - a[0]).slice(0, 6).map(x => x[1]);
   const out = [...core, ...open, ...rel]; for (const m of out) m.used = when; return out.sort((a, b) => (a.at || a.c) - (b.at || b.c));
