@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119135914';
+const BUILD = '20261119141119';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -7870,6 +7870,7 @@ Object.assign(PRESETS, {
     ['小型公益宣传活动', '活动场地'], ['品牌社交媒体宣传活动', '品牌活动场地'], ['小型粉丝互动快闪', '品牌门店 / 小型活动场地']],
   '演唱会': [['首场 Solo Mini Concert', '100–200 人小型演出场地'], ['小型演唱会', 'YES24 Wanderloch Hall'], ['小型演唱会', 'Musinsa Garage'], ['Acoustic Live Concert', '小型 Live Hall'], ['生日特别演唱会', '小型演出场地'], ['线上演唱会', '公司 / 摄影棚'], ['联合演唱会', '指定演出场地'], ['演唱会彩排', '']]
 });
+PRESETS['签售'] = [['小型粉丝见面会', ''], ['生日见面会', ''], ['回归纪念特别签售', ''], ['限定人数 Mini Fan Meeting', '']]; /* 签售预设只留这几个；地点按线上 / 线下来 */
 // 经纪人接下来的行程：后台只能看，不能改 / 删
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
 /* 行程里的「一天」从早上 5 点到第二天早上 5 点：凌晨的工作算在前一天 */
@@ -12031,6 +12032,7 @@ function adminHTML(edit) {
     <div class="grid2">
       <div class="field"><label>类别</label><select id="r-cat">${CAT_ORDER.map(c => `<option ${c === r.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
       <div class="field"><label>地点</label><input id="r-loc" value="${esc(r.loc)}"><div class="loc-q" id="r-locq" style="${r.cat === '其他' ? '' : 'display:none'}">${['宿舍', '工作室'].map(l => `<button class="pcat ${r.loc === l ? 'on' : ''}" data-act="rlocq" data-l="${l}">${l}</button>`).join('')}</div></div>
+      <div class="field" id="r-mode-f" style="${r.cat === '签售' ? '' : 'display:none'};grid-column:1/-1"><label>签售形式</label><select id="r-mode"><option value="off" ${r.signMode !== 'on' ? 'selected' : ''}>线下（地点不填的话自动分配签售场地）</option><option value="on" ${r.signMode === 'on' ? 'selected' : ''}>线上（在公司）</option></select></div>
       <div class="field"><label>开始时间</label><input type="time" id="r-start" value="${r.start}"></div>
       <div class="field"><label>结束时间</label><input type="time" id="r-end" value="${r.end}"></div>
     </div>
@@ -12063,7 +12065,7 @@ function ruleExtraHTML(r) {
     <div class="field" id="r-cbt-f" style="display:none"><label>关联回归准备${o ? ` · 《${esc(o.a.name)}》` : ''}</label><select id="r-cbt" ${r.id ? 'data-touched="1"' : ''}><option value="">不关联</option>${Object.entries(PREP_NAME).map(([k, v]) => `<option value="${k}" data-c="${Object.keys(PREP_CAT).find(c => PREP_CAT[c].includes(k))}" ${guess === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`;
 }
 function prepGuess(title, cat) { const t = title || ''; return /录音|녹음/.test(t) ? 'rec' : /企划|回归.*会议|会议.*回归/.test(t) ? 'meet' : cat === '练习' && /舞|编舞|안무|回归/.test(t) ? 'dance' : /MV|뮤비/.test(t) ? 'mv' : /概念照|预告照|封面|画报/.test(t) && cat === '物料' ? 'photo' : cat === '物料' && /Dance Practice|花絮|宣传|物料|预告/.test(t) ? 'promo' : ''; }
-function syncWorkField() {
+function syncWorkField() { try { signModeSync(); } catch (e) { }
   const f = $('#r-work-f'); if (!f) return; const cat = $('#r-cat').value, title = $('#r-title').value;
   const on = isMusicRule({ cat, title }); f.style.display = on ? '' : 'none';
   $('#r-wnew').style.display = on && $('#r-work').value === '__new' ? '' : 'none';
@@ -12133,7 +12135,13 @@ function giftBackfillHTML(list) {
     <div class="row"><button class="btn ghost" data-act="gbfskip">都没有</button><span class="sp"></span><button class="btn primary" data-act="gbfok">补上</button></div>`;
 }
 // 「其他」类：地点一键选宿舍 / 工作室
-function locQSync() { const q = $('#r-locq'); if (!q) return; q.style.display = $('#r-cat').value === '其他' ? '' : 'none'; $$('#r-locq .pcat').forEach(b => b.classList.toggle('on', b.dataset.l === $('#r-loc').value)); }
+const SIGN_VENUES = ['一枝艺术厅', '艺林堂艺术厅', 'Spigen Hall 活动厅', 'KT&G 想象庭院', 'MUSINSA Garage', '江南活动厅', '圣水活动厅', '麻浦文化中心', '弘大迷你剧场', '蓝色广场',
+  'COEX Mall 中庭', 'Times Square 中庭', 'AK Plaza 弘大店', 'The Hyundai Seoul 现代百货', '乐天百货活动厅', '现代百货活动厅', 'IFC Mall 活动空间', "I'Park Mall 活动厅", 'D-Cube City 活动厅', 'Starfield COEX Mall',
+  'Ktown4u COEX', 'Ktown4u 仁寺洞', 'Soundwave 合井店', 'Soundwave 明洞店', 'Withmuu 弘大店', 'TheSameE 合井店', 'TheSameE 明洞店', 'TheSameE 仁寺洞店', 'Music Korea 明洞店', 'Everline 活动空间'];
+const SIGN_HOSTS = ['MAKESTAR', 'WITHMUU', 'SOUNDWAVE', 'EVERLINE', 'APPLE MUSIC', 'JUMP UP', 'MUSICART', 'BEATROAD', 'KPOPSTORE', 'DEAR MY MUSE', 'MINIRECORD', 'HELLOLIVE', 'KTOWN4U', 'ALADIN', 'YES24', 'MUSIC KOREA'];
+function signHostFor(v) { const m = (String(v || '').match(/Ktown4u|Soundwave|Withmuu|Music Korea|Everline/i) || [])[0]; return m ? m.toUpperCase() : pick(SIGN_HOSTS); }
+function signModeSync() { const f = $('#r-mode-f'); if (f) f.style.display = $('#r-cat').value === '签售' ? '' : 'none'; }
+function locQSync() { signModeSync(); const q = $('#r-locq'); if (!q) return; q.style.display = $('#r-cat').value === '其他' ? '' : 'none'; $$('#r-locq .pcat').forEach(b => b.classList.toggle('on', b.dataset.l === $('#r-loc').value)); }
 function saveRule() {
   const title = $('#r-title').value.trim(); if (!title) return toast('请填写标题');
   const r = { id: $('#r-id').value || uid(), title, cat: $('#r-cat').value, start: $('#r-start').value || '09:00', end: $('#r-end').value || '10:00', loc: $('#r-loc').value.trim(), repeat: $('#r-rep').value, days: $$('#r-days-f input:checked').map(i => +i.value), date: $('#r-date').value, note: $('#r-note').value.trim() };
@@ -12142,6 +12150,10 @@ function saveRule() {
   if (r.repeat === 'once' && !r.date) return toast('请选择日期');
   if (r.repeat === 'once' && toMin(r.start) < DAY_CUT) r.date = addDays(r.date, 1); // 凌晨的：其实是第二天的日期
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
+  if (r.cat === '签售') { const old = i >= 0 ? S.schedule.rules[i] : null; r.signMode = $('#r-mode') && $('#r-mode').value === 'on' ? 'on' : 'off';
+    if (r.signMode === 'on') { r.loc = '公司'; r.host = old && old.signMode === 'on' && old.host ? old.host : pick(SIGN_HOSTS); }
+    else { if (!r.loc || r.loc === '公司') r.loc = old && old.signMode === 'off' && old.loc && old.loc !== '公司' ? old.loc : pick(SIGN_VENUES); r.host = old && old.loc === r.loc && old.host ? old.host : signHostFor(r.loc); }
+    if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 签售：线上在公司；线下随机分配场地和主办方 */
   r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now(); r.gift = giftMultiVal('r');
   if (isMusicRule(r)) { const v = $('#r-work').value; r.workId = v === '__new' ? mzNew(($('#r-wn').value || '').trim(), $('#r-wg').value).id : v; } else r.workId = '';
   { const o = prepOn(), v = $('#r-cbt-f').style.display !== 'none' ? $('#r-cbt').value : ''; r.cbTask = o && v ? v : ''; r.cbAlbum = o && v ? o.a.id : ''; }
@@ -12914,6 +12926,7 @@ document.addEventListener('change', async e => {
   if (e.target.id === 'pf-expkey') { S.prefs.expKey = e.target.checked; save(); toast(S.prefs.expKey ? '导出时会带上 API Key' : '导出时不带 API Key'); return; }
   if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
+  if (e.target.id === 'r-mode') { const l = $('#r-loc'); if (e.target.value === 'on') l.value = '公司'; else if (l.value === '公司') l.value = ''; l.placeholder = e.target.value === 'on' ? '' : '不填就自动分配签售场地'; }
   if (e.target.id === 'r-work') syncWorkField();
   if (e.target.id === 'r-cbt') e.target.dataset.touched = 1;
   if ((e.target.id === 'al-tbd' || e.target.id === 'al-copick') && UI.alb) { albCollect(); openModal(albHTML()); return; }
