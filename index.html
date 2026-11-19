@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119130314';
+const BUILD = '20261119130621';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -983,9 +983,15 @@ function save() {
   }, 600);
 }
 function trimForQuota() {
-  S.posts.forEach(p => { p.comments = p.comments.slice(0, 150); });
-  S.notifs = S.notifs.slice(0, 120);
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { }
+  const put = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); return true; } catch (e) { return false; } };
+  const steps = [
+    () => { S.posts.forEach(p => { p.comments = p.comments.slice(0, 150); }); S.notifs = S.notifs.slice(0, 120); },
+    () => { const B = S.bubble; if (B && B.groups) B.groups.forEach((g, i) => { if (i < B.groups.length - 6 && g.fans && g.fans.length > 30) g.fans = g.fans.slice(-30); }); },
+    () => { const H = S.hot; if (H && H.posts) { const ks = Object.keys(H.posts); ks.slice(0, Math.max(0, ks.length - 8)).forEach(k => delete H.posts[k]); for (const p of Object.values(H.posts)) if (p.cm && p.cm.length > 20) p.cm = p.cm.slice(0, 20); } S.posts.forEach(p => { p.comments = p.comments.slice(0, 60); }); S.notifs = S.notifs.slice(0, 60); },
+    () => { for (const T of Object.values((S.social && S.social.dms) || {})) if (T.p && T.p.key !== SR_K && T.msgs && T.msgs.length > 300) T.msgs = T.msgs.slice(-300); },
+  ];
+  for (const f of steps) { try { f(); } catch (e) { } if (put()) return; }
+  if (!UI._quotaWarned) { UI._quotaWarned = 1; toast('手机里的存储空间不够，最新的进度没存上', '请截图告诉 Claude，先别刷新页面'); }
 }
 
 /* ---------- IndexedDB：存图片/视频 ---------- */
@@ -8364,7 +8370,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9619,6 +9625,32 @@ async function srPh1119() { const R = SR(); if (R.ph1119) return; R.ph1119 = 1; 
       const b = await (await fetch(f)).blob(), mid = 'srp' + uid(); await idbPut(mid, b); urlCache[mid] = URL.createObjectURL(b); const pid = 'p' + uid().slice(-5); (R.photos || (R.photos = [])).push({ id: pid, mid, d, at: t - 60e3 }); L.push({ ko: '[사진]', zh: '[照片]', ph: mid, pid }); }
     (R.script || (R.script = [])).push({ id: uid(), at: t, mode: 'time', st: 'wait', list: [L[0], { ko: '나 이제 연습 가는 중~', zh: '我现在去练习的路上~' }, L[1], L[2], { ko: '오랜만에 안경 썼다🤓', zh: '好久没戴这副眼镜了🤓' }] }); save();
   } catch (e) { R.ph1119 = 0; save(); } }
+function srRest1118() { const R = SR(); if (R.rest1118) return; R.rest1118 = 1; const T = dmThread(srP()), at = (h, m, s) => srTs('2026-11-18', h * 60 + m) + (s || 0) * 1e3;
+  if (T.msgs.some(m => /작업실 와서 밥 먹으면서/.test(m.text || ''))) { save(); return; }
+  const L = [
+    [0, at(20, 55, 3), '나 지금 작업실 와서 밥 먹으면서 작업 중이야~', '我现在来工作室了，边吃饭边做音乐~'],
+    [0, at(20, 55, 21), '회사에서 마주쳤으면 그냥 지나가야 했을 텐데 ㅋㅋ 그래도 보고싶긴 했겠다', '在公司要是碰到了也只能装作路过吧 ㅋㅋ 不过确实会想见你'],
+    [1, at(21, 10, 2), '누구 남친가 이렇게 잘생겼지~?', '谁家的男朋友这么帅~?'],
+    [1, at(21, 10, 9), 'ㅋㅋㅋㅋㅋ', ''],
+    [1, at(21, 11, 14), '나도 밥 배불리 먹었어!!! 맛있는 거 먹었지 ㅎㅎ', '我也吃饱饭啦!!! 吃了好吃的ㅎㅎ'],
+    [1, at(21, 12, 31), '굳이 모르는 척까지 할 필요는 없잖아~? 우리 겉으로는 아직 친구 사이잖아 그렇지?', '没必要故意装不认识吧~? 我们表面上不是还是朋友关系嘛，对吧?'],
+    [1, at(21, 13, 5), '아 내일 시간 되면 우리 둘 중 한 명 작업실에서 잠깐 만날까??', '啊 明天有空的话，我们俩里面一个去工作室那边见一下吧??'],
+    [1, at(21, 13, 22), '너무 보고 싶어', '非常想念你'],
+    [0, at(21, 38, 4), 'ㅋㅋㅋㅋㅋㅋㅋㅋ 누구 남친인지 나도 궁금하다', 'ㅋㅋㅋㅋㅋㅋㅋㅋ 谁家的男朋友我也好奇'],
+    [0, at(21, 38, 12), '나도 엄청 보고 싶었어 은설아', '我也超级想你了 恩雪啊'],
+    [0, at(21, 38, 23), '내일 작업실 좋지!! 연습 끝나고 시간 보고 말해줄게', '明天工作室好啊!! 练习结束后看看时间再告诉你'],
+  ];
+  for (const [me, t, text, zh] of L) T.msgs.push({ id: uid(), at: t, ...(me ? { me: true } : { ping: 1 }), text, ...(zh ? { zh } : {}) });
+  T.msgs.sort((a, b) => a.at - b.at); T.readTo = Math.max(T.readTo || 0, at(21, 38)); const C = R.chat; C.him = Math.max(C.him || 0, at(21, 38, 23)); C.handled = null;
+  srMemAdd({ k: 'plan', who: 'us', t: '11/18 晚上说好：11/19 练习结束后看时间，两个人中的一个去作业室短暂见一面', src: 'sys', cf: 'sure', imp: 3, st: 'planned' }, at(21, 38, 23));
+  const t2 = srTs('2026-11-20', 1 * 60 + 52);
+  (R.script || (R.script = [])).push({ id: uid(), at: t2, mode: 'time', st: 'wait', gn: 1, list: [
+    { ko: '은설아 나 연습 끝나고 이제 숙소 들어왔어!!', zh: '恩雪啊 我练习结束，刚回到宿舍!!' },
+    { ko: '오늘 영통 팬싸에 연습까지 하루 종일 정신없었다ㅠ', zh: '今天视频签售加练习，忙了一整天ㅠ' },
+    { ko: '작업실에서 잠깐이라도 보고 싶었는데 오늘은 시간이 안 났네', zh: '本来想在工作室见你一下的，今天实在没时间' },
+    { ko: '다음에 꼭 보자!!', zh: '下次一定见!!' },
+    { ko: '잘자 은설아 꿈에서 보자❤️❤️❤️', zh: '晚安恩雪 梦里见❤️❤️❤️' }] });
+  save(); }
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -10621,7 +10653,7 @@ function srScriptTick(now) {
     (T.pend || (T.pend = [])).push({ at: ta, list: x.list.map(m => ({ text: m.ko, zh: m.zh, ping: 1, ...(m.ph ? { ph: m.ph } : {}) })) });
     for (const m of x.list) if (m.pid) { const p = (R.photos || []).find(y => y.id === m.pid); if (p) p.sent = ta; }
     R.reach.push({ at: ta, kind: 'script', topic: x.list.filter(m => !m.ph).map(m => m.zh || m.ko).join(' / ').slice(0, 40) }); if (R.reach.length > 30) R.reach.splice(0, R.reach.length - 30);
-    R.chat.him = ta; R.chat.sess = ta + 15 * 60e3; save();
+    R.chat.him = ta; R.chat.sess = ta + 15 * 60e3; if (x.gn) R.quietUntil = Math.max(R.quietUntil || 0, ta + rand(8.5, 10) * 3600e3); save(); /* 道了晚安：早上前不再主动发 */
   }
   if (R.script && R.script.length > 20) R.script = R.script.slice(-20);
 }
@@ -11508,7 +11540,8 @@ function herMsgDel1() { const R = SR(); if (R.hmDel1) return; R.hmDel1 = 1; cons
 function srRegenToday2() { const R = SR(); if (R.rgd2) return; R.rgd2 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); } // 新的作息规则（不卡整点、通勤合理、日常自己去）：今天还没到的部分和明天重新排
 function srRegenToday1() { const R = SR(); if (R.rgd1) return; R.rgd1 = 1; const td = dkey(Date.now()), D = R.day[td], m = srMin(Date.now()); if (D && D.gen && D.gen !== 'fb') { D.segs = D.segs.filter(g => !(g.src === 'gen' && g.s > m)); D.gen = 'fb'; D.try = 0; } const tm = R.day[addDays(td, 1)]; if (tm && tm.gen && tm.gen !== 'fb') { tm.segs = tm.segs.filter(g => g.src !== 'gen'); tm.gen = 0; } save(); }
 // 存档备份：世琳的数据结构变动前，先把相关数据复制一份到单独的地方（保留最近 3 份）
-function srBackup(tag) { try { const SO = social(), key = STORE_KEY + '-serim-bak', L = JSON.parse(localStorage.getItem(key) || '[]'); L.push({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } }); while (L.length > 3) L.shift(); localStorage.setItem(key, JSON.stringify(L)); } catch (e) { console.warn('srBackup', e); } }
+function srBackup(tag) { try { const SO = social(), snap = JSON.parse(JSON.stringify({ at: Date.now(), tag, data: { snotes: SO.snotes, ppl: (SO.ppl || {})[SR_K], dm: dms()[SR_K], sr: SO.sr } })); idbGet('serim-bak').then(L => { L = Array.isArray(L) ? L : []; L.push(snap); while (L.length > 3) L.shift(); return idbPut('serim-bak', L); }).catch(e => console.warn('srBackup', e)); } catch (e) { console.warn('srBackup', e); } }
+{ try { const k = STORE_KEY + '-serim-bak', v = localStorage.getItem(k); if (v) idbGet('serim-bak').then(L => idbPut('serim-bak', [...JSON.parse(v), ...(Array.isArray(L) ? L : [])].slice(-3))).then(() => localStorage.removeItem(k)).catch(() => { }); } catch (e) { } } /* 旧的备份从 localStorage 搬到 IndexedDB，腾出空间 */
 // 结构升级：承诺不再用抽签，时间线状态改成按时间推进
 function srUpgrade() { const R = SR(); if ((R.v || 1) >= 2) return; srBackup('v2'); for (const m of R.mem) { delete m.go; if (m.k === 'promise' && m.cond && !m.cond.win) m.cond.win = m.cond.at + 5 * 3600e3; } R.v = 2; save(); }
 // 旧数据搬进来（原数据保留）
