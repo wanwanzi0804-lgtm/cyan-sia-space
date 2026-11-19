@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119155231';
+const BUILD = '20261119172819';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -7870,7 +7870,7 @@ Object.assign(PRESETS, {
     ['小型公益宣传活动', '活动场地'], ['品牌社交媒体宣传活动', '品牌活动场地'], ['小型粉丝互动快闪', '品牌门店 / 小型活动场地']],
   '演唱会': [['首场 Solo Mini Concert', '100–200 人小型演出场地'], ['小型演唱会', 'YES24 Wanderloch Hall'], ['小型演唱会', 'Musinsa Garage'], ['Acoustic Live Concert', '小型 Live Hall'], ['生日特别演唱会', '小型演出场地'], ['线上演唱会', '公司 / 摄影棚'], ['联合演唱会', '指定演出场地'], ['演唱会彩排', '']]
 });
-PRESETS['签售'] = [['小型粉丝见面会', ''], ['生日见面会', ''], ['回归纪念特别签售', ''], ['限定人数 Mini Fan Meeting', '']]; /* 签售预设只留这几个；地点按线上 / 线下来 */
+PRESETS['签售'] = [['签售会（随机）', ''], ['小型粉丝见面会', ''], ['生日见面会', ''], ['回归纪念特别签售', ''], ['限定人数 Mini Fan Meeting', '']]; /* 签售预设只留这几个；地点按线上 / 线下来 */
 // 经纪人接下来的行程：后台只能看，不能改 / 删
 const mgrLocked = r => !!(r.mgr || r.note === '经纪人接的活动');
 /* 行程里的「一天」从早上 5 点到第二天早上 5 点：凌晨的工作算在前一天 */
@@ -12164,7 +12164,8 @@ function saveRule() {
   if (r.repeat === 'once' && !r.date) return toast('请选择日期');
   if (r.repeat === 'once' && toMin(r.start) < DAY_CUT) r.date = addDays(r.date, 1); // 凌晨的：其实是第二天的日期
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
-  if (r.cat === '签售') { const old = i >= 0 ? S.schedule.rules[i] : null; r.signMode = $('#r-mode') && $('#r-mode').value === 'on' ? 'on' : 'off';
+  if (r.cat === '签售' && r.title === '签售会（随机）') { r.signMode = Math.random() < .5 ? 'on' : 'off'; r.loc = r.signMode === 'on' ? '公司' : pick(SIGN_VENUES); r.host = r.signMode === 'on' ? pick(SIGN_HOSTS) : signHostFor(r.loc); r.title = `${r.host} ${r.signMode === 'on' ? '视频签售' : '签售会'}`; if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 随机签售：线上线下、地点、主办方都随机 */
+  else if (r.cat === '签售') { const old = i >= 0 ? S.schedule.rules[i] : null; r.signMode = $('#r-mode') && $('#r-mode').value === 'on' ? 'on' : 'off';
     if (r.signMode === 'on') { r.loc = '公司'; r.host = old && old.signMode === 'on' && old.host ? old.host : pick(SIGN_HOSTS); }
     else { if (!r.loc || r.loc === '公司') r.loc = old && old.signMode === 'off' && old.loc && old.loc !== '公司' ? old.loc : pick(SIGN_VENUES); r.host = old && old.loc === r.loc && old.host ? old.host : signHostFor(r.loc); }
     if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 签售：线上在公司；线下随机分配场地和主办方 */
