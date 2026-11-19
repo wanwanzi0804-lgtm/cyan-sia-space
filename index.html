@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119205512';
+const BUILD = '20261119232802';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6106,13 +6106,15 @@ function tgFinish(score, pickText) {
 // 小游戏状态
 let TGG = null;
 function tgRhythm() {
-  if (TGG && TGG.kind === 'rh' && TGG.running) { TGG.taps.push(performance.now()); return; }
+  if (TGG && TGG.kind === 'rh' && TGG.running) { if (!TGG.pd) TGG.taps.push(performance.now()); return; }
   const beat = $('#tg-beat'), btn = $('#tg-rh-btn'); TGG = { kind: 'rh', running: true, taps: [], beats: [] };
-  btn.textContent = '拍'; let i = 0; const iv = 650, t0 = performance.now() + 900;
+  btn.onpointerdown = e => { if (TGG && TGG.kind === 'rh' && TGG.running && TGG.beats.length) { TGG.pd = 1; TGG.taps.push(performance.now()); } }; /* 手指一按下就算，不等松手（手机上点击会慢一拍） */
+  btn.textContent = '拍'; let i = 0; const iv = 900, t0 = performance.now() + 1200; /* 节拍放慢、亮得更久 */
   for (let k = 0; k < 8; k++) TGG.beats.push(t0 + k * iv);
-  const tick = () => { if (!TGG || TGG.kind !== 'rh') return; beat.classList.add('on'); setTimeout(() => beat.classList.remove('on'), 160); if (++i < 8) setTimeout(tick, iv); else setTimeout(() => {
-    const errs = TGG.beats.map(b => { const t = TGG.taps.reduce((best, x) => Math.abs(x - b) < Math.abs(best - b) ? x : best, Infinity); return Math.min(400, Math.abs(t - b)); });
-    const sc = clamp(1 - errs.reduce((a, b) => a + b, 0) / errs.length / 320, 0, 1) * (TGG.taps.length > 12 ? .7 : 1);
+  const tick = () => { if (!TGG || TGG.kind !== 'rh') return; beat.classList.add('on'); setTimeout(() => beat.classList.remove('on'), 380); if (++i < 8) setTimeout(tick, iv); else setTimeout(() => {
+    const near = b => TGG.taps.reduce((best, x) => Math.abs(x - b) < Math.abs(best - b) ? x : best, Infinity), d0 = TGG.beats.map(b => near(b) - b).filter(isFinite).sort((a, b) => a - b), off = d0.length ? clamp(d0[Math.floor(d0.length / 2)], 0, 220) : 0; /* 人都会稍微慢半拍：整体偏晚的部分不扣分 */
+    const errs = TGG.beats.map(b => Math.min(560, Math.abs(near(b) - off - b)));
+    const sc = clamp(1.05 - errs.reduce((a, b) => a + b, 0) / errs.length / 300, 0, 1) * (TGG.taps.length > 14 ? .75 : 1);
     TGG = null; tgFinish(sc, `节奏准确度 ${Math.round(sc * 100)}%`);
   }, 700); };
   setTimeout(tick, 900);
