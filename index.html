@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119232843';
+const BUILD = '20261119232942';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6101,7 +6101,7 @@ function tgFinish(score, pickText) {
   const c = tgState().cards[UI.tgKey]; if (!c || c.done) return;
   c.done = true; c.score = clamp(score, 0, 1); c.pickText = pickText; c.at = Date.now();
   if (c.key.startsWith(MK_DAY + '|') && mkOn() && dkey(Date.now()) > MK_DAY) { c.mk = 1; mkApply(c.key); }
-  save(); openModal(tgCardHTML(c.key)); toast('通告完成 ✓', c.title); updTgBadge();
+  save(); openModal(tgCardHTML(c.key)); toast('通告完成 ✓', c.title); updTgBadge(); try { render(); } catch (e) { } /* 后面的日程列表马上显示「已完成」 */
 }
 // 小游戏状态
 let TGG = null;
