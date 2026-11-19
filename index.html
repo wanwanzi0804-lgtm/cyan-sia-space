@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119172819';
+const BUILD = '20261119172918';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -12154,7 +12154,8 @@ const SIGN_VENUES = ['一枝艺术厅', '艺林堂艺术厅', 'Spigen Hall 活�
   'Ktown4u COEX', 'Ktown4u 仁寺洞', 'Soundwave 合井店', 'Soundwave 明洞店', 'Withmuu 弘大店', 'TheSameE 合井店', 'TheSameE 明洞店', 'TheSameE 仁寺洞店', 'Music Korea 明洞店', 'Everline 活动空间'];
 const SIGN_HOSTS = ['MAKESTAR', 'WITHMUU', 'SOUNDWAVE', 'EVERLINE', 'APPLE MUSIC', 'JUMP UP', 'MUSICART', 'BEATROAD', 'KPOPSTORE', 'DEAR MY MUSE', 'MINIRECORD', 'HELLOLIVE', 'KTOWN4U', 'ALADIN', 'YES24', 'MUSIC KOREA'];
 function signHostFor(v) { const m = (String(v || '').match(/Ktown4u|Soundwave|Withmuu|Music Korea|Everline/i) || [])[0]; return m ? m.toUpperCase() : pick(SIGN_HOSTS); }
-function signModeSync() { const f = $('#r-mode-f'); if (f) f.style.display = $('#r-cat').value === '签售' ? '' : 'none'; }
+const SIGN_OFFLINE = ['小型粉丝见面会', '生日见面会', '回归纪念特别签售', '限定人数 Mini Fan Meeting']; /* 这几个一定是线下 */
+function signModeSync() { const f = $('#r-mode-f'), t = ($('#r-title') || {}).value || ''; if (f) f.style.display = $('#r-cat').value === '签售' && !SIGN_OFFLINE.includes(t) && t !== '签售会（随机）' ? '' : 'none'; }
 function locQSync() { signModeSync(); const q = $('#r-locq'); if (!q) return; q.style.display = $('#r-cat').value === '其他' ? '' : 'none'; $$('#r-locq .pcat').forEach(b => b.classList.toggle('on', b.dataset.l === $('#r-loc').value)); }
 function saveRule() {
   const title = $('#r-title').value.trim(); if (!title) return toast('请填写标题');
@@ -12165,7 +12166,7 @@ function saveRule() {
   if (r.repeat === 'once' && toMin(r.start) < DAY_CUT) r.date = addDays(r.date, 1); // 凌晨的：其实是第二天的日期
   const i = S.schedule.rules.findIndex(x => x.id === r.id);
   if (r.cat === '签售' && r.title === '签售会（随机）') { r.signMode = Math.random() < .5 ? 'on' : 'off'; r.loc = r.signMode === 'on' ? '公司' : pick(SIGN_VENUES); r.host = r.signMode === 'on' ? pick(SIGN_HOSTS) : signHostFor(r.loc); r.title = `${r.host} ${r.signMode === 'on' ? '视频签售' : '签售会'}`; if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 随机签售：线上线下、地点、主办方都随机 */
-  else if (r.cat === '签售') { const old = i >= 0 ? S.schedule.rules[i] : null; r.signMode = $('#r-mode') && $('#r-mode').value === 'on' ? 'on' : 'off';
+  else if (r.cat === '签售') { const old = i >= 0 ? S.schedule.rules[i] : null; r.signMode = !SIGN_OFFLINE.includes(r.title) && $('#r-mode') && $('#r-mode').value === 'on' ? 'on' : 'off';
     if (r.signMode === 'on') { r.loc = '公司'; r.host = old && old.signMode === 'on' && old.host ? old.host : pick(SIGN_HOSTS); }
     else { if (!r.loc || r.loc === '公司') r.loc = old && old.signMode === 'off' && old.loc && old.loc !== '公司' ? old.loc : pick(SIGN_VENUES); r.host = old && old.loc === r.loc && old.host ? old.host : signHostFor(r.loc); }
     if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 签售：线上在公司；线下随机分配场地和主办方 */
@@ -12941,6 +12942,7 @@ document.addEventListener('change', async e => {
   if (e.target.id === 'pf-expkey') { S.prefs.expKey = e.target.checked; save(); toast(S.prefs.expKey ? '导出时会带上 API Key' : '导出时不带 API Key'); return; }
   if (e.target.id === 'sh-dev') { S.prefs.shareDev = e.target.value; save(); return; }
   if (e.target.id === 'r-cat') { locQSync(); syncWorkField(); }
+  if (e.target.id === 'r-title') signModeSync();
   if (e.target.id === 'r-mode') { const l = $('#r-loc'); if (e.target.value === 'on') l.value = '公司'; else if (l.value === '公司') l.value = ''; l.placeholder = e.target.value === 'on' ? '' : '不填就自动分配签售场地'; }
   if (e.target.id === 'r-work') syncWorkField();
   if (e.target.id === 'r-cbt') e.target.dataset.touched = 1;
