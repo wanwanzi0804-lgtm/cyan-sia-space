@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119130621';
+const BUILD = '20261119131034';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8370,7 +8370,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9651,6 +9651,27 @@ function srRest1118() { const R = SR(); if (R.rest1118) return; R.rest1118 = 1; 
     { ko: '다음에 꼭 보자!!', zh: '下次一定见!!' },
     { ko: '잘자 은설아 꿈에서 보자❤️❤️❤️', zh: '晚安恩雪 梦里见❤️❤️❤️' }] });
   save(); }
+/* 11/18 晚上作业室做到快十二点，凌晨回宿舍睡；11/19 十点多起来，上午去作业室、下午和成员练习，再吃午饭、准备视频签售 */
+function srDay1119b() { const R = SR(); if (R.day1119b) return; R.day1119b = 1;
+  const sg = (dk, s, e, what, kind, x) => { const D = srDay(dk); for (const g of D.segs) if (!g.del && g.st !== 'cancel' && (['gen', 'fb'].includes(g.src) || (String(g.id).startsWith('rl') && g.kind === 'sleep')) && g.s < e && g.e > s) g.st = 'cancel'; D.segs.push({ id: 'rl' + uid().slice(-6), s, e, what, where: '', with: '', kind, src: 'official', st: '', share: .3, c: 0, ...(x || {}) }); };
+  const a = '2026-11-18', b = '2026-11-19';
+  sg(a, 23 * 60 + 41, 1440, '作业室收工，回宿舍', 'move');
+  sg(b, 0, 38, '回到宿舍，洗漱', 'free', { where: '宿舍' });
+  sg(b, 38, 10 * 60 + 24, '睡觉', 'sleep');
+  sg(b, 10 * 60 + 24, 11 * 60 + 3, '起床、洗漱，随便吃了点东西', 'free', { where: '宿舍' });
+  sg(b, 11 * 60 + 21, 12 * 60 + 52, '去作业室整理昨晚做的曲子', 'work', { where: '作业室' });
+  sg(b, 13 * 60 + 4, 14 * 60 + 46, '和成员一起练习（为釜山演唱会）', 'work', { where: '公司练习室', with: 'CRAVITY 成员' });
+  save(); }
+/* 11/19 整天都按实际排好：系统自动排的（通宵到四点才睡、签售当成一整天的彩排）全部不要 */
+function srDay1119c() { const R = SR(); if (R.day1119c) return; R.day1119c = 1; const dk = '2026-11-19', D = srDay(dk);
+  for (const g of D.segs) if (['gen', 'fb'].includes(g.src)) g.st = 'cancel'; D.gen = D.gen || 'fb'; D.rp = SR_RP_V(); D.lock = 1;
+  const add = (s, e, what, kind, x) => D.segs.push({ id: 'rl' + uid().slice(-6), s, e, what, where: '', with: '', kind, src: 'official', st: '', share: .3, c: 0, ...(x || {}) });
+  if (!D.segs.some(g => g.st !== 'cancel' && /视频签售前准备/.test(g.what))) add(15 * 60 + 46, 19 * 60, '视频签售前准备：妆发、造型、后台准备', 'work', { with: 'CRAVITY 成员' });
+  if (!D.segs.some(g => g.st !== 'cancel' && /发售纪念 视频通话签售/.test(g.what) && g.src !== 'fb')) add(19 * 60, 21 * 60, 'CRAVITY EP [sonorous] 发售纪念 视频通话签售（19:00 开始）', 'work', { with: 'CRAVITY 成员' });
+  add(21 * 60, 21 * 60 + 31, '签售收尾', 'work', { with: 'CRAVITY 成员' });
+  const E = srDay('2026-11-20'), add2 = (s, e, what, kind, x) => { for (const g of E.segs) if (['gen', 'fb'].includes(g.src) && g.s < e && g.e > s) g.st = 'cancel'; E.segs.push({ id: 'rl' + uid().slice(-6), s, e, what, where: '', with: '', kind, src: 'official', st: '', share: .3, c: 0, ...(x || {}) }); };
+  add2(1 * 60 + 34, 2 * 60 + 3, '练习结束回宿舍，洗漱', 'free', { where: '宿舍' }); add2(2 * 60 + 3, 10 * 60 + 47, '睡觉', 'sleep');
+  save(); }
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -10444,11 +10465,11 @@ function srNow(ts) {
 // 一天的时间线：AI 不可用时用原来的作息先顶上（只写大概，不编具体的事）
 function srDayFb(dk) {
   const D = socDay(srP(), dk), Y = socDay(srP(), addDays(dk, -1)), segs = [], add = (s, e, what, kind) => { s = clamp(Math.round(s), 0, 1440); e = clamp(Math.round(e), 0, 1440); if (e - s >= 15) segs.push({ id: uid(), s, e, what, where: '', with: '', kind, src: 'fb', st: '', share: 0, c: 0 }); };
-  const yW = Y.wake > 1440 ? Y.wake - 1440 : 0, sS = D.sleepS, wk = D.wake;
+  const rr = srng('fb' + dk), yW = Y.wake > 1440 ? Y.wake - 1440 : 0, sS = D.sleepS < 600 ? Math.min(D.sleepS, Math.round(55 + rr() * 95)) : D.sleepS, wk = D.sleepS < 600 ? Math.min(D.wake, Math.round(sS + 500 + rr() * 75)) : D.wake; /* 一般凌晨一两点睡、早上十点左右起，不会通宵到四五点 */
   if (yW) add(0, yW, '睡觉', 'sleep');
   if (sS < 600) { add(yW, sS, '在宿舍', 'free'); add(sS, wk, '睡觉', 'sleep'); }
   const a = Math.max(yW, sS < 600 ? Math.min(wk, 1440) : 0); if (D.gig) { add(a, 600, '在宿舍准备出发', 'free'); add(600, D.busyE, `${D.gig[3]}（彩排和演出）`, 'work'); add(D.busyE, sS >= 600 ? sS : 1440, '回宿舍休息', 'free'); }
-  else { add(a, D.busyS, '在宿舍', 'free'); add(D.busyS, D.busyE, D.promo ? '活动期的行程' : '公司练习 / 个人安排', 'work'); add(D.busyE, sS >= 600 ? sS : 1440, '收工后的时间', 'free'); }
+  else { if (D.busyS - a > 150) { const am = ['去健身房运动', '去作业室弄曲子', '在宿舍看剧、打游戏', '出门买点东西、喝杯咖啡', '去作业室听 demo、写点东西'][Math.floor(rr() * 5)]; add(a, a + 38, '起床、洗漱、吃点东西', 'free'); const ae = Math.min(D.busyS - 18, a + 52 + 100 + Math.round(rr() * 60)); add(a + 52, ae, am, /作业室|健身/.test(am) ? 'work' : 'free'); add(ae, D.busyS, '在宿舍', 'free'); } else add(a, D.busyS, '在宿舍', 'free'); add(D.busyS, D.busyE, D.promo ? '活动期的行程' : '公司练习 / 个人安排', 'work'); add(D.busyE, sS >= 600 ? sS : 1440, '收工后的时间', 'free'); }
   if (sS >= 600) add(sS, 1440, '睡觉', 'sleep');
   return segs;
 }
@@ -10754,7 +10775,7 @@ async function srDayEnsure(dk) {
   const D = srDay(dk); if (!D.segs.some(g => g.src === 'official')) D.segs.push(...srOfficial(dk));
   if (D.gen && D.gen !== 'fb') try { srTailFill(dk); } catch (e) { }
   if (!D.gen) { D.segs.push(...srDayFb(dk)); D.gen = 'fb'; save(); }
-  if (D.gen === 'fb' && D.rp !== SR_RP_V() && (!D.rp || dk >= logicalToday())) { D.segs = D.segs.filter(g => !g.rp); D.segs.push(...srRulePlan(dk)); D.rp = SR_RP_V(); save(); } /* 官方行程有更新：今天以后的安排按新的重排 */
+  if (D.gen === 'fb' && !D.lock && D.rp !== SR_RP_V() && (!D.rp || dk >= logicalToday())) { D.segs = D.segs.filter(g => !g.rp); D.segs.push(...srRulePlan(dk)); D.rp = SR_RP_V(); save(); } /* 官方行程有更新：今天以后的安排按新的重排 */
   if (srBgOff()) return;
   if (D.gen !== 'fb' || (srGenBusy && Date.now() - srGenBusy < 120e3) || !srAIState().ok || (D.try && Date.now() - D.try < 20 * 60e3)) return;
   srGenBusy = Date.now(); D.try = Date.now();
