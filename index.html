@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261120002553';
+const BUILD = '20261120002655';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1420,11 +1420,12 @@ async function aiForPost(post, n = ri(2, 5)) { /* 每个帖子 AI 粉丝只写 2
       if (data) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data } });
     }
     const imgs = post.media.filter(m => m.type === 'image').length, vids = post.media.length - imgs;
+    const langs = Array.from({ length: n }, () => { const x = Math.random(); return x < .55 ? 'ko' : x < .8 ? 'zh' : x < .92 ? 'en' : 'ja'; }); if (n >= 2 && !langs.includes('ko')) langs[0] = 'ko'; /* 语言按比例先定好：韩语为主 */
     const recent = post.comments.slice(0, 12).map(c => `${c.user}：${c.text}`).join('\n');
     content.push({ type: 'text', text:
 `${S.profile.name} 在粉丝社区发了一条帖子${post.media.length ? `（附 ${imgs ? imgs + ' 张图片' : ''}${imgs && vids ? '、' : ''}${vids ? vids + ' 个视频（上面给的是视频截帧）' : ''}）` : ''}，发布于${ago(post.createdAt)}。
 帖子正文：「${post.text || '（没有文字）'}」${(post.tags || []).length ? `\n图片标签：${post.tags.map(k => (IMG_TAGS.find(x => x[0] === k) || [, k])[1]).join('、')}` : ''}${post.desc ? `\n${S.profile.name}对图片的描述（粉丝看不到这段文字，但能从图里看到这些内容）：${post.desc}` : ''}
-${recent ? '已经有的部分评论（不要重复）：\n' + recent + '\n' : ''}请生成 ${n} 条新的粉丝评论。` });
+${recent ? '已经有的部分评论（不要重复）：\n' + recent + '\n' : ''}请生成 ${n} 条新的粉丝评论。这 ${n} 条的语言依次必须是：${langs.map(l => ({ ko: '韩语(ko)', zh: '中文(zh)', en: '英语(en)', ja: '日语(ja)' })[l]).join('、')}（外语评论在 zh 字段给中文翻译）。` });
     const list = await aiComments(content);
     post.aiPool = (post.aiPool || []).concat(list);
     post.aiBatches = (post.aiBatches || 0) + 1;
