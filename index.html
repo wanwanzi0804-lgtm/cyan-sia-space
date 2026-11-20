@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261120002408';
+const BUILD = '20261120002553';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1445,16 +1445,22 @@ function makeComment(base, fan) {
 }
 
 /* 模板粉丝评论原本大多是中文：其中约七成显示成韩国粉丝的韩语（中文原句留作翻译）。译文用免费机翻慢慢攒进缓存，不花 AI 的钱 */
-const KOC = () => S.koc || (S.koc = {});
+const KOC = () => S.koc || (S.koc = {}); /* 韩语译文缓存（老的） */
+const LGC = () => S.lgc || (S.lgc = { en: {}, ja: {} }); /* 英语 / 日语译文缓存 */
+const lgCache = l => l === 'ko' ? KOC() : (LGC()[l] || (LGC()[l] = {}));
 let koQ = [], koBusy = 0;
-function koEnq(t) { t = String(t || '').trim(); if (!t || t.length > 120 || KOC()[t] || koQ.includes(t) || !/[一-鿿]/.test(t)) return; if (koQ.length < 300) koQ.push(t); }
-async function koTick() { if (koBusy || !koQ.length) return; koBusy = 1; const t = koQ.shift();
-  try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=ko&dt=t&q=${encodeURIComponent(t)}`); const j = await r.json(); const out = trPunct(t, (j[0] || []).map(x => x[0]).join('').trim(), 'ko'); if (out && /[가-힣]/.test(out)) { const C = KOC(); C[t] = out; const ks = Object.keys(C); if (ks.length > 2500) for (const k of ks.slice(0, ks.length - 2500)) delete C[k]; } } catch (e) { }
+function koEnq(t, l = 'ko') { t = String(t || '').trim(); if (!t || t.length > 120 || lgCache(l)[t] || koQ.some(q => q.t === t && q.l === l) || !/[一-鿿]/.test(t)) return; if (koQ.length < 300) koQ.push({ t, l }); }
+async function koTick() { if (koBusy || !koQ.length) return; koBusy = 1; const q = koQ.shift(), t = q.t || q, l = q.l || 'ko';
+  try { const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=${l}&dt=t&q=${encodeURIComponent(t)}`); const j = await r.json(); const out = trPunct(t, (j[0] || []).map(x => x[0]).join('').trim(), l === 'ja' ? 'zh' : 'ko');
+    if (out && (l !== 'ko' || /[가-힣]/.test(out)) && out !== t) { const C = lgCache(l); C[t] = out; const ks = Object.keys(C); if (ks.length > 2500) for (const k of ks.slice(0, ks.length - 2500)) delete C[k];
+      for (const p of (S.posts || []).slice(0, 30)) for (const c of p.comments || []) if (c.lang === 'zh' && c.text === t && c.kz) koApply(c); /* 译文到了：之前没来得及翻的那些评论也换成外语 */ save(); } } catch (e) { }
   koBusy = 0; }
-function koApply(c) { if (!c || c.kz !== 1 || c.lang !== 'zh') return c; const k = KOC()[c.text]; if (k) { c.zh = c.text; c.text = k; c.lang = 'ko'; } else koEnq(c.text); return c; }
-function koPick(c) { if (!c || c.me || c.ai || (c.lang && c.lang !== 'zh') || c.kz != null) return c; c.lang = 'zh'; c.kz = Math.random() < .68 ? 1 : 0; return koApply(c); }
+const KZ_L = { 1: 'ko', 2: 'en', 3: 'ja' };
+function koApply(c) { if (!c || !KZ_L[c.kz] || c.lang !== 'zh') return c; const l = KZ_L[c.kz], k = lgCache(l)[c.text]; if (k) { c.zh = c.text; c.text = k; c.lang = l; } else koEnq(c.text, l); return c; }
+/* 模板评论的语言比例：韩语约 55%、中文约 25%、英语约 12%、日语约 8%（和 AI 粉丝一样） */
+function koPick(c) { if (!c || c.me || c.ai || (c.lang && c.lang !== 'zh') || c.kz != null) return c; c.lang = 'zh'; const x = Math.random(); c.kz = x < .55 ? 1 : x < .80 ? 0 : x < .92 ? 2 : 3; return koApply(c); }
 setInterval(koTick, 1300);
-setTimeout(() => { try { for (const p of (S.posts || []).slice(0, 10)) for (const c of p.comments.slice(0, 40)) if (!c.me && c.lang === 'zh') koEnq(c.text); if (typeof TPL !== 'undefined' && TPL.generic && TPL.generic.zh) for (const t of pickN(TPL.generic.zh, Math.min(60, TPL.generic.zh.length))) koEnq(fill(t)); } catch (e) { } }, 6000);
+setTimeout(() => { try { for (const p of (S.posts || []).slice(0, 10)) for (const c of p.comments.slice(0, 40)) if (!c.me && c.lang === 'zh') { if (KZ_L[c.kz]) koApply(c); else koEnq(c.text); } if (typeof TPL !== 'undefined' && TPL.generic && TPL.generic.zh) for (const t of pickN(TPL.generic.zh, Math.min(60, TPL.generic.zh.length))) koEnq(fill(t)); } catch (e) { } }, 6000);
 function nextComment(post) {
   // AI 评论和免费模板评论混着出现
   if (post.aiPool && post.aiPool.length && Math.random() < .25) { const b = post.aiPool.shift(); const c = makeComment(b, makeFan(b.lang)); c.ai = true; c.likes = ri(80, 250); return c; }
