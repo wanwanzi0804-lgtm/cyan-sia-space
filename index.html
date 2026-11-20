@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261119232942';
+const BUILD = '20261120001717';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -10173,7 +10173,7 @@ function dmHTML(key) {
     ${key === 'CRAVITY|세림' && social().serim && social().serim.dm && !social().serim.done ? `<div class="kk-opts">${((social().serim.gen || {}).opts || ['好呀', '哈哈哈', '怎么了？']).map((o, j) => `<button class="hot-opt" data-act="serimpick" data-j="${j}">${esc(o)}</button>`).join('')}</div>` : ''}
     ${e ? `<div class="kk-opts">${socOpts(e, pend.p, pend).map((o, j) => `<button class="hot-opt" data-act="dmpick" data-k="${esc(key)}" data-j="${j}">${esc(o.t)}</button>`).join('')}</div>` : ''}
     ${key === SR_K ? srTechHTML() : ''}
-    ${T.call && !T.call.done ? `<div class="kk-opts"><button class="hot-opt" data-act="dmcall" data-k="${esc(key)}">📞 보이스톡</button></div>` : ''}
+    ${T.call && !T.call.done && Date.now() - (T.call.at || 0) < 6 * 3600e3 ? `<div class="kk-opts"><button class="hot-opt" data-act="dmcall" data-k="${esc(key)}">📞 보이스톡</button></div>` : ''}
     <div class="kk-bar"><label class="kk-emo kk-plus" title="사진·동영상">＋<input type="file" id="kk-file" data-k="${esc(key)}" accept="image/*,video/*" multiple hidden></label><button class="kk-emo${UI.kkStk ? ' on' : ''}" data-act="kkstk" data-k="${esc(key)}" title="이모티콘">☺︎</button><textarea id="dm-in" class="chat-in" rows="1" placeholder="메시지 입력" autocomplete="off"></textarea><button class="kk-send" data-act="dmsend" data-k="${esc(key)}">전송</button></div>
     ${UI.kkStk ? kkStkHTML(key) : ''}
     <div class="kk-dim" data-act="kkdr"></div><aside class="kk-dr"><div class="kk-dr-h">채팅방 서랍</div><div class="kk-dr-sec">대화상대 2</div><div class="kk-dr-it" data-act="dmprof" data-k="${esc(key)}">${kAv(key, 'kk-dr-av')}<span>${esc(socDisp(p))}</span></div><div class="kk-dr-it">${avatarHTML('kk-dr-av')}<span><em class="kk-me">나</em>${esc(S.profile.name)}</span></div>${key === SR_K ? `<div class="kk-dr-sec">관리</div><div class="kk-dr-it" data-act="serimopen"><span style="padding-left:4px">세림 관리</span></div>` : ''}</aside></div>`;
@@ -10304,6 +10304,7 @@ function callRetry(T, txt, inMin) { T.call.ringAt = (T.call.tries || 0) < 3 ? Da
 // 对方打来
 function dmCallTick() {
   const now = Date.now(), h = new Date().getHours();
+  for (const T of Object.values(dms())) { const c = T.call; if (c && !c.done && !c.ringing && now - (c.at || 0) > 12 * 3600e3) { c.done = 1; c.ringAt = null; const P = socPX(T.p), td = (P.todo || []).find(x => x.id === c.td); if (td && td.st === 'open') { td.st = 'done'; td.doneDay = dkey(now); } } } /* 说好打电话过了半天还没打：不再一直挂着 */
   for (const T of Object.values(dms())) { const c = T.call; if (c && c.ringing && now - c.ringing > 35e3 && !(UI.call && UI.call.key === T.p.key)) { c.ringing = 0; callRec(T, 'them', 'miss'); callRetry(T, ['전화 안 받네ㅠ 바쁜가 보다 이따 다시 걸게', '没接电话呢ㅠ 应该在忙吧，等会儿再打']); save(); } } /* 响铃时页面被关掉 / 刷新了：照样记一条未接来电 */
   if (UI.call) return;
   for (const [key, T] of Object.entries(dms())) { const c = T.call; if (!c || c.done) continue; if (!c.soon && (h < 10 && !(key === SR_K && h < 2))) continue; // 说了「现在就打」的随时打；世琳夜里两点前也会打，其他人只在白天
