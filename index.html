@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261120034137';
+const BUILD = '20261120041458';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -9090,7 +9090,9 @@ const REAL_GIGS = [
   ['CRAVITY', '2026-11-21', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉釜山 KBS Hall（巡演场次，不是首场）', { kind: 'concert' }],
   ['CRAVITY', '2026-11-22', 14 * 60, 'CRAVITY EP [sonorous] 发售纪念 釜山公开签售（乐天百货釜山本店 9F L-Arena 广场，抽 50 人；中签的粉丝可以拿未公开「鲨鱼 ver.」小卡找세림、형준签名。前一天釜山演唱会后住酒店，签售完回首尔）', { kind: 'sign', dur: 120, place: '乐天百货釜山本店' }],
   ['CRAVITY', '2026-11-28', null, 'CRAVITY EP [sonorous] 发售纪念 OFFLINE EVENT（香港）：线下对面签售（团签 30 人 + 每人个签 10 人，另有 50 名观览）、签售和观览的人都有 Hi-Bye，还有 1:1 拍立得合影会（每个成员 7 人，不能有身体接触，姿势事先定好）', { kind: 'sign', dur: 210, tbd: 1, abroad: '香港' }],
-  ['CRAVITY', '2026-11-29', null, '형준（亨俊）生日', { kind: 'bday' }]
+  ['CRAVITY', '2026-11-29', null, 'CRAVITY EP [sonorous] 发售纪念 OFFLINE EVENT（香港 · KMStation）：咖啡杯团签 30 人 + 每个成员个签 5 人（共 45 人）、观览 50 人，签售和观览的人都有 Hi-Bye；1:1 宽幅拍立得合影会（每个成员 7 人，共 63 人，不能有身体接触，姿势事先通过邮件确认）', { kind: 'sign', dur: 210, tbd: 1, abroad: '香港' }],
+  ['CRAVITY', '2026-11-29', null, '형준（亨俊）生日', { kind: 'bday' }],
+  ['CRAVITY', '2027-01-10', 18 * 60, '2026 CRAVITY CONCERT〈SONOROUS〉in TAIPEI 台北国际会议中心 TICC（巡演场次）', { kind: 'concert', abroad: '台北', tour: 1 }]
 ];
 const gigK = x => (x[4] || {}).kind || 'concert', gigT = x => x[2] == null ? '时间未公布' : hhmm(x[2]);
 const gigOn = (g, dk) => REAL_GIGS.find(x => x[0] === g && x[1] === dk && gigK(x) !== 'bday' && x[2] != null);
@@ -10854,9 +10856,9 @@ function srRulePlan(dk) {
   const add = (s, e, what, kind, x) => { s = clamp(Math.round(s), 0, 1440); e = clamp(Math.round(e), 0, 1440); if (e - s >= 15) out.push({ id: 'rp' + uid().slice(-6), s, e, what, where: '', with: '', kind, src: 'gen', st: '', share: kind === 'work' ? .3 : .2, c: 0, rp: 1, ...(x || {}) }); };
   const today = on(dk), next = con.find(x => x[1] > dk), daysTo = next ? Math.round((parseD(next[1]) - parseD(dk)) / 864e5) : 99;
   const away = x => x && ((x[4] || {}).abroad || /釜山|大邱|光州|大田|仁川/.test(x[3]));
-  const firstOfTour = x => x && !con.some(y => y[1] < x[1] && y[1] >= addDays(x[1], -25));
+  const firstOfTour = x => x && !(x[4] || {}).tour && !con.some(y => y[1] < x[1] && y[1] >= addDays(x[1], -25)); /* 巡演场次不算首场 */
   const lastRun = on(addDays(dk, -1)) && !today; /* 昨天有行程、今天没有 */
-  const ab = work.find(x => (x[4] || {}).abroad && x[1] === addDays(dk, 1)), abBack = work.find(x => (x[4] || {}).abroad && x[1] === addDays(dk, -1));
+  const todayAb = today && (today[4] || {}).abroad, ab = !todayAb && work.find(x => (x[4] || {}).abroad && x[1] === addDays(dk, 1)), abBack = !todayAb && work.find(x => (x[4] || {}).abroad && x[1] === addDays(dk, -1));
   if (bd) { add(0, jt(16, 25), `零点一过给${bd[3].replace(/生日.*/, '')}发生日祝福`, 'social', { with: '成员' }); }
   if (today && conOn(dk)) return out; /* 演唱会当天：官方时间线已经排满 */
   if (abBack) { add(bd ? 26 : 0, jt(560, 600), '睡觉', 'sleep'); add(jt(610, 640), jt(860, 900), `从${(abBack[4] || {}).abroad}回国（机场、航班）`, 'move', { with: 'CRAVITY 成员' }); add(jt(905, 930), jt(1020, 1060), '回宿舍休息、收拾行李', 'free'); if (bd) add(jt(1110, 1140), jt(1270, 1310), `和成员们一起给${bd[3].replace(/生日.*/, '')}过生日（吃饭、切蛋糕）`, 'social', { with: 'CRAVITY 成员' }); return out; }
@@ -10871,10 +10873,10 @@ function srRulePlan(dk) {
     return out; }
   if (next && daysTo >= 2 && daysTo <= (firstOfTour(next) ? 14 : 5)) { /* 演唱会准备期：首场合练又长又累；巡演后面的场次轻很多 */
     if (firstOfTour(next)) add(jt(640, 680), Math.min(ev, jt(1290, 1350) - (daysTo > 7 ? 90 : 0)), '演唱会合练（全场曲目、队形走位、和舞者 / 乐队合）', 'work', { where: '公司练习室', with: 'CRAVITY 成员' });
-    else add(jt(770, 800), Math.min(ev, jt(1110, 1160)), `为${(next[3].match(/釜山|大邱|光州|首尔|香港|日本|东京|大阪/) || [''])[0]}场复习练习（针对场地调整，强度不大）`, 'work', { where: '公司练习室', with: 'CRAVITY 成员' });
+    else add(jt(770, 800), Math.min(ev, jt(1110, 1160)), `为${(next[3].match(/釜山|大邱|光州|首尔|香港|台北|日本|东京|大阪/) || [(next[4] || {}).abroad || '下一'])[0]}场复习练习（针对场地调整，强度不大）`, 'work', { where: '公司练习室', with: 'CRAVITY 成员' });
     if (bd) add(jt(1310, 1330), jt(1400, 1430), `和成员们给${bd[3].replace(/生日.*/, '')}庆生`, 'social', { with: 'CRAVITY 成员' });
     return out; }
-  if (today) { if (ev - 30 > 700) add(jt(700, 760), ev - 30, '在宿舍 / 公司，等晚点的行程', 'free'); const city = (today[3].match(/釜山|大邱|光州|大田/) || [])[0]; if (city && today[2] != null) { const en = today[2] + ((today[4] || {}).dur || 120) + 40; add(en + jt(10, 30), en + jt(190, 220), `坐 KTX 从${city}回首尔`, 'move', { with: 'CRAVITY 成员' }); } return out; }
+  if (today) { if (!todayAb && today[2] != null && ev - 30 > 700) add(jt(700, 760), ev - 30, '在宿舍 / 公司，等晚点的行程', 'free'); const city = (today[3].match(/釜山|大邱|光州|大田/) || [])[0]; if (city && today[2] != null) { const en = today[2] + ((today[4] || {}).dur || 120) + 40; add(en + jt(10, 30), en + jt(190, 220), `坐 KTX 从${city}回首尔`, 'move', { with: 'CRAVITY 成员' }); } return out; }
   add(jt(810, 850), jt(1040, 1090), '公司练习 / 个人作业', 'work', { where: '公司' });
   if (bd) add(jt(1110, 1140), jt(1270, 1310), `和成员们一起给${bd[3].replace(/生日.*/, '')}过生日`, 'social', { with: 'CRAVITY 成员' });
   return out;
