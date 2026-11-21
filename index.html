@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261121173813';
+const BUILD = '20261121173901';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -11355,7 +11355,7 @@ function srCtx(when, q, noRules) {
   const chat = srChatLog(T, when), recent = srRecent(T, when), cv = R.conv && when - R.conv.at < 12 * 3600e3 && R.conv.at <= when ? R.conv : null;
   const habits = srLive(when).filter(x => x.k === 'habit').map(x => x.t).slice(-8).join('；');
   const urg = (R.urges || []).filter(u => !u.used && u.at <= when && when - u.at < 36 * 3600e3).map(u => u.t).join('；');
-  const meals = srMealAsked(T, when);
+  const meals = srMealAsked(T, when), saidFood = T.msgs.filter(m => !m.me && !m.sys && !m.call && dkey(m.at) === dk && m.at <= when && /밥|먹|저녁|점심|아침|고기|국밥|야식|배고|배불|맛있|메뉴|吃|饭/.test(m.text || '')).slice(-5).map(m => `${srClock(m.at)}「${(m.text || '').slice(0, 30)}」`);
   return `【他】${socCardTxt(p)}${srStyleTxt()}
 【他今天】（${srClock(when)}；✓ 已经过去 ▶ 正在 · 之后的安排；「小事」是那段时间里真实发生的琐事，方括号里是编号）
 ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
@@ -11364,7 +11364,7 @@ ${today || '（不清楚）'}${tm ? `\n明天已知：\n${tm}` : ''}
 【她】他知道的她的演唱会：${herPub || '近期没有'}。她其他的行程（上课、练习、录音、打歌、拍摄、签售等）他不知道，除非她在聊天里说过——不要猜她今天要干嘛。${aiNews(true).replace(/\n$/, '')}${met ? `\n你们约好的：${met}` : ''}（她的私人安排他不知道，除非她说过）
 【记得的事】（跟现在有关的部分；括号里是编号。标着「还没发生」「猜测」「他的推测」「没确认」的不能当成已经发生的事实）
 ${mem || '（还没有）'}${srPhotoTxt(when)}${srThTxt(when)}${urg ? `\n【他脑子里偶尔会闪过的事】${urg}（只是他记得的事，不是要处理的事项。大多数时候不会特意提；聊天正好碰到、或者他此刻真的放不下，才会自然地带一句）` : ''}${sums ? `\n【最近几天】\n${sums}` : ''}
-${meals.length ? `【今天他已经问过 / 叮嘱过她吃饭 ${meals.length} 次】${meals.slice(-3).map(m => `${srClock(m.at)}「${(m.text || '').slice(0, 30)}」`).join('；')}。真人一天不会反复问「吃了没」「多吃点」：除非她自己说起吃的，否则不再问吃饭、不再叮嘱吃饭，想关心她就关心别的（累不累、签售怎么样、晚上干嘛）。\n` : ''}${recent ? `【背景：最近消息往来的节奏】（他知道的情况而已。晚回了不需要每次解释或道歉，真人多半直接接着聊；只有让她等了很久、她明显介意，才会提一句）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；之前没聊完的：${cv.open.join('；')}（他记得，但这不是待办，不用特意绕回去；她不提、气氛不对就随它去）` : ''}\n` : ''}【KKT 聊天】
+${saidFood.length ? `【他今天已经跟她说过的吃饭相关的话】${saidFood.join('；')}。这些她都知道了：除非她问、或者真的有新情况（吃完了、换了吃的），不会再把自己要吃什么、吃了什么说一遍。\n` : ''}${meals.length ? `【今天他已经问过 / 叮嘱过她吃饭 ${meals.length} 次】${meals.slice(-3).map(m => `${srClock(m.at)}「${(m.text || '').slice(0, 30)}」`).join('；')}。真人一天不会反复问「吃了没」「多吃点」：除非她自己说起吃的，否则不再问吃饭、不再叮嘱吃饭，想关心她就关心别的（累不累、签售怎么样、晚上干嘛）。\n` : ''}${recent ? `【背景：最近消息往来的节奏】（他知道的情况而已。晚回了不需要每次解释或道歉，真人多半直接接着聊；只有让她等了很久、她明显介意，才会提一句）\n${recent}\n` : ''}${cv ? `【这段对话到现在】（上次回她时他自己的理解，可能不完整）${cv.t}${cv.open && cv.open.length ? `；之前没聊完的：${cv.open.join('；')}（他记得，但这不是待办，不用特意绕回去；她不提、气氛不对就随它去）` : ''}\n` : ''}【KKT 聊天】
 ${chat || '（还没聊过）'}
 ${noRules ? '' : srRulesTxt()}`;
 }
@@ -11499,9 +11499,10 @@ const SR_SERIOUS = /진지|진심|진짜로|정말로|농담 아니|장난 아�
 function srSerious(T, when) { const L = T.msgs.filter(m => m.me && !m.sys && m.at <= when && when - m.at < 15 * 60e3).slice(-3); if (!L.length) return false; const txt = L.map(m => (m.text || '') + ' ' + (m.zh || '')).join(' '); if (/ㅋ|ㅎ|哈哈|嘿嘿|😂|🤣/.test(L.map(m => (m.text || '') + (m.zh || '')).join(''))) return false; return SR_SERIOUS.test(txt); }
 function srSplitQ(msgs) { const out = []; for (const b of msgs) { const ko = String(b.ko || ''), zh = String(b.zh || ''), i = ko.search(/[?？]\s+\S/), j = zh.search(/[?？]\s*\S/); if (i > 0 && j > 0) { out.push({ ...b, ko: ko.slice(0, i + 1).trim(), zh: zh.slice(0, j + 1).trim() }, { ...b, ko: ko.slice(i + 1).trim(), zh: zh.slice(j + 1).trim() }); } else out.push(b); }
   return out.map(b => /보고 ?싶/.test(b.ko || '') && !/사랑|ㅅㄹㅎ|잘 ?자|뿅/.test(b.ko || '') ? { ...b, ko: String(b.ko).replace(/\s*(❤️|❤|♥️|♥)+/g, '').trim(), zh: String(b.zh || '').replace(/\s*(❤️|❤|♥️|♥)+/g, '').trim() } : b); } /* 一个意思一个气泡；想你那条不加红心 */
+function srFoodDup(msgs, T, when) { const fr = /밥|먹|저녁|점심|아침|고기|국밥|야식|배고|배불|맛있|메뉴|吃|饭/, his = T.msgs.filter(m => !m.me && !m.sys && dkey(m.at) === dkey(when) && m.at < when && fr.test(m.text || '')).map(m => m.text || ''); if (!his.length) return msgs; const k = msgs.filter(b => !(fr.test(b.ko || '') && his.some(h => srSim(h, b.ko) >= .42))); return k.length ? k : msgs; } /* 今天说过要吃什么，不再重复 */
 function srStkTalk(msgs, T, when) { if (!T.msgs.some(m => m.me && m.stk && when - m.at < 36 * 3600e3)) return msgs; const re = /이모티콘|이모지|스티커|표정|짤|돼지|고양이|토끼|곰돌|강아지|햄스터|표情包|表情/; const k = msgs.filter(b => !(re.test(b.ko || '') && /귀엽|귀여|뭐야|웃기|보내준|보낸|ㅋㅋ|좋아/.test(b.ko || ''))); return k.length ? k : msgs; } /* 不评价她的表情包 */
 function srTidy(msgs, T, when) {
-  msgs = srStkTalk(srSplitQ((msgs || []).map(srQMark)), T, when);
+  msgs = srFoodDup(srStkTalk(srSplitQ((msgs || []).map(srQMark)), T, when), T, when);
   if (srSerious(T, when)) { const k = msgs.filter(b => String(b.ko || '').replace(/[ㅋㅎ\s~!.?]/g, '').length).map(b => ({ ...b, ko: String(b.ko).replace(/\s*ㅋ{2,}\s*/g, ' ').replace(/\s*ㅎ{2,}\s*/g, ' ').trim(), zh: String(b.zh || '').replace(/(哈|呵|嘿){2,}/g, '').trim() })).filter(b => b.ko); if (k.length) msgs = k; } /* 她在认真说事：他不笑 */
   { const nz = x => String(x || '').replace(/[\sㅋㅎㅜㅠ~!?.…,^]/g, ''), hers = T.msgs.filter(m => m.me && !m.sys && m.at <= when && when - m.at < 20 * 60e3).map(m => nz(m.text)).filter(x => x.length >= 2); const k = msgs.filter(b => !(nz(b.ko).length >= 2 && hers.some(h => h === nz(b.ko) || (h.length >= 4 && srSim(h, b.ko) >= .85)))); if (k.length) msgs = k; } /* 不学她说话：她刚说的原话他不会再照着发一遍 */
   { const asked = srMealAsked(T, when).length, herFood = T.msgs.some(m => m.me && m.at <= when && m.at > when - 90 * 60e3 && SR_FOOD_HER.test(m.text || '')); if (asked && !herFood) msgs = msgs.map(b => { if (!SR_MEAL_ASK.test((b.ko || '') + ' ' + (b.zh || ''))) return b; const sp = x => String(x || '').split(/(?<=[?？!！][ㅎㅋ~^]*)\s+|(?<=[?？!！])(?=[^\sㅎㅋ~^])/).filter(Boolean), K = sp(b.ko), Z = sp(b.zh); if (K.length > 1 && K.length === Z.length) { const keep = K.map((k, i) => !SR_MEAL_ASK.test(k + ' ' + Z[i])); if (keep.some(Boolean)) return { ...b, ko: K.filter((_, i) => keep[i]).join(' '), zh: Z.filter((_, i) => keep[i]).join('') }; } return null; }).filter(Boolean); } const his = T.msgs.filter(m => !m.me && !m.sys && m.at <= when && m.at > when - 6 * 3600e3).map(m => m.text || ''), nameUsed = T.msgs.some(m => !m.me && !m.sys && m.at <= when && m.at > when - 12 * 3600e3 && SR_NAME_ONLY.test((m.text || '').trim()));
