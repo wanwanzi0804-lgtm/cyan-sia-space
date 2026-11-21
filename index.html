@@ -961,7 +961,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261120165042';
+const BUILD = '20261121170824';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2403,7 +2403,14 @@ function mzUndoEv1() {
   }
   save(); if (typeof updBadges === 'function') updBadges();
 }
-function mzTick() {
+/* 11/20 的音乐创作：改成 20:00–00:30，撤回之前那次（时间被删掉的行程挤掉、只算了一点、还倒退了），按正常重新结算 */
+function mzFix1120() { const M = mz(); if (M.fix1120) return; M.fix1120 = 1; const k = '2026-11-20', R = S.schedule.res || {}, T = tgState();
+  const r = rulesFor(k).find(x => isMusicRule(x) && /音乐创作/.test(x.title)); if (!r) return; const key = k + '|' + r.id;
+  const undo = kk => { const L = M.log[kk]; if (!L) return; const w = (M.works || []).find(x => x.id === L.wid); if (w && L.gain) { if (w.status === 'revising' && w.rev) w.rev.prog = Math.max(0, w.rev.prog - L.gain); else w.prog = clamp(w.prog - L.gain, 0, w.need); if (w.sessions) { const i = w.sessions.map(x => x.date).lastIndexOf(k); if (i >= 0) w.sessions.splice(i, 1); } } if (L.exp) M.exp = Math.max(0, M.exp - L.exp); delete M.log[kk]; delete R[kk]; };
+  undo(key); for (const kk of Object.keys(M.log)) if (kk.startsWith(k + '|') && !S.schedule.rules.some(x => x.id === kk.slice(11))) undo(kk); /* 删掉的那条留下的时间占用也清掉 */
+  r.start = '20:00'; r.end = '00:30'; r.retroOk = k; const c = T.cards[key]; if (c) { c.done = true; c.kind = 'auto'; c.pickText = ''; }
+  S.notifs = (S.notifs || []).filter(n => !((n.text || '').includes('「' + r.title + '」结束') && (n.at || 0) > parseD(k).getTime())); save(); }
+function mzTick() { try { mzFix1120(); } catch (e) { console.warn('mzFix1120', e); }
   mzRetro1019(); mzReroll1019(); mzFix1018(); mzUndoEv1();
   { const M0 = mz(); if (!M0.lateRedo1) { M0.lateRedo1 = 1; const d0 = addDays(dkey(Date.now()), -1); for (const [kk, v] of Object.entries(M0.log)) if (v && (v.skip === 'late' || v.err) && kk.slice(0, 10) >= d0) delete M0.log[kk]; } if (!M0.errRedo1) { M0.errRedo1 = 1; for (const [kk, v] of Object.entries(M0.log)) if (v && v.err) delete M0.log[kk]; } }
   const M = mz(), now = Date.now(), today = dkey(now), T = tgState();
