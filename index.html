@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261122055935';
+const BUILD = '20261122165341';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -8405,7 +8405,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9926,6 +9926,39 @@ function del1121pm() { if (S.del1121pm) return; S.del1121pm = 1; const dk = '202
   const M = mgr(); M.offers = (M.offers || []).filter(o => !(o.date === dk && titles.includes(o.title)));
   save(); try { render(); } catch (e) { } } /* 今天下午的路演和网综录制悄悄删掉 */
 function ktx1122() { const R = SR(); if (R.ktx1122) return; R.ktx1122 = 1; for (const g of srDay('2026-11-22').segs) if (/坐 KTX 从釜山回首尔/.test(g.what || '')) { g.what = '和成员一起坐公司的车从釜山回首尔'; g.e = Math.min(1440, g.s + 4 * 60 + 35); } save(); } /* 回程也是坐公司的车 */
+function srReal1122() { const R = SR(); if (R.real1122) return; R.real1122 = 1; try { srBackup('real1122'); } catch (e) { } const E = srDay('2026-11-22'), at = m => srTs('2026-11-22', m);
+  for (const g of E.segs) if (/坐公司的车从釜山回首尔/.test(g.what || '')) g.st = 'cancel';
+  const add = (s0, e, what, kind, x) => { for (const g of E.segs) if (['gen', 'fb'].includes(g.src) && g.s < e && g.e > s0) g.st = 'cancel'; E.segs.push({ id: 'rl' + uid().slice(-6), s: s0, e, what, where: '', with: '', kind, src: 'official', st: '', share: .3, c: 0, ...(x || {}) }); };
+  add(16 * 60 + 15, 16 * 60 + 50, '签售结束，和泰映一起去도아家（被邀请去做客）', 'move', { with: '泰映' });
+  add(16 * 60 + 50, 17 * 60 + 50, '在도아家玩', 'social', { with: '泰映、도아一家', where: '釜山 도아家' });
+  add(17 * 60 + 50, 19 * 60 + 5, '도아家人请吃烤牛肉，도아非要坐在他和泰映中间', 'social', { with: '泰映、도아一家', where: '釜山 烤肉店' });
+  add(19 * 60 + 5, 23 * 60 + 37, '和泰映坐公司的车从釜山回首尔', 'move', { with: '泰映' });
+  add(23 * 60 + 37, 23 * 60 + 47, '到宿舍，拆도아送的礼物', 'free', { where: '宿舍' });
+  E.gen = E.gen || 'fb'; E.rp = SR_RP_V(); E.lock = 1;
+  const M = [
+    [23 * 60 + 28, 3, '11/22 签售结束后和泰映一起被도아家邀请去做客，도아家人还请他们吃了烤牛肉；答应了等他们来首尔玩的时候请吃好吃的'],
+    [23 * 60 + 30, 2, '吃饭时他和泰映坐一起，도아说想坐在两个人中间，就挤过来坐在中间了；도아现在不怎么认生了，跟他们待着很自在'],
+    [23 * 60 + 41, 3, '도아送了他礼物，回宿舍才好好看，特别感动：和도아的情侣睡衣（绿白条纹）、几封画画的信（画着小猪울피和도아，写着「세림이 삼촌 사랑해」）、用他以前送她的相机拍的照片、她自己画的울피贴纸（울피도아、수박울피）；觉得도아真的很想他'],
+    [23 * 60 + 45, 2, '도아听 CRAVITY 的歌能听出哪一段是谁唱的，舞台也看了好多'],
+  ];
+  for (const [m, imp, t] of M) srMemAdd({ k: 'event', who: 'him', t, src: 'sys', cf: 'sure', imp, at: at(m) }, at(m));
+  srMemAdd({ k: 'fact', who: 'him', t: '도아是釜山的一个小女孩，跟 CRAVITY 很熟，他以前送过她一台相机；他的小猪形象叫울피', src: 'sys', cf: 'sure', imp: 2 }, at(23 * 60 + 41)); save(); }
+/* 11/22 晚上：回首尔路上跟她说去了도아家，到宿舍拆礼物，最后说想让她看看脸、打视频 */
+async function srPh1122() { const R = SR(); if (R.ph1122) return; R.ph1122 = 1; save();
+  try { const put = async (f, d, t) => { const b = await (await fetch(f)).blob(), mid = 'srp' + uid(); await idbPut(mid, b); urlCache[mid] = URL.createObjectURL(b); const pid = 'p' + uid().slice(-5); (R.photos || (R.photos = [])).push({ id: pid, mid, d, at: t - 60e3 }); return { ko: '[사진]', zh: '[照片]', ph: mid, pid }; };
+    const T = m => srTs('2026-11-22', m), H = 23 * 60;
+    const doa = await put('img/sr-1122-doa.jpg', '도아在烤肉店用勺子吃东西（侧脸，黄色毛衣）', T(H + 29)), gift = await put('img/sr-1122-gift.jpg', '도아送的礼物：绿白条纹睡衣、画画的信、照片、折纸爱心', T(H + 41)), draw = await put('img/sr-1122-draw.jpg', '도아自己画的울피贴纸（울피도아、수박울피）', T(H + 42));
+    const L = (m, list) => (R.script || (R.script = [])).push({ id: uid(), at: T(m), mode: 'time', st: 'wait', list });
+    L(H + 27, [{ ko: '오늘 하루도 잘 보내고 있나?!', zh: '今天也过得好吗?!' }, { ko: '나는 부산에서 서울 올라가고 있어!!!', zh: '我正在从釜山回首尔!!!' }, { ko: '거의 도착 한거같아ㅎ', zh: '好像快到了ㅎ' }]);
+    L(H + 28, [{ ko: '오늘 스케줄 끝나고 도아 집 초대받아서 태영이랑 같이 다녀오구ㅎ', zh: '今天行程结束后被도아家邀请，和泰映一起去了一趟ㅎ' }, { ko: '고기도 사주셔서 소고기도 먹구 왔어!!!!', zh: '还请我们吃了肉，吃了牛肉回来!!!!' }, { ko: '서울 놀러오시면 맛있는거 사드리기로 약속하구 왔어ㅎㅎ', zh: '约好了他们来首尔玩的时候请他们吃好吃的ㅎㅎ' }, doa]);
+    L(H + 30, [{ ko: '태영이랑 나랑 둘이 앉았는데 둘 사이에 앉고싶다고 와서 사이에 앉았엌ㅋㅋ', zh: '我和泰映坐一起，她说想坐我们俩中间，就过来坐中间了哈哈' }, { ko: '이젠 낯도 많이 안가려서 엄청 편해해!!', zh: '现在也不怎么认生了，跟我们特别自在!!' }]);
+    L(H + 37, [{ ko: '벌써 도착했네!!!', zh: '已经到了!!!' }]);
+    L(H + 40, [{ ko: '이번에 도아한테 선물도 받았거든 방금 제대로 보고 완전 감동....🥺', zh: '这次还收到了도아的礼物，刚刚才好好看了，完全感动....🥺' }, gift]);
+    L(H + 42, [{ ko: '저기 몇개 그림편지들하구', zh: '那里有几封画画的信' }, { ko: '내가 저번에 선물해준 카메라로 찍은 사진들🥺🥺🥺', zh: '还有用我之前送她的相机拍的照片🥺🥺🥺' }, { ko: '그리고 도아랑 커플잠옷이래ㅎㅎ', zh: '还有说是和도아的情侣睡衣ㅎㅎ' }, { ko: '그래도 도아가 내 생각 엄청 많이 했나봐!!', zh: '도아应该是很想我吧!!' }, draw]);
+    L(H + 43, [{ ko: '띠부띠부실 너무 귀엽닼ㅋㅋㅋ', zh: '贴纸太可爱了哈哈哈' }, { ko: '너무 소중하네🥺', zh: '好珍贵🥺' }, { ko: '도아한테도 좋은 추억과 시간이 돼서 너무 다행이야ㅎㅎ', zh: '对도아来说也成了美好的回忆和时光，真是太好了ㅎㅎ' }]);
+    L(H + 45, [{ ko: '아까 보니까 우리 노래듣는데 어디에 누구 나오는지도 다 알고 있더라구', zh: '刚才看她听我们的歌，哪段是谁唱的都知道' }, { ko: '무대도 엄청 많이 봤대ㅎ', zh: '说舞台也看了好多ㅎ' }]);
+    L(H + 46, [{ ko: '근데 얼굴 보여주고싶은데 영통 잠깐 할까?', zh: '不过想给你看看脸，要不要视频一下?' }, { ko: '근데 얼굴 상태 말 안돼', zh: '不过脸的状态简直没法看' }, { ko: 'ㅋㅋㅋㅋ잠시만ㅎ', zh: '哈哈哈哈等一下ㅎ' }]);
+    R.vcRing = T(H + 49); save(); } catch (e) { R.ph1122 = 0; save(); } }
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -10393,6 +10426,7 @@ async function vcAskGen() { const R = SR(), T = dmThread(srP()), now = Date.now(
 let vcAskBusy = 0;
 function srVcTick(now) { const R = SR();
   if (R.vcAsk && now >= R.vcAsk.at && !vcAskBusy && srAIState().ok) { const st = srNow(now) || {}; if (srNoPhone(st) || st.sleep) R.vcAsk.at = st.seg ? srTs(dkey(now), st.seg.e) + rand(5, 20) * 60e3 : now + 30 * 60e3; else { vcAskBusy = 1; vcAskGen().finally(() => { vcAskBusy = 0; }); } }
+  if (R.vcRing && now - R.vcRing > 40 * 60e3) { R.vcRing = 0; save(); } /* 错过太久就不打了 */
   if (R.vcRing && now >= R.vcRing && !UI.vc && !UI.call) { R.vcRing = 0; save(); UI.vc = { mode: 'in', by: 'them', at: now }; vcShow(); const V = UI.vc; setTimeout(() => { if (UI.vc === V && V.mode === 'in') { vcRec('them', 'miss'); UI.vc = null; vcShow(); } }, 30e3); } }
 const callLbl = c => { const n = c.video ? '페이스톡' : '보이스톡'; return c.st === 'done' ? n : c.st === 'cancel' ? n + ' 취소' : '부재중 ' + n; };
 function callRec(T, by, st, dur) { if (T.call) T.call.ringing = 0; dmPush(T.p, { me: by === 'me', text: callLbl({ st }) + (dur ? ' ' + dur : ''), call: { by, st, dur: dur || '' } }); }
