@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261122165341';
+const BUILD = '20261123033456';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1730,8 +1730,8 @@ const HOT_EVENTS = [
     opts: [{ t: '发一段练习视频', task: { where: 'post', need: 'video', hint: '在社区发一段这首歌的练习室视频' }, r: [[.5, 0, .012, '练习视频被夸努力'], [.5, -.006, 0, '被说转移话题']] },
       { t: '和粉丝说明一下', task: { where: 'bubble', need: 'text', hint: '在泡泡里说明编舞的事（编舞老师是谁、有没有参考别的作品）' }, r: [[.6, -.002, .008, '粉丝理解了'], [.4, -.01, -.003, '说明被截图挑刺']] },
       { t: '不回应', r: [[.5, -.012, -.004, '讨论越来越多'], [.5, -.003, .002, '很快被别的新闻盖过去了']] }] },
-  { id: 'dating', min: 25000, w: 1, neg: 1, au: ['八卦一手', '营销号'], title: '{name} 恋情', body: '网传新人 {name} 疑似恋爱，被拍到和一人深夜同行 [图片]',
-    talk: ['照片都糊成这样了', '就算谈了也祝福', '营销号又在编', '等本人说'],
+  { id: 'dating', min: 25000, w: 3, neg: 1, hot: 1, needMeet: 1, au: ['八卦一手', '营销号'], title: '{name} 恋情', body: '网传新人 {name} 疑似恋爱，{mt} [图片]',
+    talk: ['照片都糊成这样了', '就算谈了也祝福', '营销号又在编', '等本人说', '对方到底是谁啊', '这身形怎么有点眼熟', '刚出道就被拍，公司怎么不管管'],
     opts: [{ t: '和粉丝说说', task: { where: 'bubble', need: 'text', hint: '在泡泡里说清楚那天深夜一起走的是谁（比如经纪人、工作人员）' }, r: [[.6, -.002, .008, '大部分人相信了'], [.4, -.01, -.002, '有人不信，讨论更多了']] },
       { t: '发一张自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.5, 0, .012, '话题被转移了'], [.5, -.008, 0, '被说在回避']] },
       { t: '不回应', r: [[.5, -.012, -.003, '猜测越来越多'], [.5, -.002, .004, '没过几天就没人提了']] }] },
@@ -1839,7 +1839,7 @@ function hotState() {
   if (!H.posts) { H.posts = {}; if (H.cur && !H.cur.key) H.cur = null; } // 旧版本的热搜没有帖子
   return H;
 }
-const hotFill = (t, ev) => fill(t, ev.q || '').replace(/某美妆品牌/g, brandPick(String(ev.at || ev.id || ''), ['beauty'])[0]).replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '').replace(/\{lt\}/g, ev.lt || '直播');
+const hotFill = (t, ev) => fill(t, ev.q || '').replace(/\{mt\}/g, ev.mt || '被拍到和一人深夜同行').replace(/某美妆品牌/g, brandPick(String(ev.at || ev.id || ''), ['beauty'])[0]).replace(/\{song\}/g, ev.song || '').replace(/\{e\}/g, ev.e || '').replace(/\{lt\}/g, ev.lt || '直播');
 // 频率按现有粉丝数和热度来：粉丝越多、越火，热搜越多
 function hotGap() {
   const f = S.profile.followers, days = f < 15000 ? rand(2.5, 5) : f < 30000 ? rand(1.8, 3.5) : f < 60000 ? rand(1.2, 2.5) : rand(.8, 1.6);
@@ -1875,6 +1875,19 @@ function hotSched(cats) {
   }
   return null;
 }
+/* 最近三天里真的和世琳见过面（已经结束的）：营销号照那次见面写 */
+function hotMeet() {
+  const H = hotState(), used = H.meetUsed || [], now = Date.now(), nm = new Date().getHours() * 60 + new Date().getMinutes(), today = dkey(now);
+  for (let i = 0; i >= -3; i--) { const dk = addDays(today, i);
+    const rs = rulesFor(dk).filter(r => (r.srMeet || /世琳|세림|Serim/i.test(r.title || '')) && !used.includes(r.id + dk) && (i < 0 || toMin(r.end) <= nm)).reverse();
+    for (const r of rs) { const s0 = toMin(r.start), e0 = toMin(r.end) <= s0 ? 1440 : toMin(r.end), d = parseD(dk), md = `${d.getMonth() + 1} 月 ${d.getDate()} 日`, w = String(r.title || '').replace(/^和世琳|和세림|^和 ?Serim/i, '');
+      const where = r.loc ? `在${r.loc}附近` : '', night = e0 >= 22 * 60 || s0 < 5 * 60, eat = /吃|饭|烤|酒|餐/.test(w), cafe = /咖啡|cafe|카페/i.test(w);
+      const mt = night ? `${md}深夜被拍到和一名男子${where}同行，对方戴着帽子和口罩，两人一前一后上了同一辆车`
+        : eat ? `${md}晚上被拍到和一名男子${where || '在一家餐厅'}吃饭，吃完一前一后离开`
+        : cafe ? `${md}被拍到和一名男子${where || '在一家咖啡厅'}待了快两个小时`
+        : `${md}被拍到和一名男子${where}一起走，对方戴着帽子和口罩`;
+      return { mt, meet: r.id + dk }; } }
+  return null; }
 function hotPick() {
   const H = hotState(), f = S.profile.followers, recent = H.hist.slice(-8).map(x => x.id);
   const F = fanState(), sched = F.lastEvent && Date.now() - F.lastEvent.at < 2 * 86400e3 ? F.lastEvent : null;
@@ -1885,6 +1898,7 @@ function hotPick() {
     if (e.chalDone != null && !!e.chalDone !== chalDoneFor(chalSong())) return false; /* 这首歌的挑战本人拍过 / 没拍过，热搜说法不一样 */
     if (e.live && !(ctx[e.id] = hotLive(e.live))) return false;
     if (e.sc && !(ctx[e.id] = { e: hotSched(e.sc) }).e) return false;
+    if (e.needMeet && !(ctx[e.id] = hotMeet())) return false;
     return true;
   });
   if (!pool.length) return null;
@@ -1906,7 +1920,7 @@ function hotComment(ev, kind) {
 function hotNewPost(p, ev) {
   const f = S.profile.followers, sc = f / 15000;
   const body = hotFill(ev.body, p), media = /\[视频\]/.test(body) ? 'video' : /\[图片\]/.test(body) ? 'image' : '';
-  const post = { eid: ev.id, p: { song: p.song, e: p.e, q: p.q, lt: p.lt }, au: ev.au[0], tag: ev.au[1], body: body.replace(/\s*\[(视频|图片)\]/g, ''), media, at: Date.now(), likes: Math.round(rand(80, 400) * sc), rt: Math.round(rand(10, 80) * sc), cc: 0, liked: false, cm: [] };
+  const post = { eid: ev.id, p: { song: p.song, e: p.e, q: p.q, lt: p.lt, mt: p.mt }, au: ev.au[0], tag: ev.au[1], body: body.replace(/\s*\[(视频|图片)\]/g, ''), media, at: Date.now(), likes: Math.round(rand(80, 400) * sc), rt: Math.round(rand(10, 80) * sc), cc: 0, liked: false, cm: [] };
   for (let i = 0, tries = 0; i < ri(6, 10) && tries < 40; tries++) { const c = hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, p)) }); if (post.cm.some(x => x.text === c.text)) continue; post.cm.push(c); post.cc += ri(1, Math.max(2, Math.round(4 * sc))); i++; } // 同一句评论不会出现两次
   post.cm.sort((a, b) => b.likes - a.likes);
   return post;
@@ -1930,7 +1944,7 @@ function hotTick() {
     if (p) {
       const ev = HOT_EVENTS.find(e => e.id === p.id), key = uid();
       H.posts[key] = hotNewPost(p, ev);
-      H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null };
+      H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null }; if (p.meet) (H.meetUsed = H.meetUsed || []).push(p.meet); hotClimbInit(H.cur, ev);
       pushNotif({ type: 'hot', key, text: `📰 #${H.cur.title}#`, sub: `${H.cur.venue} · ${H.posts[key].body.slice(0, 40)}` }, true);
       H.talk = { id: p.id, song: p.song, e: p.e, q: p.q, lt: p.lt, until: now + 2 * 86400e3 };
       const ks = Object.keys(H.posts); while (ks.length > 40) delete H.posts[ks.shift()];
@@ -1939,6 +1953,7 @@ function hotTick() {
   }
   const c = H.cur;
   if (c) {
+    hotClimb(c);
     if (c.choice == null && now - c.at > 20 * 3600e3) { c.choice = -1; c.resolveAt = now; } // 一直没选
     if (c.task && !c.task.done && now > c.task.until) { c.choice = -1; c.task = null; c.resolveAt = now; hotBar(); } // 说了要做但没做
     if (c.choice != null && c.resolveAt && now >= c.resolveAt) hotResolve();
@@ -1948,10 +1963,11 @@ function hotTick() {
     const post = H.posts[k], age = now - post.at; if (age > 2 * 86400e3) continue;
     const gap = 4 * 60e3 * (1 + age / (6 * 3600e3));
     post.lastC = post.lastC || post.at;
-    if (now - post.lastC > gap) {
+    const up = c && c.key === k && c.climb ? 1 + (c.climb.k || 0) * 4 : 1;
+    if (now - post.lastC > gap / up) {
       post.lastC = now; const ev = HOT_EVENTS.find(e => e.id === post.eid);
       if (ev && post.cm.length < 60) { post.cm.push(hotComment({ ...ev, talk: ev.talk.map(t => hotFill(t, post.p || {})) })); post.cc += ri(1, 5); }
-      post.likes += ri(5, 40); post.rt += ri(0, 6);
+      post.likes += Math.round(ri(5, 40) * up * up); post.rt += Math.round(ri(0, 6) * up * up); if (up > 1) post.cc += Math.round(ri(0, 4) * up);
     }
   }
   for (const x of H.fx) {
@@ -1961,6 +1977,12 @@ function hotTick() {
   H.fx = H.fx.filter(x => x.done !== x.total || now < x.to);
   hotBarTime();
 }
+/* 恋情、带攻击性的热搜：一开始排得靠后，几个小时里越爬越高（恋情爬得最猛） */
+function hotClimbInit(c, ev) { if (!ev || !(ev.hot || ev.neg)) return; const m = /第 (\d+) 位/.exec(c.venue || ''), r0 = m ? +m[1] : ri(38, 50), love = ev.hot;
+  c.climb = { r0, peak: Math.max(1, Math.round(r0 * (love ? rand(.04, .2) : rand(.35, .6)))), dur: (love ? rand(4, 8) : rand(3, 6)) * 3600e3, from: Date.now(), k: 0, told: 0 }; }
+function hotClimb(c) { const x = c.climb; if (!x) return; const t = clamp((Date.now() - (x.from || c.at)) / x.dur, 0, 1), k = 1 - Math.pow(1 - t, 1.6), r = Math.round(x.r0 - (x.r0 - x.peak) * k);
+  x.k = k; const v = `热搜 第 ${r} 位`; if (v === c.venue) return; c.venue = v;
+  const lv = r <= 3 ? 3 : r <= 10 ? 2 : r <= 20 ? 1 : 0; if (lv > x.told) { x.told = lv; pushNotif({ type: 'hot', key: c.key, text: `📈 #${c.title}# 升到热搜第 ${r} 位`, sub: r <= 3 ? '讨论已经炸开了' : r <= 10 ? '越来越多路人在看' : '还在往上走' }, true); } }
 function hotChoose(i) {
   const c = hotState().cur; if (!c || c.choice != null) return;
   const ev = HOT_EVENTS.find(e => e.id === c.id), o = ev.opts[i];
@@ -8405,7 +8427,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -9959,6 +9981,10 @@ async function srPh1122() { const R = SR(); if (R.ph1122) return; R.ph1122 = 1; 
     L(H + 45, [{ ko: '아까 보니까 우리 노래듣는데 어디에 누구 나오는지도 다 알고 있더라구', zh: '刚才看她听我们的歌，哪段是谁唱的都知道' }, { ko: '무대도 엄청 많이 봤대ㅎ', zh: '说舞台也看了好多ㅎ' }]);
     L(H + 46, [{ ko: '근데 얼굴 보여주고싶은데 영통 잠깐 할까?', zh: '不过想给你看看脸，要不要视频一下?' }, { ko: '근데 얼굴 상태 말 안돼', zh: '不过脸的状态简直没法看' }, { ko: 'ㅋㅋㅋㅋ잠시만ㅎ', zh: '哈哈哈哈等一下ㅎ' }]);
     R.vcRing = T(H + 49); save(); } catch (e) { R.ph1122 = 0; save(); } }
+function hotDate1123() { const H = hotState(); if (H.date1123) return; H.date1123 = 1; const c = H.cur; if (!c || c.id !== 'dating' || c.mt) { save(); return; }
+  const m = hotMeet(), post = H.posts[c.key], ev = HOT_EVENTS.find(e => e.id === 'dating');
+  if (!m) { if (post) delete H.posts[c.key]; H.cur = null; H.talk = null; S.notifs = (S.notifs || []).filter(n => n.key !== c.key); hotBar(); save(); return; }
+  c.mt = m.mt; (H.meetUsed = H.meetUsed || []).push(m.meet); if (post) { post.p.mt = m.mt; post.body = hotFill(ev.body, { ...c, at: 0 }).replace(/\s*\[(视频|图片)\]/g, ''); } hotClimbInit(c, ev); save(); } /* 之前那条是随机编的 */
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
