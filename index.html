@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261124195912';
+const BUILD = '20261125113616';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2299,7 +2299,13 @@ function albSave() {
    - 用现有行程「其他 → 音乐创作」写歌：行程结束后按时长 / 专注曲线 / 熟练度 / 事件结算进度
    - 同一行程只结算一次（S.music.log），删掉 / 没开始 / 事后补录的不算
    ========================================================= */
-const MZ_GENRES = ['抒情 Ballad', '舞曲 Dance', '流行 Pop', 'R&B', 'Hip-hop', '摇滚 / Band', 'City Pop', 'EDM', 'Lo-fi / 氛围'];
+const MZ_BASE = ['Pop', 'Dance', 'Hip-hop', 'R&B', 'Ballad', 'Band / Rock', 'Electronic'];
+const MZ_VIBE = ['甜系 / Bubblegum', '清爽 / Teen-fresh', 'Girl crush / 酷飒', 'Easy listening / 米色 pop', '复古 / Retro', '暗黑 / 概念系', 'R&B / 慵懒', '抒情 Ballad', 'Band / 摇滚感', 'EDM / 电子炸场'];
+const MZ_GENRES = MZ_BASE.flatMap(b => MZ_VIBE.map(v => `${b} × ${v}`));
+/* 曲风两层：大类 × vibe，存成「Pop × 甜系 / Bubblegum」这样一个字符串 */
+function genreSel(id, cur, empty) { const [b0, v0] = String(cur || '').split(' × '), okB = MZ_BASE.includes(b0), okV = MZ_VIBE.includes(v0), old = cur && !(okB && okV) ? cur : '';
+  return `<div class="grid2" id="${id}" data-old="${esc(old)}"><select class="g-b"><option value="">${empty ? '大类还没想好' : '大类'}</option>${MZ_BASE.map(b => `<option ${okB && b === b0 ? 'selected' : ''}>${b}</option>`).join('')}</select><select class="g-v"><option value="">${old ? '原来：' + esc(old) : empty ? 'vibe 还没想好' : 'vibe'}</option>${MZ_VIBE.map(v => `<option ${okV && v === v0 ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`; }
+function genreGet(id) { const el = $('#' + id); if (!el) return ''; const b = el.querySelector('.g-b').value, v = el.querySelector('.g-v').value; return b && v ? `${b} × ${v}` : b || v || el.dataset.old || ''; }
 const MZ_LV = [[0, '新手'], [120, '入门'], [350, '逐渐熟练'], [800, '熟练'], [1600, '经验丰富']];
 const MZ_ST = { writing: '创作中', revising: '修改中', demo: '已完成 Demo', submitted: '公司审核中', suggest: '公司建议修改', hold: '公司暂时保留', cand: '未来项目候选', cbcand: '本次回归候选', rejected: '暂未采用', adopted: '已被采用', released: '已发行' };
 const MZ_ST_C = { writing: '#2fb5c4', revising: '#ff8a3d', demo: '#7b61ff', submitted: '#999', suggest: '#ff8a3d', hold: '#8aa', cand: '#4a90e2', cbcand: '#e24a8d', rejected: '#aaa', adopted: '#2fb57a', released: '#1aa260' };
@@ -2630,7 +2636,7 @@ function makeHTML() {
 function mzNewHTML() {
   return `<div class="row"><h3 style="flex:1">🎼 新作品</h3><button class="btn ghost sm" data-act="close">取消</button></div>
     <div class="card"><div class="field"><label>暂定名称</label><input id="mz-n" ></div>
-    <div class="field"><label>曲风</label><select id="mz-g"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div>
+    <div class="field" style="grid-column:1/-1"><label>曲风（大类 × vibe）</label>${genreSel('mz-g', '', 1)}</div>
     <div class="row"><span class="sp"></span><button class="btn primary" data-act="mznewok">创建</button></div></div>`;
 }
 function mzDetailHTML(id) {
@@ -2641,7 +2647,7 @@ function mzDetailHTML(id) {
   return `<div class="row"><h3 style="flex:1">${esc(mzTitle(w))}</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="card"><span class="chip" style="background:${MZ_ST_C[w.status]}">${MZ_ST[w.status]}</span>
       <div class="field" style="margin-top:8px"><label>作品名称</label><input id="mz-name" value="${esc(w.name)}" placeholder="${esc(w.temp || '未命名')}"></div>
-      <div class="grid2"><div class="field"><label>曲风</label><select id="mz-genre"><option value="">还没想好</option>${MZ_GENRES.map(g => `<option ${w.genre === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div><div class="field"><label>创作参与</label><div style="padding:8px 2px;font-size:13.5px">${esc(['Cyan', ...w.partners].join('、'))}</div></div></div>
+      <div class="grid2"><div class="field" style="grid-column:1/-1"><label>曲风（大类 × vibe）</label>${genreSel('mz-genre', w.genre, 1)}</div><div class="field"><label>创作参与</label><div style="padding:8px 2px;font-size:13.5px">${esc(['Cyan', ...w.partners].join('、'))}</div></div></div>
       <div class="field"><label>作品概念 / 描述</label><textarea id="mz-concept" style="min-height:60px">${esc(w.concept)}</textarea></div>
       <div class="row"><span class="sp"></span><button class="btn ghost sm" data-act="mzsave" data-id="${w.id}">保存修改</button></div></div>
     <div class="card"><b>创作情况</b>
@@ -2854,7 +2860,7 @@ function libHTML(flat) {
   const row = x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${[x.genre, x.tags, x.writer].filter(Boolean).map(esc).join(' · ')}${x.used ? ` · 已用于《${esc((disco().find(a => a.id === x.used) || {}).name || '')}》` : ''}</div>${x.desc ? `<div style="font-size:12.5px;margin-top:2px">${esc(x.desc)}</div>` : ''}</div><button class="link" data-act="libedit" data-id="${x.id}">编辑</button></div>`;
   const form = F ? `<div class="card" style="margin:8px 0">
       <div class="field"><label>曲名</label><input id="lib-n" value="${esc(F.name || '')}" placeholder="Demo 的名字"></div>
-      <div class="grid2"><div class="field"><label>曲风</label><select id="lib-g">${MZ_GENRES.map(g => `<option ${F.genre === g ? 'selected' : ''}>${g}</option>`).join('')}</select></div>
+      <div class="grid2"><div class="field" style="grid-column:1/-1"><label>曲风（大类 × vibe）</label>${genreSel('lib-g', F.genre)}</div>
         <div class="field"><label>作词 / 作曲</label><input id="lib-w" value="${esc(F.writer || '')}"></div></div>
       <div class="field"><label>风格关键词</label><input id="lib-t" value="${esc(F.tags || '')}" placeholder="比如：冬天、失恋、清冷、合成器"></div>
       <div class="field"><label>简介</label><textarea id="lib-d" style="min-height:70px">${esc(F.desc || '')}</textarea></div>
@@ -2864,7 +2870,7 @@ function libHTML(flat) {
 }
 function libSave() {
   const n = ($('#lib-n')?.value || '').trim().replace(/[《》]/g, ''); if (!n) return toast('写一下曲名');
-  const F = UI.libF, x = F.id ? cbLib().find(y => y.id === F.id) : null, v = { name: n, genre: $('#lib-g').value, writer: ($('#lib-w').value || '').trim(), tags: ($('#lib-t').value || '').trim(), desc: ($('#lib-d').value || '').trim() };
+  const F = UI.libF, x = F.id ? cbLib().find(y => y.id === F.id) : null, v = { name: n, genre: genreGet('lib-g'), writer: ($('#lib-w').value || '').trim(), tags: ($('#lib-t').value || '').trim(), desc: ($('#lib-d').value || '').trim() };
   if (x) Object.assign(x, v); else cbLib().push({ id: 'lib' + uid(), at: Date.now(), ...v });
   UI.libF = null; UI.libOpen = 1; save(); render();
 }
@@ -12481,7 +12487,7 @@ function ruleExtraHTML(r) {
   const ws = mz().works.filter(w => mzOpen(w) || w.id === r.workId), cur = r.workId || (ws.find(mzOpen) || {}).id || '__new', o = prepOn();
   const guess = r.cbTask != null && r.cbTask !== undefined && r.id ? r.cbTask : prepGuess(r.title, r.cat);
   return `<div class="field" id="r-work-f" style="display:none"><label>本次创作的作品</label><select id="r-work">${ws.map(w => `<option value="${w.id}" ${cur === w.id ? 'selected' : ''}>《${esc(mzName(w))}》${mzOpen(w) ? (w.status === 'revising' ? '（修改）' : '') : '（已完成）'}</option>`).join('')}<option value="__new" ${cur === '__new' ? 'selected' : ''}>＋ 开始一首新歌</option><option value="" ${r.id && !r.workId ? 'selected' : ''}>不指定（自由练习）</option></select>
-      <div id="r-wnew" class="grid2" style="margin-top:6px"><input id="r-wn" placeholder="暂定名称"><select id="r-wg"><option value="">曲风还没想好</option>${MZ_GENRES.map(g => `<option>${g}</option>`).join('')}</select></div></div>
+      <div id="r-wnew" class="grid2" style="margin-top:6px"><input id="r-wn" placeholder="暂定名称">${genreSel('r-wg', '', 1)}</div></div>
     <div class="field" id="r-cbt-f" style="display:none"><label>关联回归准备${o ? ` · 《${esc(o.a.name)}》` : ''}</label><select id="r-cbt" ${r.id ? 'data-touched="1"' : ''}><option value="">不关联</option>${Object.entries(PREP_NAME).map(([k, v]) => `<option value="${k}" data-c="${Object.keys(PREP_CAT).find(c => PREP_CAT[c].includes(k))}" ${guess === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>`;
 }
 function prepGuess(title, cat) { const t = title || ''; return /录音|녹음/.test(t) ? 'rec' : /企划|回归.*会议|会议.*回归/.test(t) ? 'meet' : cat === '练习' && /舞|编舞|안무|回归/.test(t) ? 'dance' : /MV|뮤비/.test(t) ? 'mv' : /概念照|预告照|封面|画报/.test(t) && cat === '物料' ? 'photo' : cat === '物料' && /Dance Practice|花絮|宣传|物料|预告/.test(t) ? 'promo' : ''; }
@@ -12577,7 +12583,7 @@ function saveRule() {
     else { if (!r.loc || r.loc === '公司') r.loc = old && old.signMode === 'off' && old.loc && old.loc !== '公司' ? old.loc : pick(SIGN_VENUES); r.host = old && old.loc === r.loc && old.host ? old.host : signHostFor(r.loc); }
     if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 签售：线上在公司；线下随机分配场地和主办方 */
   r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now(); r.gift = giftMultiVal('r');
-  if (isMusicRule(r)) { const v = $('#r-work').value; r.workId = v === '__new' ? mzNew(($('#r-wn').value || '').trim(), $('#r-wg').value).id : v; } else r.workId = '';
+  if (isMusicRule(r)) { const v = $('#r-work').value; r.workId = v === '__new' ? mzNew(($('#r-wn').value || '').trim(), genreGet('r-wg')).id : v; } else r.workId = '';
   { const o = prepOn(), v = $('#r-cbt-f').style.display !== 'none' ? $('#r-cbt').value : ''; r.cbTask = o && v ? v : ''; r.cbAlbum = o && v ? o.a.id : ''; }
   if (i >= 0) S.schedule.rules[i] = { ...S.schedule.rules[i], ...r }; else S.schedule.rules.push(r);
   save(); UI.presetQ = ''; openModal(adminHTML()); syncRepFields(); render(); toast(i >= 0 ? '已保存' : '已添加行程', `${r.title} · ${r.start}-${r.end}`);
@@ -13087,7 +13093,7 @@ document.addEventListener('click', async e => {
     case 'ppsave': prodSave(); break;
     case 'offmatdel': { const o = prepOn(); if (!o) break; const M = o.a.offMat || {}, m = M[t.dataset.k]; if (m && m.media) { idbDel(m.media.id); delete m.media; } save(); openModal(prodHTML()); break; }
     case 'ppphdel': { const o = prepOn(); if (!o || o.t.rec.done) break; const L = o.a.cphotos || []; const [id] = L.splice(+t.dataset.i, 1); if (id) idbDel(id); save(); openModal(prodHTML()); break; }
-    case 'libadd': UI.libF = { genre: MZ_GENRES[0] }; UI.libOpen = 1; render(); break;
+    case 'libadd': UI.libF = { genre: '' }; UI.libOpen = 1; render(); break;
     case 'libedit': UI.libF = { ...(cbLib().find(x => x.id === t.dataset.id) || {}) }; UI.libOpen = 1; render(); break;
     case 'libcancel': UI.libF = null; render(); break;
     case 'libsave': libSave(); break;
@@ -13255,9 +13261,9 @@ document.addEventListener('click', async e => {
     case 'stopen': UI.stTab = 'act'; UI.mgrOpen = false; openModal(stmtPageHTML(t.dataset.id)); break;
     case 'sttab': UI.stTab = t.dataset.k; if ((UI.wPage || '').startsWith('stmt:') && !$('#modal').classList.contains('on')) { const y = window.scrollY; render(); window.scrollTo(0, y); } else openModal(stmtPageHTML(t.dataset.id)); break;
     case 'mznew': openModal(mzNewHTML()); break;
-    case 'mznewok': { const w = mzNew(($('#mz-n').value || '').trim(), $('#mz-g').value); render(); openModal(mzDetailHTML(w.id)); toast('新作品已创建', '去行程后台安排「音乐创作」并选这首'); break; }
+    case 'mznewok': { const w = mzNew(($('#mz-n').value || '').trim(), genreGet('mz-g')); render(); openModal(mzDetailHTML(w.id)); toast('新作品已创建', '去行程后台安排「音乐创作」并选这首'); break; }
     case 'mzopen': openModal(mzDetailHTML(t.dataset.id)); break;
-    case 'mzsave': { const w = mzWork(t.dataset.id); if (!w) break; const nm = $('#mz-name').value.trim().replace(/[《》]/g, '').slice(0, 30), old = mzName(w); w.name = nm; w.genre = $('#mz-genre').value; w.concept = $('#mz-concept').value.trim().slice(0, 300);
+    case 'mzsave': { const w = mzWork(t.dataset.id); if (!w) break; const nm = $('#mz-name').value.trim().replace(/[《》]/g, '').slice(0, 30), old = mzName(w); w.name = nm; w.genre = genreGet('mz-genre'); w.concept = $('#mz-concept').value.trim().slice(0, 300);
       if (w.adopted && w.adopted.album && w.status !== 'released' && old !== mzName(w)) { const a = disco().find(x => x.id === w.adopted.album), tr = a && a.tracks.find(x => x.wid === w.id); if (tr) { tr.name = mzName(w); syncSongs(); } const P = S.cb && S.cb.prep; if (P && P.sel) P.sel.list.forEach(x => { if (x.id === w.id) x.name = mzName(w); }); }
       save(); render(); openModal(mzDetailHTML(w.id)); toast('已保存'); break; }
     case 'mzrev': mzRevise(t.dataset.id); render(); openModal(mzDetailHTML(t.dataset.id)); break;
