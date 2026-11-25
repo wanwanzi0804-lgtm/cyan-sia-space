@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261125203614';
+const BUILD = '20261125210829';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -3069,8 +3069,8 @@ async function offAiCm(x) { if (!aiOn() || !x || x._cm) return; x._cm = 1;
     if (j && j.cm && j.cm.length) { x.cm = j.cm.slice(0, 8).map(c => [String(c.u).slice(0, 20), String(c.t).slice(0, 80)]); save(); if (UI.tab === 'feed') render(); } } catch (e) { } }
 const OFF_CM_GEN = [['sia_0829', '공지 확인했어요!!'], ['雪落的时候', '收到！'], ['cyan_daily', '항상 응원해요 💙'], ['blue_sia', 'thank you for the update!'], ['今天也想你', '官方号终于营业了'], ['moon_cy', '알림 설정 완료'], ['snowy_cyan', '기다리고 있을게요'], ['sia_tw', '每天都来蹲官方号']];
 function offTick(o) {
-  const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM`;
-  const tags = `#${S.profile.name} #시안 #${a.name.replace(/\s+/g, '')}`;
+  const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM (KST)`;
+  const NM = String(S.profile.name || 'Cyan').toUpperCase(), sq = x => String(x || '').replace(/[\s'’.,!?&()\[\]-]+/g, ''), tags = `#${NM} #시안 #${sq(a.name)}`, TT = albTitle(a); /* 官方号文案：按 K-pop 官方号的常见写法 */
   for (const [d, k, title] of offPlan(a)) {
     const at = rel + d * 86400e3 + (k === 'out' ? 18 * 3600e3 : 0); if (now < at || now > at + 6 * 86400e3) continue;
     const id = a.id + ':' + k; if (O.posts.some(x => x.id === id)) continue;
@@ -3079,8 +3079,9 @@ function offTick(o) {
     if ((k === 'cp1' || k === 'cp2') && !media.length) poster = 'logo'; else if (['soon', 'sched', 'trk', 'hl', 'mvt', 'out'].includes(k)) poster = k;
     const mat0 = (a.offMat || {})[k] || {}, mat = { media: mat0.media }; if (mat.media) { media = [mat.media]; poster = null; } /* 官宣 / 日程表 / 曲目表是公司美工做的；文案都由公司写 */
     if (k === 'trk' && !o.t.final.done) continue; // 曲目还没定：先不发曲目表
-    const ttl = k === 'mvt' ? `'${albTitle(a)}' M/V TEASER` : k === 'out' ? `'${albTitle(a)}' M/V OUT NOW` : title;
-    const txt = mat.txt ? `${mat.txt}\n\n${tags}` : `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM 발매' : when}\n\n${tags}`;
+    const tg = tags + (['trk', 'hl', 'mvt', 'out'].includes(k) && TT ? ` #${sq(TT)}` : '') + (k === 'out' && TT ? ` #${NM}_${sq(TT)}` : '');
+    const head = k === 'mvt' ? `${NM} '${TT}' M/V TEASER` : k === 'out' ? `${NM} ${lab}\n'${TT}' M/V` : `${NM} ${lab}${k === 'soon' ? '' : '\n' + title.toUpperCase()}`;
+    const txt = `${head}\n\n${k === 'out' ? `🎧 https://${NM}.lnk.to/${sq(a.name)}` : when}\n\n${tg}`;
     const f = S.profile.followers, base = Math.round(f * rand(.5, .9) * (k === 'out' ? 1.6 : k.startsWith('cp') || k === 'mvt' ? 1.2 : 1));
     const pool = OFF_CM[k.startsWith('cp') ? 'cp' : k] || OFF_CM.soon;
     O.posts.push({ id, alb: a.id, k, at, txt, media, poster, base, cc: Math.round(base * rand(.04, .08)), cm: pickN(pool, Math.min(3, pool.length)).map(([u, x]) => [u, x.replace('{n}', a.tracks.length)]) }); offAiCm(O.posts[O.posts.length - 1]);
