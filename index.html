@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261125212556';
+const BUILD = '20261125231715';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1736,6 +1736,23 @@ const HOT_EVENTS = [
     opts: [{ t: '和粉丝说说', task: { where: 'bubble', need: 'text', hint: '在泡泡里说清楚那天深夜一起走的是谁（比如经纪人、工作人员）' }, r: [[.6, -.002, .008, '大部分人相信了'], [.4, -.01, -.002, '有人不信，讨论更多了']] },
       { t: '发一张自拍', task: { where: 'post', need: 'image', hint: '在社区发一张自拍' }, r: [[.5, 0, .012, '话题被转移了'], [.5, -.008, 0, '被说在回避']] },
       { t: '不回应', r: [[.5, -.012, -.003, '猜测越来越多'], [.5, -.002, .004, '没过几天就没人提了']] }] },
+  // 出圈：非歌曲内容突然被疯转（热度会越爬越高，粉丝几天里明显上涨，后面还有连锁反应）
+  { id: 'vFancam', min: 0, w: 1.5, viral: 1, sc: ['公演', '打歌', '活动', '演唱会', '签售'], au: ['直拍收藏家', '短视频博主'], title: '{name} {e} 直拍 出圈', body: '「{e}」{name} 的个人直拍在短视频平台被疯转，一晚上播放量翻了好几倍，评论区全是路人在问「这是谁」[视频]',
+    talk: ['这个直拍我看了二十遍', '路人被圈粉了', '表情管理绝了', '算法终于推对了一次'], opts: [{ t: '发帖接住这波热度', task: { where: 'post', need: 'any', hint: '在社区发帖接一下这波热度' }, r: [[.6, .01, .03, '新粉跟着帖子关注了你'], [.4, .003, .012, '老粉很开心，路人也来看了']] },
+      { t: '在泡泡里和粉丝聊聊', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝聊聊最近突然火起来这件事' }, r: [[.6, .006, .02, '泡泡截图又被转出去了'], [.4, .002, .008, '粉丝很开心']] },
+      { t: '不回应，让它自己火', r: [[.6, .004, .015, '视频自己继续传着'], [.4, 0, .006, '热度慢慢平了']] }] },
+  { id: 'vLive', min: 0, w: 1.2, viral: 1, live: {}, au: ['切片搬运工', '短视频博主'], title: '{name} 直播切片 出圈', body: '{name} 直播「{lt}」里的一段被剪成短视频，在各个平台被转疯了，好多人说「这个人好有意思」[视频]',
+    talk: ['这段切片太好笑了', '直播原来这么好看', '被切片圈粉了', '去补完整版了'], opts: [{ t: '发帖接住这波热度', task: { where: 'post', need: 'any', hint: '在社区发帖接一下这波热度' }, r: [[.6, .01, .03, '新粉跟着帖子关注了你'], [.4, .003, .012, '老粉很开心，路人也来看了']] },
+      { t: '在泡泡里和粉丝聊聊', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝聊聊最近突然火起来这件事' }, r: [[.6, .006, .02, '泡泡截图又被转出去了'], [.4, .002, .008, '粉丝很开心']] },
+      { t: '不回应，让它自己火', r: [[.6, .004, .015, '视频自己继续传着'], [.4, 0, .006, '热度慢慢平了']] }] },
+  { id: 'vVariety', min: 0, w: 1.2, viral: 1, sc: ['综艺', '电台'], au: ['综艺名场面', '娱乐博主'], title: '{name} 综艺名场面', body: '{name} 在「{e}」里的一段反应被做成表情包，到处都在转 [视频]',
+    talk: ['这个表情包我已经存了', '综艺感也太好了', '名场面诞生', '笑到打鸣'], opts: [{ t: '发帖接住这波热度', task: { where: 'post', need: 'any', hint: '在社区发帖接一下这波热度' }, r: [[.6, .01, .03, '新粉跟着帖子关注了你'], [.4, .003, .012, '老粉很开心，路人也来看了']] },
+      { t: '在泡泡里和粉丝聊聊', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝聊聊最近突然火起来这件事' }, r: [[.6, .006, .02, '泡泡截图又被转出去了'], [.4, .002, .008, '粉丝很开心']] },
+      { t: '不回应，让它自己火', r: [[.6, .004, .015, '视频自己继续传着'], [.4, 0, .006, '热度慢慢平了']] }] },
+  { id: 'vPhoto', min: 15000, w: .8, viral: 1, au: ['神图收藏夹', '站姐'], title: '{name} 神图', body: '一张 {name} 的路透图突然被疯转，有人说「这张能直接当海报」[图片]',
+    talk: ['这张神图谁拍的', '已经设成壁纸了', '路透比精修还好看', '这是什么氛围感'], opts: [{ t: '发帖接住这波热度', task: { where: 'post', need: 'any', hint: '在社区发帖接一下这波热度' }, r: [[.6, .01, .03, '新粉跟着帖子关注了你'], [.4, .003, .012, '老粉很开心，路人也来看了']] },
+      { t: '在泡泡里和粉丝聊聊', task: { where: 'bubble', need: 'any', hint: '在泡泡里和粉丝聊聊最近突然火起来这件事' }, r: [[.6, .006, .02, '泡泡截图又被转出去了'], [.4, .002, .008, '粉丝很开心']] },
+      { t: '不回应，让它自己火', r: [[.6, .004, .015, '视频自己继续传着'], [.4, 0, .006, '热度慢慢平了']] }] },
   { id: 'airport', min: 40000, w: 1, au: ['机场时尚', '站姐'], title: '{name} 机场', body: '今日机场 {name}，这身也太好看了 [图片]',
     talk: ['机场神图', '机场造型好绝', '去哪里呀', '一路平安！'],
     opts: [{ t: '发一张飞机上的照片', task: { where: 'post', need: 'image', hint: '在社区发一张飞机上的照片' }, r: [[.6, .01, .025, '又上了一次热门'], [.4, .002, .008, '粉丝很开心']] },
@@ -1844,7 +1861,7 @@ const hotFill = (t, ev) => fill(t, ev.q || '').replace(/\{mt\}/g, ev.mt || '被�
 // 频率按现有粉丝数和热度来：粉丝越多、越火，热搜越多
 function hotGap() {
   const f = S.profile.followers, days = f < 15000 ? rand(2.5, 5) : f < 30000 ? rand(1.8, 3.5) : f < 60000 ? rand(1.2, 2.5) : rand(.8, 1.6);
-  return days * 86400e3 / clamp(heat(), .7, 1.6) * (cbPhase() === 'promo' ? .6 : 1);
+  return days * 86400e3 / clamp(heat(), .7, 1.6) * (cbPhase() === 'promo' ? .6 : 1) * (buzz() ? .6 : 1);
 }
 // 粉丝少的时候上不了热搜榜，只是在超话 / 同城 / 话题页里小火
 function hotVenue(ev) {
@@ -1903,8 +1920,9 @@ function hotPick() {
     return true;
   });
   if (!pool.length) return null;
-  let x = Math.random() * pool.reduce((a, e) => a + e.w, 0), ev = pool[0];
-  for (const e of pool) { x -= e.w; if (x <= 0) { ev = e; break; } }
+  const wt = e => e.w * (buzz() && e.neg ? 2 : 1) * (buzz() && e.viral ? .3 : 1); /* 刚火过：黑料、争议更容易冒出来，不会连着再出圈 */
+  let x = Math.random() * pool.reduce((a, e) => a + wt(e), 0), ev = pool[0];
+  for (const e of pool) { x -= wt(e); if (x <= 0) { ev = e; break; } }
   const out = { id: ev.id, song: /^challenge/.test(ev.id) ? chalSong() : ev.phase ? cbSong() : songs.length ? pick(songs) : '', e: sched ? sched.title : '', ...(ctx[ev.id] || {}) };
   if (HOT_Q[ev.id] && !out.q) out.q = pick(HOT_Q[ev.id](out.e));
   return out;
@@ -1914,7 +1932,7 @@ function hotComment(ev, kind) {
   const user = passer ? (Math.random() < .5 ? '用户' + ri(1000000, 9999999) : pick(['吃瓜群众', '路过的猫', '一颗橙子', '今天也要早睡', 'momo', '凌晨三点的风', '不吃香菜'])) : makeFan('zh').user;
   let text;
   if (kind) text = pick(HOT_AFTER[kind]);
-  else { const r = Math.random(); text = r < .45 ? pick(ev.talk) : r < .6 ? pick(HOT_FANC) : r < (ev.neg ? .8 : .95) ? pick(HOT_PASSER) : pick(HOT_HATER); }
+  else { const r = Math.random(), hz = buzz() ? .12 : 0; text = r < .45 - hz ? pick(ev.talk) : r < .6 - hz ? pick(HOT_FANC) : r < (ev.neg ? .8 : .95) - hz * 1.5 ? pick(HOT_PASSER) : pick(HOT_HATER); }
   const f = S.profile.followers;
   return { id: uid(), user, text: fill(text), likes: Math.round(rand(0, f / 400) * Math.random()), at: Date.now() };
 }
@@ -1945,7 +1963,7 @@ function hotTick() {
     if (p) {
       const ev = HOT_EVENTS.find(e => e.id === p.id), key = uid();
       H.posts[key] = hotNewPost(p, ev);
-      H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null }; if (p.meet) (H.meetUsed = H.meetUsed || []).push(p.meet); hotClimbInit(H.cur, ev); srHotKnow(H.cur, 'up');
+      H.cur = { ...p, key, at: now, venue: hotVenue(ev), title: hotFill(ev.title, p), choice: null, ...(ev.viral ? { viral: Math.random() < .25 ? 'big' : 'small' } : {}) }; if (p.meet) (H.meetUsed = H.meetUsed || []).push(p.meet); hotClimbInit(H.cur, ev); srHotKnow(H.cur, 'up'); if (ev.viral) buzzStart(H.cur);
       pushNotif({ type: 'hot', key, text: `📰 #${H.cur.title}#`, sub: `${H.cur.venue} · ${H.posts[key].body.slice(0, 40)}` }, true);
       H.talk = { id: p.id, song: p.song, e: p.e, q: p.q, lt: p.lt, until: now + 2 * 86400e3 };
       const ks = Object.keys(H.posts); while (ks.length > 40) delete H.posts[ks.shift()];
@@ -1972,14 +1990,14 @@ function hotTick() {
     }
   }
   for (const x of H.fx) {
-    const want = Math.round(x.total * clamp((now - x.from) / (x.to - x.from), 0, 1));
+    const pr = clamp((now - x.from) / (x.to - x.from), 0, 1), want = Math.round(x.total * (x.curve === 's' ? pr * pr * (3 - 2 * pr) : pr));
     if (want !== x.done) { addFans(want - x.done, x.reason); x.done = want; }
   }
   H.fx = H.fx.filter(x => x.done !== x.total || now < x.to);
   hotBarTime();
 }
 /* 恋情、带攻击性的热搜：一开始排得靠后，几个小时里越爬越高（恋情爬得最猛） */
-function hotClimbInit(c, ev) { if (!ev || !(ev.hot || ev.neg)) return; const m = /第 (\d+) 位/.exec(c.venue || ''), r0 = m ? +m[1] : ri(38, 50), love = ev.hot;
+function hotClimbInit(c, ev) { if (!ev || !(ev.hot || ev.neg || ev.viral)) return; const m = /第 (\d+) 位/.exec(c.venue || ''), r0 = m ? +m[1] : ri(38, 50), love = ev.hot || c.viral === 'big';
   c.climb = { r0, peak: Math.max(1, Math.round(r0 * (love ? rand(.04, .2) : rand(.35, .6)))), dur: (love ? rand(4, 8) : rand(3, 6)) * 3600e3, from: Date.now(), k: 0, told: 0 }; }
 function hotClimb(c) { const x = c.climb; if (!x) return; const t = clamp((Date.now() - (x.from || c.at)) / x.dur, 0, 1), k = 1 - Math.pow(1 - t, 1.6), r = Math.round(x.r0 - (x.r0 - x.peak) * k);
   x.k = k; const v = `热搜 第 ${r} 位`; if (v === c.venue) return; c.venue = v;
@@ -1989,6 +2007,18 @@ function srHotKnow(c, stage, extra) { if (!c || c.id !== 'dating' || typeof SR !
   const T = { up: `她上了热搜「${tt}」：营销号说${c.mt || '被拍到和一人深夜同行'}——拍到的就是他们俩那次见面；照片很糊，他戴着帽子口罩，暂时没人认出另一个人是他`, top: `「${tt}」已经冲到热搜第 ${extra} 位了，讨论越来越多，公司那边也在问情况`, end: `「${tt}」这件事有了后续：她${extra && extra.choice ? '的回应是「' + extra.choice + '」' : '没有回应'}，结果${extra && extra.result || '慢慢没人提了'}` }[stage];
   if (!T) return; srMemAdd({ k: 'event', who: 'us', t: T, src: 'sys', cf: 'sure', imp: stage === 'end' ? 3 : 4, at: now + d }, now + d);
   if (stage !== 'end') srUrge(stage === 'up' ? '刷到 / 听说她因为他们见面被拍上了热搜，担心她、想问她还好吗，也想商量怎么办' : '热搜越来越高了，担心她，想安慰她', stage === 'up' ? 1 : .9, now + d); save(); }
+/* 出圈以后的连锁：粉丝几天里明显上涨、经纪人接到更多邀约、认识的艺人来道贺、黑粉也多了、世琳也知道 */
+function buzz() { const B = S.buzz; return B && Date.now() < B.until ? B : null; }
+function buzzStart(c) { const big = c.viral === 'big', f = S.profile.followers, now = Date.now(), H = hotState();
+  H.fx.push({ from: now, to: now + (big ? 4 : 3) * 86400e3, total: Math.round(f * (big ? rand(.12, .3) : rand(.03, .08))), done: 0, reason: '出圈：' + c.title, curve: 's' });
+  S.buzz = { at: now, until: now + (big ? 14 : 7) * 86400e3, lv: big ? 2 : 1, title: c.title };
+  const M = mgr(); M.next = Math.min(M.next || Infinity, now + rand(3, 8) * 3600e3);
+  setTimeout(() => { try { mgrSay(big ? ['요즘 반응 진짜 장난 아니에요!! 섭외 문의 계속 들어와요ㅎㅎ', '最近反应真的不得了!! 邀约一直在进来呢'] : ['그 영상 반응 좋던데요? 문의 몇 개 들어왔어요ㅎㅎ', '那个视频反应不错啊？进来了几个邀约']); } catch (e) { } }, rand(20, 90) * 60e3);
+  try { const L = Object.values(dms()).filter(T => T.p && T.p.key !== SR_K && T.msgs.some(m => !m.me && !m.sys)), n = Math.min(L.length, big ? ri(2, 3) : ri(0, 1));
+    const W = [['영상 봤어요ㅋㅋ 완전 떴던데요?', '看到视频了哈哈 完全火了啊？'], ['요즘 어디 가도 그 영상 나와요ㅋㅋ 축하해요!', '最近到哪都能刷到那个视频哈哈 恭喜！'], ['헐 실시간 봤어요 대박이에요👏', '天 看到热搜了 太厉害了👏'], ['저 그거 벌써 세 번 봤어요ㅋㅋㅋ', '那个我已经看了三遍了哈哈哈']];
+    for (const T of pickN(L, n)) { const w = pick(W); dmQueue(T.p, [{ text: w[0], zh: w[1] }], rand(2, 10) * 3600e3); } } catch (e) { }
+  try { if (typeof serimLove === 'function' && serimLove()) { const d = rand(30, 120) * 60e3; srMemAdd({ k: 'event', who: 'her', t: `她最近突然出圈了：「#${c.title}#」被疯转，粉丝一下子涨了很多${big ? '，到处都在讨论' : ''}`, src: 'sys', cf: 'sure', imp: 3, at: now + d }, now + d); srUrge('刷到她最近突然火了，替她高兴，想跟她说恭喜', .8, now + d); } } catch (e) { }
+  save(); }
 function hotChoose(i) {
   const c = hotState().cur; if (!c || c.choice != null) return;
   const ev = HOT_EVENTS.find(e => e.id === c.id), o = ev.opts[i];
@@ -4420,7 +4450,7 @@ function mgrTick() {
   if (M.reask && M.reask.length && new Date().getHours() >= 9) { const q = M.reask[0]; if (now >= q.at) { M.reask.shift(); const o = M.offers.find(x => x.id === q.id); if (o && o.date > dkey(now)) { o.exp = now + 48 * 3600e3; const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; mgrSay([`아 그리고 ${o.title} ${md} 건, 아직 답 못 받아서요. 할까요?`, `对了，${o.title} ${mz} 那个还没收到你的答复，接吗？`], { type: 'offer', id: o.id }); } save(); } } /* 冻结那几天问过的活：之后再问一次 */
   if (!M.next) M.next = now + rand(.3, 1) * 86400e3;
   if (now < M.next || new Date().getHours() < 9) return;
-  M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6);
+  M.next = now + rand(1, 3) * 86400e3 / clamp(.5 + M.mood / 100 + (heat() - 1) * .5, .4, 1.6) / (buzz() ? 1 + buzz().lv : 1); /* 刚出圈：邀约多 */
   const o = mgrMakeOffer(); if (!o) return;
   M.offers.push(o);
   { const md = `${+o.date.slice(5, 7)}월 ${+o.date.slice(8)}일(${WDK[parseD(o.date).getDay()]}) ${o.start}`, mz = `${+o.date.slice(5, 7)}月${+o.date.slice(8)}日 周${WD[parseD(o.date).getDay()]} ${o.start}`; mgrSay([`${o.title} ${md} 섭외 왔어요.${o.note ? ' ' + o.note[0] : ''} 할까요?`, `${o.title} ${mz} 来邀约了。${o.note ? o.note[1] : ''}接吗？`], { type: 'offer', id: o.id }); }
