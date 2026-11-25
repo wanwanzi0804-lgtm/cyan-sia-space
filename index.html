@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261125201719';
+const BUILD = '20261125203213';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2102,10 +2102,12 @@ function cbPlan() {
 }
 function cbPhase() {
   const c = S.cb; if (!c || c.over) return null;
-  const d = cbDay(); if (d > 14) return 'plan'; if (d > 0) return 'tease';
+  const d = cbDay(); if (d > cbTease()) return 'plan'; if (d > 0) return 'tease';
   const s = -d, P = cbPlan();
   return s < P.promoEnd ? 'promo' : s < P.followStart ? 'rest' : s < P.followEnd ? 'follow' : 'end';
 }
+/* 预热期长度：单曲短一些（1 周），迷你 / 正规 2 周 */
+function cbTease(a) { a = a || cbAlbum(); return a && a.type === 'single' ? 7 : 14; }
 function cbBoost() { return { tease: .08, promo: .25, rest: .05, follow: .12 }[cbPhase()] || 0; }
 function chalDoneFor(song) { if (!song) return false; const has = t => String(t || '').includes(song); return ((S.chal && S.chal.list) || []).some(x => x.st === 'done' && x.song && (has(x.song[0]) || has(x.song[1]))) || ((S.yt && S.yt.vids) || []).some(v => /challenge|챌린지|挑战/i.test(v.title || '') && has(v.title)); }
 /* 一次性：她早就发过《404》挑战了，这条「本人还没跳过」的热搜改成已经拍过的说法 */
@@ -2172,8 +2174,8 @@ function cbTick() {
   const d = cbDay(), f = S.profile.followers, today = dkey(Date.now()), done = c.done || (c.done = {}), P = cbPlan(), s = -d, title = albTitle(a);
   const once = (k, fn) => { if (!done[k]) { done[k] = 1; fn(); } };
   const tp = ALB_TYPE[a.type] || '';
-  if (d > 0 && d <= 14) once('t' + today, () => addFans(f * .0015 * heat(), '回归预热'));
-  if (d === 7) once('teaser', () => { const o = prepOn(); if (o && !o.t.mv.done) pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》Trailer 公开`, sub: 'MV 还没拍完，这次先放了概念 Trailer' }, true); else pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》${o ? 'MV 预告' : '预告'}公开`, sub: '粉丝们开始倒计时了' }, true); });
+  if (d > 0 && d <= cbTease(a)) once('t' + today, () => addFans(f * .0015 * heat(), '回归预热'));
+  if (d === Math.round(cbTease(a) / 2)) once('teaser', () => { const o = prepOn(); if (o && !o.t.mv.done) pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》Trailer 公开`, sub: 'MV 还没拍完，这次先放了概念 Trailer' }, true); else pushNotif({ type: 'cb', text: `💿 ${tp}《${a.name}》${o ? 'MV 预告' : '预告'}公开`, sub: '粉丝们开始倒计时了' }, true); });
   if (d === 1) once('eve', () => pushNotif({ type: 'cb', text: `💿 明天就是《${a.name}》回归日`, sub: '粉丝们在准备应援' }, true));
   if (d <= 0 && s < P.promoEnd) once('d0', () => {
     const rc = cbRecep(a); hitRoll(a); const n0 = Math.round(f * rand(.02, .045) * heat() * ({ single: 1, mini: 1.2, full: 1.4 }[a.type] || 1) * prepFanMult() * (rc >= 75 ? 1.25 : rc >= 55 ? 1 : rc >= 45 ? .6 : .3)), n = n0;
@@ -2205,7 +2207,7 @@ function cbHTML() {
   } else {
     const d = cbDay(), s = -d, P = cbPlan();
     const ph = c.tbd ? '企划中' : p === 'plan' ? `还有 ${d} 天` : p === 'tease' ? `预热中 · D-${d}` : p === 'promo' ? `主打打歌 · 第 ${Math.floor(s / 7) + 1} / ${c.weeks} 周` : p === 'rest' ? '休息周' : p === 'follow' ? `后续打歌《${c.follow}》` : '活动期结束';
-    const steps = ['预热 2 周', a.tracks.length ? `主打《${albTitle(a)}》${c.weeks} 周` : `主打待定 ${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
+    const steps = [cbTease(a) === 7 ? '预热 1 周' : '预热 2 周', a.tracks.length ? `主打《${albTitle(a)}》${c.weeks} 周` : `主打待定 ${c.weeks} 周`].concat(c.follow ? [`后续《${c.follow}》1 周`] : []);
     top = `<div class="row"><div style="flex:1;min-width:0"><span class="chip" style="background:var(--accent)">${ALB_TYPE[a.type] || ''}</span> <b style="font-size:16px">《${esc(a.name)}》</b><div class="muted">${c.tbd ? '日期待定' : esc(c.date) + ' 回归'} · ${ph}</div></div><button class="link" data-act="cbedit">编辑</button><button class="link" data-act="cbcancel">取消</button></div>
       ${a.intro ? `<div class="cb-intro">${esc(a.intro).replace(/\n/g, '<br>')}</div>` : ''}
       <div class="cb-steps">${steps.map(x => `<span>${esc(x)}</span>`).join('<i>›</i>')}</div>
@@ -2674,7 +2676,7 @@ function mzRevise(id) {
    💿 回归准备：企划 → 制作 → 公开预热 → 发行活动（接在现有「计划回归」上）
    ========================================================= */
 const PREP_T = [
-  ['concept', '企划会议 · 确定概念', 'me'], ['pick', '公司推荐曲目', 'co'], ['final', '选定收录曲和主打', 'me'], ['prod', '正式制作（作词 · 编曲 · 混音）', 'co'],
+  ['concept', '企划会议 · 确定概念', 'me'], ['pick', '公司推荐曲目', 'co'], ['final', '选定收录曲和主打', 'me'], ['prod', '正式制作（作词 · 编曲 · 混音）', 'co'], ['art', '美工制作（官宣 · 日程表 · 曲目表海报）', 'co'],
   ['rec', '正式录音', 'me'], ['dance', '舞蹈学习及排练', 'me'], ['mv', 'MV 拍摄', 'me'], ['photo', '概念照拍摄', 'me'], ['promo', '宣传物料拍摄', 'me'], ['check', '发行前最终确认', 'co']
 ];
 const PREP_KEY = ['final', 'prod', 'rec']; // 关键：没完成就不能发行
@@ -2687,7 +2689,12 @@ function prepDateWarn(A) {
   const o = S.cb && S.cb.albumId === A.id && prepOn(); if (o && PREP_KEY.every(k => o.t[k].done)) return '';
   return d < min ? `<div class="cb-warn">⚠ 准备时间偏紧，可能延期</div>` : '';
 }
-function prepOn() { const c = S.cb, a = cbAlbum(); if (!c || c.over || !a || !c.prep || c.prep.legacy) return null; return { c, a, P: c.prep, t: c.prep.t }; }
+function prepOn() { const c = S.cb, a = cbAlbum(); if (!c || c.over || !a || !c.prep || c.prep.legacy) return null; if (!c.prep.t.art) c.prep.t.art = c.prep.t.prod && c.prep.t.prod.done ? { done: true, at: c.prep.t.prod.at } : { done: false }; return { c, a, P: c.prep, t: c.prep.t }; }
+/* 准备的截止日：预热开始前 3 天。时间紧就把公司那边的周期和要练的时长压缩，不延期 */
+function prepDL(o) { return addDays(o.c.date, -cbTease(o.a) - 3); }
+function prepSqueeze(a, P, date) { const d0 = Math.round((parseD(date).getTime() - parseD(dkey(Date.now())).getTime()) / 86400e3), ideal = ({ single: 21, mini: 35, full: 50 }[a.type] || 21) - cbTease(a) - 3, avail = d0 - cbTease(a) - 3, f = clamp(avail / ideal, .35, 1);
+  if (f >= 1) return; for (const k of ['rec', 'dance', 'mv', 'photo', 'promo']) { const T0 = P.t[k]; if (!T0 || T0.done || !T0.need) continue; const n = Math.max(1, Math.round(T0.need * f)); T0.need = Math.max(Math.ceil(T0.prog), n); if (T0.prog >= T0.need) { T0.done = true; T0.at = dkey(Date.now()); } }
+  P.prodDays = Math.max(1, Math.round(P.prodDays * f)); P.squeeze = Math.round(f * 100) / 100; }
 const prepSongName = () => pick(['Midnight Call', 'Paper Moon', 'Static', 'Blue Hour', 'Signal', 'Afterglow', 'Overdrive', 'Daydream', 'Echo', 'Firefly', 'Neon Rain', 'Undertow', 'Lullaby', 'Gravity', 'Runaway', 'Halo', 'Mirage', 'Cherry Soda', 'Starlight', 'Velvet', 'Riptide', 'Glitch', 'Snow Globe', 'Crush']);
 const PREP_SRC = ['STARSHIP 内部制作团队', '外部制作人', '海外作曲营', '合作创作者'];
 function prepNew(a, date, tracksGiven) {
@@ -2700,7 +2707,7 @@ function prepNew(a, date, tracksGiven) {
   const P = { v: 2, created: today, scale: sc, t, cands: [], pref: '', dance: a.mood !== 'ballad', log: {}, delays: 0, ann: {} };
   P.conceptAt = addDays(today, Math.round(4 * sc)); P.pickAt = addDays(today, Math.max(2, Math.round(10 * sc))); P.finalDays = Math.max(1, Math.round(2 * sc)); P.prodDays = Math.max(3, Math.round(({ single: 7, mini: 12, full: 18 }[a.type] || 7) * sc));
   if (tracksGiven) { t.pick = { done: true, at: today, by: 'me' }; t.final = { done: true, at: today, by: 'me' }; P.finalAt = today; }
-  return P;
+  prepSqueeze(a, P, date); return P;
 }
 function prepFit(a, genre) { return a.mood === 'dance' ? (/舞曲|Pop|EDM|Hip/.test(genre || '') ? 8 : 0) : a.mood === 'ballad' ? (/抒情|R&B|Lo-fi/.test(genre || '') ? 8 : 0) : 3; }
 function prepPool(o) { const { a, P } = o; return [...P.cands.map(x => ({ ...x, mine: false })), ...mz().works.filter(w => ['cbcand', 'cand', 'hold'].includes(w.status) || (w.status === 'adopted' && w.adopted && w.adopted.for === 'company' && !w.adopted.album)).map(w => ({ id: w.id, name: mzName(w), src: 'Cyan（你的作品库）', q: w.q, c: w.c, genre: w.genre, mine: true }))]; }
@@ -2806,19 +2813,22 @@ function prepTick() {
   cbFlowTick();
   if (P.v < 2 && t.concept.done && !t.pick.done && today >= P.pickAt) { prepSelect(o); t.pick = { done: true, at: today }; const mine = P.sel.list.filter(x => x.mine); pushNotif({ type: 'cb', text: `💿 STARSHIP 制作团队完成了《${a.name}》的选曲`, sub: mine.length ? `你的作品入选了：${mine.map(x => '《' + x.name + '》' + (x.title ? '（主打）' : '')).join('、')}` : `从 ${prepPool(o).length} 首候选里选了 ${P.sel.list.length} 首` }, true); }
   if (P.v < 2 && t.pick.done && !t.final.done && today >= addDays(t.pick.at, P.finalDays)) { prepFinalize(o); t.final = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》最终曲目确定`, sub: `主打《${albTitle(a)}》· 共 ${a.tracks.length} 首。可以开始正式录音和练舞了` }, true); }
-  if (t.final.done && !t.prod.done && t.rec.done && today >= addDays(P.finalAt || t.final.at, P.prodDays) && today >= addDays(t.rec.at, 2)) { t.prod = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》正式制作完成`, sub: '作词、编曲、混音和母带都完成了' }, true); }
+  const DL = !c.tbd && c.date ? prepDL(o) : null, cap = (x, back) => DL && x > addDays(DL, -back) ? (addDays(DL, -back) > today ? addDays(DL, -back) : today) : x; /* 赶不上截止日：公司加急 */
+  if (t.final.done && !t.prod.done && t.rec.done && today >= cap(addDays(P.finalAt || t.final.at, P.prodDays), 1) && today >= cap(addDays(t.rec.at, 2), 1)) { t.prod = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》正式制作完成`, sub: '作词、编曲、混音和母带都完成了' }, true); }
+  if (t.prod.done && !t.art.done && today >= cap(addDays(t.prod.at, 2), 0)) { t.art = { done: true, at: today }; pushNotif({ type: 'cb', text: `💿 《${a.name}》美工制作完成`, sub: '官宣、日程表、曲目表的海报都做好了，预热期官方号会用' }, true); }
   if (t.final.done) for (const w of mz().works) if (w.status === 'cbcand') w.status = 'hold'; // 曲目定了，没选上的候选放回曲库
   if (!P.dance && !t.dance.done) { t.dance = { ...t.dance, done: true, at: today, skip: 1 }; }
   prepAuto(o);
   // ③ 公开预热物料（只公开已经做好的）
   const ann = (k, ok, txt, alt) => { if (P.ann[k]) return; P.ann[k] = 1; if (ok) pushNotif({ type: 'cb', text: txt[0], sub: txt[1] }, true); else if (alt) pushNotif({ type: 'cb', text: alt[0], sub: alt[1] }, true); };
-  if (d <= 14 && d > 0) ann('d14', true, [`💿 ${ALB_TYPE[a.type] || ''}《${a.name}》回归官宣`, `${c.date} 发行 · 公开预热开始`]);
-  if (d <= 12 && d > 0) ann('photo', t.photo.done, [`💿 《${a.name}》概念照公开`, '粉丝都在讨论这次的造型'], [`💿 《${a.name}》放出了 Logo 预告`, '概念照还没拍完，先公开了 Logo']);
-  if (d <= 10 && d > 0) ann('track', t.final.done, [`💿 《${a.name}》曲目表公开`, `主打《${albTitle(a)}》`]);
+  const TZ = cbTease(a);
+  if (d <= TZ && d > 0) ann('d14', true, [`💿 ${ALB_TYPE[a.type] || ''}《${a.name}》回归官宣`, `${c.date} 发行 · 公开预热开始`]);
+  if (d <= TZ - 2 && d > 0) ann('photo', t.photo.done, [`💿 《${a.name}》概念照公开`, '粉丝都在讨论这次的造型'], [`💿 《${a.name}》放出了 Logo 预告`, '概念照还没拍完，先公开了 Logo']);
+  if (d <= TZ - 4 && d > 0) ann('track', t.final.done, [`💿 《${a.name}》曲目表公开`, `主打《${albTitle(a)}》`]);
   if (d <= 4 && d > 0) ann('hl', t.prod.done, [`💿 《${a.name}》Highlight Medley 公开`, '每首歌都放了一小段']);
   // ④ 发行前检查：关键事项没完成就延期（D-3）
   if (d <= 3 && d >= 0 && !P.ann['chk' + c.date]) {
-    P.ann['chk' + c.date] = 1; const miss = PREP_KEY.filter(k => !t[k].done);
+    P.ann['chk' + c.date] = 1; if (t.final.done && t.rec.done) for (const k of ['prod', 'art']) if (!t[k].done) t[k] = { done: true, at: today }; const miss = PREP_KEY.filter(k => !t[k].done);
     if (miss.length) {
       P.delays++; const nd = addDays(c.date, 7), old = c.date; c.date = nd; a.date = nd; c.done = {}; delete P.ann.d14; delete P.ann.photo; delete P.ann.track; delete P.ann.hl;
       pushNotif({ type: 'cb', text: `⚠️ 《${a.name}》回归延期一周（${old} → ${nd}）`, sub: `还没完成：${miss.map(k => PREP_T.find(x => x[0] === k)[1]).join('、')}。${miss.includes('rec') ? '录音还没录完，公司会重新排录音' : ''}` }, true);
@@ -2979,7 +2989,7 @@ function pickSend() {
   if (S0.sel.length < lo || S0.sel.length > hi) return toast(`${ALB_TYPE[a.type] || ''}要选 ${lo}～${hi} 首`);
   if (!S0.sel.includes(S0.title)) return toast('点 ★ 选一首主打');
   const pool = libPool(a.id), names = S0.sel.map(id => (pool.find(x => x.id === id) || {}).name), tn = (pool.find(x => x.id === S0.title) || {}).name;
-  P.mySel = { ids: [...S0.sel], title: S0.title, at: Date.now(), okAt: Date.now() + rand(3, 10) * 3600e3 };
+  P.mySel = { ids: [...S0.sel], title: S0.title, at: Date.now(), okAt: Date.now() + (P.squeeze && P.squeeze < .8 ? rand(1, 3) : rand(3, 10)) * 3600e3 };
   const M = mgrChat(); M.chat.push({ id: uid(), at: Date.now(), text: `수록곡은 ${names.join(', ')}로 하고 타이틀은 「${tn}」로 하고 싶어요`, zh: `收录曲想要 ${names.join('、')}，主打想定《${tn}》`, me: true }); M.readPlan = Date.now() + 700;
   mgrResolve('cbpick', a.id, '已发给公司'); mgrReply(['네, 제작팀이랑 확인하고 다시 말해줄게요', '好，我跟制作组确认一下再告诉你']);
   UI.pick = null; save(); openModal(pickHTML());
@@ -3005,14 +3015,26 @@ function prodHTML() {
   return `<div class="row"><h3 style="flex:1">🛠《${esc(a.name)}》专辑制作</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     ${lock ? '<div class="cb-warn ok">录音已经完成，专辑内容已经定稿</div>' : '<div class="muted" style="font-size:12.5px;margin:-4px 0 10px">录音完成之前都可以改</div>'}
     <div class="card"><div class="row" style="gap:12px;align-items:flex-start">${albCover(a, 'lg')}<div style="flex:1;min-width:0"><b>封面</b><div class="muted" style="font-size:12px;margin:2px 0 6px">${a.cover ? '已上传' : '还没有封面'}</div>${lock ? '' : '<label class="btn ghost sm">上传封面<input type="file" id="pp-cover" accept="image/*" hidden></label>'}</div></div></div>
-    <div class="card"><b>概念照</b><div class="muted" style="font-size:12px;margin:2px 0 6px">预热期官方号会按日程发出（前一半 #1，后一半 #2）</div><div class="pp-ph">${ph.map((id, i) => `<div class="pp-pi"><img data-mid="${id}" alt="">${lock ? '' : `<button data-act="ppphdel" data-i="${i}">✕</button>`}</div>`).join('')}${lock || ph.length >= 8 ? '' : '<label class="pp-pi add">＋<input type="file" id="pp-photo" accept="image/*" multiple hidden></label>'}</div></div>
-    ${offMatHTML(a)}
+
     <div class="card"><div class="field"><label>专辑简介</label><textarea id="pp-intro" style="min-height:90px" ${lock ? 'disabled' : ''}>${esc(a.intro || '')}</textarea></div>
       ${a.tracks.map((x, i) => `<div class="field"><label>${String(i + 1).padStart(2, '0')}. ${esc(x.name)}${x.title ? ' <span class="alb-star">主打</span>' : ''}</label><textarea class="pp-td" data-i="${i}" style="min-height:52px" placeholder="这首歌的介绍" ${lock ? 'disabled' : ''}>${esc(x.desc || '')}</textarea></div>`).join('')}
       <div class="row"><span class="sp"></span><button class="btn primary sm" data-act="ppsave">保存</button></div></div>`;
 }
 /* 官方号预热宣发素材：每一步可以自己放图 / 视频、自己写文案；没放的就用默认的海报样式和默认文案 */
 const OFF_MAT_K = [['soon', 'Coming Soon'], ['sched', 'Scheduler'], ['trk', 'Tracklist'], ['hl', 'Highlight Medley'], ['mvt', 'M/V Teaser'], ['out', 'Out Now']];
+/* 宣发素材的上传入口：跟着你的行程开放 */
+function matOpen(o, k) { const { a, t } = o, now = Date.now(), nm = new Date().getHours() * 60 + new Date().getMinutes(), on = tk => rulesFor(dkey(now)).some(r => r.cbTask === tk && r.cbAlbum === a.id && toMin(r.start) <= nm);
+  return k === 'cp' ? t.photo.prog > 0 || t.photo.done || on('photo') : k === 'mv' ? t.mv.prog > 0 || t.mv.done || on('mv') : k === 'hl' ? t.rec.done && t.prod.done : false; }
+const offPosted = (a, k) => offState().posts.some(x => x.id === a.id + ':' + k);
+function matBtns(o, k) { const { a } = o; if (!matOpen(o, k)) return ''; const M = a.offMat || {}, n = { cp: (a.cphotos || []).length, mv: ['mvt', 'out'].filter(x => (M[x] || {}).media).length, hl: (M.hl || {}).media ? 1 : 0 }[k];
+  return `<button class="btn ${n ? 'ghost' : 'primary'} sm" style="margin-top:6px" data-act="matup" data-k="${k}">${{ cp: '上传概念照', mv: '上传 MV Teaser / MV 封面', hl: '上传 Highlight Medley 封面' }[k]}${n ? `（已放 ${n}）` : ''}</button>`; }
+function matUpHTML(k) { const o = prepOn(); if (!o) return ''; const { a } = o, M = a.offMat || {};
+  const slot = (kk, nm, tip) => { const m = M[kk] || {}, done = offPosted(a, kk); return `<div style="border-top:1px solid var(--line);padding:8px 0"><div class="row" style="gap:8px"><b style="flex:1;font-size:13.5px">${nm}${done ? ' <span class="muted" style="font-size:12px">· 已发出</span>' : ''}</b>${m.media ? `<span class="muted" style="font-size:12px">${m.media.type === 'video' ? '视频' : '图片'}已放</span>${done ? '' : `<button class="link muted" data-act="offmatdel" data-k="${kk}" style="font-size:12px">删除</button>`}` : ''}${done ? '' : `<label class="btn ghost sm">${m.media ? '换一个' : '上传'}<input type="file" class="pp-offmat" data-k="${kk}" accept="image/*,video/*" hidden></label>`}</div><div class="muted" style="font-size:12px;margin-top:2px">${tip}</div>${m.media ? `<div class="pp-ph" style="margin-top:6px"><div class="pp-pi">${m.media.type === 'video' ? `<video data-mid="${m.media.id}" muted playsinline></video>` : `<img data-mid="${m.media.id}" alt="">`}</div></div>` : ''}</div>`; };
+  const ph = a.cphotos || [], lockCp = offPosted(a, 'cp2');
+  const body = k === 'cp' ? `<div class="muted" style="font-size:12.5px;margin:-4px 0 10px">拍概念照时 / 拍完以后放。官方号预热时自动发：前一半是 #1，后一半是 #2，文案公司写。</div><div class="pp-ph">${ph.map((id, i) => `<div class="pp-pi"><img data-mid="${id}" alt="">${lockCp || (i < Math.ceil(ph.length / 2) && offPosted(a, 'cp1')) ? '' : `<button data-act="ppphdel" data-i="${i}">✕</button>`}</div>`).join('')}${lockCp || ph.length >= 8 ? '' : '<label class="pp-pi add">＋<input type="file" id="pp-photo" accept="image/*" multiple hidden></label>'}</div>`
+    : k === 'mv' ? `<div class="muted" style="font-size:12.5px;margin:-4px 0 6px">MV 拍了以后放。官方号会自动发，文案公司写。</div>${slot('mvt', 'M/V Teaser', '发行前官方号发的预告')}${slot('out', 'MV 封面（Out Now）', '发行当天官方号发 MV 时用的封面')}`
+    : `<div class="muted" style="font-size:12.5px;margin:-4px 0 6px">录音和正式制作都完成以后放。官方号会自动发，文案公司写。</div>${slot('hl', 'Highlight Medley 封面', '每首歌放一小段的那条预告用的封面')}`;
+  return `<div class="row"><h3 style="flex:1">${{ cp: '📸 概念照', mv: '🎬 MV 素材', hl: '🎧 Highlight Medley' }[k]}</h3><button class="btn ghost sm" data-act="close">关闭</button></div><div class="card">${body}</div>`; }
 function offMatHTML(a) { const M = a.offMat || {}, posted = k => offState().posts.some(x => x.id === a.id + ':' + k);
   return `<div class="card"><b>官方号宣发素材</b><div class="muted" style="font-size:12px;margin:2px 0 8px">预热期官方号会按日程自动发。每一步都可以放自己的图片 / 视频、写自己的文案；不放就用默认海报和默认文案。已经发出去的那步就不能再改了。概念照在上面那栏。</div>${OFF_MAT_K.map(([k, n]) => { const m = M[k] || {}, done = posted(k); return `<div style="border-top:1px solid var(--line);padding:8px 0"><div class="row" style="gap:8px"><b style="flex:1;font-size:13.5px">${n}${done ? ' <span class="muted" style="font-size:12px">· 已发出</span>' : ''}</b>${m.media ? `<span class="muted" style="font-size:12px">${m.media.type === 'video' ? '🎬 视频' : '🖼 图片'}已放</span>${done ? '' : `<button class="link" data-act="offmatdel" data-k="${k}">删素材</button>`}` : done ? '<span class="muted" style="font-size:12px">默认海报</span>' : `<label class="btn ghost sm">放图 / 视频<input type="file" class="pp-offmat" data-k="${k}" accept="image/*,video/*" hidden></label>`}</div>${done ? '' : `<textarea class="pp-offtx" data-k="${k}" style="min-height:44px;margin-top:6px" placeholder="自己写文案（不写就用默认的）">${esc(m.txt || '')}</textarea>`}</div>`; }).join('')}</div>`; }
 function prodSave() {
@@ -3028,6 +3050,8 @@ function albLabel(a) {
   const same = disco().filter(x => x.type === a.type && x.date && x.date <= a.date && x.id !== a.id).length + 1, ord = n => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
   return a.type === 'single' ? `Digital Single [${a.name}]` : a.type === 'full' ? `The ${ord(same)} Album [${a.name}]` : `${ord(same)} Mini Album [${a.name}]`;
 }
+const offPlan = a => a && a.type === 'single' ? OFF_PLAN_1 : OFF_PLAN;
+const OFF_PLAN_1 = [[-7, 'soon', 'Coming Soon'], [-6, 'sched', 'SCHEDULER'], [-5, 'cp1', 'Concept Photo #1'], [-4, 'trk', 'TRACKLIST'], [-3, 'cp2', 'Concept Photo #2'], [-2, 'hl', 'HIGHLIGHT MEDLEY'], [-1, 'mvt', 'M/V TEASER'], [0, 'out', 'OUT NOW']];
 const OFF_PLAN = [[-14, 'soon', 'Coming Soon'], [-13, 'sched', 'SCHEDULER'], [-12, 'cp1', 'Concept Photo #1'], [-10, 'trk', 'TRACKLIST'], [-8, 'cp2', 'Concept Photo #2'], [-4, 'hl', 'HIGHLIGHT MEDLEY'], [-2, 'mvt', 'M/V TEASER'], [0, 'out', 'OUT NOW']];
 const OFF_CM = {
   soon: [['sia_0829', '드디어!!! 기다렸어 언니ㅠㅠ'], ['雪落的时候', '终于等到了！！！'], ['cyan_daily', '컴백 축하해요 🎉'], ['blue_sia', 'COMEBACK IS REAL'], ['今天也想你', '这个色调已经爱上了']],
@@ -3046,13 +3070,13 @@ const OFF_CM_GEN = [['sia_0829', '공지 확인했어요!!'], ['雪落的时候'
 function offTick(o) {
   const { c, a, P } = o; if (c.tbd || !c.date) return; const O = offState(), now = Date.now(), rel = parseD(c.date).getTime(), ph = a.cphotos || [], half = Math.ceil(ph.length / 2), lab = albLabel(a), when = `${c.date.replace(/-/g, '.')} 6PM`;
   const tags = `#${S.profile.name} #시안 #${a.name.replace(/\s+/g, '')}`;
-  for (const [d, k, title] of OFF_PLAN) {
+  for (const [d, k, title] of offPlan(a)) {
     const at = rel + d * 86400e3 + (k === 'out' ? 18 * 3600e3 : 0); if (now < at || now > at + 6 * 86400e3) continue;
     const id = a.id + ':' + k; if (O.posts.some(x => x.id === id)) continue;
     let media = [], poster = null;
     if (k === 'cp1') media = ph.slice(0, half); else if (k === 'cp2') media = ph.slice(half);
     if ((k === 'cp1' || k === 'cp2') && !media.length) poster = 'logo'; else if (['soon', 'sched', 'trk', 'hl', 'mvt', 'out'].includes(k)) poster = k;
-    const mat = (a.offMat || {})[k] || {}; if (mat.media) { media = [mat.media]; poster = null; }
+    const mat0 = (a.offMat || {})[k] || {}, mat = ['soon', 'sched', 'trk'].includes(k) ? {} : { media: mat0.media }; if (mat.media) { media = [mat.media]; poster = null; } /* 官宣 / 日程表 / 曲目表是公司美工做的；文案都由公司写 */
     if (k === 'trk' && !o.t.final.done) continue; // 曲目还没定：先不发曲目表
     const ttl = k === 'mvt' ? `'${albTitle(a)}' M/V TEASER` : k === 'out' ? `'${albTitle(a)}' M/V OUT NOW` : title;
     const txt = mat.txt ? `${mat.txt}\n\n${tags}` : `${S.profile.name} ${lab}\n${ttl}\n\n${k === 'out' ? '🎧 ' + c.date.replace(/-/g, '.') + ' 6PM 발매' : when}\n\n${tags}`;
@@ -3067,7 +3091,7 @@ function offTick(o) {
 function offCard(x) {
   const a = disco().find(y => y.id === x.alb) || { name: '', tracks: [] }, C = (S.cb && S.cb.prep && S.cb.albumId === x.alb && S.cb.prep.concept) || {}, col = /^#[0-9a-f]{3,8}$/i.test(C.color || '') ? C.color : '#4b6a93';
   const age = (Date.now() - x.at) / 86400e3, likes = Math.round(x.base * (1 - Math.exp(-age / .6))), cc = Math.round(x.cc * (1 - Math.exp(-age / .6)));
-  const dates = OFF_PLAN.map(([d, k, t]) => [addDays(a.date || dkey(x.at), d).slice(5).replace('-', '.'), k === 'mvt' ? 'M/V Teaser' : k === 'out' ? 'Album & M/V Release' : t.replace(/^SCHEDULER$/, 'Scheduler').replace(/^TRACKLIST$/, 'Tracklist').replace(/^HIGHLIGHT MEDLEY$/, 'Highlight Medley')]);
+  const dates = offPlan(a).map(([d, k, t]) => [addDays(a.date || dkey(x.at), d).slice(5).replace('-', '.'), k === 'mvt' ? 'M/V Teaser' : k === 'out' ? 'Album & M/V Release' : t.replace(/^SCHEDULER$/, 'Scheduler').replace(/^TRACKLIST$/, 'Tracklist').replace(/^HIGHLIGHT MEDLEY$/, 'Highlight Medley')]);
   const P = x.poster, poster = !P ? '' : P === 'sched' ? `<div class="op-sched"><h4>${esc(S.profile.name.toUpperCase())} ${esc(albLabel(a).replace(/\s*\[.*$/, '').toUpperCase())}</h4><h2>${esc(a.name.toUpperCase())}</h2>${dates.map(([d, t]) => `<div class="op-q"><span>${d}</span><b>${t}</b></div>`).join('')}<div class="op-f">STARSHIP ENTERTAINMENT</div></div>`
     : P === 'trk' ? `<div class="op-trk"><h2>${esc(a.name.toUpperCase())}</h2>${a.tracks.map((t, i) => `<div class="op-w"><span class="n">${String(i + 1).padStart(2, '0')}</span><span>${esc(t.name)}${t.title ? '<span class="tt">TITLE</span>' : ''}</span></div>`).join('')}</div>`
     : `<div class="op-poster" style="background:linear-gradient(165deg,${col}cc,${col} 55%,#111)">${P === 'hl' || P === 'mvt' ? '<span class="kk-play" style="position:absolute;left:50%;top:45%;transform:translate(-50%,-50%)">▶</span>' : ''}<div class="t1">${esc(S.profile.name.toUpperCase())} ${esc(albLabel(a).replace(/\s*\[.*$/, '').toUpperCase())}</div><div class="t2">${esc(a.name.toUpperCase())}</div><div class="t3">${{ soon: 'COMING SOON', logo: 'CONCEPT PHOTO', hl: 'HIGHLIGHT MEDLEY', mvt: `'${esc(albTitle(a))}' M/V TEASER`, out: 'OUT NOW' }[P] || ''} · ${(a.date || '').replace(/-/g, '.')} 6PM</div></div>`;
@@ -3078,12 +3102,13 @@ function offCard(x) {
 // 回归流程每次 tick：会议 / 选曲 / 官方号
 function cbFlowTick() { const o = prepOn(); if (!o) return; meetTick(o); pickTick(o); offTick(o); }
 
-function prepStage(o) { const d = cbDay(); return d <= 0 ? '正式发行与活动期' : d <= 14 ? '公开预热期' : o.t.final.done ? '回归制作期' : '回归企划期'; }
+function prepStage(o) { const d = cbDay(); return d <= 0 ? '正式发行与活动期' : d <= cbTease(o.a) ? '公开预热期' : o.t.final.done ? '回归制作期' : '回归企划期'; }
 /* 每一步的预计时间按前一步实际完成的时间往后推 */
 function prepEta(o, k) { const { a, P, t } = o, md = d => d.slice(5).replace('-', '/'), today = dkey(Date.now()), ft = ms => { const d = new Date(ms), dk = dkey(ms); return dk === today ? `今天 ${hhmm(d.getHours() * 60 + d.getMinutes())} 左右` : `预计 ${md(dk)}`; };
   if (k === 'concept') return '你开企划会议时定';
   if (k === 'pick') return !t.concept.done ? '概念定下后几个小时内' : !libPool(a.id).length ? '公司曲库里有 demo 后' : P.pickDue ? ft(P.pickDue) : '概念定下后几个小时内';
   if (k === 'final') return P.mySel ? (P.mySel.ok ? '' : `已发给公司，${ft(P.mySel.okAt)}确认`) : t.pick.done ? '等你选好发给公司' : '公司推荐后由你定';
+  if (k === 'art') return t.prod.done ? '正式制作完成后约 2 天' : '正式制作完成后约 2 天';
   if (k === 'prod') { if (!t.final.done) return `曲目定下后约 ${P.prodDays} 天`; const e = addDays(P.finalAt || t.final.at, P.prodDays); return t.rec.done ? `预计 ${md(e > addDays(t.rec.at, 2) ? e : addDays(t.rec.at, 2))}` : `录音完成、而且最早 ${md(e)} 后`; }
   if (k === 'check') return '发行前 3 天';
   return ''; }
@@ -3100,10 +3125,10 @@ function prepHTML() {
   if (!c.prep || c.prep.legacy) return '';
   const o = prepOn(), { P, t } = o, d = cbDay(), lack = PREP_KEY.filter(k => !t[k].done), short = d < ({ single: 21, mini: 35, full: 50 }[a.type] || 21);
   const row = ([k, nm, who]) => { const T0 = t[k]; if (k === 'dance' && T0.skip) return ''; const pct = T0.need ? Math.round(T0.prog / T0.need * 100) : T0.done ? 100 : 0;
-    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? `<div class="mz-bar"><i style="width:${pct}%"></i></div>` : !T0.done ? `<div class="muted" style="font-size:11.5px">${prepEta(o, k)}</div>` : ''}</div></div>`; };
+    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? `<div class="mz-bar"><i style="width:${pct}%"></i></div>` : !T0.done ? `<div class="muted" style="font-size:11.5px">${prepEta(o, k)}</div>` : ''}${k === 'photo' ? matBtns(o, 'cp') : k === 'mv' ? matBtns(o, 'mv') : k === 'prod' ? matBtns(o, 'hl') : ''}</div></div>`; };
   const pool = !t.pick.done ? prepPool(o) : [];
   return `<div class="pp"><div class="row" style="margin-top:10px"><b style="flex:1">🛠 回归准备 · ${prepStage(o)}</b><span class="muted" style="font-size:12.5px">${c.tbd ? '日期待定' : d > 0 ? `D-${d}` : '已发行'}${P.delays ? ` · 延期 ${P.delays} 次` : ''}</span></div>
-    ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 时间偏紧，可能延期</div>` : ''}
+    ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 时间偏紧：准备期压缩了，${c.date ? `${prepDL(o).slice(5).replace('-', '/')} 前` : ''}要做完${P.squeeze ? `（练习 / 拍摄时长按 ${Math.round(P.squeeze * 100)}% 算）` : ''}</div>` : ''}
     ${PREP_T.map(row).join('')}
     ${P.v >= 2 ? cbFlowBtns(o) : ''}${P.v < 2 && !t.pick.done ? `<details class="me-more"><summary>候选歌曲（${pool.length}）</summary>${pool.map(x => `<div class="rule"><div style="flex:1;min-width:0"><b>${esc(x.name)}</b><div class="muted" style="font-size:12px">${esc(x.src)}</div></div>${x.mine ? `<button class="link" data-act="pppref" data-id="${x.id}">${P.pref === x.id ? '★ 想做主打' : '☆ 想做主打'}</button>` : ''}</div>`).join('')}</details>`
       : P.sel ? `<details class="me-more"><summary>选曲结果</summary>${P.sel.list.map(x => `<div class="rule"><span style="flex:1">${x.title ? '★ ' : ''}${esc(x.name)}</span><span class="muted" style="font-size:12px">${esc(x.src)}</span></div>`).join('')}</details>` : ''}
@@ -8449,7 +8474,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, hotKnow1123, aiTagReset1123, srBubOff1122, srChatOff1122, srRe1122, srVc1122, srReal1123, srPh1123, ytTime1123, srBed1123, srFix1123, srReal1124, srPh1124, srLate1124, srRescue1125, srJp1125, srPfpBack1125, srReal1125, srPh1125, meetOff1125, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, hotKnow1123, aiTagReset1123, srBubOff1122, srChatOff1122, srRe1122, srVc1122, srReal1123, srPh1123, ytTime1123, srBed1123, srFix1123, srReal1124, srPh1124, srLate1124, srRescue1125, srJp1125, srPfpBack1125, srReal1125, srPh1125, meetOff1125, cbSqueeze1125, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -10187,6 +10212,7 @@ async function srPh1125() { const R = SR(); if (R.ph1125) return; R.ph1125 = 1; 
     save(); } catch (e) { R.ph1125 = 0; save(); } }
 function meetOff1125() { if (S.meetOff1125) return; S.meetOff1125 = 1; S.schedule.rules = S.schedule.rules.filter(r => !(r.cbTask === 'meet' && r.mgr));
   try { const M = mgrChat(); M.chat = M.chat.filter(m => m.me || !/컴백 기획 회의 잡았어요|회의실로 와요~ 기획팀 다 모였어요/.test(m.text || '')); } catch (e) { } save(); } /* 企划会议：不要经纪人通知、不排固定时间 */
+function cbSqueeze1125() { if (S.cbSq1125) return; S.cbSq1125 = 1; const o = prepOn(); if (!o || o.c.tbd || !o.c.date) { save(); return; } if (!o.P.squeeze) prepSqueeze(o.a, o.P, o.c.date); save(); } /* 准备期按截止日压缩 */
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -12950,7 +12976,7 @@ function openModal(html) {
 let BODY_Y = 0;
 function bodyLock(on) { const b = document.body; if (on) { if (b.classList.contains('locked')) return; BODY_Y = window.scrollY || 0; b.style.top = -BODY_Y + 'px'; b.classList.add('locked'); } else { if (!b.classList.contains('locked')) return; b.classList.remove('locked'); b.style.top = ''; window.scrollTo(0, BODY_Y); } }
 const bodyLockSync = () => bodyLock(!!($('#modal') && $('#modal').classList.contains('on')) || !!$('#call-ly') || !!$('#kk-view'));
-function closeModal() { UI._pendHTML = null; UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; bodyLockSync(); }
+function closeModal() { UI._pendHTML = null; UI.matUp = null; UI.mgrOpen = false; UI.dmOpen = null; $('#modal').classList.remove('on', 'full'); $('#sheet').innerHTML = ''; bodyLockSync(); }
 $('#modal').addEventListener('click', e => { if (e.target.id !== 'modal') return; if (UI.socPop) { const b = document.querySelector('#sheet [data-act=socclose]'); if (b) { b.click(); return; } UI.socPop = null; } if (UI.chPop) { (chal().pop || {}).open = null; chSeenDay(UI.chPop); UI.chPop = null; } if (UI.meet) UI.meet = 0; closeModal(); }); // 点外面关掉：弹窗状态也要清掉，不然之后的事件会被卡住
 
 /* =========================================================
@@ -13151,10 +13177,11 @@ document.addEventListener('click', async e => {
     case 'pickt': { const P0 = UI.pick; if (!P0) break; const id = t.dataset.id; if (t.checked) { if (!P0.sel.includes(id)) P0.sel.push(id); } else { P0.sel = P0.sel.filter(x => x !== id); if (P0.title === id) P0.title = ''; } const sc = $('#sheet').scrollTop; openModal(pickHTML()); $('#sheet').scrollTop = sc; break; }
     case 'picktitle': { if (!UI.pick) break; UI.pick.title = t.dataset.id; const sc = $('#sheet').scrollTop; openModal(pickHTML()); $('#sheet').scrollTop = sc; break; }
     case 'picksend': pickSend(); break;
-    case 'prodopen': openModal(prodHTML()); break;
+    case 'prodopen': UI.matUp = null; openModal(prodHTML()); break;
     case 'ppsave': prodSave(); break;
-    case 'offmatdel': { const o = prepOn(); if (!o) break; const M = o.a.offMat || {}, m = M[t.dataset.k]; if (m && m.media) { idbDel(m.media.id); delete m.media; } save(); openModal(prodHTML()); break; }
-    case 'ppphdel': { const o = prepOn(); if (!o || o.t.rec.done) break; const L = o.a.cphotos || []; const [id] = L.splice(+t.dataset.i, 1); if (id) idbDel(id); save(); openModal(prodHTML()); break; }
+    case 'offmatdel': { const o = prepOn(); if (!o) break; const M = o.a.offMat || {}, m = M[t.dataset.k]; if (m && m.media) { idbDel(m.media.id); delete m.media; } save(); openModal(UI.matUp ? matUpHTML(UI.matUp) : prodHTML()); break; }
+    case 'matup': UI.matUp = t.dataset.k; openModal(matUpHTML(UI.matUp)); break;
+    case 'ppphdel': { const o = prepOn(); if (!o || offPosted(o.a, 'cp2')) break; const L = o.a.cphotos || []; const [id] = L.splice(+t.dataset.i, 1); if (id) idbDel(id); save(); openModal(UI.matUp ? matUpHTML(UI.matUp) : prodHTML()); break; }
     case 'libadd': UI.libF = { genre: '' }; UI.libOpen = 1; render(); break;
     case 'libedit': UI.libF = { ...(cbLib().find(x => x.id === t.dataset.id) || {}) }; UI.libOpen = 1; render(); break;
     case 'libcancel': UI.libF = null; render(); break;
@@ -13436,12 +13463,12 @@ document.addEventListener('change', async e => {
     t.value = ''; renderPending();
   } else if (t.classList && t.classList.contains('pp-offmat') && t.files[0]) {
     const o = prepOn(); if (!o) return; const a = o.a, M = a.offMat || (a.offMat = {}), k = t.dataset.k, f = t.files[0], id = uid(); try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f);
-    const m = M[k] || (M[k] = {}); if (m.media) idbDel(m.media.id); m.media = { id, type: f.type.startsWith('video') ? 'video' : 'image' }; save(); openModal(prodHTML()); toast('素材已放好', '到时间官方号会用这个发');
+    const m = M[k] || (M[k] = {}); if (m.media) idbDel(m.media.id); m.media = { id, type: f.type.startsWith('video') ? 'video' : 'image' }; save(); openModal(UI.matUp ? matUpHTML(UI.matUp) : prodHTML()); toast('素材已放好', '到时间官方号会用这个发');
   } else if ((t.id === 'pp-cover' || t.id === 'pp-photo') && t.files[0]) {
-    const o = prepOn(); if (!o || o.t.rec.done) return; const a = o.a;
+    const o = prepOn(); if (!o || (t.id === 'pp-cover' && o.t.rec.done) || (t.id === 'pp-photo' && offPosted(o.a, 'cp2'))) return; const a = o.a;
     if (t.id === 'pp-cover') { const id = uid(), f = t.files[0]; try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f); if (a.cover) idbDel(a.cover); a.cover = id; }
     else { const L = a.cphotos || (a.cphotos = []); for (const f of [...t.files].slice(0, 8 - L.length)) { const id = uid(); try { await idbPut(id, f); } catch (err) { } urlCache[id] = URL.createObjectURL(f); L.push(id); } }
-    save(); openModal(prodHTML()); toast('已上传');
+    save(); openModal(t.id === 'pp-photo' && UI.matUp ? matUpHTML(UI.matUp) : prodHTML()); toast('已上传');
   } else if (t.id === 'alcv-file' && t.files[0]) {
     const a = disco().find(x => x.id === t.dataset.id); if (!a) return; const id = uid(), f = t.files[0];
     try { await idbPut(id, f); } catch (err) { }
