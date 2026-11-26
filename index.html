@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261126123220';
+const BUILD = '20261126161416';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2813,7 +2813,7 @@ function prepAuto(o) {
   for (const [tk, ready, title, loc, cat, per, dl, nm] of JOBS) {
     const T0 = t[tk]; if (!ready || !T0 || T0.done || T0.skip) continue;
     let left = T0.need - T0.prog - planned(tk).reduce((s, r) => { const x = toMin(r.start); let e = toMin(r.end); if (e <= x) e += 1440; return s + Math.min((e - x) / 60, 10); }, 0);
-    const until = c.tbd ? addDays(today, 28) : addDays(c.date, dl), got = [];
+    const until = c.tbd ? addDays(today, 28) : (x => x < prepDL(o) ? x : prepDL(o))(addDays(c.date, dl)), got = []; /* 不超过准备截止日 */
     for (let i = 1; left > 0.5 && i <= 28; i++) { const dk = addDays(today, i); if (dk > until) break; const h = Math.max(2, Math.min(per, Math.ceil(left))), sl = add(dk, h, title, loc, tk, cat); if (sl) { left -= h; got.push(`${md(dk)} ${sl[0]}:00`); if (per <= 5) i++; } }
     if (got.length) mgrSay([`${nm[0]} 일정 잡았어요 (${got.length}번)`, `${nm[1]}排好了：${got.join('、')}`]);
   }
