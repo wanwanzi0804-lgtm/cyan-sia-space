@@ -238,7 +238,7 @@ i.up,i.dn,i.eq{font-style:normal;font-size:11.5px;margin-left:4px}i.up{color:#e5
 .cb-warn{margin-top:8px;font-size:12.5px;color:#b35c00;background:#fff4e5;border-radius:10px;padding:6px 10px}
 .cb-warn.ok{color:var(--accent);background:var(--bg)}
 .mz-head{display:flex;gap:10px;align-items:flex-start}.mz-head>div{flex:1;min-width:0}
-.mz-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;margin:5px 0 2px}.mz-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}.mz-bar.o i{background:#ff8a3d}
+.mz-bar.pp2{display:flex}.mz-bar.pp2 i{border-radius:0}.mz-bar.pp2 i.pl{background:var(--accent);opacity:.3}.mz-bar{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;margin:5px 0 2px}.mz-bar i{display:block;height:100%;background:var(--accent);border-radius:4px}.mz-bar.o i{background:#ff8a3d}
 .mz-w{padding:14px 0;border-top:1px solid var(--line);cursor:pointer}.mz-r{display:flex;align-items:center;gap:10px}.mz-w b{display:block;font-size:15.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mz-w .muted{font-size:13px;margin-top:2px}
 .mz-pct{font-size:20px;font-weight:700}.mz-pill{font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--bg);white-space:nowrap}.mz-w .mz-bar{height:7px;margin-top:10px}.mz-hint{text-align:right;font-size:12.5px;color:var(--muted);margin-top:8px}
 .mk-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.mk-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px;border-radius:14px;border:1.5px solid transparent;background:var(--card);color:var(--text);box-shadow:var(--shadow);cursor:pointer;font:inherit;text-align:center;min-width:0}.mk-card b{font-size:14px}.mk-card span{font-size:11.5px;color:var(--muted)}.mk-card.on{border-color:var(--accent);color:var(--accent)}.mk-card.on b{color:var(--text)}
@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261126161416';
+const BUILD = '20261126161741';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -3152,12 +3152,15 @@ function cbFlowBtns(o) {
   if (t.final.done) b.push(`<button class="btn ${t.rec.done ? 'ghost' : 'primary'} sm" data-act="prodopen">${t.rec.done ? '专辑内容' : '编辑专辑'}</button>`);
   return b.length ? `<div class="row" style="gap:6px;flex-wrap:wrap;margin:8px 0">${b.join('')}</div>` : '';
 }
+/* 已经排进日程、还没做完的准备时长 */
+function prepPlanned(o, tk) { const { a, P } = o, now = Date.now(), today = dkey(now); let h = 0;
+  for (let i = -2; i <= 40; i++) { const k = addDays(today, i); for (const r of rulesFor(k)) { if (r.cbTask !== tk || r.cbAlbum !== a.id || P.log[k + '|' + r.id]) continue; const s0 = toMin(r.start); let e = toMin(r.end); if (e <= s0) e += 1440; h += Math.min((e - s0) / 60, 10); } } return h; }
 function prepHTML() {
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return '';
   if (!c.prep || c.prep.legacy) return '';
   const o = prepOn(), { P, t } = o, d = cbDay(), lack = PREP_KEY.filter(k => !t[k].done), short = d < ({ single: 21, mini: 35, full: 50 }[a.type] || 21);
   const row = ([k, nm, who]) => { const T0 = t[k]; if (k === 'dance' && T0.skip) return ''; const pct = T0.need ? Math.round(T0.prog / T0.need * 100) : T0.done ? 100 : 0;
-    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? `<div class="mz-bar"><i style="width:${pct}%"></i></div>` : !T0.done ? `<div class="muted" style="font-size:11.5px">${prepEta(o, k)}</div>` : ''}${k === 'photo' ? matBtns(o, 'cp') : k === 'mv' ? matBtns(o, 'mv') : k === 'prod' ? matBtns(o, 'hl') : k === 'art' ? matBtns(o, 'art') : ''}</div></div>`; };
+    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? (pl => `<div class="mz-bar pp2"><i style="width:${pct}%"></i><i class="pl" style="width:${Math.min(100 - pct, Math.round(pl / T0.need * 100))}%"></i></div><div class="muted" style="font-size:11.5px">已完成 ${+T0.prog.toFixed(1)} · 已排 ${+pl.toFixed(1)} · 需要 ${T0.need} 小时${T0.prog + pl < T0.need - .2 ? ` · 还差 ${+(T0.need - T0.prog - pl).toFixed(1)}` : ' · 已排够'}</div>`)(prepPlanned(o, k)) : !T0.done ? `<div class="muted" style="font-size:11.5px">${prepEta(o, k)}</div>` : ''}${k === 'photo' ? matBtns(o, 'cp') : k === 'mv' ? matBtns(o, 'mv') : k === 'prod' ? matBtns(o, 'hl') : k === 'art' ? matBtns(o, 'art') : ''}</div></div>`; };
   const pool = !t.pick.done ? prepPool(o) : [];
   return `<div class="pp"><div class="row" style="margin-top:10px"><b style="flex:1">🛠 回归准备 · ${prepStage(o)}</b><span class="muted" style="font-size:12.5px">${c.tbd ? '日期待定' : d > 0 ? `D-${d}` : '已发行'}${P.delays ? ` · 延期 ${P.delays} 次` : ''}</span></div>
     ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 时间偏紧：准备期压缩了，${c.date ? `${prepDL(o).slice(5).replace('-', '/')} 前` : ''}要做完${P.squeeze ? `（练习 / 拍摄时长按 ${Math.round(P.squeeze * 100)}% 算）` : ''}</div>` : ''}
