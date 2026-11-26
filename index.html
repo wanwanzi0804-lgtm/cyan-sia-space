@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261126210427';
+const BUILD = '20261126210508';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -12012,7 +12012,7 @@ async function srReply(job) {
   if (!her.length) return true;
   if (her.some(m => m.descing && Date.now() - m.descing < 60e3)) { job.next = Date.now() + 4e3; return 'stale'; } /* 她刚发的照片还没看清是什么：等几秒 */
   SR().chat.handled = her[her.length - 1].id;
-  { const lh0 = T.msgs.filter(m => !m.me && !m.sys && !m.call && m.at < her[0].at).pop(); if (her.every(m => m.stk) && lh0 && her[0].at - lh0.at < 30 * 60e3) { T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; save(); return true; } } /* 他回完话她只发了个表情包：这段聊完了，不用回 */
+  { const lh0 = T.msgs.filter(m => !m.me && !m.sys && !m.call && m.at < her[0].at).pop(); if (lh0 && her[0].at - lh0.at < 30 * 60e3 && (her.every(m => m.stk) || (/들어가|가볼게|가봐야|잘게|이따|나중에|갔다 올게/.test(lh0.text || '') && her.every(m => m.stk || String(m.text || '').replace(/[\s~!.ㅎㅋ^]/g, '').length <= 3)))) { /* 他说了要去忙、她回「네~」+ 表情包：不用再回 */ T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; save(); return true; } } /* 他回完话她只发了个表情包：这段聊完了，不用回 */
   if (T.msgs.some(m => m.call && m.call.st === 'done' && m.at > her[her.length - 1].at && m.at <= Date.now())) { T.readTo = Math.max(T.readTo || 0, Date.now()); T.quiet = her[her.length - 1].id; save(); return true; } /* 她发完这几条后你们已经通过电话了：电话里都聊过了，不再回这几条 */
   // 正在见面 / 几分钟后就见到了：KKT 看了就不用回了（人都在眼前）
   if (srWithHer(when, 0)) { /* 人已经在她面前了才不用回；还在路上的话照样回（「곧 도착」也是回） */ T.readTo = Math.max(T.readTo || 0, when); T.quiet = her[her.length - 1].id; SR().chat.sess = 0; save(); return true; }
