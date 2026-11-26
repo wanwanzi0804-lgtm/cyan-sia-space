@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261126162513';
+const BUILD = '20261126162613';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2797,7 +2797,7 @@ function schedClashTick() {
       save(); } }
 }
 function prepAuto(o) {
-  const { c, a, P, t } = o, today = dkey(Date.now()); if (P.autoDay === today) return; P.autoDay = today; if (!c.tbd && cbDay() <= 0) return; // 发行之后不再排准备行程
+  const { c, a, P, t } = o, today = dkey(Date.now()), ak = today + '|' + Math.floor(new Date().getHours() / 3); if (P.autoDay === ak) return; P.autoDay = ak; /* 每几个小时看一次缺什么，缺了就排 */ if (!c.tbd && cbDay() <= 0) return; // 发行之后不再排准备行程
   const add = (dk, h, title, loc, tk, cat) => { const sl = prepSlot(dk, h); if (!sl) return 0; const hh = x => String(x).padStart(2, '0') + ':00'; S.schedule.rules.push({ id: uid(), title, cat: cat || '其他', start: hh(sl[0]), end: hh(sl[1]), loc, repeat: 'once', days: [], date: dk, note: `《${a.name}》`, mgr: 1, cbTask: tk, cbAlbum: a.id, createdAt: Date.now() }); return sl; };
   const planned = tk => S.schedule.rules.filter(r => r.cbTask === tk && r.cbAlbum === a.id && r.date >= today && !P.log[r.date + '|' + r.id]);
   const md = d => `${+d.slice(5, 7)}/${+d.slice(8)}`;
