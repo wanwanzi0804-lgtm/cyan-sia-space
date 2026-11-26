@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261126161741';
+const BUILD = '20261126162020';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -3155,12 +3155,25 @@ function cbFlowBtns(o) {
 /* 已经排进日程、还没做完的准备时长 */
 function prepPlanned(o, tk) { const { a, P } = o, now = Date.now(), today = dkey(now); let h = 0;
   for (let i = -2; i <= 40; i++) { const k = addDays(today, i); for (const r of rulesFor(k)) { if (r.cbTask !== tk || r.cbAlbum !== a.id || P.log[k + '|' + r.id]) continue; const s0 = toMin(r.start); let e = toMin(r.end); if (e <= s0) e += 1440; h += Math.min((e - s0) / 60, 10); } } return h; }
+const PREP_JOB = { rec: ['专辑录音', '公司 录音室', '其他', 4], dance: ['回归编舞练习', '公司 练习室', '练习', 4], mv: ['MV 拍摄', '外景 / 摄影棚', '物料', 8], photo: ['概念照拍摄', '摄影棚', '物料', 4], promo: ['宣传物料拍摄', '公司 / 摄影棚', '物料', 3] };
+const prepReady = (o, k) => (k === 'photo' || k === 'promo' ? o.t.concept.done : o.t.final.done) && !(k === 'dance' && !o.P.dance);
+function ppSchedHTML(k) { const o = prepOn(); if (!o) return ''; const J = PREP_JOB[k], T0 = o.t[k], left = Math.max(1, Math.ceil(T0.need - T0.prog - prepPlanned(o, k))), h = Math.min(J[3], left), dk = addDays(dkey(Date.now()), 1);
+  const ex = []; for (let i = -1; i <= 40; i++) { const d = addDays(dkey(Date.now()), i); for (const r of rulesFor(d)) if (r.cbTask === k && r.cbAlbum === o.a.id && !o.P.log[d + '|' + r.id]) ex.push(`<div class="rule"><span style="flex:1">${d.slice(5).replace('-', '/')} ${r.start}–${r.end}</span>${r.mgr ? '<span class="muted" style="font-size:12px">公司排的</span>' : `<button class="link muted" data-act="ppsdel" data-id="${r.id}" data-k="${k}" style="font-size:12.5px">删除</button>`}</div>`); }
+  return `<div class="row"><h3 style="flex:1">🗓 排「${PREP_NAME[k]}」</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
+    <div class="muted" style="font-size:12.5px;margin:-4px 0 10px">《${esc(o.a.name)}》· 已完成 ${+T0.prog.toFixed(1)} · 已排 ${+prepPlanned(o, k).toFixed(1)} · 需要 ${T0.need} 小时。${o.c.date ? `${prepDL(o).slice(5).replace('-', '/')} 前要做完。` : ''}结束后自动算进进度（一次最多算 10 小时）。</div>
+    <div class="card"><div class="field"><label>日期</label><input type="date" id="pps-d" value="${dk}" min="${dkey(Date.now())}"></div><div class="grid2"><div class="field"><label>开始</label><input type="time" id="pps-s" value="14:00"></div><div class="field"><label>结束</label><input type="time" id="pps-e" value="${hhmm(14 * 60 + h * 60)}"></div></div>
+    <div class="muted" style="font-size:12px">${J[1]} · 会加进你的日程（类别：${J[2]}）</div><div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn primary sm" data-act="ppsadd" data-k="${k}">排进日程</button></div></div>
+    ${ex.length ? `<div class="sec-title" style="margin-top:12px">已经排好的</div><div class="card" style="padding:4px 12px">${ex.join('')}</div>` : ''}`; }
+function ppSchedAdd(k) { const o = prepOn(); if (!o) return; const J = PREP_JOB[k], dk = $('#pps-d').value, st = $('#pps-s').value, en = $('#pps-e').value; if (!dk || !st || !en) return toast('日期和时间要填好');
+  const s0 = toMin(st), e0 = toMin(en); if (e0 <= s0) return toast('结束要晚于开始'); if (dk < dkey(Date.now()) || (dk === dkey(Date.now()) && e0 <= new Date().getHours() * 60 + new Date().getMinutes())) return toast('已经过去的时间不能排');
+  if (schedBusy(dk, s0, e0)) return toast('这个时间已经有别的行程了');
+  S.schedule.rules.push({ id: uid(), title: J[0], cat: J[2], start: st, end: en, loc: J[1], repeat: 'once', days: [], date: dk, note: `《${o.a.name}》`, cbTask: k, cbAlbum: o.a.id, createdAt: Date.now() }); save(); render(); openModal(ppSchedHTML(k)); toast('排进日程了', `${dk.slice(5).replace('-', '/')} ${st}–${en}`); }
 function prepHTML() {
   const c = S.cb, a = cbAlbum(); if (!c || c.over || !a) return '';
   if (!c.prep || c.prep.legacy) return '';
   const o = prepOn(), { P, t } = o, d = cbDay(), lack = PREP_KEY.filter(k => !t[k].done), short = d < ({ single: 21, mini: 35, full: 50 }[a.type] || 21);
   const row = ([k, nm, who]) => { const T0 = t[k]; if (k === 'dance' && T0.skip) return ''; const pct = T0.need ? Math.round(T0.prog / T0.need * 100) : T0.done ? 100 : 0;
-    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? (pl => `<div class="mz-bar pp2"><i style="width:${pct}%"></i><i class="pl" style="width:${Math.min(100 - pct, Math.round(pl / T0.need * 100))}%"></i></div><div class="muted" style="font-size:11.5px">已完成 ${+T0.prog.toFixed(1)} · 已排 ${+pl.toFixed(1)} · 需要 ${T0.need} 小时${T0.prog + pl < T0.need - .2 ? ` · 还差 ${+(T0.need - T0.prog - pl).toFixed(1)}` : ' · 已排够'}</div>`)(prepPlanned(o, k)) : !T0.done ? `<div class="muted" style="font-size:11.5px">${prepEta(o, k)}</div>` : ''}${k === 'photo' ? matBtns(o, 'cp') : k === 'mv' ? matBtns(o, 'mv') : k === 'prod' ? matBtns(o, 'hl') : k === 'art' ? matBtns(o, 'art') : ''}</div></div>`; };
+    return `<div class="pp-row ${T0.done ? 'ok' : ''}"><span class="pp-who">${who === 'co' ? '公司' : '本人'}</span><div style="flex:1;min-width:0"><div>${T0.done ? '✓ ' : ''}${nm}</div>${T0.need && !T0.done ? (pl => `<div class="mz-bar pp2"><i style="width:${pct}%"></i><i class="pl" style="width:${Math.min(100 - pct, Math.round(pl / T0.need * 100))}%"></i></div><div class="muted" style="font-size:11.5px">已完成 ${+T0.prog.toFixed(1)} · 已排 ${+pl.toFixed(1)} · 需要 ${T0.need} 小时${T0.prog + pl < T0.need - .2 ? ` · 还差 ${+(T0.need - T0.prog - pl).toFixed(1)}` : ' · 已排够'}</div>`)(prepPlanned(o, k)) : !T0.done ? `<div class="muted" style="font-size:11.5px">${prepEta(o, k)}</div>` : ''}${PREP_JOB[k] && !T0.done && prepReady(o, k) && !(o.c.date && cbDay() <= 0) ? `<button class="btn ghost sm" style="margin-top:6px;margin-right:6px" data-act="ppsched" data-k="${k}">＋ 排进日程</button>` : ''}${k === 'photo' ? matBtns(o, 'cp') : k === 'mv' ? matBtns(o, 'mv') : k === 'prod' ? matBtns(o, 'hl') : k === 'art' ? matBtns(o, 'art') : ''}</div></div>`; };
   const pool = !t.pick.done ? prepPool(o) : [];
   return `<div class="pp"><div class="row" style="margin-top:10px"><b style="flex:1">🛠 回归准备 · ${prepStage(o)}</b><span class="muted" style="font-size:12.5px">${c.tbd ? '日期待定' : d > 0 ? `D-${d}` : '已发行'}${P.delays ? ` · 延期 ${P.delays} 次` : ''}</span></div>
     ${d > 3 && lack.length && short ? `<div class="cb-warn">⚠ 时间偏紧：准备期压缩了，${c.date ? `${prepDL(o).slice(5).replace('-', '/')} 前` : ''}要做完${P.squeeze ? `（练习 / 拍摄时长按 ${Math.round(P.squeeze * 100)}% 算）` : ''}</div>` : ''}
@@ -12669,7 +12682,7 @@ function syncWorkField() { try { signModeSync(); } catch (e) { }
   const f = $('#r-work-f'); if (!f) return; const cat = $('#r-cat').value, title = $('#r-title').value;
   const on = isMusicRule({ cat, title }); f.style.display = on ? '' : 'none';
   $('#r-wnew').style.display = on && $('#r-work').value === '__new' ? '' : 'none';
-  const g = $('#r-cbt-f'), sel = $('#r-cbt'), ok = !!prepOn() && PREP_CAT[cat] && !on; g.style.display = ok ? '' : 'none';
+  const g = $('#r-cbt-f'), sel = $('#r-cbt'), ok = false; g.style.display = 'none'; /* 回归准备从回归卡片里排，不混在日常行程里 */
   if (ok) { [...sel.options].forEach(op => { if (op.value) op.hidden = op.dataset.c !== cat; }); if (!sel.dataset.touched) { const v = prepGuess(title, cat); sel.value = v && PREP_CAT[cat].includes(v) ? v : ''; } else if (sel.selectedOptions[0]?.hidden) sel.value = ''; }
 }
 function syncRepFields() {
@@ -12758,7 +12771,7 @@ function saveRule() {
     if (!r.note) r.note = `${r.signMode === 'on' ? '视频签售' : '线下签售'} · 主办 ${r.host}`; } /* 签售：线上在公司；线下随机分配场地和主办方 */
   r.createdAt = i >= 0 ? (S.schedule.rules[i].createdAt || 0) : Date.now(); r.gift = giftMultiVal('r');
   if (isMusicRule(r)) { const v = $('#r-work').value; r.workId = v === '__new' ? mzNew(($('#r-wn').value || '').trim(), genreGet('r-wg')).id : v; } else r.workId = '';
-  { const o = prepOn(), v = $('#r-cbt-f').style.display !== 'none' ? $('#r-cbt').value : ''; r.cbTask = o && v ? v : ''; r.cbAlbum = o && v ? o.a.id : ''; }
+  if ($('#r-cbt-f').style.display !== 'none') { const o = prepOn(), v = $('#r-cbt').value; r.cbTask = o && v ? v : ''; r.cbAlbum = o && v ? o.a.id : ''; }
   if (i >= 0) S.schedule.rules[i] = { ...S.schedule.rules[i], ...r }; else S.schedule.rules.push(r);
   save(); UI.presetQ = ''; openModal(adminHTML()); syncRepFields(); render(); toast(i >= 0 ? '已保存' : '已添加行程', `${r.title} · ${r.start}-${r.end}`);
 }
@@ -13266,6 +13279,9 @@ document.addEventListener('click', async e => {
     case 'prodopen': UI.matUp = null; openModal(prodHTML()); break;
     case 'ppsave': prodSave(); break;
     case 'offmatdel': { const o = prepOn(); if (!o) break; const M = o.a.offMat || {}, m = M[t.dataset.k]; if (m && m.media) { idbDel(m.media.id); delete m.media; } save(); openModal(UI.matUp ? matUpHTML(UI.matUp) : prodHTML()); break; }
+    case 'ppsched': openModal(ppSchedHTML(t.dataset.k)); break;
+    case 'ppsadd': ppSchedAdd(t.dataset.k); break;
+    case 'ppsdel': S.schedule.rules = S.schedule.rules.filter(r => r.id !== t.dataset.id); save(); render(); openModal(ppSchedHTML(t.dataset.k)); break;
     case 'matup': UI.matUp = t.dataset.k; openModal(matUpHTML(UI.matUp)); break;
     case 'ppphdel': { const o = prepOn(); if (!o || offPosted(o.a, 'cp2')) break; const L = o.a.cphotos || []; const [id] = L.splice(+t.dataset.i, 1); if (id) idbDel(id); save(); openModal(UI.matUp ? matUpHTML(UI.matUp) : prodHTML()); break; }
     case 'libadd': UI.libF = { genre: '' }; UI.libOpen = 1; render(); break;
