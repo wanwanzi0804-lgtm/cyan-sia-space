@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261126162613';
+const BUILD = '20261126163012';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -2804,7 +2804,7 @@ function prepAuto(o) {
   if (false) for /* 企划会议不排进日程、经纪人也不通知：你自己从回归卡片进会议 */ (let i = 1; i <= 4; i++) { const dk = addDays(today, i), sl = add(dk, 2, '回归企划会议', '公司 会议室', 'meet'); if (sl) { P.autoMeet = dk; mgrSay([`${+dk.slice(5, 7)}월 ${+dk.slice(8)}일 ${sl[0]}시에 컴백 기획 회의 잡았어요`, `${md(dk)} ${sl[0]} 点排了回归企划会议`]); break; } }
   // 本人要参与的准备：录音 / 编舞 / MV / 概念照 / 宣传物料，都由公司按需要的时长排进行程
   const JOBS = [
-    ['rec', t.final.done, '专辑录音', '公司 录音室', '其他', 5, -4, ['녹음', '录音']],
+    ['rec', t.final.done, '专辑录音', '公司 录音室', '练习', 5, -4, ['녹음', '录音']],
     ['dance', t.final.done && P.dance, '回归编舞练习', '公司 练习室', '练习', 4, -5, ['안무 연습', '编舞练习']],
     ['photo', t.concept.done, '概念照拍摄', '摄影棚', '物料', 5, -13, ['콘셉트 포토 촬영', '概念照拍摄']],
     ['mv', t.final.done, 'MV 拍摄', '外景 / 摄影棚', '物料', 9, -7, ['뮤비 촬영', 'MV 拍摄']],
@@ -3155,7 +3155,7 @@ function cbFlowBtns(o) {
 /* 已经排进日程、还没做完的准备时长 */
 function prepPlanned(o, tk) { const { a, P } = o, now = Date.now(), today = dkey(now); let h = 0;
   for (let i = -2; i <= 40; i++) { const k = addDays(today, i); for (const r of rulesFor(k)) { if (r.cbTask !== tk || r.cbAlbum !== a.id || P.log[k + '|' + r.id]) continue; const s0 = toMin(r.start); let e = toMin(r.end); if (e <= s0) e += 1440; h += Math.min((e - s0) / 60, 10); } } return h; }
-const PREP_JOB = { rec: ['专辑录音', '公司 录音室', '其他', 4], dance: ['回归编舞练习', '公司 练习室', '练习', 4], mv: ['MV 拍摄', '外景 / 摄影棚', '物料', 8], photo: ['概念照拍摄', '摄影棚', '物料', 4], promo: ['宣传物料拍摄', '公司 / 摄影棚', '物料', 3] };
+const PREP_JOB = { rec: ['专辑录音', '公司 录音室', '练习', 4], dance: ['回归编舞练习', '公司 练习室', '练习', 4], mv: ['MV 拍摄', '外景 / 摄影棚', '物料', 8], photo: ['概念照拍摄', '摄影棚', '物料', 4], promo: ['宣传物料拍摄', '公司 / 摄影棚', '物料', 3] };
 const prepReady = (o, k) => (k === 'photo' || k === 'promo' ? o.t.concept.done : o.t.final.done) && !(k === 'dance' && !o.P.dance);
 function ppSchedHTML(k) { const o = prepOn(); if (!o) return ''; const J = PREP_JOB[k], T0 = o.t[k], left = Math.max(1, Math.ceil(T0.need - T0.prog - prepPlanned(o, k))), h = Math.min(J[3], left), dk = addDays(dkey(Date.now()), 1);
   const ex = []; for (let i = -1; i <= 40; i++) { const d = addDays(dkey(Date.now()), i); for (const r of rulesFor(d)) if (r.cbTask === k && r.cbAlbum === o.a.id && !o.P.log[d + '|' + r.id]) { const live = d < dkey(Date.now()) || (d === dkey(Date.now()) && toMin(r.start) <= new Date().getHours() * 60 + new Date().getMinutes());
@@ -5387,6 +5387,16 @@ const C = (d, opts) => ({ kind: 'choice', d, opts });
 const M = (steps) => ({ kind: 'multi', d: steps[0][0], steps });
 const W_ = (d, ph) => ({ kind: 'write', d, ph });
 const TG_EVENTS = {
+  // 回归录音（日程类别算「练习」，事件用录音的）
+  录音: [
+    r => C('录到副歌高音那句，连着唱了五遍都差一点，制作人在玻璃外面看着你。', [['再来几遍，一定要唱出来', .45, .95], ['申请先休息五分钟喝水', .4, .85], ['问制作人能不能换个唱法', .5, 1], ['先录别的段落，最后再回来', .35, .8]]),
+    r => ({ kind: 'hold', d: '长音那句要稳住：按住按钮，正好 4 秒时松开。' }),
+    r => C('制作人说这句情绪还不够，让你想象一个具体的人再唱。', [['想着心里那个人唱', .55, 1], ['想象舞台上的粉丝', .45, .9], ['闭上眼睛只听伴奏', .4, .85]]),
+    r => W_('录完一首，制作人让你在歌词本上写下这首歌想传达的感觉。', '这首歌想说的是…'),
+    r => C('耳机里的伴奏有点小，你听不太清自己的音准。', [['请工程师把伴奏调大', .5, .9], ['摘下一边耳机唱', .35, .8], ['凭感觉先录一版', .2, .6]]),
+    r => C('录音中途嗓子有点干，开始发紧。', [['喝温水、做一下发声再继续', .5, .95], ['硬撑着唱完这段', .15, .55], ['跟制作人商量换个顺序', .45, .85]]),
+    r => C('录完以后制作人放给你听，问你哪一句想重录。', [['挑出两句不满意的重来', .5, 1], ['觉得都可以，交给制作人判断', .35, .8], ['想加一段即兴的和声试试', .45, .95]])
+  ],
   练习: [
     r => C(`${r.title}练到一半，你发现有一段动作总是慢半拍，镜子里的自己看起来很僵。`, [['拆开慢速练一百遍', .5, .95], ['拍视频和老师的版本对比', .55, .9], ['先放一放，去练别的部分', .2, .6], ['找公司前辈请教', .35, 1]]),
     r => ({ kind: 'hours', d: `今天的${r.title}排了 ${+((toMin(r.end) - toMin(r.start)) / 60).toFixed(1)} 小时，打算练多狠？越拼涨得越多，但体能不够容易受伤。` }),
@@ -6069,14 +6079,14 @@ const TG_VCALL = [
 function tgCard(k, r) {
   if (isMusicRule(r)) return mzCard(k, r, k + '|' + r.id); // 音乐创作：用作品库里的创作事件
   const T = tgState(), key = k + '|' + r.id; if (T.cards[key]) return T.cards[key];
-  const evs = r.cat === '公演' && UNIV_RE.test(r.title) ? TG_EVENTS['校庆'] : TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
+  const isRec = r.cbTask === 'rec' || (r.cat === '练习' && /录音/.test(r.title || '')), evs = isRec ? TG_EVENTS['录音'] : r.cat === '公演' && UNIV_RE.test(r.title) ? TG_EVENTS['校庆'] : TG_EVENTS[r.cat]; if (!evs || k < T.start) return null;
   const rr = srng('tg' + key), sp = TG_SPECIAL.filter(x => x[0].test(r.title));
   // 剧情事件为主，小游戏偶尔出现
   // 同一天不重复：别的行程今天已经用过的事件 / 同一种小游戏都跳过；事件池里重复的也只算一个
   const sigOf = e => TG_GAME_KINDS.includes(e.kind) ? 'g:' + e.kind : e._i || String(e.d).split(r.title).join('§');
   const used = new Set(Object.values(T.cards).filter(c => c && c.key && c.key.startsWith(k + '|') && c.key !== key).map(c => c.sig || (TG_GAME_KINDS.includes(c.kind) ? 'g:' + c.kind : String(c.d).split(c.title).join('§'))));
   // 循环：这一类的每个事件都出现过一次之前不重复，全部出现过后再重置
-  const csig = e => e._i || String(e.d).split(r.title).join('§'), cyc = T.cyc || (T.cyc = {}), ck = evs === TG_EVENTS['校庆'] ? '校庆' : r.cat === '签售' && VCALL_RE.test(r.title || '') ? '视频签售' : r.cat;
+  const csig = e => e._i || String(e.d).split(r.title).join('§'), cyc = T.cyc || (T.cyc = {}), ck = isRec ? '录音' : evs === TG_EVENTS['校庆'] ? '校庆' : r.cat === '签售' && VCALL_RE.test(r.title || '') ? '视频签售' : r.cat;
   const uniq = es => { const seen = new Set(); return es.filter(e => { const g = String(e.d).split(r.title).join('§'); if (seen.has(g)) return false; seen.add(g); return true; }); };
   const cycle = (es, k2) => { const done = new Set(cyc[k2] || []); let p = es.filter(e => !done.has(csig(e))); if (!p.length) { cyc[k2] = []; p = es; } const fresh = p.filter(e => !used.has(sigOf(e))); return fresh.length ? fresh : p; };
   const vc = r.cat === '签售' && VCALL_RE.test(r.title || '');
@@ -8527,7 +8537,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, hotKnow1123, aiTagReset1123, srBubOff1122, srChatOff1122, srRe1122, srVc1122, srReal1123, srPh1123, ytTime1123, srBed1123, srFix1123, srReal1124, srPh1124, srLate1124, srRescue1125, srJp1125, srPfpBack1125, srReal1125, srPh1125, meetOff1125, cbSqueeze1125, srXmas1125, srXmas1125b, srLetter1126, crvKnow1126, srReal1126, srPh1126, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, hotKnow1123, aiTagReset1123, srBubOff1122, srChatOff1122, srRe1122, srVc1122, srReal1123, srPh1123, ytTime1123, srBed1123, srFix1123, srReal1124, srPh1124, srLate1124, srRescue1125, srJp1125, srPfpBack1125, srReal1125, srPh1125, meetOff1125, cbSqueeze1125, srXmas1125, srXmas1125b, srLetter1126, crvKnow1126, srReal1126, srPh1126, recCat1126, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -10316,6 +10326,7 @@ async function srPh1126() { const R = SR(); if (R.ph1126) return; R.ph1126 = 1; 
     L(t6, [{ ko: '이제 다시 들어가 봐야 돼..', zh: '现在得回去了..' }, { ko: '남은 하루도 잘 보내❤️❤️❤️', zh: '剩下的时间也好好过❤️❤️❤️' }]);
     L(t7, [{ ko: '아 맞다 어제 형준이가 샤워기 필터 못 빼서 나한테 해달라는데', zh: '啊对了，昨天亨俊淋浴器滤芯拧不下来让我帮忙' }, { ko: '나도 못 뺐어ㅋㅋㅋ', zh: '我也没拧下来哈哈哈' }, { ko: '우리 애들 세상 어떻게 살아가려나…', zh: '我们这些孩子以后怎么在世上活下去啊…' }]);
     save(); } catch (e) { R.ph1126 = 0; save(); } }
+function recCat1126() { if (S.recCat1126) return; S.recCat1126 = 1; const td = dkey(Date.now()); for (const r of S.schedule.rules) if (r.cbTask === 'rec' && r.cat === '其他' && (r.date || '') >= td) r.cat = '练习'; save(); } /* 回归录音也要有通告 */
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
