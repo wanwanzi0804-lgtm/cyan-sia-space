@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261127170228';
+const BUILD = '20261127170917';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -1350,11 +1350,14 @@ async function aiCompact(content, maxTokens, model) {
 const AI_TAG_SKIP = /^(aiRaw|aiCount|srAI|aiCompact|aiComments|aiCaller|Promise|async|new|Object|Array|eval|anonymous|run|step|fulfilled|rejected)$/;
 function aiCaller() { try { const st = String(new Error().stack || '').split('\n'); for (const l of st) { const m = l.match(/at\s+(?:async\s+)?([\w$]+)[\s.(]/) || l.match(/^([\w$]+)@/); if (m && !AI_TAG_SKIP.test(m[1])) return m[1]; } } catch (e) { } return '?'; }
 const AI_TAG_ZH = { srReply: '世琳 · 回你消息', srReach: '世琳 · 主动找你', srReachGate: '世琳 · 判断要不要找你', srMore: '世琳 · 接着说', srBook: '世琳 · 记账（记忆 / 约定）', srNatCheck: '世琳 · 检查像不像他', callLine: '世琳 · 打电话', callHangTalk: '电话总结', srEvAct: '世琳 · 见面小剧情', srDaily: '世琳 · 每日整理', srDigest: '世琳 · 记忆整理', bbAI: '泡泡 AI 粉丝', aiForPost: '社区 AI 评论', kkMediaDesc: 'KKT 看照片', trText0: '翻译', trText: '翻译', dmTrMe: '翻译', socAiReply: '其他人 KKT', vcAskGen: '世琳 · 约视频' };
+const AI_CR = { 'claude-sonnet-5-5': .05, 'claude-opus-5-5': .05 }; /* 缓存读的折扣：这两个是一折的一半 */
+function aiCost(model, us) { const [pi, po] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'], cc = us.cache_creation || {}, w1 = cc.ephemeral_1h_input_tokens, w5 = cc.ephemeral_5m_input_tokens, cw = us.cache_creation_input_tokens || 0;
+  const wr = w1 != null || w5 != null ? (w1 || 0) * 2 + (w5 || 0) * 1.25 : cw * 1.25; return ((us.input_tokens || 0) * pi + wr * pi + (us.cache_read_input_tokens || 0) * pi * (AI_CR[model] ?? .1) + (us.output_tokens || 0) * po) / 1e6; }
 function aiCount(model, us, tag) { if (!us) return; try { const u0 = aiUsage(), L = u0.tags || (u0.tags = {}), k0 = (tag || '?') + '|' + (/sonnet/.test(model) ? 'S' : /haiku/.test(model) ? 'H' : /opus/.test(model) ? 'O' : '?'), x = L[k0] || (L[k0] = { n: 0, in: 0, cr: 0, cw: 0, out: 0, usd: 0 }), [pi0, po0] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'];
-    x.n++; x.in += us.input_tokens || 0; x.cr += us.cache_read_input_tokens || 0; x.cw += us.cache_creation_input_tokens || 0; x.out += us.output_tokens || 0; x.usd += ((us.input_tokens || 0) * pi0 + (us.cache_creation_input_tokens || 0) * pi0 * 1.25 + (us.cache_read_input_tokens || 0) * pi0 * .1 + (us.output_tokens || 0) * po0) / 1e6;
-    const R0 = u0.recent || (u0.recent = []); R0.push({ t: Date.now(), tag: tag || '?', m: k0.slice(-1), in: us.input_tokens || 0, cr: us.cache_read_input_tokens || 0, cw: us.cache_creation_input_tokens || 0, out: us.output_tokens || 0 }); if (R0.length > 60) R0.splice(0, R0.length - 60); } catch (e) { } /* 按用途分开记，方便看钱花在哪 */ const [pi, po] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(), usd = ((us.input_tokens || 0) * pi + (us.cache_creation_input_tokens || 0) * pi * 1.25 + (us.cache_read_input_tokens || 0) * pi * .1 + (us.output_tokens || 0) * po) / 1e6;
+    x.n++; x.in += us.input_tokens || 0; x.cr += us.cache_read_input_tokens || 0; x.cw += us.cache_creation_input_tokens || 0; x.out += us.output_tokens || 0; x.usd += aiCost(model, us) * 1e6 / 1e6;
+    const R0 = u0.recent || (u0.recent = []); R0.push({ t: Date.now(), tag: tag || '?', m: k0.slice(-1), in: us.input_tokens || 0, cr: us.cache_read_input_tokens || 0, cw: us.cache_creation_input_tokens || 0, out: us.output_tokens || 0 }); if (R0.length > 60) R0.splice(0, R0.length - 60); } catch (e) { } /* 按用途分开记，方便看钱花在哪 */ const [pi, po] = AI_PRICE[model] || AI_PRICE['claude-opus-5-5'], u = aiUsage(), usd = aiCost(model, us); void pi; void po;
   u.calls++; u.usd += usd; const k = /opus/.test(model) ? 'Opus' : /sonnet/.test(model) ? 'Sonnet' : /haiku/.test(model) ? 'Haiku' : model; (u.by || (u.by = {}))[k] = (u.by[k] || 0) + usd; }
-const aiSys = t => t && t.length > 3000 ? [{ type: 'text', text: t, cache_control: { type: 'ephemeral' } }] : t; /* 长的系统提示（世琳的人设、说话方式）缓存起来：几分钟内的下一次请求只收一成的钱 */
+const aiSys = t => t && t.length > 3000 ? [{ type: 'text', text: t, cache_control: { type: 'ephemeral', ttl: '1h' } }] : t; /* 存一小时：聊一会儿停一会儿也不会过期重写 */ /* 长的系统提示（世琳的人设、说话方式）缓存起来：几分钟内的下一次请求只收一成的钱 */
 async function aiRaw(content, maxTokens, schema, sys, model, effort, stream) {
   let tag = aiCaller(); if (tag === '?' && schema && schema.properties) tag = '?' + Object.keys(schema.properties).slice(0, 3).join('+'); /* iPhone 上 await 之后就看不出是谁调的：先记下来 */
   const client = await aiClient(); model = model || S.ai.model;
@@ -12143,7 +12146,7 @@ async function srReach(job) {
   const open = R.conv && R.conv.open && R.conv.open.length && when - R.conv.at < 12 * 3600e3 ? R.conv.open.join('；') : '';
   if (!w.force && w.kind !== 'promise') { const go = await srReachGate(when, w, T, recent); if (job.rid !== srRunId) return 'stale'; if (!go) { if (w.kind === 'urge') { const u = (R.urges || []).find(x => 'urge' + x.id === w.ref); if (u && (u.tries || 0) < 2) { u.tries = (u.tries || 0) + 1; u.at = when + 90 * 60e3; } } return true; } } /* 便宜模型先判断：这会儿不会发就不用请 Sonnet */
   const j = await srAI(`${srClock(when)}，CRAVITY 世琳拿起了手机。不是在回 Cyan 的消息。
-${srCtx(when, w.d || '')}
+${srCtx(when, w.d || '', true)}
 他这会儿：${srDrive(when).zh}
 
 【此刻他手边 / 脑子里有的】（只是事实，不是要完成的任务）
@@ -12163,10 +12166,9 @@ th_done：这次说到了上面【你们之间挂着的事】里的哪些（编�
 more：发完以后他心里是不是还挂着想说的（大多数时候 want=false；want=true 时 about 写他还惦记着什么，只写念头不写台词，min 写几分钟后）。
 ${SR_BITS_HINT}
 ${SR_MEM_HINT}
-${SR_RULES}
 inner：他此刻拿着手机脑子里在想什么（他自己的口吻，一两句，不会发出去）。
 ${w.force ? '这次他一定会发点什么（send=true）：哪怕很短、一个表情、一句「나 아직 스케줄 중ㅠ」都行。\n' : ''}ko：要发的话，他在输入框里打的东西（回车拆成几个气泡只是打字节奏，一行一个），不发就空；zh：对应的中文，行数一样。`, 3000,
-    { type: 'object', additionalProperties: false, required: ['inner', 'send', 'ko', 'zh', 'topic', 'promise_done', 'mem', 'told', 'bits_add', 'th_done', 'more'], properties: { th_done: { type: 'array', items: { type: 'string' } }, more: SR_MORE_SCHEMA, inner: { type: 'string' }, send: { type: 'boolean' }, ko: { type: 'string' }, zh: { type: 'string' }, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } });
+    { type: 'object', additionalProperties: false, required: ['inner', 'send', 'ko', 'zh', 'topic', 'promise_done', 'mem', 'told', 'bits_add', 'th_done', 'more'], properties: { th_done: { type: 'array', items: { type: 'string' } }, more: SR_MORE_SCHEMA, inner: { type: 'string' }, send: { type: 'boolean' }, ko: { type: 'string' }, zh: { type: 'string' }, topic: { type: 'string' }, promise_done: { type: 'boolean' }, mem: SR_MEM_SCHEMA, ...SR_BITS_SCHEMA } }, false, undefined, SR_SYS_KKT()); /* 人设和规则放在缓存的系统提示里 */
   if (job.rid !== srRunId) return 'stale';
   if (T.pend && T.pend.length) return true;
   j.msgs = srLaughTrim(srTidy(srBubbles(j.ko, j.zh), T, when), j.inner); if (!j.msgs.length) j.send = false; // 想说的都是刚才说过的：这次就不发了
