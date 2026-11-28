@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261128190341';
+const BUILD = '20261128190923';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -13240,7 +13240,7 @@ function viewMe() {
     ${aiUsage().tags ? `<details class="me-more" style="margin:0 0 8px"><summary>钱花在哪（按用途，${aiUsage().tagsFrom ? (d => `${d.getMonth() + 1}/${d.getDate()} ${hhmm(d.getHours() * 60 + d.getMinutes())} 起`)(new Date(aiUsage().tagsFrom)) : '从这次更新开始记'}）</summary><div style="font-size:12px;overflow-x:auto"><table style="width:100%;border-collapse:collapse"><tr class="muted"><td>用途</td><td>次</td><td>新输入</td><td>缓存读</td><td>缓存写</td><td>输出</td><td>¥</td></tr>${Object.entries(aiUsage().tags).sort((a, b) => b[1].usd - a[1].usd).map(([k, x]) => { const [t, m] = k.split('|'), f = v => v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'k' : v; return `<tr><td>${esc(AI_TAG_ZH[t] || t)} <span class="muted">${m}</span></td><td>${x.n}</td><td>${f(x.in)}</td><td>${f(x.cr)}</td><td>${f(x.cw)}</td><td>${f(x.out)}</td><td>${(x.usd * USD_CNY).toFixed(2)}</td></tr>`; }).join('')}</table><div class="muted" style="margin-top:4px">S = Sonnet，H = Haiku；数字是 token 数（k = 千）</div></div></details>` : ''}
     <div class="field"><label>每月上限（人民币，到了自动暂停 AI；0 = 不限制）</label><input type="number" id="ai-cap" min="0" step="1" value="${S.ai.capCny ?? 10}"></div>
     ${S.ai.lastError ? `<p class="muted" style="color:var(--danger)">上次错误${S.ai.lastAt ? '（' + new Date(S.ai.lastAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '）' : ''}：${esc(S.ai.lastError)}</p>` : ''}
-    <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div><div class="muted" style="font-size:11.5px;text-align:center;margin-top:10px">版本 ${BUILD.slice(4, 6)}/${BUILD.slice(6, 8)} ${BUILD.slice(8, 10)}:${BUILD.slice(10, 12)}（UTC）</div>
+    <div class="row"><button class="btn ghost" data-act="aitest">测试连接</button><span class="sp"></span><button class="btn primary" data-act="aisave">保存</button></div>
   </div>
   <div class="sec-title">其他设置</div>
   <div class="card">
@@ -13256,6 +13256,7 @@ function viewMe() {
     <div class="row wrap" style="margin-top:10px"><button class="btn ghost" data-act="export">导出数据（JSON）</button><button class="btn ghost" data-act="impopen">导入数据</button><span class="sp"></span><button class="btn danger" data-act="reset">重置全部</button></div>
   </div>
   `}[UI.meTab || 'stats']()}
+  <div class="muted" style="font-size:11px;text-align:center;opacity:.5;margin:18px 0 6px">版本 ${(d => `${d.getMonth() + 1}/${d.getDate()} ${hhmm(d.getHours() * 60 + d.getMinutes())}`)(new Date(Date.UTC(+BUILD.slice(0, 4), +BUILD.slice(4, 6) - 1, +BUILD.slice(6, 8), +BUILD.slice(8, 10), +BUILD.slice(10, 12))))}</div>
   `;
 }
 
