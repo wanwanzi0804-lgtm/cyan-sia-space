@@ -963,7 +963,7 @@ function defaultState() {
   };
 }
 /* 版本戳：每次推更新都会变。打开后每隔几分钟去网站上看一眼，有新的就自动换成新的（主屏幕版不会自己刷新） */
-const BUILD = '20261128150852';
+const BUILD = '20261128185822';
 function buildCheck() { if (location.protocol === 'file:' || !window.fetch) return; fetch(location.pathname + '?bc=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => { const m = t.match(/const BUILD = '([0-9]+)'/); if (!m || m[1] === BUILD || +m[1] < +BUILD) return;
     const busy = () => $('#modal').classList.contains('on') || UI.call || UI.vc || (document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
     const go = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S, (k, v) => k.startsWith('_') ? undefined : v)); } catch (e) { } location.replace(location.pathname + '?v=' + m[1]); };
@@ -6400,7 +6400,7 @@ function tick() {
   for (const p of S.posts) simPost(p, dt * sp, false);
   S.sim.lastTick = now;
   // 每个子系统单独兜底：一个出错不会拖垮其他（比如行程结算）
-  for (const fn of [mkSrcFix, musPeakTick, ytTick, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, srTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
+  for (const fn of [schedQ15, mkSrcFix, musPeakTick, ytTick, dailyFans, schedFans, hotTick, mzTick, cbTick, hitTick, skillTick, mgrTick, popTick, walletTick, contractTick, awardsTick, relTick, socTick, serimTick, srTick, chalTick, chPopTick, chVisitTick, chBookTick, chBookDue, chPostDue, () => bubbleTick(dt, false)]) { try { fn(); } catch (e) { console.error('tick', fn.name, e); } }
   updCounters();
   schedReminders();
   save();
@@ -8541,7 +8541,7 @@ function socWins(k) {
 function socTick() {
   const SO = social(), now = new Date(), today = dkey(now), nm = now.getHours() * 60 + now.getMinutes();
   if (!S.socPopFix1) { S.socPopFix1 = 1; for (const x of SO.q) if (x.day === today && x.done && !x.missed && !x.skip && x.p && !((socEv(x.ev) || {}).online && dmIsMsg(x.ev)) && !SO.hist.some(h => h.id === x.id)) x.open = 1; if (SO.serim && SO.serim.shown && !SO.serim.done) SO.serim.closed = 1; }
-  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, hotKnow1123, aiTagReset1123, srBubOff1122, srChatOff1122, srRe1122, srVc1122, srReal1123, srPh1123, ytTime1123, srBed1123, srFix1123, srReal1124, srPh1124, srLate1124, srRescue1125, srJp1125, srPfpBack1125, srReal1125, srPh1125, meetOff1125, cbSqueeze1125, srXmas1125, srXmas1125b, srLetter1126, crvKnow1126, srReal1126, srPh1126, recCat1126, srSong1126, srJh1126, liaFix1126, srJh1126b, srJh1126c, srOrd1126, srReal1127, srPh1127, srPh1127b, srHk1128, jmPlan1127, crvSolo1127, aiTagReset1128, srBack1127, srBack1127b, srBack1127c, srMeet1128, srMeet1128b, srMeet1128c, srBun1128, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
+  for (const f of [serimRedoMig, serimMemFix, serimRedo2, serimClearMig, mgrTrimMig, mgrRep1019, mgrCarFix, ahMsgFix, inviteReplyFix1, jmMealFix1, jmStallFix1, jmStallFix2, jmStallFix3, jmNightFix1, jmNightFix2, srLoveRedo1, srScriptFix1, srScriptFix2, srJmDinnerRedo1, srJmDinnerRedo2, srJmDinnerRedo3, srStudioRedo1, srSorryRedo1, srSorryRedo2, srCryFix1, srCallNow1, srRecallOff1, srCallRestore1, srStyleFix1, srMorning1028, relayDup1, payFast1, srOppaFix1, srCommute1028, ytRunShort1, srSleep1029, srMemberZh1, srVoiceCall1, srVoiceCall2, deluluMove1, nightTrainMove1, nightTrainMove2, srFix1102, hotQFix1, fanmeet1107, cbReopen1, taesanFix1, taesanFix2, srSleepRedo1, srNoteRe1103, srNoteRe1103b, bbPayFast1, srReachNow1, srAskRedo1, studioWord1, mgrPrivClean1, srKissFix1, srNoteRe1104, srEvRedo1104, srEvDrop1104, prodSkillFix1, settleOctFix1, chMissed1105, mgrFm1105, srMeal1105, srEvRedo1106, srComplain1107, srCallFix1109, srAfterCall1110, srAfterCall1110b, srAfterCall1110c, srPlanRedo1110, srKgma1107, del1107, srKgma1107b, propFm1107, del1108, absent1110, absent1110b, mgrRep1110, freeze1111, frzFans1111, frzFix2, frzFix3, srReal1116, srReal1116b, srReal1116c, srReal1116d, srReal1116e, notifClean1, herDel1116, jhMeal1112, notifClean2, srDel1116n, srDel1116n2, srDel1116n3, srQFix1117, srQFix1117b, srQFix1117c, srDel1117b, srDel1117c, srVc1116, srVc1116b, srFix1117d, srFix1118a, engDel1118, srGn1117, srLove1117, srReal1118, srPh1118, chalFix1118, chalFix1118b, srFix1118c, srDiet1118, srRedo1118d, srLove1118, srStk1118, srLove1119, srMsgRestore1119, srReal1119, srPh1119, srRest1118, srDay1119b, srDay1119c, srGlass1119, srEgg1119, srPh1119b, srPh1119c, srGn1118b, absFix1119, mgrRep1119, srPlan1119, srDay1119d, srDay1120a, srKnow1120, srEvZh1120, srMk1120, srMk1120b, rhRedo1120, rhRedo1120b, ytDurFix1120, srScrGen1120, srReply1119b, srIv6, srDay1120b, srReal1120, srPh1120, gukbapFix, socMeetFix1121, socMeetUndo1121, srReal1121, srPh1121, srPfp1122, srGn1121, hufsFix1121, hufsFix1121b, srStk1121, offerDurFix1121, del1121pm, ktx1122, srReal1122, srPh1122, hotDate1123, hotKnow1123, aiTagReset1123, srBubOff1122, srChatOff1122, srRe1122, srVc1122, srReal1123, srPh1123, ytTime1123, srBed1123, srFix1123, srReal1124, srPh1124, srLate1124, srRescue1125, srJp1125, srPfpBack1125, srReal1125, srPh1125, meetOff1125, cbSqueeze1125, srXmas1125, srXmas1125b, srLetter1126, crvKnow1126, srReal1126, srPh1126, recCat1126, srSong1126, srJh1126, liaFix1126, srJh1126b, srJh1126c, srOrd1126, srReal1127, srPh1127, srPh1127b, srHk1128, jmPlan1127, crvSolo1127, aiTagReset1128, srBack1127, srBack1127b, srBack1127c, srMeet1128, srMeet1128b, srMeet1128c, srBun1128, ytMove1128, vcLiveFix, readFix1116, srWake1028, jmMeal7pm1, crvMeetClashTick, mv404Thumb1, mvBehindThumb1, fanRuleHalf1, crvFuFix1, trExplainFix1, srRepeatDel1, nameMig, soloMig, socExMig, socDaily, dmPendTick, dmCleanMig, ahFollowMig, dmUnstick1, dmCallZh1, dmCallTick, ahReset1, dmPolishMig, serimNoteTick, serimPingTick, annivTick, vcRedo1022]) { try { f(); } catch (e) { console.error('mig', f.name, e); } } /* 一次性的数据修复：一个出错不会挡住后面的 */
   try { const C = chal(); if (!C.bf1107b) { C.bf1107b = 1; if (C.bf1107 && C.bf) delete C.bf['2026-11-07']; save(); } } catch (e) { console.error('mig block', e); }
   if (SO.day !== today && now.getHours() >= 8) { SO.day = today; SO.q = SO.q.filter(x => x.day === today); socSchedule(today, nm); socTodoDue(today); }
   // 🧪 测试模式（到 SOC_BOOST_UNTIL 为止）：手上没有待发生的交集时，每隔 20 分钟左右再排一个，十几分钟内就会出现
@@ -10496,6 +10496,13 @@ async function srBun1128() { const R = SR(); if (R.bun1128) return; R.bun1128 = 
     srMemAdd({ k: 'event', who: 'him', t: '11/28 晚上在香港吃了菠萝包（뽀로야오），很喜欢，还发了 Instagram 快拍', src: 'sys', cf: 'sure', imp: 2, at: at(22 * 60 + 8) }, at(22 * 60 + 8));
     const t = Math.max(at(22 * 60 + 10), Date.now() + 2 * 60e3), b = await (await fetch('img/sr-1128-bun.jpg')).blob(), mid = 'srp' + uid(); await idbPut(mid, b); urlCache[mid] = URL.createObjectURL(b); const pid = 'p' + uid().slice(-5); (R.photos || (R.photos = [])).push({ id: pid, mid, d: '在香港吃的菠萝包（拿在手里，包着白纸）', at: t - 60e3 });
     (R.script || (R.script = [])).push({ id: uid(), at: t, mode: 'time', st: 'wait', list: [{ ko: '[사진]', zh: '[照片]', ph: mid, pid }, { ko: '뽀로야오 먹었다🥹', zh: '吃了菠萝包🥹' }, { ko: '홍콩 오면 이건 꼭 먹어야 돼', zh: '来香港这个一定要吃' }] }); save(); } catch (e) { R.bun1128 = 0; save(); } }
+/* 经纪人接的、公司排的、YouTube 这些行程：时间只用整点 / 半点 / 一刻（:00 :15 :30 :45），不出现 13:37 这种 */
+function schedQ15() { const td = dkey(Date.now()), q = m => Math.round(m / 15) * 15; let ch = 0;
+  for (const r of S.schedule.rules) { if (!(r.mgr || r.yt || r.cbTask || r.popup || r.todo || r.srMeet) || r.repeat !== 'once' || (r.date || '') < td) continue; const s0 = toMin(r.start), e0 = toMin(r.end); if (s0 % 15 === 0 && e0 % 15 === 0) continue;
+    const ns = q(s0); let ne = q(e0); if (ne <= ns) ne = ns + 15; r.start = hhmm(ns); r.end = hhmm(Math.min(ne, 24 * 60 - 15)); ch = 1; }
+  for (const o of (mgr().offers || [])) { if (!o.start || !o.end) continue; const s0 = toMin(o.start), e0 = toMin(o.end); if (s0 % 15 === 0 && e0 % 15 === 0) continue; const ns = q(s0); let ne = q(e0); if (ne <= ns) ne = ns + 15; o.start = hhmm(ns); o.end = hhmm(ne); ch = 1; }
+  if (ch) save(); }
+function ytMove1128() { if (S.ytMove1128) return; S.ytMove1128 = 1; for (const r of S.schedule.rules) if (r.date === '2026-11-28' && r.yt && /Love wins all/i.test(r.title || '')) { r.date = '2026-11-29'; const p = (typeof yt === 'function' ? yt().plans : []).find(x => x.id === r.yt); if (p) { if (p.date) p.date = '2026-11-29'; } const k = '2026-11-28|' + r.id; if (S.schedule.done) delete S.schedule.done[k]; if (S.schedule.res) delete S.schedule.res[k]; try { const T = tgState(); delete T.cards[k]; } catch (e) { } } save(); } /* 悄悄挪到周日 */
 function freeze1111() { if (S.frz1111) return; S.frz1111 = 1; try { srBackup('freeze1111'); } catch (e) { }
   const t0 = parseD('2026-11-11').getTime() + 300 * 60e3, t1 = parseD('2026-11-16').getTime() + 300 * 60e3, inW = t => t >= t0 && t < t1, DS = ['2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
   const F = fanState(); let net = 0; for (const k of DS) { const d = F.days[k]; if (d) { net += d.net || 0; delete F.days[k]; } } S.profile.followers = Math.max(0, S.profile.followers - net);
@@ -12729,7 +12736,8 @@ function chalTick() {
     }
     if (x.st === 'ok') {
       const rs = rulesFor(x.date).filter(r => CH_DAY_CATS.includes(r.cat)), end = x.relMin != null ? x.relMin : rs.length ? Math.max(...rs.map(r => toMin(r.end))) : 18 * 60;
-      if (x.date < today || (x.date === today && nm >= end + 60)) {
+      if ((x.date < today || (x.date === today && nm >= end + 60)) && !x.pubAt && !x.pubNow) { x.pubAt = chPubAt(x); const pd = new Date(x.pubAt); pushNotif({ type: 'cb', text: `🎬 和 ${x.p.g} ${x.p.z || x.p.n} 的 challenge 拍好了`, sub: `安排在 ${pd.getMonth() + 1}/${pd.getDate()} ${hhmm(pd.getHours() * 60 + pd.getMinutes())} 发布` }, false); save(); }
+      if (x.pubAt && now >= x.pubAt) {
         const f = S.profile.followers, [views, likes] = chViews(x.p.tier, x.mult || 1, x.p);
         const fans = Math.round(Math.min(views * rand(.002, .006), f * .03));
         x.st = 'done'; x.views = views; x.likes = likes; x.fans = fans; addFans(fans, 'Challenge：' + x.p.g + ' ' + x.p.n);
@@ -12741,11 +12749,16 @@ function chalTick() {
 }
 // 数量要合理：一天最多拍 1 个；7 天内最多 2 个，回归打歌期 3 个（被婉拒的不算）
 function chLimit(k) {
-  const L = chal().list.filter(x => x && x.st !== 'no' && /^\d{4}-\d\d-\d\d$/.test(x.date || '')), cap = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? 3 : 2;
+  const L = chal().list.filter(x => x && x.st !== 'no' && /^\d{4}-\d\d-\d\d$/.test(x.date || ''));
   if (L.some(x => x.date === k)) return '这天已经约了一个了';
-  const near = L.filter(x => Math.abs((parseD(x.date) - parseD(k)) / 86400e3) < 7).length;
-  return near >= cap ? `前后一周已经有 ${near} 个 challenge 了，太密粉丝会腻` : '';
+  const q = L.filter(x => x.st === 'ok' && x.pubAt && x.pubAt > Date.now()).length;
+  return q >= 3 ? `已经有 ${q} 个拍好了还没发，先发完再拍` : ''; /* 拍可以连着拍，发布时间另外排开 */
 }
+/* 拍好的 challenge 什么时候发：和已经发 / 排好要发的错开，7 天内最多 2 个（回归打歌期 3 个），同一天不发两个；晚上 6 点到 9 点之间，整刻钟 */
+function chPubAt(x) { const cap = typeof cbPhase === 'function' && ['promo', 'follow'].includes(cbPhase()) ? 3 : 2, days = chal().list.filter(y => y !== x && y.st !== 'no' && (y.st === 'done' || y.pubAt)).map(y => y.pubDay || y.date);
+  const nm = new Date().getHours() * 60 + new Date().getMinutes(); let d = x.date < dkey(Date.now()) ? dkey(Date.now()) : x.date;
+  for (let i = 0; i < 30; i++, d = addDays(d, 1)) { if (days.includes(d)) continue; if (days.filter(k => Math.abs((parseD(k) - parseD(d)) / 86400e3) < 7).length >= cap) continue; let m = 18 * 60 + 15 * ri(0, 12); if (d === dkey(Date.now()) && m <= nm + 30) { if (nm + 30 > 22 * 60) continue; m = Math.ceil((nm + 30) / 15) * 15; } x.pubDay = d; return srTs ? parseD(d).getTime() + m * 60e3 : 0; }
+  x.pubDay = addDays(d, 0); return Date.now() + 864e5; }
 // 补 challenge：一天一天弹出来，和平时一样随机碰到三个人，选当时和谁拍了（已经拍了，不用再问对方）
 function chBfNext(n) {
   const C = chal(); C.bf = C.bf || {}; let l = chBackfillList();
@@ -12769,7 +12782,7 @@ function chBackfillHTML(list) {
 // 全部 challenge 记录
 function chLogHTML() {
   const L = chal().list.filter(x => x.st !== 'no' || x.p).slice().sort((a, b) => b.date.localeCompare(a.date) || b.at - a.at);
-  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">拍好了 · 待上传</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">播放 ${fmtNum(x.views)} · ❤️ ${fmtNum(x.likes || 0)} · +${fmtNum(x.fans)} 粉</span>`;
+  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? `<span style="color:var(--accent)">${x.pubAt ? `拍好了 · ${(d => `${d.getMonth() + 1}/${d.getDate()} ${hhmm(d.getHours() * 60 + d.getMinutes())}`)(new Date(x.pubAt))} 发布` : '拍好了 · 待上传'}</span>` : x.st === 'no' ? '<span class="muted">婉拒了</span>' : `<span style="color:var(--accent)">播放 ${fmtNum(x.views)} · ❤️ ${fmtNum(x.likes || 0)} · +${fmtNum(x.fans)} 粉</span>`;
   const done = L.filter(x => x.st === 'done'), tl = done.reduce((a, x) => a + (x.likes || 0), 0), tv = done.reduce((a, x) => a + (x.views || 0), 0), tf = done.reduce((a, x) => a + (x.fans || 0), 0);
   return `<div class="row"><h3 style="flex:1">🎬 Challenge 记录</h3><button class="btn ghost sm" data-act="close">关闭</button></div>
     <div class="muted" style="font-size:13px;margin-bottom:8px">已发布 ${done.length} 条 · 总播放 ${fmtNum(tv)} · 点赞 ${fmtNum(tl)} · 涨粉 ${fmtNum(tf)}</div>
@@ -12778,7 +12791,7 @@ function chLogHTML() {
 function chDayHTML(k) {
   const L = chal().list.filter(x => x.date === k);
   if (!L.length) return '';
-  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? '<span style="color:var(--accent)">答应了</span>' : x.st === 'no' ? '<span class="muted">婉拒了</span>' : '<span style="color:var(--accent)">已发布到 Shorts</span>';
+  const st = x => x.st === 'book' ? '<span style="color:var(--accent)">已预约</span>' : x.miss ? '<span class="muted">错过了</span>' : x.st === 'ask' ? '<span class="muted">等回复</span>' : x.st === 'ok' ? `<span style="color:var(--accent)">${x.pubAt ? `拍好了 · ${(d => `${d.getMonth() + 1}/${d.getDate()}`)(new Date(x.pubAt))} 发布` : '答应了'}</span>` : x.st === 'no' ? '<span class="muted">婉拒了</span>' : '<span style="color:var(--accent)">已发布到 Shorts</span>';
   return `<div class="card">${L.map(x => `<div class="rule"><span style="flex:1;min-width:0">🎬 ${esc(x.p.g)} ${esc(x.p.n)}${x.p.z ? `（${esc(x.p.z)}）` : ''} ${x.song[1] ? ` · 《${esc(x.song[1])}》` : ''}</span>${st(x)}</div>`).join('')}
 </div>`;
 }
